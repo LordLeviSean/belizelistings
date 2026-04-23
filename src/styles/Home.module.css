@@ -1,0 +1,163 @@
+/* =========================
+   GLOBAL PAGE
+========================= */
+.page {
+  display: flex;
+  flex-direction: column;
+
+  min-height: 100vh;
+  background: #0b0f14;
+  color: #eef3ee;
+
+  font-family: Inter, "Open Sans", Arial, sans-serif;
+}
+
+/* =========================
+   HEADER
+========================= */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: 600;
+  color: #eef3ee;
+}
+
+.nav {
+  display: flex;
+  gap: 24px;
+  font-size: 14px;
+  color: #aab0b2;
+}
+
+.nav span,
+.nav a {
+  cursor: pointer;
+}
+
+.active {
+  color: #eef3ee;
+  border-bottom: 2px solid #5c735f;
+  padding-bottom: 2px;
+}
+
+/* =========================
+   FILTER BAR
+========================= */
+.filterBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 16px 24px;
+  gap: 16px;
+
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.search {
+  font-size: 14px;
+  color: #cfd6cf;
+}
+
+.filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+.filterButton {
+  padding: 8px 14px;
+  border-radius: 999px;
+
+  border: 1px solid rgba(255,255,255,0.08);
+  background: #14181c;
+
+  color: #aab0b2;
+  font-size: 13px;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterButton:hover {
+  border-color: #5c735f;
+}
+
+.activeFilter {
+  background: #5c735f;
+  color: #fff;
+  border-color: #5c735f;
+}
+
+/* =========================
+   INPUTS
+========================= */
+.input {
+  padding: 8px 12px;
+  border-radius: 10px;
+
+  border: 1px solid #2b3134;
+  background: #14181c;
+
+  color: #eef3ee;
+  font-size: 13px;
+
+  width: 100px;
+}
+
+/* =========================
+   LISTINGS (DISTRICT PAGE)
+========================= */
+.listingsOnly {
+  padding: 20px 24px;
+  max-width: 900px;
+}
+
+.listHeader {
+  margin-bottom: 16px;
+}
+
+.listHeader h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #dfe7df;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.empty {
+  color: #7f888c;
+  font-size: 14px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 900px) {
+  .filterBar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .filters {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}

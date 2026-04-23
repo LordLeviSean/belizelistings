@@ -1,0 +1,338 @@
+.page {
+  height: 100vh;
+  overflow: hidden;
+
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+
+  background: #0b0f14;
+  color: #f5f5f0;
+  font-family: Inter, "Open Sans", Arial, sans-serif;
+}
+
+.loadingText {
+  color: #b8c0c8;
+  font-size: 15px;
+}
+
+.muted {
+  color: #8a949e;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.notFoundPage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0b0f14;
+  color: #f5f5f0;
+  padding: 24px;
+}
+
+.notFoundInner {
+  max-width: 420px;
+  text-align: center;
+}
+
+/* LEFT SIDE — IMAGE */
+.hero {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+
+  background: #0f141a;
+  padding: 12px;
+}
+
+.heroImage {
+  object-fit: cover;
+  object-position: center;
+  border-radius: 14px;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.06),
+    0 10px 30px rgba(0,0,0,0.35);
+
+  cursor: pointer;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border-radius: 14px;
+
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 60%,
+    rgba(0,0,0,0.4)
+  );
+
+  pointer-events: none;
+}
+
+/* ARROWS */
+.arrowLeft,
+.arrowRight {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+
+  width: 36px;
+  height: 36px;
+
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+
+  background: rgba(0,0,0,0.5);
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  z-index: 5;
+
+  backdrop-filter: blur(6px);
+}
+
+.arrowLeft { left: 24px; }
+.arrowRight { right: 24px; }
+
+.arrowLeft:hover,
+.arrowRight:hover {
+  background: rgba(0,0,0,0.7);
+}
+
+/* DOTS */
+.dots {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  display: flex;
+  gap: 6px;
+
+  z-index: 5;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+
+  background: rgba(255,255,255,0.4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.activeDot {
+  background: white;
+  transform: scale(1.2);
+}
+
+/* THUMBNAILS */
+.thumbnails {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  display: flex;
+  gap: 6px;
+  z-index: 6;
+}
+
+.thumbBtn {
+  padding: 0;
+  width: 48px;
+  height: 36px;
+  border-radius: 6px;
+  opacity: 0.6;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.thumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.activeThumb {
+  opacity: 1;
+  border: 1px solid white;
+}
+
+/* FULLSCREEN */
+.fullscreen {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  z-index: 100;
+}
+
+.fullscreenImage {
+  object-fit: contain;
+}
+
+/* RIGHT SIDE — CONTENT */
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  padding: 40px 36px;
+  height: 100%;
+}
+
+/* HEADER (back + title + price) */
+.listingHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.title {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.price {
+  font-size: 22px;
+  font-weight: 700;
+  color: #dfe7df;
+}
+
+.location {
+  font-size: 13px;
+  color: #8a949e;
+}
+
+/* INFO GRID */
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 18px;
+
+  margin-top: 20px;
+}
+
+.infoBox {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  padding: 10px 12px;
+
+  border-radius: 10px;
+  background: #11161c;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.infoLabel {
+  font-size: 11px;
+  color: #7f888c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.infoValue {
+  font-size: 15px;
+  font-weight: 600;
+  color: #eef3ee;
+}
+
+/* DESCRIPTION */
+.description {
+  margin-top: 20px;
+
+  font-size: 14px;
+  line-height: 1.6;
+  color: #aab0b2;
+
+  max-width: 420px;
+}
+
+/* ACTION BUTTONS */
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.primaryBtn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+
+  background: #47604f;
+  color: white;
+
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primaryBtn:hover {
+  background: #5d7a65;
+}
+
+.secondaryBtn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+
+  border: 1px solid rgba(255,255,255,0.1);
+  background: transparent;
+  color: #cfd6cf;
+
+  cursor: pointer;
+}
+
+.secondaryBtn:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+/* NO PHOTO (hero) */
+.noImage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 100%;
+  width: 100%;
+
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #6b7377;
+  text-transform: uppercase;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .hero {
+    height: 40vh;
+  }
+
+  .container {
+    height: auto;
+  }
+}

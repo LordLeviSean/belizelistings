@@ -1,0 +1,107 @@
+.card {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 12px;
+
+  padding: 12px;
+
+  border-radius: 12px;
+  border: 1px solid #2a2f33;
+
+  background: #171a1d;
+
+  align-items: center; /* ✅ FIX */
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+
+  background: #1c2126;
+
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+
+  border-color: #3f4e45;
+}
+
+/* 🔥 CRITICAL IMAGE FIX */
+.image {
+  position: relative; /* REQUIRED for next/image fill */
+
+  width: 108px;
+  height: 86px;
+
+  flex-shrink: 0;
+
+  border-radius: 10px;
+  border: 1px solid #2b3134;
+
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+
+  overflow: hidden; /* prevents giant image bug */
+
+  display: block;
+}
+
+/* next/image */
+.imageTag {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.imagePlaceholder {
+  background: linear-gradient(135deg, #232629, #1a1d20);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.noImage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #6b7377;
+  text-transform: uppercase;
+}
+
+/* TEXT */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+}
+
+.price {
+  font-size: 18px; /* slight upgrade */
+  font-weight: 700;
+  color: #eef3ee;
+}
+
+.meta {
+  font-size: 13px;
+  color: #aab0b2;
+}
+
+.location {
+  font-size: 11px;
+  color: #7f888c;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

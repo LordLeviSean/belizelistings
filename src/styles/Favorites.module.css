@@ -1,0 +1,100 @@
+.page {
+  min-height: 100vh;
+  background: #0b0f14;
+  color: #f5f5f0;
+}
+
+.wrapper {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+
+/* HEADER */
+.header {
+  margin-bottom: 28px;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.header p {
+  color: #8e979b;
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+
+/* EMPTY */
+.empty {
+  text-align: center;
+  margin-top: 48px;
+  padding: 32px 20px;
+}
+
+.emptyTitle {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #e8ebe8;
+}
+
+.emptyText {
+  color: #8e979b;
+  margin: 0 0 24px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.cta {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #4f6b57;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.cta:hover {
+  background: #5d7a65;
+}
+
+/* LIST */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cardRow {
+  position: relative;
+}
+
+.cardSlot :global(a) {
+  width: 100%;
+}
+
+.removeBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 20, 26, 0.92);
+  color: #c8cfd0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.removeBtn:hover {
+  border-color: rgba(255, 90, 122, 0.45);
+  color: #ff9eb0;
+}

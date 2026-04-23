@@ -1,0 +1,194 @@
+.filterBar {
+  position: sticky;
+  top: 72px;
+  z-index: 30;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  
+  background: linear-gradient(
+  180deg,
+  rgba(11, 15, 20, 0.95),
+  rgba(11, 15, 20, 0.88)
+  );
+  
+  border-bottom: 1px solid rgba(245, 245, 240, 0.06);
+  backdrop-filter: blur(10px);
+  row-gap: 10px;
+  }
+  
+  /* SEARCH */
+  .searchGroup {
+  display: inline-flex;
+  align-items: center;
+  flex: 1 1 360px;
+  min-width: 280px;
+  height: 42px;
+  
+  border-radius: 10px;
+  border: 1px solid rgba(var(--glow-rgb), 0.2);
+  
+  background: linear-gradient(180deg, #111922, #0f151d);
+  
+  box-shadow:
+  0 0 0 1px rgba(245, 245, 240, 0.04) inset,
+  0 0 10px rgba(var(--glow-rgb), 0.06);
+  
+  overflow: hidden;
+  }
+  
+  .searchInputWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0 12px;
+  }
+  
+  .searchIcon {
+  color: #b8c0c8;
+  font-size: 14px;
+  }
+  
+  .searchInputWrap input {
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #f5f5f0;
+  font-size: 14px;
+  min-height: 44px;
+  }
+  
+  .searchInputWrap input::placeholder {
+  color: #8a949d;
+  }
+  
+  /* STATUS TOGGLE */
+  .statusToggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  height: 44px;
+  
+  border-radius: 10px;
+  border: 1px solid rgba(245, 245, 240, 0.12);
+  
+  background: rgba(20, 26, 33, 0.7);
+  backdrop-filter: blur(6px);
+  }
+  
+  .toggleButton {
+  border: 0;
+  background: transparent;
+  color: #b8c0c8;
+  font-size: 14px;
+  font-weight: 600;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  }
+  
+  .toggleButton:hover {
+  color: #f5f5f0;
+  background: rgba(71, 96, 79, 0.25);
+  }
+  
+  .toggleButtonActive {
+  color: #f5f5f0;
+  background: #47604f;
+  box-shadow: var(--glow-soft);
+  }
+  
+  /* FILTER GROUP */
+  .filterGroup {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  }
+  
+  .filterGroup select {
+  min-width: 128px;
+  height: 44px;
+  
+  border-radius: 10px;
+  border: 1px solid rgba(245, 245, 240, 0.12);
+  
+  background: #141a21;
+  color: #f5f5f0;
+  
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  }
+  
+  .filterGroup select:hover {
+  border-color: rgba(245, 245, 240, 0.35);
+  }
+  
+  /* MORE FILTERS */
+  .moreFiltersButton {
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  
+  border-radius: 10px;
+  border: 1px solid rgba(245, 245, 240, 0.12);
+  
+  background: #141a21;
+  color: #f5f5f0;
+  
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  
+  cursor: pointer;
+  white-space: nowrap;
+  }
+  
+  .moreFiltersButton:hover {
+  background: #161c23;
+  border-color: rgba(245, 245, 240, 0.35);
+  }
+  
+  /* FOCUS STATES */
+  .filterGroup select:focus,
+  .moreFiltersButton:focus,
+  .toggleButton:focus,
+  .searchInputWrap input:focus {
+  outline: none;
+  border-color: rgba(var(--glow-rgb), 0.5);
+  box-shadow: var(--glow-medium);
+  }
+  
+  /* MOBILE */
+  @media (max-width: 900px) {
+  .filterBar {
+  top: 64px;
+  padding: 10px 12px;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  }
+  
+  .filterBar::-webkit-scrollbar {
+  display: none;
+  }
+  
+  .statusToggle,
+  .filterGroup,
+  .moreFiltersButton {
+  flex: 0 0 auto;
+  }
+  
+  .searchGroup {
+  min-width: 280px;
+  flex: 1 0 320px;
+  }
+  }
+  
