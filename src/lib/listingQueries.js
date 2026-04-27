@@ -1,5 +1,4 @@
 import { supabase } from "./supabaseClient";
-import { mapListingWithImages, mapListingsWithImages } from "../utils/listingImage";
 
 function devWarnEmptyImages(listingCount, imageRowCount) {
   if (
@@ -36,17 +35,19 @@ export async function fetchApprovedListingsWithImages() {
     return { data: [], error };
   }
 
-  const list = (listings || []).map((listing) => ({
+  const normalized = (listings || []).map((listing) => ({
     ...listing,
-    images: listing.listing_images || [],
+    images: (listing.listing_images || [])
+      .filter((img) => img.image_url)
+      .sort((a, b) => a.position - b.position),
   }));
-  if (!list.length) {
+  if (!normalized.length) {
     return { data: [], error: null };
   }
-  const imageRowCount = list.reduce((sum, listing) => sum + (listing.listing_images?.length || 0), 0);
-  devWarnEmptyImages(list.length, imageRowCount);
+  const imageRowCount = normalized.reduce((sum, listing) => sum + (listing.images?.length || 0), 0);
+  devWarnEmptyImages(normalized.length, imageRowCount);
 
-  return { data: mapListingsWithImages(list), error: null };
+  return { data: normalized, error: null };
 }
 
 export async function fetchListingByIdWithImages(id) {
@@ -71,10 +72,9 @@ export async function fetchListingByIdWithImages(id) {
     return { data: null, error: null };
   }
 
-  const listingWithImages = {
-    ...listing,
-    images: listing.listing_images || [],
-  };
+  listing.images = (listing.listing_images || [])
+    .filter((img) => img.image_url)
+    .sort((a, b) => a.position - b.position);
   if (typeof window !== "undefined" && process.env.NODE_ENV === "development" && (listing.listing_images || []).length === 0) {
     console.warn(
       `[BelizeListings] No listing_images rows for listing id=${listing.id}. Add rows in Supabase or check RLS.`
@@ -82,7 +82,7 @@ export async function fetchListingByIdWithImages(id) {
   }
 
   return {
-    data: mapListingWithImages(listingWithImages),
+    data: listing,
     error: null,
   };
 }

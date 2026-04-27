@@ -122,7 +122,7 @@ export default function HomePage() {
     <div className={styles.page}>
       <SiteNav active="browse" />
 
-      <div className={styles.filterSection}>
+      <div className={`${styles.filterSection} safeFlexRow`}>
         <div className={styles.filterBarWrap}>
           <FilterBar
             listingType={listingType}
@@ -151,7 +151,7 @@ export default function HomePage() {
           />
         </section>
 
-        <aside className={styles.listPane}>
+        <aside className={`${styles.listPane} safeFlexCol`}>
           <div className={styles.listPaneHeader}>
             <h1 className={styles.listTitle}>Available Listings</h1>
             <p className={styles.listCount} aria-live="polite">
@@ -167,7 +167,7 @@ export default function HomePage() {
               </button>
             </div>
           ) : (
-            <div ref={listRef} className={styles.listings}>
+            <div ref={listRef} className={`${styles.listings} safeFlexCol`}>
               {filteredListings.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}

@@ -6,7 +6,7 @@ import { readNavAlertBadge } from "../utils/navBadge";
 import styles from "./SiteNav.module.css";
 
 /**
- * @param {{ active?: "browse" | "favorites" | "saved" }} props
+ * @param {{ active?: "browse" | "favorites" | "saved" | "dashboard" }} props
  */
 export default function SiteNav({ active = "browse" }) {
   const [alertCount, setAlertCount] = useState(0);
@@ -61,6 +61,15 @@ export default function SiteNav({ active = "browse" }) {
           </span>
         </Link>
 
+        {user ? (
+          <Link
+            href="/dashboard"
+            className={`${styles.navLink} ${active === "dashboard" ? styles.navLinkActive : ""}`}
+          >
+            Dashboard
+          </Link>
+        ) : null}
+
         <span className={styles.navLink}>List Property</span>
         <span className={styles.navLink}>Agents</span>
         {loading ? (
@@ -71,7 +80,7 @@ export default function SiteNav({ active = "browse" }) {
           </button>
         ) : (
           <Link href="/login" className={styles.navLink}>
-            Sign In
+            Login
           </Link>
         )}
       </nav>

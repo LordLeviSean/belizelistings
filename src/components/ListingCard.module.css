@@ -1,107 +1,98 @@
 .card {
-  display: grid;
-  grid-template-columns: 108px 1fr;
-  gap: 12px;
-
-  padding: 12px;
-
-  border-radius: 12px;
-  border: 1px solid #2a2f33;
-
-  background: #171a1d;
-
-  align-items: center; /* ✅ FIX */
-
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease,
-    background 0.2s ease;
-}
-
-.card:hover {
-  transform: translateY(-3px);
-
-  background: #1c2126;
-
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
-
-  border-color: #3f4e45;
-}
-
-/* 🔥 CRITICAL IMAGE FIX */
-.image {
-  position: relative; /* REQUIRED for next/image fill */
-
-  width: 108px;
-  height: 86px;
-
-  flex-shrink: 0;
+  display: block;
+  width: 100%;
+  max-width: 100%;
 
   border-radius: 10px;
-  border: 1px solid #2b3134;
+  border: 1px solid #2a2f33;
+  background: #171a1d;
 
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
+  padding: 10px;
 
-  overflow: hidden; /* prevents giant image bug */
-
-  display: block;
+  text-decoration: none;
+  color: inherit;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
-/* next/image */
-.imageTag {
+.inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  min-width: 0;
+  overflow: hidden;
+}
+
+.thumb {
+  /* flex default min-width: auto uses the image’s intrinsic width → row blows out */
+  flex: 0 0 90px;
+  width: 90px;
+  min-width: 0;
+  max-width: 90px;
+  height: 68px;
+
+  border-radius: 8px;
+  overflow: hidden;
+
+  background: #0f1113;
+
+  box-sizing: border-box;
+}
+
+.thumb img {
   width: 100%;
   height: 100%;
-  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
   object-fit: cover;
+  display: block;
 }
 
-.imagePlaceholder {
-  background: linear-gradient(135deg, #232629, #1a1d20);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.noImage {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: #6b7377;
-  text-transform: uppercase;
-}
-
-/* TEXT */
-.content {
+.info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
   justify-content: center;
+
+  gap: 2px;
+
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+
+  font-size: 14px;
+  font-weight: 600;
+  color: #e6e9ed;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .price {
-  font-size: 18px; /* slight upgrade */
-  font-weight: 700;
-  color: #eef3ee;
+  margin: 0;
+
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .meta {
-  font-size: 13px;
-  color: #aab0b2;
-}
+  margin: 0;
 
-.location {
   font-size: 11px;
-  color: #7f888c;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: #9aa3ad;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

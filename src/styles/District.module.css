@@ -129,111 +129,24 @@
   border-color: transparent;
 }
 
-/* LIST */
+/* LIST — matches homepage sidebar stack (vertical scroll context) */
+.listWrap {
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
 .list {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-}
-
-/* CARD */
-.card {
-  display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 20px;
-  position: relative;
-
-  padding: 14px;
-  border-radius: 14px;
-
-  background: linear-gradient(180deg, #12171d, #0f141a);
-  border: 1px solid rgba(255,255,255,0.06);
-
-  text-decoration: none;
-  color: inherit;
-
-  transition: all 0.2s ease;
-}
-
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    0 20px 40px rgba(0,0,0,0.5),
-    0 0 0 1px rgba(255,255,255,0.05);
-}
-
-/* ❤️ FAVORITE BUTTON */
-.favoriteBtn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-
-  width: 36px;
-  height: 36px;
-
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.08);
-
-  background: rgba(15,20,26,0.65);
-  backdrop-filter: blur(6px);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  font-size: 16px;
-  color: #6b7377;
-
-  cursor: pointer;
-  transition: all 0.25s ease;
-  z-index: 2;
-}
-
-.favoriteBtn:hover {
-  transform: scale(1.1);
-  color: #ff5a7a;
-}
-
-.favoriteBtn:active {
-  transform: scale(0.9);
-}
-
-/* Active state */
-.favActive {
-  color: #ff5a7a;
-  background: rgba(255,90,122,0.12);
-  border-color: rgba(255,90,122,0.3);
-}
-
-/* CONTENT */
-.cardContent {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-}
-
-.cardTitle {
-  font-size: 17px;
-  font-weight: 600;
-  color: #eef3ee;
-}
-
-.price {
-  font-size: 19px;
-  font-weight: 700;
-  color: #dfe7df;
-}
-
-.meta {
-  font-size: 13px;
-  color: #9aa09a;
-}
-
-.location {
-  font-size: 12px;
-  color: #6b7377;
-  margin-top: 4px;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  max-width: 640px;
+  margin: 0 auto;
+  overflow-x: hidden;
 }
 
 /* EMPTY */

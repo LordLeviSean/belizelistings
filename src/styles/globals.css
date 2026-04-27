@@ -41,6 +41,18 @@ a {
   text-decoration: none;
 }
 
+/* Flex safety: prevents min-width:auto from blocking shrink / ellipsis in flex layouts */
+.safeFlexRow {
+  display: flex;
+  min-width: 0;
+}
+
+.safeFlexCol {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;

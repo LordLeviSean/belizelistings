@@ -1,0 +1,137 @@
+.page {
+  min-height: 100vh;
+  background: #0b0f14;
+  color: #f5f5f0;
+}
+
+.main {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px 16px 36px;
+}
+
+.title {
+  margin: 0 0 16px;
+}
+
+.linkRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.dashboardLink {
+  border: 1px solid rgba(245, 245, 240, 0.15);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #f5f5f0;
+  text-decoration: none;
+}
+
+.dashboardLink:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dashboardListingBlock {
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.listingActionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.deleteListingButton {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: rgba(255, 0, 0, 0.08);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 0, 0, 0.2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.deleteListingButton:hover:not(:disabled) {
+  background: rgba(255, 0, 0, 0.12);
+  border-color: rgba(255, 0, 0, 0.35);
+}
+
+.deleteListingButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.sectionTitle {
+  margin: 0 0 10px;
+}
+
+.muted {
+  color: #bac4cf;
+}
+
+.form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  max-width: 460px;
+}
+
+.input,
+.textarea,
+.select {
+  border-radius: 8px;
+  border: 1px solid rgba(245, 245, 240, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  color: #f5f5f0;
+  padding: 10px;
+}
+
+.textarea {
+  min-height: 88px;
+}
+
+.primaryButton {
+  border-radius: 10px;
+  border: 1px solid rgba(var(--glow-rgb), 0.5);
+  background: rgba(var(--glow-rgb), 0.2);
+  color: #f5f5f0;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.primaryButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.listGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+  overflow-x: hidden;
+}
+
+.listingMeta {
+  margin: 0;
+  color: #bac4cf;
+  font-size: 14px;
+  min-width: 0;
+  flex: 1 1 auto;
+}

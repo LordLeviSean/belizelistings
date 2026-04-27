@@ -1,14 +1,12 @@
 import { useRouter } from "next/router";
-import Link from "next/link";
 import { useState, useEffect } from "react";
 import { fetchApprovedListingsWithImages } from "../../../lib/listingQueries";
 import { filterListings } from "../../../utils/filterListings";
-import useFavorites from "../../../hooks/useFavorites";
 import useScrollMemory from "../../../hooks/useScrollMemory";
 import useSavedSearches from "../../../hooks/useSavedSearches";
 import { cleanQuery } from "../../../utils/queryStringify";
 import { normalizeRouterQueryToFilters } from "../../../utils/savedSearchUtils";
-import ListingThumb from "../../../components/ListingThumb";
+import ListingCard from "../../../components/ListingCard";
 import styles from "../../../styles/District.module.css";
 import backStyles from "../../../styles/BackNav.module.css";
 
@@ -41,7 +39,6 @@ const updateQuery = (router, district, updates) => {
 export default function DistrictListings() {
   const router = useRouter();
   const { district, status } = router.query;
-  const { toggleFavorite, isFavorite } = useFavorites();
   const { saveSearch } = useSavedSearches();
   const [listingsData, setListingsData] = useState([]);
   const [saveUiSaved, setSaveUiSaved] = useState(false);
@@ -157,40 +154,12 @@ export default function DistrictListings() {
           </div>
         )}
 
-        <div className={styles.list}>
-          {filtered.map((listing) => (
-            <Link key={listing.id} href={`/listing/${listing.id}`} className={styles.card}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  toggleFavorite(listing.id);
-                }}
-                className={`${styles.favoriteBtn} ${isFavorite(listing.id) ? styles.favActive : ""}`}
-                aria-label={isFavorite(listing.id) ? "Remove from favorites" : "Add to favorites"}
-              >
-                ♥
-              </button>
-
-              <ListingThumb listing={listing} size={{ width: 160, height: 120 }} />
-
-              <div className={styles.cardContent}>
-                <h3 className={styles.cardTitle}>{listing.title}</h3>
-
-                <p className={styles.price}>
-                  {listing.price.toLocaleString()} {listing.currency}
-                </p>
-
-                <p className={styles.meta}>
-                  {listing.beds === 0 && listing.baths === 0 && listing.garage === 0
-                    ? "Land Property"
-                    : `${listing.beds} bd · ${listing.baths} ba · ${listing.garage} gr`}
-                </p>
-
-                <p className={styles.location}>{districtLabel}, Belize</p>
-              </div>
-            </Link>
-          ))}
+        <div className={styles.listWrap}>
+          <div className={styles.list}>
+            {filtered.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

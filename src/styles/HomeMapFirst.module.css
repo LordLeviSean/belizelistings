@@ -104,66 +104,40 @@
 /* MAIN LAYOUT */
 .mainSplit {
   display: grid;
-  grid-template-columns: 7fr 3fr;
-  gap: 12px;
-
-  padding: 10px 12px 12px;
-  height: calc(100vh - 130px);
-
-  /* 🔥 FIX */
-  position: relative;
-  z-index: 1;
+  grid-template-columns: 1fr 360px;
+  height: calc(100dvh - 130px);
+  gap: 16px;
+  padding: 16px;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 /* MAP */
 .mapPane {
-  border-radius: 12px;
-  border: 1px solid rgba(245, 245, 240, 0.06);
-  background: #10151b;
-
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
   overflow: hidden;
-  min-height: 100%;
-
-  box-shadow:
-    inset 0 0 0 1px rgba(245, 245, 240, 0.04),
-    0 0 14px rgba(var(--glow-rgb), 0.06);
-
-  /* 🔥 FIX */
-  position: relative;
-  z-index: 0;
+  background: #0f1418;
 }
 
 /* LIST PANEL */
 .listPane {
   display: flex;
   flex-direction: column;
-
-  border-radius: 12px;
-  border: 1px solid rgba(245, 245, 240, 0.08);
-  background: #11161c;
-
-  min-height: 100%;
+  height: 100%;
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 16px;
+  background: #12161a;
+  border: 1px solid #2a2f33;
   overflow: hidden;
-
-  box-shadow:
-    inset 0 0 0 1px rgba(245, 245, 240, 0.05),
-    -6px 0 16px rgba(0, 0, 0, 0.2);
-
-  /* 🔥 FIX (CRITICAL) */
-  position: relative;
-  z-index: 2;
 }
 
 /* HEADER */
 .listPaneHeader {
-  padding: 14px;
-  border-bottom: 1px solid rgba(245, 245, 240, 0.06);
-
-  background: linear-gradient(
-    180deg,
-    rgba(18, 23, 29, 0.95),
-    rgba(18, 23, 29, 0.8)
-  );
+  padding: 16px;
+  border-bottom: 1px solid #2a2f33;
 }
 
 .listPaneHeader h1 {
@@ -178,32 +152,19 @@
 
 /* LISTINGS */
 .listings {
+  /* Scroll container: intentional vertical scroll */
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
-
-  overflow-y: auto;
-  scroll-behavior: smooth;
-}
-
-/* SCROLLBAR */
-.listings::-webkit-scrollbar {
-  width: 6px;
-}
-
-.listings::-webkit-scrollbar-thumb {
-  background: rgba(57, 66, 75, 0.75);
-  border-radius: 10px;
-}
-
-.listings::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.listings {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(57, 66, 75, 0.75) transparent;
+  gap: 10px;
+  min-width: 0;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+  scrollbar-gutter: stable;
 }
 
 /* FILTER ROW (bar + save search) */

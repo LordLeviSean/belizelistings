@@ -1,9 +1,15 @@
+/*
+NOTE:
+This file mixes Tailwind + CSS Modules intentionally.
+Avoid introducing new layout logic in Tailwind.
+Use CSS modules for structural layout.
+*/
+
 import { useRouter } from "next/router";
-import Image from "next/image";
-import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import { fetchListingByIdWithImages } from "../../lib/listingQueries";
-import { getListingValidImages } from "../../utils/listingImage";
+import { createDebugger } from "@/lib/debug";
+import ListingImage from "@/components/ui/ListingImage";
+import { supabase } from "../../lib/supabaseClient";
 import styles from "../../styles/ListingDetail.module.css";
 import backStyles from "../../styles/BackNav.module.css";
 
@@ -18,26 +24,113 @@ export default function ListingPage() {
   const { id } = router.query;
 
   const [listing, setListing] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const touchStartX = useRef(null);
-
-  useEffect(() => {
-    if (!id) return;
-    queueMicrotask(() => setIndex(0));
-  }, [id]);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const debugRef = useRef(createDebugger("PUBLIC_PAGE"));
+  const [debugState, setDebugState] = useState({});
+  const isDebug =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("debug") === "true";
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
     (async () => {
-      const { data } = await fetchListingByIdWithImages(id);
-      if (!cancelled) setListing(data);
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("listings")
+          .select(`
+          *,
+          listing_images (
+            image_url,
+            position
+          )
+        `)
+          .eq("id", id)
+          .single();
+
+        debugRef.current.log("RAW_DB_RESPONSE", data);
+        debugRef.current.log("LISTING_FETCH", { data, error });
+
+        const images = (data?.listing_images || [])
+          .filter((img) => img?.image_url?.startsWith("http"))
+          .sort((a, b) => (a.position ?? 999) - (b.position ?? 999));
+        const mainImage = images.length > 0 ? images[0].image_url : null;
+
+        debugRef.current.log("FINAL_LISTING", data);
+        debugRef.current.log("IMAGES_ARRAY", data?.listing_images);
+        debugRef.current.log("MAIN_IMAGE", mainImage);
+        debugRef.current.log("IMAGE_COUNT", images.length);
+        debugRef.current.log("FIRST_IMAGE", images[0]?.image_url);
+
+        if (!cancelled) {
+          setListing(data);
+          setDebugState(debugRef.current.getState());
+        }
+
+        if (images.length === 0) {
+          setTimeout(async () => {
+            const retry = await supabase
+              .from("listings")
+              .select(`*, listing_images (image_url, position)`)
+              .eq("id", id)
+              .single();
+
+            debugRef.current.log("RETRY_FETCH", retry.data);
+
+            if (retry.data?.listing_images?.length > 0 && !cancelled) {
+              setListing(retry.data);
+              setDebugState(debugRef.current.getState());
+            }
+          }, 800);
+        }
+      } catch (fetchError) {
+        debugRef.current.log("LISTING_FETCH_FAILED", fetchError);
+        if (!cancelled) {
+          setListing(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, [id]);
+
+  const images = (listing?.listing_images || [])
+    .filter((img) => img && img.image_url && img.image_url.startsWith("http"))
+    .sort((a, b) => (a.position ?? 999) - (b.position ?? 999));
+  const mainImage = images[0]?.image_url;
+  useEffect(() => {
+    if (images.length === 0) return;
+    if (index >= images.length) setIndex(0);
+  }, [images, index]);
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (!lightboxOpen) return;
+      if (images.length === 0) return;
+
+      if (e.key === "ArrowRight") {
+        setIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+      }
+
+      if (e.key === "ArrowLeft") {
+        setIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+      }
+
+      if (e.key === "Escape") {
+        setLightboxOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [lightboxOpen, images.length]);
 
   if (!router.isReady) {
     return (
@@ -47,41 +140,10 @@ export default function ListingPage() {
     );
   }
 
-  if (!listing) {
-    return null;
-  }
+  if (loading) return <div>Loading listing...</div>;
 
-  const validImages = getListingValidImages(listing);
-  const hasImages = listing.images?.length > 0;
+  if (!listing) return <div>Listing not found</div>;
   const isLand = listing.beds === 0 && listing.baths === 0 && listing.garage === 0;
-
-  const prevImage = () => {
-    if (!hasImages) return;
-    setIndex((prev) => (prev === 0 ? validImages.length - 1 : prev - 1));
-  };
-
-  const nextImage = () => {
-    if (!hasImages) return;
-    setIndex((prev) => (prev === validImages.length - 1 ? 0 : prev + 1));
-  };
-
-  const handleTouchStart = (e) => {
-    if (!hasImages) return;
-    if (e.touches.length === 1) {
-      touchStartX.current = e.touches[0].clientX;
-    }
-  };
-
-  const handleTouchEnd = (e) => {
-    if (!hasImages || !touchStartX.current) return;
-
-    const delta = e.changedTouches[0].clientX - touchStartX.current;
-
-    if (delta > 50) prevImage();
-    else if (delta < -50) nextImage();
-
-    touchStartX.current = null;
-  };
 
   const handleBack = () => {
     if (typeof window !== "undefined" && window.history.state?.idx > 0) {
@@ -91,147 +153,172 @@ export default function ListingPage() {
     }
   };
 
+  console.log("IMAGES_FINAL:", images);
+  console.log("RAW_IMAGES_FROM_DB:", listing?.listing_images);
+  console.log("MAIN_IMAGE:", mainImage);
+  console.log("INDEX:", index);
+  console.log("CURRENT_IMAGE:", images[index]?.image_url);
+  console.log("IMAGE_COUNT:", images.length);
+
+  if (!images.length) {
+    return <div className="h-[420px] flex items-center justify-center">NO IMAGES</div>;
+  }
+
   return (
     <div className={styles.page}>
-      <div
-        className={styles.hero}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        {hasImages ? (
-          <>
-            <Image
-              src={validImages[index]}
-              alt={listing.title}
-              fill
-              priority
-              className={styles.heroImage}
-              onClick={() => setIsFullscreen(true)}
-            />
-
-            {validImages.length > 1 && (
-              <>
-                <button type="button" className={styles.arrowLeft} onClick={prevImage}>
-                  ‹
-                </button>
-                <button type="button" className={styles.arrowRight} onClick={nextImage}>
-                  ›
-                </button>
-
-                <div className={styles.dots}>
-                  {validImages.map((_, i) => (
-                    <span
-                      key={i}
-                      className={`${styles.dot} ${i === index ? styles.activeDot : ""}`}
-                      onClick={() => setIndex(i)}
-                    />
-                  ))}
-                </div>
-
-                <div className={styles.thumbnails}>
-                  {validImages.map((img, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      className={`${styles.thumbBtn} ${i === index ? styles.activeThumb : ""}`}
-                      onClick={() => setIndex(i)}
-                      aria-label={`Show image ${i + 1}`}
-                    >
-                      <Image
-                        src={img}
-                        alt=""
-                        width={72}
-                        height={54}
-                        className={styles.thumbImg}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </>
-        ) : (
-          <div className={styles.noImage}>NO PHOTO</div>
-        )}
-      </div>
-
-      {isFullscreen && hasImages && (
-        <div className={styles.fullscreen} onClick={() => setIsFullscreen(false)}>
-          <Image
-            src={validImages[index]}
-            alt=""
-            fill
-            className={styles.fullscreenImage}
+      <section className={`${styles.heroColumn} safeFlexCol`} aria-label="Listing photos">
+        <div
+          className={styles.mainImageFrame}
+          onClick={() => {
+            setLightboxOpen(true);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setLightboxOpen(true);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          <ListingImage
+            src={images[index]?.image_url}
+            alt="Listing"
+            mode="contain"
           />
-
-          <button
-            type="button"
-            className={styles.arrowLeft}
-            onClick={(e) => {
-              e.stopPropagation();
-              prevImage();
-            }}
-          >
-            ‹
-          </button>
-
-          <button
-            type="button"
-            className={styles.arrowRight}
-            onClick={(e) => {
-              e.stopPropagation();
-              nextImage();
-            }}
-          >
-            ›
-          </button>
         </div>
-      )}
+        {images.length > 1 && (
+          <div className={styles.thumbRow}>
+            {images.map((img, i) => (
+              <button
+                key={img.image_url || i}
+                type="button"
+                className={`${styles.thumbCell} ${i === index ? styles.thumbCellActive : ""}`}
+                onClick={() => {
+                  setIndex(i);
+                  setLightboxOpen(true);
+                }}
+                aria-label={`View photo ${i + 1}`}
+              >
+                <ListingImage src={img.image_url} alt="" mode="cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
 
-      <div className={styles.container}>
-        <div className={styles.listingHeader}>
+      <section className={`${styles.detailColumn} safeFlexCol`}>
+        <div className={styles.detailTop}>
           <button type="button" onClick={handleBack} className={backStyles.backSubtle}>
             ← Back
           </button>
-          <h1 className={styles.title}>{listing.title}</h1>
-          <p className={styles.price}>
-            {listing.price.toLocaleString()} {listing.currency}
-          </p>
-          <span className={styles.location}>
-            {formatDistrict(listing.district)}, Belize
-          </span>
         </div>
+        <div className={`${styles.detailBody} safeFlexCol`}>
+          <div className={`${styles.container} safeFlexCol`}>
+          <div className={`${styles.listingHeader} safeFlexCol`}>
+            <h1 className={styles.title}>{listing.title}</h1>
+            <p className={styles.price}>
+              {listing.price.toLocaleString()} {listing.currency}
+            </p>
+            <span className={styles.location}>
+              {formatDistrict(listing.district)}, Belize
+            </span>
+          </div>
 
-        <div className={styles.infoGrid}>
-          {isLand ? (
-            <Info label="Type" value="Land Property" />
-          ) : (
+          <div className={styles.infoGrid}>
+            {isLand ? (
+              <Info label="Type" value="Land Property" />
+            ) : (
+              <>
+                <Info label="Beds" value={listing.beds} />
+                <Info label="Baths" value={listing.baths} />
+                <Info label="Garage" value={listing.garage} />
+              </>
+            )}
+            <Info label="District" value={formatDistrict(listing.district)} />
+          </div>
+
+          <div className={styles.description}>
+            <p>
+              A well-positioned property in{" "}
+              <strong>{formatDistrict(listing.district)}</strong>, offering strong potential for both
+              living and investment.
+            </p>
+          </div>
+
+          <div className={styles.actions}>
+            <button type="button" className={styles.primaryBtn}>
+              Contact Agent
+            </button>
+            <button type="button" className={styles.secondaryBtn}>
+              Schedule Viewing
+            </button>
+          </div>
+          {isDebug && (
+            <div
+              style={{
+                marginTop: "40px",
+                padding: "20px",
+                background: "#0B0F14",
+                border: "1px solid #2A2F36",
+                borderRadius: "12px",
+                fontSize: "12px",
+                maxHeight: "300px",
+                overflow: "auto",
+              }}
+            >
+              <h3>SYSTEM DEBUG</h3>
+              <pre>{JSON.stringify(debugState, null, 2)}</pre>
+            </div>
+          )}
+          </div>
+        </div>
+      </section>
+
+      {lightboxOpen && (
+        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
+          <button
+            onClick={() => setLightboxOpen(false)}
+            className="absolute top-6 right-6 text-white text-3xl z-50"
+          >
+            ✕
+          </button>
+
+          <div
+            className="flex w-full items-center justify-center px-4"
+            style={{ height: "90dvh", maxHeight: "90dvh", minHeight: 0 }}
+          >
+            <ListingImage
+              src={images[index]?.image_url}
+              alt="Listing full size"
+              mode="contain"
+              style={{ maxHeight: "90dvh", width: "auto", maxWidth: "100%" }}
+            />
+          </div>
+
+          {images.length > 1 && (
             <>
-              <Info label="Beds" value={listing.beds} />
-              <Info label="Baths" value={listing.baths} />
-              <Info label="Garage" value={listing.garage} />
+              <button
+                onClick={() =>
+                  setIndex((prev) => (prev - 1 + images.length) % images.length)
+                }
+                className="absolute left-6 top-1/2 -translate-y-1/2 text-white text-4xl"
+              >
+                ‹
+              </button>
+
+              <button
+                onClick={() =>
+                  setIndex((prev) => (prev + 1) % images.length)
+                }
+                className="absolute right-6 top-1/2 -translate-y-1/2 text-white text-4xl"
+              >
+                ›
+              </button>
             </>
           )}
-          <Info label="District" value={formatDistrict(listing.district)} />
         </div>
-
-        <div className={styles.description}>
-          <p>
-            A well-positioned property in{" "}
-            <strong>{formatDistrict(listing.district)}</strong>, offering strong potential for both
-            living and investment.
-          </p>
-        </div>
-
-        <div className={styles.actions}>
-          <button type="button" className={styles.primaryBtn}>
-            Contact Agent
-          </button>
-          <button type="button" className={styles.secondaryBtn}>
-            Schedule Viewing
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
