@@ -342,31 +342,48 @@ export default function ListingPage() {
 
       <section className={`${styles.detailColumn} safeFlexCol`}>
         <div className={styles.detailTop}>
-          <button type="button" onClick={handleBack} className={backStyles.backSubtle}>
-            ← Back
-          </button>
-          {isAuthenticated ? (
-            <button
-              type="button"
-              aria-label={isFavorite(listing.id) ? "Remove from favorites" : "Add to favorites"}
-              aria-pressed={isFavorite(listing.id)}
-              onClick={() => toggleFavorite(listing.id)}
-              disabled={isBusy(listing.id)}
-              style={{
-                border: "1px solid #2a2f36",
-                background: "#12161c",
-                color: isFavorite(listing.id) ? "#ff4d6d" : "#d7dde4",
-                borderRadius: 999,
-                width: 38,
-                height: 38,
-                fontSize: 18,
-                lineHeight: 1,
-                cursor: isBusy(listing.id) ? "not-allowed" : "pointer",
-              }}
-            >
-              {isFavorite(listing.id) ? "♥" : "♡"}
-            </button>
-          ) : null}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "16px",
+            }}
+          >
+            <div>
+              <button type="button" onClick={handleBack} className={backStyles.backSubtle}>
+                ← Back
+              </button>
+            </div>
+            <div>
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  aria-label={isFavorite(listing.id) ? "Remove from favorites" : "Add to favorites"}
+                  aria-pressed={isFavorite(listing.id)}
+                  onClick={() => toggleFavorite(listing.id)}
+                  disabled={isBusy(listing.id)}
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "50%",
+                    background: "rgba(20, 24, 30, 0.7)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: isBusy(listing.id) ? "not-allowed" : "pointer",
+                    backdropFilter: "blur(6px)",
+                    color: isFavorite(listing.id) ? "#ff4d6d" : "#d7dde4",
+                    fontSize: 18,
+                    lineHeight: 1,
+                  }}
+                >
+                  {isFavorite(listing.id) ? "♥" : "♡"}
+                </button>
+              ) : null}
+            </div>
+          </div>
         </div>
         <div className={`${styles.detailBody} safeFlexCol`}>
           <div className={`${styles.container} safeFlexCol`}>

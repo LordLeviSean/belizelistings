@@ -8,14 +8,11 @@
   flex-wrap: wrap;
   padding: 12px 20px;
   
-  background: linear-gradient(
-  180deg,
-  rgba(11, 15, 20, 0.95),
-  rgba(11, 15, 20, 0.88)
-  );
-  
-  border-bottom: 1px solid rgba(245, 245, 240, 0.06);
-  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(18, 24, 33, 0.9), rgba(12, 17, 24, 0.82));
+  border: 1px solid rgba(245, 245, 240, 0.07);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.24);
   row-gap: 10px;
   }
   

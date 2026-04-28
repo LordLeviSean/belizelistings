@@ -25,37 +25,7 @@ export default function ListingCard({
   const isLand = listing?.beds === 0 && listing?.baths === 0 && listing?.garage === 0;
 
   return (
-    <div style={{ position: "relative" }}>
-      {showFavoriteButton ? (
-        <button
-          type="button"
-          aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
-          aria-pressed={isFavorited}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onToggleFavorite?.(listing.id);
-          }}
-          disabled={favoriteBusy}
-          style={{
-            position: "absolute",
-            top: 8,
-            right: 8,
-            zIndex: 2,
-            border: "none",
-            background: "rgba(15, 17, 19, 0.86)",
-            color: isFavorited ? "#ff4d6d" : "#d7dde4",
-            width: 32,
-            height: 32,
-            borderRadius: 999,
-            cursor: favoriteBusy ? "not-allowed" : "pointer",
-            fontSize: 17,
-            lineHeight: 1,
-          }}
-        >
-          {isFavorited ? "♥" : "♡"}
-        </button>
-      ) : null}
+    <div>
       <Link
         href={`/listing/${listing.id}`}
         className={styles.card}
@@ -64,6 +34,22 @@ export default function ListingCard({
         <div className={`${styles.inner} safeFlexRow`}>
           <div className={styles.thumb} aria-hidden="true">
             <img src={imageUrl} alt="" loading="lazy" />
+            {showFavoriteButton ? (
+              <button
+                type="button"
+                aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                aria-pressed={isFavorited}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onToggleFavorite?.(listing.id);
+                }}
+                disabled={favoriteBusy}
+                className={`${styles.favoriteBtn} ${isFavorited ? styles.favoriteBtnActive : ""}`}
+              >
+                {isFavorited ? "♥" : "♡"}
+              </button>
+            ) : null}
           </div>
           <div className={`${styles.info} safeFlexCol`}>
             <h3 className={styles.title}>{listing.title || "Untitled listing"}</h3>

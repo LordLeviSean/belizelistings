@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import useAuth from "./useAuth";
 import { addFavorite, getUserFavorites, removeFavorite } from "../lib/favorites";
+import { useToast } from "../components/ui/ToastProvider";
 
 export default function useFavorites() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyIds, setBusyIds] = useState([]);
@@ -43,17 +45,23 @@ export default function useFavorites() {
         const { error } = await removeFavorite(listingId);
         if (!error) {
           setFavorites((prev) => prev.filter((listing) => listing.id !== listingId));
+          showToast({ type: "info", message: "Removed from favorites" });
+        } else {
+          showToast({ type: "error", message: "Unable to update favorites" });
         }
       } else {
         const { error } = await addFavorite(listingId);
         if (!error) {
           const { data } = await getUserFavorites();
           setFavorites(data || []);
+          showToast({ type: "success", message: "Added to favorites" });
+        } else {
+          showToast({ type: "error", message: "Unable to update favorites" });
         }
       }
       setBusyIds((prev) => prev.filter((id) => id !== listingId));
     },
-    [user?.id, favoriteIds, isBusy]
+    [user?.id, favoriteIds, isBusy, showToast]
   );
 
   const removeFromFavorites = useCallback(
@@ -63,10 +71,13 @@ export default function useFavorites() {
       const { error } = await removeFavorite(listingId);
       if (!error) {
         setFavorites((prev) => prev.filter((listing) => listing.id !== listingId));
+        showToast({ type: "info", message: "Removed from favorites" });
+      } else {
+        showToast({ type: "error", message: "Unable to remove favorite" });
       }
       setBusyIds((prev) => prev.filter((id) => id !== listingId));
     },
-    [user?.id, isBusy]
+    [user?.id, isBusy, showToast]
   );
 
   const isFavorite = useCallback(

@@ -7,6 +7,7 @@ import ListingCard from "../../components/ListingCard";
 import AgentAccessGate from "../../components/AgentAccessGate";
 import DeleteConfirmModal from "../../components/DeleteConfirmModal";
 import useAuth from "../../hooks/useAuth";
+import { useToast } from "../../components/ui/ToastProvider";
 import { withReapprovalRequired } from "../../lib/listingReapproval";
 import { supabase } from "../../lib/supabaseClient";
 import styles from "../../styles/Dashboard.module.css";
@@ -14,6 +15,7 @@ import styles from "../../styles/Dashboard.module.css";
 export default function DashboardListingsPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const { showToast } = useToast();
   const [profileLoading, setProfileLoading] = useState(true);
   const [isAgent, setIsAgent] = useState(false);
   const [listings, setListings] = useState([]);
@@ -116,8 +118,10 @@ export default function DashboardListingsPage() {
       .eq("id", listingId);
     if (!error) {
       setListings((prev) => prev.map((l) => (l.id === listingId ? { ...l, status: "pending" } : l)));
+      showToast({ type: "success", message: "Listing submitted for review" });
     } else {
       console.error("Submit for review error:", error);
+      showToast({ type: "error", message: "Unable to submit listing" });
     }
     setSubmittingId(null);
   };
@@ -137,6 +141,9 @@ export default function DashboardListingsPage() {
       setDeleteModalOpen(false);
       setSelectedListing(null);
       setListings((prev) => prev.filter((l) => l.id !== listingId));
+      showToast({ type: "success", message: "Listing removed" });
+    } else {
+      showToast({ type: "error", message: "Unable to remove listing" });
     }
     setIsDeleting(false);
   };

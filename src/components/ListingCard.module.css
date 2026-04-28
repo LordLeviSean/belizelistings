@@ -13,6 +13,13 @@
   color: inherit;
   box-sizing: border-box;
   min-width: 0;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(106, 206, 196, 0.28);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(106, 206, 196, 0.16);
 }
 
 .inner {
@@ -38,6 +45,7 @@
   background: #0f1113;
 
   box-sizing: border-box;
+  position: relative;
 }
 
 .thumb img {
@@ -49,6 +57,11 @@
   min-height: 0;
   object-fit: cover;
   display: block;
+  transition: transform 0.25s ease;
+}
+
+.card:hover .thumb img {
+  transform: scale(1.06);
 }
 
 .info {
@@ -77,7 +90,7 @@
 .price {
   margin: 0;
 
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: #ffffff;
 
@@ -90,9 +103,49 @@
   margin: 0;
 
   font-size: 11px;
-  color: #9aa3ad;
+  color: #84909d;
 
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.favoriteBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(11, 15, 20, 0.74);
+  color: #d7dde4;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.favoriteBtn:hover {
+  box-shadow: 0 0 0 1px rgba(106, 206, 196, 0.24), 0 8px 20px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px) scale(1.04);
+}
+
+.favoriteBtnActive {
+  color: #ff5d7a;
+  background: rgba(36, 12, 20, 0.8);
+  animation: favoritePop 0.18s ease;
+}
+
+@keyframes favoritePop {
+  0% {
+    transform: scale(0.88);
+  }
+  100% {
+    transform: scale(1);
+  }
 }

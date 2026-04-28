@@ -1,6 +1,19 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --bg-main: #0b0f14;
+  --bg-card: #121821;
+  --bg-elevated: #161d27;
+  --border-subtle: rgba(255,255,255,0.06);
+  --border-strong: rgba(255,255,255,0.12);
+  --text-primary: #e6edf3;
+  --text-secondary: #9da7b3;
+  --accent: #1f7a4f;
+  --accent-hover: #249a63;
+  --danger: #b42318;
+  --danger-hover: #d92d20;
+  --warning: #f79009;
+  --radius: 14px;
   --motion-fast: 220ms;
   --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --glow-rgb: 106, 206, 196;
