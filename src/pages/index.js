@@ -9,6 +9,7 @@ import { fetchApprovedListingsWithImages } from "../lib/listingQueries";
 import { filterListings } from "../utils/filterListings";
 import { cleanQuery, stableStringifyQuery } from "../utils/queryStringify";
 import useScrollMemory from "../hooks/useScrollMemory";
+import useFavorites from "../hooks/useFavorites";
 
 import styles from "../styles/HomeMapFirst.module.css";
 
@@ -49,6 +50,7 @@ export default function HomePage() {
   const [maxPrice, setMaxPrice] = useState("");
   const [beds, setBeds] = useState("");
   const [baths, setBaths] = useState("");
+  const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
 
   useEffect(() => {
     let cancelled = false;
@@ -169,7 +171,14 @@ export default function HomePage() {
           ) : (
             <div ref={listRef} className={`${styles.listings} safeFlexCol`}>
               {filteredListings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
+                <ListingCard
+                  key={listing.id}
+                  listing={listing}
+                  showFavoriteButton={isAuthenticated}
+                  isFavorited={isFavorite(listing.id)}
+                  favoriteBusy={isBusy(listing.id)}
+                  onToggleFavorite={toggleFavorite}
+                />
               ))}
             </div>
           )}

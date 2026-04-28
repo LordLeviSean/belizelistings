@@ -7,6 +7,7 @@ import ListingCard from "../../components/ListingCard";
 import AgentAccessGate from "../../components/AgentAccessGate";
 import DeleteConfirmModal from "../../components/DeleteConfirmModal";
 import useAuth from "../../hooks/useAuth";
+import { withReapprovalRequired } from "../../lib/listingReapproval";
 import { supabase } from "../../lib/supabaseClient";
 import styles from "../../styles/Dashboard.module.css";
 
@@ -20,6 +21,7 @@ export default function DashboardListingsPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [submittingId, setSubmittingId] = useState(null);
   const debugRef = useRef(createDebugger("DASHBOARD"));
   const [debugState, setDebugState] = useState({});
   const isDebug =
@@ -57,6 +59,7 @@ export default function DashboardListingsPage() {
 
     const loadListings = async () => {
       setListingsLoading(true);
+      // AGENT: all own rows — no status filter
       const { data } = await supabase
         .from("listings")
         .select(`
@@ -66,8 +69,7 @@ export default function DashboardListingsPage() {
             position
           )
         `)
-        .eq("agent_id", user.id)
-        .neq("status", "deleted")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       debugRef.current.log("RAW_LISTINGS", data);
 
@@ -90,11 +92,42 @@ export default function DashboardListingsPage() {
     };
   }, [user?.id, isAgent]);
 
+  function statusLabel(status) {
+    switch (status) {
+      case "draft":
+        return "Draft";
+      case "pending":
+        return "Pending Approval";
+      case "approved":
+        return "Approved";
+      case "rejected":
+        return "Rejected";
+      default:
+        return status || "—";
+    }
+  }
+
+  const handleSubmitForReview = async (listingId) => {
+    if (!listingId) return;
+    setSubmittingId(listingId);
+    const { error } = await supabase
+      .from("listings")
+      .update(withReapprovalRequired({ status: "pending" }))
+      .eq("id", listingId);
+    if (!error) {
+      setListings((prev) => prev.map((l) => (l.id === listingId ? { ...l, status: "pending" } : l)));
+    } else {
+      console.error("Submit for review error:", error);
+    }
+    setSubmittingId(null);
+  };
+
   const handleDelete = async (listingId) => {
     if (!listingId) return;
     setIsDeleting(true);
     debugRef.current.log("DELETE_START", listingId);
 
+    // Intentionally not using withReapprovalRequired — soft-delete is not a content edit
     const { data, error } = await supabase.from("listings").update({ status: "deleted" }).eq("id", listingId).select();
 
     debugRef.current.log("DELETE_RESULT", { data, error });
@@ -152,20 +185,37 @@ export default function DashboardListingsPage() {
               <div key={listing.id} className={styles.dashboardListingBlock}>
                 <ListingCard listing={listing} />
                 <div className={styles.listingActionRow}>
-                  <p className={styles.listingMeta}>
-                    <strong>{listing.title}</strong> — Status: {listing.status || "pending"}
-                  </p>
-                  <button
-                    type="button"
-                    className={styles.deleteListingButton}
-                    disabled={isDeleting}
-                    onClick={() => {
-                      setSelectedListing(listing);
-                      setDeleteModalOpen(true);
-                    }}
-                  >
-                    {isDeleting ? "Deleting..." : "Delete"}
-                  </button>
+                  <div className={styles.listingMeta}>
+                    <p>
+                      <strong>{listing.title}</strong> — Status: {statusLabel(listing.status)}
+                    </p>
+                    {listing.status === "rejected" && listing.rejection_reason ? (
+                      <p className={styles.rejectionNote}>Reason: {listing.rejection_reason}</p>
+                    ) : null}
+                  </div>
+                  <div className={styles.listingButtonGroup}>
+                    {listing.status === "draft" ? (
+                      <button
+                        type="button"
+                        className={styles.submitReviewButton}
+                        disabled={submittingId === listing.id}
+                        onClick={() => handleSubmitForReview(listing.id)}
+                      >
+                        {submittingId === listing.id ? "Submitting…" : "Submit for Review"}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className={styles.deleteListingButton}
+                      disabled={isDeleting}
+                      onClick={() => {
+                        setSelectedListing(listing);
+                        setDeleteModalOpen(true);
+                      }}
+                    >
+                      {isDeleting ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

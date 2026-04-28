@@ -2,9 +2,9 @@
 alter table profiles
 add column if not exists role text default 'user';
 
--- Add agent_id + timestamps to listings
+-- Listings: owner is user_id (no agent_id)
 alter table listings
-add column if not exists agent_id uuid references profiles(id),
+add column if not exists user_id uuid references profiles(id),
 add column if not exists created_at timestamp default now(),
 add column if not exists updated_at timestamp default now();
 
@@ -22,21 +22,28 @@ create table if not exists agent_requests (
 alter table listings enable row level security;
 alter table agent_requests enable row level security;
 
--- listings
-create policy if not exists "Public read approved listings"
-on listings for select
-to anon, authenticated
-using (status = 'approved');
-
+-- Listings RLS: use supabase-listings-migrate-to-user-id.sql in production
+-- (full policy set with user_id + admin + public approved)
 create policy if not exists "Agents can view own listings"
 on listings for select
 to authenticated
-using (auth.uid() = agent_id);
+using (auth.uid() = user_id);
 
 create policy if not exists "Agents can insert listings"
 on listings for insert
 to authenticated
-with check (auth.uid() = agent_id);
+with check (auth.uid() = user_id);
+
+create policy if not exists "Agents can update own listings"
+on listings for update
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+create policy if not exists "Agents can delete own listings"
+on listings for delete
+to authenticated
+using (auth.uid() = user_id);
 
 -- agent_requests
 create policy if not exists "Users can create requests"

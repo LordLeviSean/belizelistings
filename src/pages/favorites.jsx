@@ -3,25 +3,17 @@ import Link from "next/link";
 import useFavorites from "../hooks/useFavorites";
 import SiteNav from "../components/SiteNav";
 import ListingCard from "../components/ListingCard";
-import { fetchApprovedListingsWithImages } from "../lib/listingQueries";
 import styles from "../styles/Favorites.module.css";
 
 export default function FavoritesPage() {
-  const { favorites, removeFavorite } = useFavorites();
-  const [listingsData, setListingsData] = useState([]);
+  const { favorites, removeFavorite, isBusy, loading } = useFavorites();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await fetchApprovedListingsWithImages();
-      if (!cancelled) setListingsData(data);
-    })();
-    return () => {
-      cancelled = true;
-    };
+    setReady(true);
   }, []);
 
-  const favoriteListings = listingsData.filter((l) => favorites.includes(l.id));
+  const favoriteListings = favorites;
 
   return (
     <div className={styles.page}>
@@ -33,7 +25,11 @@ export default function FavoritesPage() {
           <p>{favoriteListings.length} saved properties</p>
         </div>
 
-        {favoriteListings.length === 0 ? (
+        {!ready || loading ? (
+          <div className={styles.empty}>
+            <h2 className={styles.emptyTitle}>Loading saved listings...</h2>
+          </div>
+        ) : favoriteListings.length === 0 ? (
           <div className={styles.empty}>
             <h2 className={styles.emptyTitle}>Nothing saved yet</h2>
             <p className={styles.emptyText}>Tap the heart icon to save listings</p>
@@ -49,12 +45,19 @@ export default function FavoritesPage() {
                   type="button"
                   className={styles.removeBtn}
                   onClick={() => removeFavorite(listing.id)}
+                  disabled={isBusy(listing.id)}
                   aria-label={`Remove ${listing.title} from favorites`}
                 >
-                  Remove
+                  {isBusy(listing.id) ? "Removing..." : "Remove"}
                 </button>
                 <div className={styles.cardSlot}>
-                  <ListingCard listing={listing} />
+                  <ListingCard
+                    listing={listing}
+                    showFavoriteButton
+                    isFavorited
+                    favoriteBusy={isBusy(listing.id)}
+                    onToggleFavorite={removeFavorite}
+                  />
                 </div>
               </div>
             ))}

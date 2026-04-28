@@ -7,6 +7,7 @@ import useSavedSearches from "../../../hooks/useSavedSearches";
 import { cleanQuery } from "../../../utils/queryStringify";
 import { normalizeRouterQueryToFilters } from "../../../utils/savedSearchUtils";
 import ListingCard from "../../../components/ListingCard";
+import useFavorites from "../../../hooks/useFavorites";
 import styles from "../../../styles/District.module.css";
 import backStyles from "../../../styles/BackNav.module.css";
 
@@ -40,6 +41,7 @@ export default function DistrictListings() {
   const router = useRouter();
   const { district, status } = router.query;
   const { saveSearch } = useSavedSearches();
+  const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
   const [listingsData, setListingsData] = useState([]);
   const [saveUiSaved, setSaveUiSaved] = useState(false);
 
@@ -157,7 +159,14 @@ export default function DistrictListings() {
         <div className={styles.listWrap}>
           <div className={styles.list}>
             {filtered.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                showFavoriteButton={isAuthenticated}
+                isFavorited={isFavorite(listing.id)}
+                favoriteBusy={isBusy(listing.id)}
+                onToggleFavorite={toggleFavorite}
+              />
             ))}
           </div>
         </div>

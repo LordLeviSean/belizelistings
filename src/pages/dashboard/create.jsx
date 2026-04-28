@@ -100,8 +100,8 @@ export default function DashboardCreatePage() {
       baths,
       garage: 0,
       currency: "BZD",
-      status: "pending",
-      agent_id: user.id,
+      status: "draft",
+      user_id: user.id,
     };
     console.log("AUTH USER ID:", user.id);
     console.log("INSERT PAYLOAD:", payload);

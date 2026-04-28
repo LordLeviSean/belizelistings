@@ -10,6 +10,7 @@ import { useState, useRef, useEffect } from "react";
 import { createDebugger } from "@/lib/debug";
 import ListingImage from "@/components/ui/ListingImage";
 import { supabase } from "../../lib/supabaseClient";
+import useFavorites from "../../hooks/useFavorites";
 import styles from "../../styles/ListingDetail.module.css";
 import backStyles from "../../styles/BackNav.module.css";
 
@@ -27,8 +28,14 @@ export default function ListingPage() {
   const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImageOpacity, setLightboxImageOpacity] = useState(1);
+  const [heroDip, setHeroDip] = useState(false);
+  const idRefForHeroDip = useRef();
+  const touchStartXRef = useRef(null);
+  const skipHeroClickRef = useRef(false);
   const debugRef = useRef(createDebugger("PUBLIC_PAGE"));
   const [debugState, setDebugState] = useState({});
+  const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
   const isDebug =
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("debug") === "true";
@@ -39,7 +46,11 @@ export default function ListingPage() {
     (async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        let listingQuery = supabase
           .from("listings")
           .select(`
           *,
@@ -48,12 +59,23 @@ export default function ListingPage() {
             position
           )
         `)
-          .eq("id", id)
-          .single();
+          .eq("id", id);
+
+        listingQuery = user?.id
+          ? listingQuery.or(`status.eq.approved,user_id.eq.${user.id}`)
+          : listingQuery.eq("status", "approved");
+
+        const { data, error } = await listingQuery.single();
 
         debugRef.current.log("RAW_DB_RESPONSE", data);
         debugRef.current.log("LISTING_FETCH", { data, error });
 
+        if (error || !data) {
+          if (!cancelled) {
+            setListing(null);
+            setDebugState(debugRef.current.getState());
+          }
+        } else {
         const images = (data?.listing_images || [])
           .filter((img) => img?.image_url?.startsWith("http"))
           .sort((a, b) => (a.position ?? 999) - (b.position ?? 999));
@@ -72,11 +94,16 @@ export default function ListingPage() {
 
         if (images.length === 0) {
           setTimeout(async () => {
-            const retry = await supabase
+            let retryQuery = supabase
               .from("listings")
               .select(`*, listing_images (image_url, position)`)
-              .eq("id", id)
-              .single();
+              .eq("id", id);
+
+            retryQuery = user?.id
+              ? retryQuery.or(`status.eq.approved,user_id.eq.${user.id}`)
+              : retryQuery.eq("status", "approved");
+
+            const retry = await retryQuery.single();
 
             debugRef.current.log("RETRY_FETCH", retry.data);
 
@@ -85,6 +112,7 @@ export default function ListingPage() {
               setDebugState(debugRef.current.getState());
             }
           }, 800);
+        }
         }
       } catch (fetchError) {
         debugRef.current.log("LISTING_FETCH_FAILED", fetchError);
@@ -106,24 +134,63 @@ export default function ListingPage() {
     .filter((img) => img && img.image_url && img.image_url.startsWith("http"))
     .sort((a, b) => (a.position ?? 999) - (b.position ?? 999));
   const mainImage = images[0]?.image_url;
+
+  useEffect(() => {
+    setIndex(0);
+  }, [id]);
+
   useEffect(() => {
     if (images.length === 0) return;
-    if (index >= images.length) setIndex(0);
-  }, [images, index]);
+    setIndex((i) => Math.min(Math.max(0, i), images.length - 1));
+  }, [images.length, listing?.id]);
+
+  useEffect(() => {
+    if (idRefForHeroDip.current === undefined) {
+      idRefForHeroDip.current = id;
+      return;
+    }
+    if (idRefForHeroDip.current !== id) {
+      idRefForHeroDip.current = id;
+      return;
+    }
+    setHeroDip(true);
+    const t = window.setTimeout(() => setHeroDip(false), 140);
+    return () => window.clearTimeout(t);
+  }, [index, id]);
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    setLightboxImageOpacity(0.88);
+    const t = window.setTimeout(() => setLightboxImageOpacity(1), 60);
+    return () => window.clearTimeout(t);
+  }, [index, lightboxOpen]);
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [lightboxOpen]);
+
   useEffect(() => {
     const handleKey = (e) => {
       if (!lightboxOpen) return;
       if (images.length === 0) return;
 
       if (e.key === "ArrowRight") {
+        e.preventDefault();
         setIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
       }
 
       if (e.key === "ArrowLeft") {
+        e.preventDefault();
         setIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
       }
 
       if (e.key === "Escape") {
+        e.preventDefault();
         setLightboxOpen(false);
       }
     };
@@ -131,6 +198,44 @@ export default function ListingPage() {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [lightboxOpen, images.length]);
+
+  const goPrev = () => {
+    if (images.length === 0) return;
+    setIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const goNext = () => {
+    if (images.length === 0) return;
+    setIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+
+  const onHeroTouchStart = (e) => {
+    if (e.touches.length !== 1) return;
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+
+  const onHeroTouchEnd = (e) => {
+    if (touchStartXRef.current == null) return;
+    if (e.changedTouches.length !== 1) {
+      touchStartXRef.current = null;
+      return;
+    }
+    const dx = e.changedTouches[0].clientX - touchStartXRef.current;
+    touchStartXRef.current = null;
+    if (images.length < 2) return;
+    if (Math.abs(dx) < 50) return;
+    skipHeroClickRef.current = true;
+    window.setTimeout(() => {
+      skipHeroClickRef.current = false;
+    }, 350);
+    if (dx > 0) goPrev();
+    else goNext();
+  };
+
+  const onMainImageFrameClick = () => {
+    if (skipHeroClickRef.current) return;
+    setLightboxOpen(true);
+  };
 
   if (!router.isReady) {
     return (
@@ -169,23 +274,54 @@ export default function ListingPage() {
       <section className={`${styles.heroColumn} safeFlexCol`} aria-label="Listing photos">
         <div
           className={styles.mainImageFrame}
-          onClick={() => {
-            setLightboxOpen(true);
-          }}
+          onClick={onMainImageFrameClick}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              setLightboxOpen(true);
+              onMainImageFrameClick();
             }
           }}
+          onTouchStart={onHeroTouchStart}
+          onTouchEnd={onHeroTouchEnd}
           role="button"
           tabIndex={0}
         >
-          <ListingImage
-            src={images[index]?.image_url}
-            alt="Listing"
-            mode="contain"
-          />
+          {images.length > 1 ? (
+            <>
+              <button
+                type="button"
+                className={`${styles.heroNavZone} ${styles.heroNavZonePrev}`}
+                aria-label="Previous photo"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goPrev();
+                }}
+              />
+              <button
+                type="button"
+                className={`${styles.heroNavZone} ${styles.heroNavZoneNext}`}
+                aria-label="Next photo"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goNext();
+                }}
+              />
+            </>
+          ) : null}
+          <div className={styles.imageCounter} aria-hidden="true">
+            {index + 1} / {images.length}
+          </div>
+          <div className={styles.imageStage}>
+            <div
+              className={`${styles.heroImage} ${heroDip ? styles.heroImageFadeChanging : ""}`}
+            >
+              <ListingImage
+                src={images[index]?.image_url}
+                alt="Listing"
+                mode="contain"
+              />
+            </div>
+          </div>
         </div>
         {images.length > 1 && (
           <div className={styles.thumbRow}>
@@ -194,11 +330,8 @@ export default function ListingPage() {
                 key={img.image_url || i}
                 type="button"
                 className={`${styles.thumbCell} ${i === index ? styles.thumbCellActive : ""}`}
-                onClick={() => {
-                  setIndex(i);
-                  setLightboxOpen(true);
-                }}
-                aria-label={`View photo ${i + 1}`}
+                onClick={() => setIndex(i)}
+                aria-label={`Show photo ${i + 1} in gallery`}
               >
                 <ListingImage src={img.image_url} alt="" mode="cover" />
               </button>
@@ -212,6 +345,28 @@ export default function ListingPage() {
           <button type="button" onClick={handleBack} className={backStyles.backSubtle}>
             ← Back
           </button>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              aria-label={isFavorite(listing.id) ? "Remove from favorites" : "Add to favorites"}
+              aria-pressed={isFavorite(listing.id)}
+              onClick={() => toggleFavorite(listing.id)}
+              disabled={isBusy(listing.id)}
+              style={{
+                border: "1px solid #2a2f36",
+                background: "#12161c",
+                color: isFavorite(listing.id) ? "#ff4d6d" : "#d7dde4",
+                borderRadius: 999,
+                width: 38,
+                height: 38,
+                fontSize: 18,
+                lineHeight: 1,
+                cursor: isBusy(listing.id) ? "not-allowed" : "pointer",
+              }}
+            >
+              {isFavorite(listing.id) ? "♥" : "♡"}
+            </button>
+          ) : null}
         </div>
         <div className={`${styles.detailBody} safeFlexCol`}>
           <div className={`${styles.container} safeFlexCol`}>
@@ -275,50 +430,78 @@ export default function ListingPage() {
         </div>
       </section>
 
-      {lightboxOpen && (
-        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
+      {lightboxOpen ? (
+        <div
+          className={styles.lightboxBackdrop}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Listing photos, fullscreen"
+          onClick={() => setLightboxOpen(false)}
+        >
           <button
-            onClick={() => setLightboxOpen(false)}
-            className="absolute top-6 right-6 text-white text-3xl z-50"
+            type="button"
+            className={styles.lightboxCloseBtn}
+            aria-label="Close fullscreen"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxOpen(false);
+            }}
           >
             ✕
           </button>
 
-          <div
-            className="flex w-full items-center justify-center px-4"
-            style={{ height: "90dvh", maxHeight: "90dvh", minHeight: 0 }}
-          >
-            <ListingImage
-              src={images[index]?.image_url}
-              alt="Listing full size"
-              mode="contain"
-              style={{ maxHeight: "90dvh", width: "auto", maxWidth: "100%" }}
-            />
-          </div>
-
-          {images.length > 1 && (
+          {images.length > 1 ? (
             <>
               <button
-                onClick={() =>
-                  setIndex((prev) => (prev - 1 + images.length) % images.length)
-                }
-                className="absolute left-6 top-1/2 -translate-y-1/2 text-white text-4xl"
+                type="button"
+                className={`${styles.lightboxNavBtn} ${styles.lightboxNavBtnPrev}`}
+                aria-label="Previous photo"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goPrev();
+                }}
               >
                 ‹
               </button>
-
               <button
-                onClick={() =>
-                  setIndex((prev) => (prev + 1) % images.length)
-                }
-                className="absolute right-6 top-1/2 -translate-y-1/2 text-white text-4xl"
+                type="button"
+                className={`${styles.lightboxNavBtn} ${styles.lightboxNavBtnNext}`}
+                aria-label="Next photo"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goNext();
+                }}
               >
                 ›
               </button>
             </>
-          )}
+          ) : null}
+
+          <div
+            className={styles.lightboxImageShell}
+            style={{ opacity: lightboxImageOpacity }}
+            onClick={(e) => e.stopPropagation()}
+            role="presentation"
+          >
+            <div className={styles.imageCounter} aria-hidden="true">
+              {index + 1} / {images.length}
+            </div>
+            <div className={styles.lightboxImageInner}>
+              <ListingImage
+                src={images[index]?.image_url}
+                alt="Listing full size"
+                mode="contain"
+                style={{
+                  maxWidth: "95vw",
+                  maxHeight: "90vh",
+                  width: "auto",
+                  height: "auto",
+                }}
+              />
+            </div>
+          </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

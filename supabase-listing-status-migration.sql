@@ -1,0 +1,3 @@
+-- Review columns (reviewed_by, reviewed_at, rejection_reason) are added in:
+--   supabase-listings-migrate-to-user-id.sql
+-- No separate script required unless you prefer to run only that fragment.

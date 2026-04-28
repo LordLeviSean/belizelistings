@@ -1,5 +1,13 @@
 import { supabase } from "./supabaseClient";
 
+/**
+ * Listing fetch patterns (RLS also applies):
+ * - PUBLIC (browse + listing detail): only approved listings.
+ * - SIGNED IN (browse + listing detail): approved listings + own listings.
+ * - AGENT dashboard: `.eq("user_id", user.id)` with no status filter — see dashboard/listings.jsx.
+ * - ADMIN: pending queue `.eq("status", "pending")`, or no status filter for full list — see admin/index.jsx.
+ */
+
 function devWarnEmptyImages(listingCount, imageRowCount) {
   if (
     typeof window === "undefined" ||
@@ -19,28 +27,36 @@ function devWarnEmptyImages(listingCount, imageRowCount) {
  * Approved listings plus related listing_images rows.
  */
 export async function fetchApprovedListingsWithImages() {
-  const { data: listings, error } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let query = supabase
     .from("listings")
     .select(`
       *,
-      listing_images (
-        image_url,
-        position
-      )
-    `)
-    .eq("status", "approved");
+      listing_images (*)
+    `);
+
+  query = user
+    ? query.or(`status.eq.approved,user_id.eq.${user.id}`)
+    : query.eq("status", "approved");
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("[BelizeListings] listings fetch:", error.message, error);
     return { data: [], error };
   }
 
-  const normalized = (listings || []).map((listing) => ({
-    ...listing,
-    images: (listing.listing_images || [])
-      .filter((img) => img.image_url)
-      .sort((a, b) => a.position - b.position),
-  }));
+  const normalized = (data || [])
+    .map((listing) => ({
+      ...listing,
+      images: (listing.listing_images || [])
+        .filter((img) => img?.image_url)
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
+    }))
+    .filter((listing) => listing.images.length > 0);
   if (!normalized.length) {
     return { data: [], error: null };
   }
@@ -51,7 +67,11 @@ export async function fetchApprovedListingsWithImages() {
 }
 
 export async function fetchListingByIdWithImages(id) {
-  const { data: listing, error } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let query = supabase
     .from("listings")
     .select(`
       *,
@@ -60,8 +80,13 @@ export async function fetchListingByIdWithImages(id) {
         position
       )
     `)
-    .eq("id", id)
-    .maybeSingle();
+    .eq("id", id);
+
+  query = user
+    ? query.or(`status.eq.approved,user_id.eq.${user.id}`)
+    : query.eq("status", "approved");
+
+  const { data: listing, error } = await query.maybeSingle();
 
   if (error) {
     console.error("[BelizeListings] listing fetch:", error.message, error);
@@ -73,8 +98,8 @@ export async function fetchListingByIdWithImages(id) {
   }
 
   listing.images = (listing.listing_images || [])
-    .filter((img) => img.image_url)
-    .sort((a, b) => a.position - b.position);
+    .filter((img) => img?.image_url)
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   if (typeof window !== "undefined" && process.env.NODE_ENV === "development" && (listing.listing_images || []).length === 0) {
     console.warn(
       `[BelizeListings] No listing_images rows for listing id=${listing.id}. Add rows in Supabase or check RLS.`

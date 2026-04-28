@@ -1,58 +1,89 @@
-import { useCallback, useEffect, useState } from "react";
-
-const STORAGE_KEY = "favorites";
-
-function normalizeIds(arr) {
-  if (!Array.isArray(arr)) return [];
-  return arr
-    .map((x) => Number(x))
-    .filter((n) => !Number.isNaN(n));
-}
+import { useCallback, useEffect, useMemo, useState } from "react";
+import useAuth from "./useAuth";
+import { addFavorite, getUserFavorites, removeFavorite } from "../lib/favorites";
 
 export default function useFavorites() {
+  const { user } = useAuth();
   const [favorites, setFavorites] = useState([]);
-  const [hydrated, setHydrated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [busyIds, setBusyIds] = useState([]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    queueMicrotask(() => {
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          setFavorites(normalizeIds(parsed));
+    let cancelled = false;
+    (async () => {
+      if (!user?.id) {
+        if (!cancelled) {
+          setFavorites([]);
+          setLoading(false);
         }
-      } catch {
-        /* ignore */
+        return;
       }
-      setHydrated(true);
-    });
-  }, []);
+      setLoading(true);
+      const { data } = await getUserFavorites();
+      if (!cancelled) {
+        setFavorites(data || []);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !hydrated) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(favorites));
-  }, [favorites, hydrated]);
+  const favoriteIds = useMemo(() => favorites.map((listing) => listing.id), [favorites]);
 
-  const toggleFavorite = useCallback((id) => {
-    const n = Number(id);
-    if (Number.isNaN(n)) return;
-    setFavorites((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]));
-  }, []);
+  const isBusy = useCallback((id) => busyIds.includes(id), [busyIds]);
 
-  const removeFavorite = useCallback((id) => {
-    const n = Number(id);
-    if (Number.isNaN(n)) return;
-    setFavorites((prev) => prev.filter((x) => x !== n));
-  }, []);
+  const toggleFavorite = useCallback(
+    async (listingId) => {
+      if (!user?.id || !listingId || isBusy(listingId)) return;
+      setBusyIds((prev) => [...prev, listingId]);
+      const exists = favoriteIds.includes(listingId);
+      if (exists) {
+        const { error } = await removeFavorite(listingId);
+        if (!error) {
+          setFavorites((prev) => prev.filter((listing) => listing.id !== listingId));
+        }
+      } else {
+        const { error } = await addFavorite(listingId);
+        if (!error) {
+          const { data } = await getUserFavorites();
+          setFavorites(data || []);
+        }
+      }
+      setBusyIds((prev) => prev.filter((id) => id !== listingId));
+    },
+    [user?.id, favoriteIds, isBusy]
+  );
+
+  const removeFromFavorites = useCallback(
+    async (listingId) => {
+      if (!user?.id || !listingId || isBusy(listingId)) return;
+      setBusyIds((prev) => [...prev, listingId]);
+      const { error } = await removeFavorite(listingId);
+      if (!error) {
+        setFavorites((prev) => prev.filter((listing) => listing.id !== listingId));
+      }
+      setBusyIds((prev) => prev.filter((id) => id !== listingId));
+    },
+    [user?.id, isBusy]
+  );
 
   const isFavorite = useCallback(
     (id) => {
-      const n = Number(id);
-      return favorites.includes(n);
+      return favoriteIds.includes(id);
     },
-    [favorites]
+    [favoriteIds]
   );
 
-  return { favorites, toggleFavorite, removeFavorite, isFavorite, hydrated };
+  return {
+    favorites,
+    favoriteIds,
+    toggleFavorite,
+    removeFavorite: removeFromFavorites,
+    isFavorite,
+    isBusy,
+    loading,
+    isAuthenticated: Boolean(user?.id),
+  };
 }

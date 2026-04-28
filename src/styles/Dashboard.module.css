@@ -135,3 +135,99 @@
   min-width: 0;
   flex: 1 1 auto;
 }
+
+.listingMeta p {
+  margin: 0;
+}
+
+.rejectionNote {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #d4a0a0;
+  line-height: 1.4;
+}
+
+.listingButtonGroup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.submitReviewButton {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: rgba(71, 110, 90, 0.35);
+  color: #d0eadc;
+  border: 1px solid rgba(100, 160, 120, 0.4);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.submitReviewButton:hover:not(:disabled) {
+  background: rgba(71, 110, 90, 0.5);
+  border-color: rgba(100, 160, 120, 0.55);
+}
+
+.submitReviewButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.adminActionRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.approveButton {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: rgba(40, 90, 55, 0.45);
+  color: #c8e8d0;
+  border: 1px solid rgba(80, 160, 100, 0.5);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.approveButton:hover:not(:disabled) {
+  background: rgba(40, 90, 55, 0.6);
+  border-color: rgba(100, 180, 120, 0.55);
+}
+
+.approveButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.rejectButton {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: rgba(255, 0, 0, 0.08);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 0, 0, 0.2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.rejectButton:hover:not(:disabled) {
+  background: rgba(255, 0, 0, 0.12);
+  border-color: rgba(255, 0, 0, 0.35);
+}
+
+.rejectButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

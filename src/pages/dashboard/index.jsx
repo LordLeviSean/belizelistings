@@ -12,6 +12,7 @@ export default function DashboardIndexPage() {
   const { user, loading } = useAuth();
   const [profileLoading, setProfileLoading] = useState(true);
   const [isAgent, setIsAgent] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -27,6 +28,7 @@ export default function DashboardIndexPage() {
       const { data } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
       if (!cancelled) {
         setIsAgent(data?.role === "agent");
+        setIsAdmin(data?.role === "admin");
         setProfileLoading(false);
       }
     };
@@ -55,6 +57,13 @@ export default function DashboardIndexPage() {
       <SiteNav active="dashboard" />
       <main className={styles.main}>
         <h1 className={styles.title}>Agent Dashboard</h1>
+        {isAdmin ? (
+          <div className={styles.linkRow}>
+            <Link href="/admin" className={styles.dashboardLink}>
+              Admin — pending listings
+            </Link>
+          </div>
+        ) : null}
         {isAgent ? (
           <div className={styles.linkRow}>
             <Link href="/dashboard/listings" className={styles.dashboardLink}>
@@ -64,9 +73,9 @@ export default function DashboardIndexPage() {
               Create Listing
             </Link>
           </div>
-        ) : (
+        ) : !isAdmin ? (
           <AgentAccessGate user={user} />
-        )}
+        ) : null}
       </main>
     </div>
   );
