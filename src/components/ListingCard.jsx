@@ -34,25 +34,27 @@ export default function ListingCard({
         <div className={`${styles.inner} safeFlexRow`}>
           <div className={styles.thumb} aria-hidden="true">
             <img src={imageUrl} alt="" loading="lazy" />
-            {showFavoriteButton ? (
-              <button
-                type="button"
-                aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
-                aria-pressed={isFavorited}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onToggleFavorite?.(listing.id);
-                }}
-                disabled={favoriteBusy}
-                className={`${styles.favoriteBtn} ${isFavorited ? styles.favoriteBtnActive : ""}`}
-              >
-                {isFavorited ? "♥" : "♡"}
-              </button>
-            ) : null}
           </div>
           <div className={`${styles.info} safeFlexCol`}>
-            <h3 className={styles.title}>{listing.title || "Untitled listing"}</h3>
+            <div className={styles.titleRow}>
+              <h3 className={styles.title}>{listing.title || "Untitled listing"}</h3>
+              {showFavoriteButton ? (
+                <button
+                  type="button"
+                  aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                  aria-pressed={isFavorited}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onToggleFavorite?.(listing.id);
+                  }}
+                  disabled={favoriteBusy}
+                  className={`${styles.favoriteBtn} ${isFavorited ? styles.favoriteBtnActive : ""}`}
+                >
+                  {isFavorited ? "♥" : "♡"}
+                </button>
+              ) : null}
+            </div>
             <p className={styles.price}>{formatPrice(listing.price, listing.currency)}</p>
             <p className={styles.meta}>
               {isLand ? "Land Property" : `${listing.beds} bd · ${listing.baths} ba`}

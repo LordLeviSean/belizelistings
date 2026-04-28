@@ -8,6 +8,7 @@ import styles from "../styles/Favorites.module.css";
 export default function FavoritesPage() {
   const { favorites, removeFavorite, isBusy, loading } = useFavorites();
   const [ready, setReady] = useState(false);
+  const [clearingAll, setClearingAll] = useState(false);
 
   useEffect(() => {
     setReady(true);
@@ -15,14 +16,34 @@ export default function FavoritesPage() {
 
   const favoriteListings = favorites;
 
+  const handleClearAll = async () => {
+    if (!favoriteListings.length || clearingAll) return;
+    setClearingAll(true);
+    const ids = favoriteListings.map((listing) => listing.id);
+    await Promise.all(ids.map((id) => removeFavorite(id)));
+    setClearingAll(false);
+  };
+
   return (
     <div className={styles.page}>
       <SiteNav active="favorites" />
 
       <div className={styles.wrapper}>
         <div className={styles.header}>
-          <h1>Saved Listings</h1>
-          <p>{favoriteListings.length} saved properties</p>
+          <div>
+            <h1>Saved Listings</h1>
+            <p>{favoriteListings.length} saved properties</p>
+          </div>
+          {!!favoriteListings.length && (
+            <button
+              type="button"
+              className={styles.clearAllBtn}
+              onClick={handleClearAll}
+              disabled={clearingAll}
+            >
+              {clearingAll ? "Clearing..." : "Clear All"}
+            </button>
+          )}
         </div>
 
         {!ready || loading ? (
@@ -31,8 +52,8 @@ export default function FavoritesPage() {
           </div>
         ) : favoriteListings.length === 0 ? (
           <div className={styles.empty}>
-            <h2 className={styles.emptyTitle}>Nothing saved yet</h2>
-            <p className={styles.emptyText}>Tap the heart icon to save listings</p>
+            <h2 className={styles.emptyTitle}>No saved listings yet</h2>
+            <p className={styles.emptyText}>Save properties to view them here</p>
             <Link href="/" className={styles.cta}>
               Browse Listings
             </Link>
@@ -50,10 +71,11 @@ export default function FavoritesPage() {
                 >
                   {isBusy(listing.id) ? "Removing..." : "Remove"}
                 </button>
+                <span className={styles.savedBadge}>SAVED</span>
                 <div className={styles.cardSlot}>
                   <ListingCard
                     listing={listing}
-                    showFavoriteButton
+                    showFavoriteButton={false}
                     isFavorited
                     favoriteBusy={isBusy(listing.id)}
                     onToggleFavorite={removeFavorite}
