@@ -4,30 +4,39 @@ import { createDebugger } from "@/lib/debug";
 import SiteNav from "../../components/SiteNav";
 import AgentAccessGate from "../../components/AgentAccessGate";
 import useAuth from "../../hooks/useAuth";
+import useRoleAccess from "../../hooks/useRoleAccess";
 import { supabase } from "../../lib/supabaseClient";
+import { traceAction, traceLog, traceWarn } from "../../lib/trace";
+import { useToast } from "../../components/ui/ToastProvider";
 import styles from "../../styles/Dashboard.module.css";
 
 const INITIAL_FORM = {
   title: "",
   price: "",
+  property_type: "",
   district: "",
   listing_type: "sale",
   beds: "",
   baths: "",
 };
+const PROPERTY_TYPES = ["house", "apartment", "condo", "land", "commercial"];
+const DISTRICTS = ["Belize", "Cayo", "Stann Creek", "Toledo", "Orange Walk", "Corozal"];
 
 export default function DashboardCreatePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [isAgent, setIsAgent] = useState(false);
+  const { roleLoading, canCreateListings } = useRoleAccess(user?.id);
   const [form, setForm] = useState(INITIAL_FORM);
   const [files, setFiles] = useState([]);
-  const [submitting, setSubmitting] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingCreate, setLoadingCreate] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [progressStep, setProgressStep] = useState("");
+  const [progressValue, setProgressValue] = useState(0);
+  const [errors, setErrors] = useState({});
   const debugRef = useRef(createDebugger("CREATE_FLOW"));
   const [debugState, setDebugState] = useState({});
+  const { showToast } = useToast();
   const isDebug =
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("debug") === "true";
@@ -39,144 +48,152 @@ export default function DashboardCreatePage() {
   }, [loading, user, router]);
 
   useEffect(() => {
-    if (!user?.id) return;
-    let cancelled = false;
+    if (!loadingCreate) return;
 
-    const loadProfile = async () => {
-      const { data } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-      if (!cancelled) {
-        setIsAgent(data?.role === "agent");
-        setProfileLoading(false);
-      }
-    };
+    const timeout = setTimeout(() => {
+      traceWarn("CREATE TIMEOUT RESET");
+      setLoadingCreate(false);
+    }, 10000);
 
-    loadProfile();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
+    return () => clearTimeout(timeout);
+  }, [loadingCreate]);
 
   const setField = (field) => (event) => {
+    setErrors((current) => ({ ...current, [field]: "" }));
     setForm((current) => ({ ...current, [field]: event.target.value }));
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    console.log("AUTH USER ID:", user?.id);
-    debugRef.current.log("USER", user);
-    setDebugState(debugRef.current.getState());
+    if (loadingCreate) return;
+    let createSucceeded = false;
 
-    if (!user?.id) {
-      console.error("NO AUTH USER ID");
-      return;
-    }
-    if (submitting || isSubmitting) return;
+    try {
+      setLoadingCreate(true);
+      setSuccess(false);
+      setFeedback("");
+      setProgressStep("Creating Listing...");
+      setProgressValue(35);
+      traceLog("START CREATE FLOW");
 
-    const title = form.title.trim();
-    const district = form.district.trim().toLowerCase().replace(/\s+/g, "-");
-    const price = Number(form.price);
-    const beds = Number(form.beds || 0);
-    const baths = Number(form.baths || 0);
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      traceLog("AUTH USER ID:", authUser?.id);
+      debugRef.current.log("USER", authUser);
+      setDebugState(debugRef.current.getState());
 
-    if (!title || !district || Number.isNaN(price)) {
-      setFeedback("Please provide title, district, and valid price.");
-      return;
-    }
-
-    setSubmitting(true);
-    setIsSubmitting(true);
-    setFeedback("");
-
-    const listing_type = form.listing_type;
-    const payload = {
-      title,
-      price,
-      district,
-      listing_type,
-      beds,
-      baths,
-      garage: 0,
-      currency: "BZD",
-      status: "draft",
-      user_id: user.id,
-    };
-    console.log("AUTH USER ID:", user.id);
-    console.log("INSERT PAYLOAD:", payload);
-    debugRef.current.log("LISTING_PAYLOAD", payload);
-
-    const { data: listingData, error } = await supabase.from("listings").insert(payload).select().single();
-    debugRef.current.log("LISTING_RESULT", { data: listingData, error });
-    setDebugState(debugRef.current.getState());
-
-    if (error || !listingData) {
-      console.error("LISTING INSERT ERROR:", error);
-      setFeedback(error?.message || "Could not create listing.");
-      setSubmitting(false);
-      setIsSubmitting(false);
-      return;
-    }
-    console.log("INSERT SUCCESS:", listingData);
-
-    const listingId = listingData.id;
-    console.log("NEW LISTING ID:", listingId);
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      debugRef.current.log("UPLOAD_FILE_INDEX", i);
-      console.log("SELECTED FILE:", file);
-      debugRef.current.log("FILE", file?.name);
-      const filePath = `${user.id}/${Date.now()}-${i}-${file.name}`;
-      debugRef.current.log("FILE_PATH", filePath);
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("listing-images")
-        .upload(filePath, file);
-      console.log("UPLOAD RESULT:", uploadData);
-      console.log("UPLOAD ERROR:", uploadError);
-      debugRef.current.log("UPLOAD_RESULT", { uploadData, uploadError });
-
-      if (uploadError) {
-        console.error("UPLOAD ERROR:", uploadError);
-        setSubmitting(false);
-        setIsSubmitting(false);
+      if (!authUser?.id) {
+        setFeedback("User not authenticated");
+        showToast({ type: "error", message: "Please sign in again" });
         return;
       }
 
-      const { data: publicUrlData } = supabase.storage.from("listing-images").getPublicUrl(filePath);
-      const publicUrl = publicUrlData?.publicUrl;
+      const title = form.title.trim();
+      const district = form.district.trim().toLowerCase().replace(/\s+/g, "-");
+      const property_type = form.property_type.trim().toLowerCase();
+      const price = Number(form.price);
+      const beds = Number(form.beds || 0);
+      const baths = Number(form.baths || 0);
+      const nextErrors = {};
+      if (!title) nextErrors.title = "Title is required.";
+      if (!property_type || !PROPERTY_TYPES.includes(property_type)) {
+        nextErrors.property_type = "Select a valid property type.";
+      }
+      if (!district || !DISTRICTS.map((d) => d.toLowerCase().replace(/\s+/g, "-")).includes(district)) {
+        nextErrors.district = "Select a valid district.";
+      }
+      if (Number.isNaN(price) || price <= 0) nextErrors.price = "Enter a valid price.";
+      setErrors(nextErrors);
+      if (Object.keys(nextErrors).length) {
+        setFeedback("Please fix the highlighted fields.");
+        return;
+      }
 
-      console.log("PUBLIC URL:", publicUrl);
-      console.log("FINAL_IMAGE_URL:", publicUrl);
-      debugRef.current.log("PUBLIC_URL", publicUrlData);
+      const listing_type = form.listing_type;
+      const payload = {
+        title,
+        price,
+        property_type,
+        district,
+        listing_type,
+        beds,
+        baths,
+        garage: 0,
+        currency: "BZD",
+        // All new listings must enter moderation pipeline
+        status: "pending",
+        user_id: authUser.id,
+      };
+      traceLog("INSERT PAYLOAD:", payload);
+      traceAction({ type: "create_listing", payload });
+      debugRef.current.log("LISTING_PAYLOAD", payload);
 
-      if (publicUrl) {
-        debugRef.current.log("IMAGE_INSERT_POSITION", i);
-        const { data: imageInsert, error: imageError } = await supabase.from("listing_images").insert({
-          listing_id: listingId,
-          image_url: publicUrl,
-          position: i,
-        });
-        debugRef.current.log("IMAGE_INSERT", { imageInsert, imageError });
-        setDebugState(debugRef.current.getState());
+      const { data: listingData, error } = await supabase.from("listings").insert(payload).select().single();
+      debugRef.current.log("LISTING_RESULT", { data: listingData, error });
+      setDebugState(debugRef.current.getState());
+      traceAction({
+        type: "create_listing_result",
+        payload: { title: payload.title, user_id: payload.user_id },
+        result: { listingId: listingData?.id ?? null, error: error?.message ?? null },
+      });
+      if (error || !listingData) throw error || new Error("Could not create listing.");
 
-        if (imageError) {
-          console.error("IMAGE INSERT ERROR:", imageError);
-        } else {
-          console.log("IMAGE INSERT SUCCESS");
+      traceLog("INSERT SUCCESS:", listingData.id);
+      const listingId = listingData.id;
+      setProgressStep("Uploading Images...");
+      setProgressValue(70);
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        debugRef.current.log("UPLOAD_FILE_INDEX", i);
+        const filePath = `${authUser.id}/${Date.now()}-${i}-${file.name}`;
+        debugRef.current.log("FILE_PATH", filePath);
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("listing-images")
+          .upload(filePath, file);
+        traceLog("UPLOAD RESULT:", uploadData);
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage.from("listing-images").getPublicUrl(filePath);
+        const publicUrl = publicUrlData?.publicUrl;
+        if (publicUrl) {
+          const { error: imageError } = await supabase.from("listing_images").insert({
+            listing_id: listingId,
+            image_url: publicUrl,
+            position: i,
+          });
+          if (imageError) throw imageError;
         }
       }
-    }
 
-    alert("Listing created successfully");
-    setSubmitting(false);
-    setIsSubmitting(false);
-    await new Promise((res) => setTimeout(res, 500));
-    router.push("/dashboard/listings");
+      traceLog("CREATE FLOW COMPLETE");
+      setProgressStep("Finalizing...");
+      setProgressValue(90);
+      setProgressStep("Success");
+      setProgressValue(100);
+      createSucceeded = true;
+      setSuccess(true);
+      setLoadingCreate(false);
+      showToast({ type: "success", message: "Listing submitted for approval" });
+      setTimeout(() => {
+        router.push("/admin?tab=pending");
+      }, 1100);
+    } catch (createError) {
+      console.error("CREATE ERROR:", createError);
+      setFeedback(createError?.message || "Failed to create listing");
+      showToast({ type: "error", message: createError?.message || "Failed to create listing" });
+    } finally {
+      setLoadingCreate(false);
+      if (!createSucceeded) {
+        setProgressStep("");
+        setProgressValue(0);
+      }
+    }
   };
 
-  if (loading || profileLoading) {
+  if (loading || roleLoading) {
     return (
       <div className={styles.page}>
         <SiteNav active="dashboard" />
@@ -189,7 +206,7 @@ export default function DashboardCreatePage() {
 
   if (!user) return null;
 
-  if (!isAgent) {
+  if (!canCreateListings) {
     return (
       <div className={styles.page}>
         <SiteNav active="dashboard" />
@@ -206,25 +223,108 @@ export default function DashboardCreatePage() {
       <SiteNav active="dashboard" />
       <main className={styles.main}>
         <h1 className={styles.title}>Create Listing</h1>
-        <form className={styles.form} onSubmit={handleSubmit}>
-          <input className={styles.input} placeholder="Title" value={form.title} onChange={setField("title")} />
-          <input className={styles.input} placeholder="Price" value={form.price} onChange={setField("price")} />
-          <input className={styles.input} placeholder="District" value={form.district} onChange={setField("district")} />
-          <select className={styles.select} value={form.listing_type} onChange={setField("listing_type")}>
+        {success && (
+          <div className={styles.successBanner}>
+            <span className={styles.successIcon}>✓</span> Listing Submitted Successfully
+          </div>
+        )}
+        <form className={styles.form} onSubmit={handleSubmit} autoComplete="off" data-lpignore="true">
+          <input type="text" name="fake-field" autoComplete="off" style={{ display: "none" }} />
+          {loadingCreate ? (
+            <div className={styles.progressWrap}>
+              <div className={styles.progressHeader}>
+                <span>{progressStep || "Processing..."}</span>
+              </div>
+              <div className={styles.progressBar}>
+                <div
+                  className={styles.progressFill}
+                  style={{
+                    width: `${progressValue}%`,
+                  }}
+                />
+              </div>
+            </div>
+          ) : null}
+          <input
+            className={styles.input}
+            placeholder="Title"
+            value={form.title}
+            onChange={setField("title")}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
+          {errors.title ? <p className={styles.inputError}>{errors.title}</p> : null}
+          <input
+            className={styles.input}
+            placeholder="Price"
+            value={form.price}
+            onChange={setField("price")}
+            autoComplete="off"
+            inputMode="numeric"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
+          {errors.price ? <p className={styles.inputError}>{errors.price}</p> : null}
+          <select className={styles.select} value={form.property_type} onChange={setField("property_type")} autoComplete="off">
+            <option value="">Select property type</option>
+            {PROPERTY_TYPES.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+          {errors.property_type ? <p className={styles.inputError}>{errors.property_type}</p> : null}
+          <select className={styles.select} value={form.district} onChange={setField("district")} autoComplete="off">
+            <option value="">Select district</option>
+            {DISTRICTS.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+          {errors.district ? <p className={styles.inputError}>{errors.district}</p> : null}
+          <select className={styles.select} value={form.listing_type} onChange={setField("listing_type")} autoComplete="off">
             <option value="sale">sale</option>
             <option value="rent">rent</option>
           </select>
-          <input className={styles.input} placeholder="Beds" value={form.beds} onChange={setField("beds")} />
-          <input className={styles.input} placeholder="Baths" value={form.baths} onChange={setField("baths")} />
+          <input
+            className={styles.input}
+            placeholder="Beds"
+            value={form.beds}
+            onChange={setField("beds")}
+            autoComplete="off"
+            inputMode="numeric"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
+          <input
+            className={styles.input}
+            placeholder="Baths"
+            value={form.baths}
+            onChange={setField("baths")}
+            autoComplete="off"
+            inputMode="numeric"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
           <input
             className={styles.input}
             type="file"
             multiple
             accept="image/*"
             onChange={(event) => setFiles(Array.from(event.target.files || []))}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
           />
-          <button type="submit" className={styles.primaryButton} disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create Listing"}
+          <button type="submit" className={styles.primaryButton} disabled={loadingCreate}>
+            {loadingCreate ? progressStep || "Processing..." : success ? "Created ✓" : "Create Listing"}
           </button>
           {feedback ? <p className={styles.muted}>{feedback}</p> : null}
         </form>

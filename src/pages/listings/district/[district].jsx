@@ -1,20 +1,15 @@
 import { useRouter } from "next/router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { fetchApprovedListingsWithImages } from "../../../lib/listingQueries";
 import { filterListings } from "../../../utils/filterListings";
 import useScrollMemory from "../../../hooks/useScrollMemory";
 import useSavedSearches from "../../../hooks/useSavedSearches";
-import { cleanQuery } from "../../../utils/queryStringify";
 import { normalizeRouterQueryToFilters } from "../../../utils/savedSearchUtils";
+import BackButton from "../../../components/BackButton";
 import ListingCard from "../../../components/ListingCard";
+import DistrictLayout from "../../../components/DistrictLayout";
 import useFavorites from "../../../hooks/useFavorites";
 import styles from "../../../styles/District.module.css";
-import backStyles from "../../../styles/BackNav.module.css";
-
-function qv(v) {
-  if (Array.isArray(v)) return v[0] ?? "";
-  return v ?? "";
-}
 
 const formatDistrict = (district) =>
   district
@@ -43,7 +38,9 @@ export default function DistrictListings() {
   const { saveSearch } = useSavedSearches();
   const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
   const [listingsData, setListingsData] = useState([]);
+  const [loadingListings, setLoadingListings] = useState(true);
   const [saveUiSaved, setSaveUiSaved] = useState(false);
+  const [sortBy, setSortBy] = useState("newest");
 
   const districtSlugForScroll =
     typeof district === "string" ? district : Array.isArray(district) ? district[0] : "";
@@ -64,112 +61,126 @@ export default function DistrictListings() {
     if (!district) return;
     let cancelled = false;
     (async () => {
+      setLoadingListings(true);
       const { data } = await fetchApprovedListingsWithImages();
-      if (!cancelled) setListingsData(data);
+      if (!cancelled) {
+        const normalizedListings = (data || []).map((l) => ({
+          ...l,
+          id: String(l.id ?? ""),
+          images: Array.isArray(l.images) ? l.images : [],
+        }));
+        setListingsData(normalizedListings);
+        setLoadingListings(false);
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, [district]);
 
-  if (!router.isReady || !district) return null;
+  const districtSlug = typeof district === "string" ? district : district?.[0] || "";
 
-  const districtSlug = typeof district === "string" ? district : district[0];
-
-  const filtered = filterListings(listingsData, {
+  const filteredBase = filterListings(listingsData, {
     district: districtSlug,
     status: status || "all",
   });
+  const filtered = useMemo(() => {
+    const rows = [...filteredBase];
+    if (sortBy === "price-asc") {
+      return rows.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+    }
+    if (sortBy === "price-desc") {
+      return rows.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+    }
+    return rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  }, [filteredBase, sortBy]);
 
   const districtLabel = formatDistrict(districtSlug);
-
-  const handleBackToHome = () => {
-    const s = qv(router.query.status);
-    router.push({
-      pathname: "/",
-      query: cleanQuery({
-        status: s && s !== "all" ? s : undefined,
-        minPrice: qv(router.query.minPrice) || undefined,
-        maxPrice: qv(router.query.maxPrice) || undefined,
-        beds: qv(router.query.beds) || undefined,
-        baths: qv(router.query.baths) || undefined,
-      }),
-    });
-  };
+  const featuredListing = filtered[0] || null;
+  const remainingListings = filtered.slice(1);
+  const nearbyDistricts = ["belize", "cayo", "stann-creek", "corozal", "orange-walk", "toledo"];
+  const featuredLabels = ["🔥 Hot Listing", "💰 Best Value", "⭐ Recently Added"];
+  const avgPriceLabel = useMemo(() => {
+    const withPrice = filtered.filter((l) => Number.isFinite(Number(l.price)));
+    if (!withPrice.length) return "Avg Price: N/A";
+    const avg = withPrice.reduce((sum, l) => sum + Number(l.price), 0) / withPrice.length;
+    return `Avg Price: ${Math.round(avg).toLocaleString()} BZD`;
+  }, [filtered]);
+  const typeMixLabel = useMemo(() => {
+    const land = filtered.filter((l) => Number(l.beds) === 0 && Number(l.baths) === 0).length;
+    const homes = Math.max(0, filtered.length - land);
+    return `Type Mix: ${homes} homes / ${land} land`;
+  }, [filtered]);
+  const insightLine = useMemo(() => {
+    if (filtered.length >= 8) return "↑ Prices trending up";
+    if (filtered.length >= 4) return "High demand area";
+    return "Market opportunities available";
+  }, [filtered.length]);
 
   const handleSaveSearch = () => {
     const filters = normalizeRouterQueryToFilters(router.query);
     saveSearch(filters);
     setSaveUiSaved(true);
   };
+  const getDistrictCount = (slug) =>
+    listingsData.filter((l) => String(l.district || "").toLowerCase() === slug).length;
+
+  if (!router.isReady || !district) return null;
 
   return (
     <div className={styles.page}>
       <div className={styles.wrapper}>
-        <button type="button" className={backStyles.backSubtle} onClick={handleBackToHome}>
-          ← Back to Browse
-        </button>
+        <BackButton label="Back to Browse" />
 
-        <div className={styles.header}>
-          <h1>{districtLabel} District</h1>
-          <p>{filtered.length} properties available</p>
-        </div>
-
-        <div className={styles.saveSearchRow}>
-          <button
-            type="button"
-            disabled={saveUiSaved}
-            className={`${styles.saveSearchBtn} ${saveUiSaved ? styles.saveSearchBtnSaved : ""}`}
-            onClick={handleSaveSearch}
-          >
-            {saveUiSaved
-              ? "Search saved — you'll be notified of new listings"
-              : "Save Search"}
-          </button>
-        </div>
-
-        <div className={styles.status}>
-          {["all", "for-sale", "rent"].map((type) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() =>
-                updateQuery(router, districtSlug, {
-                  status: type === "all" ? undefined : type,
-                })
-              }
-              className={`${styles.statusBtn} ${(status || "all") === type ? styles.active : ""}`}
-            >
-              {type === "all"
-                ? "All"
-                : type === "for-sale"
-                  ? "For Sale"
-                  : "For Rent"}
-            </button>
-          ))}
-        </div>
-
-        {filtered.length === 0 && (
-          <div className={styles.empty}>
-            <h3>No listings found</h3>
-            <p>Try adjusting your filters</p>
-          </div>
-        )}
-
-        <div className={styles.listWrap}>
-          <div className={styles.list}>
-            {filtered.map((listing) => (
-              <ListingCard
-                key={listing.id}
-                listing={listing}
-                showFavoriteButton={isAuthenticated}
-                isFavorited={isFavorite(listing.id)}
-                favoriteBusy={isBusy(listing.id)}
-                onToggleFavorite={toggleFavorite}
-              />
-            ))}
-          </div>
-        </div>
+        <DistrictLayout
+          districtLabel={districtLabel}
+          filteredCount={filtered.length}
+          saveUiSaved={saveUiSaved}
+          onSaveSearch={handleSaveSearch}
+          avgPriceLabel={avgPriceLabel}
+          typeMixLabel={typeMixLabel}
+          insightLine={insightLine}
+          sortBy={sortBy}
+          onSortChange={(event) => setSortBy(event.target.value)}
+          status={status}
+          onStatusChange={(type) =>
+            updateQuery(router, districtSlug, {
+              status: type === "all" ? undefined : type,
+            })
+          }
+          featuredListing={featuredListing}
+          featuredTag={featuredLabels[filtered.length % featuredLabels.length]}
+          renderListings={() => (
+            <div className={styles.listWrap}>
+              {loadingListings ? (
+                <div className={styles.list}>
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className={`${styles.listItem} skeleton`} style={{ height: 102 }} />
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.list}>
+                  {remainingListings.map((listing) => (
+                    <div key={listing.id} className={styles.listItem}>
+                      <ListingCard
+                        listing={listing}
+                        showFavoriteButton={isAuthenticated}
+                        isFavorited={isFavorite(listing.id)}
+                        favoriteBusy={isBusy(listing.id)}
+                        onToggleFavorite={toggleFavorite}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          nearbyDistricts={nearbyDistricts}
+          getDistrictCount={getDistrictCount}
+          formatDistrict={formatDistrict}
+          onNavigateDistrict={(slug) => router.push(`/listings/district/${slug}`)}
+          onBrowseAll={() => router.push("/")}
+        />
       </div>
     </div>
   );

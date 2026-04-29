@@ -1,5 +1,6 @@
 import Link from "next/link";
 import styles from "./ListingCard.module.css";
+import favoriteStyles from "../styles/FavoriteButton.module.css";
 
 function districtLabel(district = "") {
   return String(district)
@@ -21,7 +22,12 @@ export default function ListingCard({
   onToggleFavorite,
   favoriteBusy = false,
 }) {
-  const imageUrl = listing?.images?.[0]?.image_url || "/placeholder.png";
+  const firstImage = listing?.images?.[0];
+  const preferredImage = typeof firstImage === "string" ? firstImage : firstImage?.image_url;
+  const imageUrl =
+    preferredImage && !String(preferredImage).toLowerCase().includes("map")
+      ? preferredImage
+      : "/placeholder.jpg";
   const isLand = listing?.beds === 0 && listing?.baths === 0 && listing?.garage === 0;
 
   return (
@@ -49,7 +55,7 @@ export default function ListingCard({
                     onToggleFavorite?.(listing.id);
                   }}
                   disabled={favoriteBusy}
-                  className={`${styles.favoriteBtn} ${isFavorited ? styles.favoriteBtnActive : ""}`}
+                  className={`${favoriteStyles.favoriteButton} ${isFavorited ? favoriteStyles.favoriteButtonActive : ""}`}
                 >
                   {isFavorited ? "♥" : "♡"}
                 </button>

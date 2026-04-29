@@ -9,10 +9,13 @@ import { useRouter } from "next/router";
 import { useState, useRef, useEffect } from "react";
 import { createDebugger } from "@/lib/debug";
 import ListingImage from "@/components/ui/ListingImage";
-import { supabase } from "../../lib/supabaseClient";
+import { fetchListingByIdWithImages } from "../../lib/listingQueries";
+import useAuth from "../../hooks/useAuth";
+import useRoleAccess from "../../hooks/useRoleAccess";
 import useFavorites from "../../hooks/useFavorites";
 import styles from "../../styles/ListingDetail.module.css";
 import backStyles from "../../styles/BackNav.module.css";
+import favoriteStyles from "../../styles/FavoriteButton.module.css";
 
 const formatDistrict = (district) =>
   district
@@ -23,6 +26,10 @@ const formatDistrict = (district) =>
 export default function ListingPage() {
   const router = useRouter();
   const { id } = router.query;
+  const { user } = useAuth();
+  const { isAdmin, roleLoading } = useRoleAccess(user?.id);
+  const requestedAdminBypass = router.query.admin === "true";
+  const isAdminView = requestedAdminBypass && isAdmin;
 
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,30 +49,12 @@ export default function ListingPage() {
 
   useEffect(() => {
     if (!id) return;
+    if (requestedAdminBypass && roleLoading) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        let listingQuery = supabase
-          .from("listings")
-          .select(`
-          *,
-          listing_images (
-            image_url,
-            position
-          )
-        `)
-          .eq("id", id);
-
-        listingQuery = user?.id
-          ? listingQuery.or(`status.eq.approved,user_id.eq.${user.id}`)
-          : listingQuery.eq("status", "approved");
-
-        const { data, error } = await listingQuery.single();
+        const { data, error } = await fetchListingByIdWithImages(id, isAdminView);
 
         debugRef.current.log("RAW_DB_RESPONSE", data);
         debugRef.current.log("LISTING_FETCH", { data, error });
@@ -94,16 +83,7 @@ export default function ListingPage() {
 
         if (images.length === 0) {
           setTimeout(async () => {
-            let retryQuery = supabase
-              .from("listings")
-              .select(`*, listing_images (image_url, position)`)
-              .eq("id", id);
-
-            retryQuery = user?.id
-              ? retryQuery.or(`status.eq.approved,user_id.eq.${user.id}`)
-              : retryQuery.eq("status", "approved");
-
-            const retry = await retryQuery.single();
+            const retry = await fetchListingByIdWithImages(id, isAdminView);
 
             debugRef.current.log("RETRY_FETCH", retry.data);
 
@@ -128,7 +108,7 @@ export default function ListingPage() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, isAdminView, requestedAdminBypass, roleLoading]);
 
   const images = (listing?.listing_images || [])
     .filter((img) => img && img.image_url && img.image_url.startsWith("http"))
@@ -245,9 +225,9 @@ export default function ListingPage() {
     );
   }
 
-  if (loading) return <div>Loading listing...</div>;
+  if (loading) return <div className={styles.loadingState}>Loading listing...</div>;
 
-  if (!listing) return <div>Listing not found</div>;
+  if (!listing) return <div className={styles.loadingState}>Listing not found</div>;
   const isLand = listing.beds === 0 && listing.baths === 0 && listing.garage === 0;
 
   const handleBack = () => {
@@ -258,16 +238,7 @@ export default function ListingPage() {
     }
   };
 
-  console.log("IMAGES_FINAL:", images);
-  console.log("RAW_IMAGES_FROM_DB:", listing?.listing_images);
-  console.log("MAIN_IMAGE:", mainImage);
-  console.log("INDEX:", index);
-  console.log("CURRENT_IMAGE:", images[index]?.image_url);
-  console.log("IMAGE_COUNT:", images.length);
-
-  if (!images.length) {
-    return <div className="h-[420px] flex items-center justify-center">NO IMAGES</div>;
-  }
+  const hasImages = images.length > 0;
 
   return (
     <div className={styles.page}>
@@ -286,7 +257,7 @@ export default function ListingPage() {
           role="button"
           tabIndex={0}
         >
-          {images.length > 1 ? (
+          {hasImages && images.length > 1 ? (
             <>
               <button
                 type="button"
@@ -308,22 +279,24 @@ export default function ListingPage() {
               />
             </>
           ) : null}
-          <div className={styles.imageCounter} aria-hidden="true">
-            {index + 1} / {images.length}
-          </div>
+          {hasImages ? (
+            <div className={styles.imageCounter} aria-hidden="true">
+              {index + 1} / {images.length}
+            </div>
+          ) : null}
           <div className={styles.imageStage}>
             <div
               className={`${styles.heroImage} ${heroDip ? styles.heroImageFadeChanging : ""}`}
             >
               <ListingImage
-                src={images[index]?.image_url}
+                src={images[index]?.image_url || "/placeholder.jpg"}
                 alt="Listing"
                 mode="contain"
               />
             </div>
           </div>
         </div>
-        {images.length > 1 && (
+        {hasImages && images.length > 1 && (
           <div className={styles.thumbRow}>
             {images.map((img, i) => (
               <button
@@ -331,6 +304,7 @@ export default function ListingPage() {
                 type="button"
                 className={`${styles.thumbCell} ${i === index ? styles.thumbCellActive : ""}`}
                 onClick={() => setIndex(i)}
+                onMouseEnter={() => setIndex(i)}
                 aria-label={`Show photo ${i + 1} in gallery`}
               >
                 <ListingImage src={img.image_url} alt="" mode="cover" />
@@ -363,21 +337,9 @@ export default function ListingPage() {
                   aria-pressed={isFavorite(listing.id)}
                   onClick={() => toggleFavorite(listing.id)}
                   disabled={isBusy(listing.id)}
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    background: "rgba(20, 24, 30, 0.7)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: isBusy(listing.id) ? "not-allowed" : "pointer",
-                    backdropFilter: "blur(6px)",
-                    color: isFavorite(listing.id) ? "#ff4d6d" : "#d7dde4",
-                    fontSize: 18,
-                    lineHeight: 1,
-                  }}
+                  className={`${favoriteStyles.favoriteButton} ${
+                    isFavorite(listing.id) ? favoriteStyles.favoriteButtonActive : ""
+                  }`}
                 >
                   {isFavorite(listing.id) ? "♥" : "♡"}
                 </button>

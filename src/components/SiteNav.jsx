@@ -1,13 +1,27 @@
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
-import useAuth from "../hooks/useAuth";
+import useUserRole from "../hooks/useUserRole";
 import styles from "./SiteNav.module.css";
 
 /**
  * @param {{ active?: "browse" | "favorites" | "dashboard" }} props
  */
 export default function SiteNav({ active = "browse" }) {
-  const { user, loading } = useAuth();
+  const router = useRouter();
+  const { user, role, loading } = useUserRole();
+
+  const handleDashboard = () => {
+    if (loading) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    if (role === "admin") router.push("/admin");
+    else if (role === "agent") router.push("/dashboard/agent");
+    else router.push("/dashboard/user");
+  };
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -36,12 +50,13 @@ export default function SiteNav({ active = "browse" }) {
         </Link>
 
         {user ? (
-          <Link
-            href="/dashboard"
+          <button
+            type="button"
+            onClick={handleDashboard}
             className={`${styles.navLink} ${active === "dashboard" ? styles.navLinkActive : ""}`}
           >
             Dashboard
-          </Link>
+          </button>
         ) : null}
 
         <span className={styles.navLink}>Agents</span>

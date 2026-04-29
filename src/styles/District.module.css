@@ -5,37 +5,106 @@
 }
 
 .wrapper {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 0 16px 40px;
+}
+
+.backLink {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.backLink:hover {
+  color: #fff;
 }
 
 /* HEADER */
 .header {
-  margin-bottom: 14px;
+  margin-bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .header h1 {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 600;
   letter-spacing: 0.01em;
+  color: #fff;
 }
 
 .header p {
-  color: #8e979b;
+  color: rgba(255, 255, 255, 0.5);
   font-size: 14px;
+}
+
+.hero {
+  padding: 20px;
+  border-radius: 16px;
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.01)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 20px;
+}
+
+.miniMapPreview {
+  position: relative;
+  margin-top: 14px;
+  height: 110px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, rgba(11, 15, 20, 0.8), rgba(11, 15, 20, 0.45));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 16px;
+  box-shadow:
+    inset 0 0 20px rgba(0, 0, 0, 0.4),
+    0 0 32px rgba(34, 197, 94, 0.04);
+}
+
+.miniMapPreview p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.miniMapPreview strong {
+  color: #fff;
+  font-size: 16px;
+  margin-top: 4px;
+}
+
+.miniMapTrend {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.miniMapGlow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 38%, rgba(34, 197, 94, 0.16), transparent 34%),
+    radial-gradient(circle at 78% 26%, rgba(82, 128, 214, 0.14), transparent 36%);
 }
 
 .saveSearchBtn {
   min-height: 44px;
   height: auto;
-  padding: 10px 16px;
+  padding: 8px 14px;
   max-width: 100%;
   line-height: 1.35;
   text-align: left;
   border-radius: 10px;
-  border: 1px solid rgba(120, 199, 162, 0.22);
-  background: #141a21;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
   color: #f5f5f0;
   font-size: 13px;
   font-weight: 600;
@@ -47,7 +116,8 @@
 }
 
 .saveSearchBtn:hover:not(:disabled) {
-  border-color: rgba(120, 199, 162, 0.4);
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.3);
 }
 
 .saveSearchBtn:disabled {
@@ -70,10 +140,39 @@
   }
 }
 
-.saveSearchRow {
-  margin-bottom: 22px;
+.quickStats {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.sortRow {
+  margin-top: 14px;
   display: flex;
   align-items: center;
+  gap: 10px;
+}
+
+.sortLabel {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sortSelect {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #141a21;
+  color: #f5f5f0;
+  padding: 8px 12px;
+}
+
+.statPill {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .saveFeedback {
@@ -105,7 +204,7 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 28px;
+  margin: 16px 0;
 }
 
 .statusBtn {
@@ -133,6 +232,7 @@
 .listWrap {
   max-width: 640px;
   margin: 0 auto;
+  margin-top: 24px;
   width: 100%;
   min-width: 0;
   overflow-x: hidden;
@@ -141,7 +241,7 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
   width: 100%;
   min-width: 0;
   max-width: 640px;
@@ -149,8 +249,171 @@
   overflow-x: hidden;
 }
 
+.listItem {
+  transition: all 0.2s ease;
+  border-radius: 14px;
+}
+
+.listItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.25);
+}
+
+.listItem:active {
+  transform: scale(0.98);
+}
+
+.listItem :global(a:active) {
+  transform: scale(0.98);
+}
+
+.featuredWrap {
+  margin-top: 24px;
+}
+
+.featuredCard {
+  display: block;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  transition: all 0.2s ease;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: featuredIn 0.3s ease forwards;
+}
+
+.featuredCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.28);
+}
+
+.featuredCard:active {
+  transform: scale(0.98);
+}
+
+@keyframes featuredIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.featuredLabel {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #22c55e;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+
+.featuredInner {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.featuredImage {
+  border-radius: 12px;
+  overflow: hidden;
+  width: 110px;
+  height: 110px;
+  flex: 0 0 110px;
+}
+
+.featuredImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.featuredInfo h3 {
+  font-size: 20px;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.featuredInfo {
+  flex: 1;
+}
+
+.featuredPrice {
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.featuredMeta {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
 /* EMPTY */
 .empty {
   text-align: center;
   color: #8e979b;
+  padding: 28px 16px;
+}
+
+.empty h3 {
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.empty p {
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 14px;
+}
+
+.emptyCta {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #22c55e;
+  color: #06110a;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.emptyCta:hover {
+  transform: translateY(-1px);
+  background: #16a34a;
+}
+
+.nearbyWrap {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.nearbyWrap h3 {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.nearbyPills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nearbyPills .statPill {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nearbyPills .statPill:hover {
+  background: rgba(34, 197, 94, 0.15);
+  transform: translateY(-1px);
 }

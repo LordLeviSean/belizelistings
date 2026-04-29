@@ -3,9 +3,8 @@ import { supabase } from "./supabaseClient";
 /**
  * Listing fetch patterns (RLS also applies):
  * - PUBLIC (browse + listing detail): only approved listings.
- * - SIGNED IN (browse + listing detail): approved listings + own listings.
- * - AGENT dashboard: `.eq("user_id", user.id)` with no status filter — see dashboard/listings.jsx.
- * - ADMIN: pending queue `.eq("status", "pending")`, or no status filter for full list — see admin/index.jsx.
+ * - AGENT dashboard: `.eq("user_id", user.id)` with no status filter.
+ * - ADMIN: pending queue `.eq("status", "pending")`, or no status filter for full list.
  */
 
 function devWarnEmptyImages(listingCount, imageRowCount) {
@@ -27,20 +26,13 @@ function devWarnEmptyImages(listingCount, imageRowCount) {
  * Approved listings plus related listing_images rows.
  */
 export async function fetchApprovedListingsWithImages() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let query = supabase
+  const query = supabase
     .from("listings")
     .select(`
       *,
       listing_images (*)
-    `);
-
-  query = user
-    ? query.or(`status.eq.approved,user_id.eq.${user.id}`)
-    : query.eq("status", "approved");
+    `)
+    .eq("status", "approved");
 
   const { data, error } = await query;
 
@@ -55,22 +47,14 @@ export async function fetchApprovedListingsWithImages() {
       images: (listing.listing_images || [])
         .filter((img) => img?.image_url)
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
-    }))
-    .filter((listing) => listing.images.length > 0);
-  if (!normalized.length) {
-    return { data: [], error: null };
-  }
+    }));
   const imageRowCount = normalized.reduce((sum, listing) => sum + (listing.images?.length || 0), 0);
   devWarnEmptyImages(normalized.length, imageRowCount);
 
   return { data: normalized, error: null };
 }
 
-export async function fetchListingByIdWithImages(id) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+export async function fetchListingByIdWithImages(id, isAdmin = false) {
   let query = supabase
     .from("listings")
     .select(`
@@ -82,9 +66,9 @@ export async function fetchListingByIdWithImages(id) {
     `)
     .eq("id", id);
 
-  query = user
-    ? query.or(`status.eq.approved,user_id.eq.${user.id}`)
-    : query.eq("status", "approved");
+  if (!isAdmin) {
+    query = query.eq("status", "approved");
+  }
 
   const { data: listing, error } = await query.maybeSingle();
 

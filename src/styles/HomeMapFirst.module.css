@@ -193,7 +193,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 12px;
+  gap: var(--element-gap-md) var(--element-gap-lg);
   padding: 0 12px 4px;
 }
 

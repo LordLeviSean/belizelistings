@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/router";
 
 import BelizeMap from "../components/BelizeMap";
@@ -52,16 +52,29 @@ export default function HomePage() {
   const [baths, setBaths] = useState("");
   const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await fetchApprovedListingsWithImages();
-      if (!cancelled) setListingsData(data);
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const fetchListings = useCallback(async () => {
+    const { data } = await fetchApprovedListingsWithImages();
+    const normalizedListings = (data || []).map((l) => ({
+      ...l,
+      id: String(l.id ?? ""),
+      images: Array.isArray(l.images) ? l.images : [],
+    }));
+    setListingsData(normalizedListings);
   }, []);
+
+  useEffect(() => {
+    fetchListings();
+  }, [fetchListings]);
+
+  useEffect(() => {
+    const onRouteChangeComplete = () => {
+      fetchListings();
+    };
+    router.events.on("routeChangeComplete", onRouteChangeComplete);
+    return () => {
+      router.events.off("routeChangeComplete", onRouteChangeComplete);
+    };
+  }, [router.events, fetchListings]);
 
   const queryKey = useMemo(
     () => (router.isReady ? stableStringifyQuery(router.query) : ""),
@@ -185,7 +198,6 @@ export default function HomePage() {
         </aside>
       </main>
 
-      <footer className={styles.footer}>© 2026 BelizeListings.bz — Blake & Co.</footer>
     </div>
   );
 }

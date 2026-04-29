@@ -1,11 +1,5 @@
 import { supabase } from "./supabaseClient";
 
-function isDuplicateFavorite(error) {
-  if (!error) return false;
-  if (error.code === "23505") return true;
-  return String(error.message || "").toLowerCase().includes("duplicate key");
-}
-
 export async function addFavorite(listingId) {
   const {
     data: { user },
@@ -15,20 +9,30 @@ export async function addFavorite(listingId) {
   if (authError) return { data: null, error: authError };
   if (!user?.id) return { data: null, error: new Error("Not authenticated") };
 
+  const normalizedListingId = String(listingId ?? "");
+
   const { data, error } = await supabase
     .from("favorites")
-    .insert({ user_id: user.id, listing_id: listingId })
-    .select()
-    .maybeSingle();
+    .upsert(
+      {
+        user_id: user.id,
+        listing_id: normalizedListingId,
+      },
+      {
+        onConflict: "user_id,listing_id",
+      }
+    )
+    .select();
 
-  if (isDuplicateFavorite(error)) {
-    return { data: null, error: null };
+  if (error) {
+    console.error("FAVORITE INSERT FAILED:", error);
+    throw error;
   }
 
   return { data, error };
 }
 
-export async function removeFavorite(listingId) {
+export async function removeFavorite(listingId, { silent = false } = {}) {
   const {
     data: { user },
     error: authError,
@@ -37,13 +41,15 @@ export async function removeFavorite(listingId) {
   if (authError) return { error: authError };
   if (!user?.id) return { error: new Error("Not authenticated") };
 
+  const normalizedListingId = String(listingId ?? "");
+
   const { error } = await supabase
     .from("favorites")
     .delete()
     .eq("user_id", user.id)
-    .eq("listing_id", listingId);
+    .eq("listing_id", normalizedListingId);
 
-  return { error };
+  return { error, silent };
 }
 
 export async function getUserFavorites() {
@@ -66,7 +72,6 @@ export async function getUserFavorites() {
     `
     )
     .eq("user_id", user.id)
-    .eq("listing.status", "approved")
     .order("created_at", { ascending: false });
 
   if (error) return { data: [], error };
@@ -76,11 +81,11 @@ export async function getUserFavorites() {
     .filter(Boolean)
     .map((listing) => ({
       ...listing,
+      id: String(listing.id ?? ""),
       images: (listing.listing_images || [])
         .filter((img) => img?.image_url)
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
-    }))
-    .filter((listing) => listing.images.length > 0);
+    }));
 
   return { data: listings, error: null };
 }
