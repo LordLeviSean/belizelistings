@@ -2,15 +2,15 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  height: 72px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  background: linear-gradient(180deg, rgba(247, 252, 249, 0.9), rgba(239, 248, 244, 0.86));
-  border-bottom: 1px solid rgba(151, 190, 179, 0.26);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  padding: 0 14px;
+  background: linear-gradient(180deg, rgba(253, 254, 251, 0.78), rgba(243, 250, 246, 0.66));
+  border-bottom: 1px solid rgba(148, 185, 176, 0.14);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .brand {
@@ -34,7 +34,7 @@
   --district-c7: #90c2c8;
   --district-c8: #9fb3d9;
   gap: 0.005em;
-  font-size: calc(1.2rem + 5px);
+  font-size: calc(0.98rem + 4px);
   line-height: 1;
   letter-spacing: -0.024em;
   font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
@@ -87,7 +87,7 @@
 .navLinks {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 .navLink,
@@ -98,10 +98,10 @@
   background: rgba(255, 255, 255, 0.68);
   color: rgba(67, 95, 90, 0.88);
   text-decoration: none;
-  font-size: 0.84rem;
+  font-size: 0.74rem;
   font-weight: 540;
   letter-spacing: 0.012em;
-  padding: 8px 14px;
+  padding: 6px 10px;
   cursor: pointer;
   transition:
     background 200ms ease,
@@ -312,20 +312,21 @@
 
 @media (max-width: 800px) {
   .navbar {
+    height: 58px;
     padding: 0 12px;
   }
 
   .brandWordmark {
-    font-size: calc(1.02rem + 5px);
+    font-size: calc(0.88rem + 4px);
   }
 
   .navLinks {
-    gap: 8px;
+    gap: 6px;
   }
 
   .navLink,
   .navBtn {
-    padding: 7px 11px;
-    font-size: 0.76rem;
+    padding: 5px 8px;
+    font-size: 0.7rem;
   }
 }

@@ -3,12 +3,12 @@
   width: 100%;
   max-width: 100%;
 
-  border-radius: 18px;
+  border-radius: 14px;
   border: 1px solid rgba(189, 216, 208, 0.34);
   background:
     radial-gradient(circle at 14% 10%, rgba(137, 205, 189, 0.16), transparent 36%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(241, 249, 246, 0.76));
-  padding: 14px 14px;
+  padding: 9px 10px;
 
   text-decoration: none;
   color: inherit;
@@ -34,7 +34,7 @@
 .inner {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 9px;
 
   min-width: 0;
   overflow: hidden;
@@ -42,13 +42,13 @@
 
 .thumb {
   /* flex default min-width: auto uses the image’s intrinsic width → row blows out */
-  flex: 0 0 100px;
-  width: 100px;
+  flex: 0 0 78px;
+  width: 78px;
   min-width: 0;
-  max-width: 100px;
-  height: 100px;
+  max-width: 78px;
+  height: 78px;
 
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 
   background: rgba(242, 250, 247, 0.82);
@@ -79,7 +79,7 @@
   flex-direction: column;
   justify-content: center;
 
-  gap: 4px;
+  gap: 2px;
 
   flex: 1;
   min-width: 0;
@@ -89,16 +89,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .title {
   margin: 0;
 
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 560;
   color: rgba(60, 92, 84, 0.94);
-  line-height: 1.32;
+  line-height: 1.18;
   display: -webkit-box;
   line-clamp: 2;
   -webkit-line-clamp: 2;
@@ -109,8 +109,8 @@
 
 .price {
   margin: 0;
-  margin-top: 2px;
-  font-size: 20px;
+  margin-top: 1px;
+  font-size: 16px;
   font-weight: 640;
   color: rgba(51, 83, 75, 0.96);
   letter-spacing: 0.01em;
@@ -123,10 +123,10 @@
 .meta {
   margin: 1px 0 0;
 
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(96, 128, 119, 0.82);
 
-  line-height: 1.35;
+  line-height: 1.22;
   display: -webkit-box;
   line-clamp: 2;
   -webkit-line-clamp: 2;
