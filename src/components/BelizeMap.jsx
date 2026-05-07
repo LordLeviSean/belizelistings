@@ -14,17 +14,6 @@ const TIP_EST_W = 200;
 const TIP_EST_H = 30;
 const FLY_MS = 560;
 
-const DISTRICT_FLY_PRESETS = {
-  corozal: { tx: "-3.2%", ty: "-6.4%" },
-  orange_walk: { tx: "-1.8%", ty: "-4.8%" },
-  belize: { tx: "-0.4%", ty: "-1.1%" },
-  cayo: { tx: "1.6%", ty: "-0.8%" },
-  stann_creek: { tx: "2.4%", ty: "2.2%" },
-  toledo: { tx: "2.8%", ty: "5.4%" },
-  ambergris_caye: { tx: "-6.2%", ty: "-1.6%" },
-  caye_caulker: { tx: "-3.6%", ty: "1.2%" },
-};
-
 function tooltipPosition(clientX, clientY) {
   if (typeof window === "undefined") {
     return { left: clientX + TIP_CURSOR_OFF, top: clientY + TIP_CURSOR_OFF };
@@ -231,21 +220,9 @@ const BelizeMap = ({ districtListingCounts = null }) => {
     };
   }, []);
 
-  const flyPreset = clickedRegionId
-    ? DISTRICT_FLY_PRESETS[clickedRegionId] ?? { tx: "0%", ty: "0%" }
-    : { tx: "0%", ty: "0%" };
-  const mapStageStyle = {
-    "--map-fly-scale": clickedRegionId ? "1.185" : "1",
-    "--map-fly-x": flyPreset.tx,
-    "--map-fly-y": flyPreset.ty,
-  };
-
   return (
     <div className={`${styles.map} ${styles.mapNoSelect} ${styles.mapFitLayout}`}>
-      <div
-        className={`${styles.mapStage} ${clickedRegionId ? styles.mapStageFlying : ""}`}
-        style={mapStageStyle}
-      >
+      <div className={styles.mapStage}>
         <div
           ref={mapContainerRef}
           className={styles.mapSvg}

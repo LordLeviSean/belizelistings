@@ -11,6 +11,7 @@ import { createDebugger } from "@/lib/debug";
 import ListingImage from "@/components/ui/ListingImage";
 import BackButton from "@/components/BackButton";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import SiteNav from "@/components/SiteNav";
 import { fetchListingByIdWithImages } from "../../lib/listingQueries";
 import useAuth from "../../hooks/useAuth";
 import useRoleAccess from "../../hooks/useRoleAccess";
@@ -221,22 +222,41 @@ export default function ListingPage() {
 
   if (!router.isReady) {
     return (
-      <div className={styles.notFoundPage}>
-        <p className={styles.loadingText}>Loading…</p>
+      <div className={styles.pageShell}>
+        <SiteNav active="browse" />
+        <div className={styles.notFoundPage}>
+          <p className={styles.loadingText}>Loading…</p>
+        </div>
       </div>
     );
   }
 
-  if (loading) return <div className={styles.loadingState}>Loading listing...</div>;
+  if (loading) {
+    return (
+      <div className={styles.pageShell}>
+        <SiteNav active="browse" />
+        <div className={styles.loadingState}>Loading listing...</div>
+      </div>
+    );
+  }
 
-  if (!listing) return <div className={styles.loadingState}>Listing not found</div>;
+  if (!listing) {
+    return (
+      <div className={styles.pageShell}>
+        <SiteNav active="browse" />
+        <div className={styles.loadingState}>Listing not found</div>
+      </div>
+    );
+  }
   const isLand = listing.beds === 0 && listing.baths === 0 && listing.garage === 0;
 
   const hasImages = images.length > 0;
 
   return (
-    <div className={styles.page}>
-      <section className={`${styles.heroColumn} safeFlexCol`} aria-label="Listing photos">
+    <div className={styles.pageShell}>
+      <SiteNav active="browse" />
+      <div className={styles.page}>
+        <section className={`${styles.heroColumn} safeFlexCol`} aria-label="Listing photos">
         <div
           className={styles.mainImageFrame}
           onClick={onMainImageFrameClick}
@@ -306,9 +326,9 @@ export default function ListingPage() {
             ))}
           </div>
         )}
-      </section>
+        </section>
 
-      <section className={`${styles.detailColumn} safeFlexCol`}>
+        <section className={`${styles.detailColumn} safeFlexCol`}>
         <div className={styles.detailTop}>
           <Breadcrumbs />
           <div
@@ -400,16 +420,16 @@ export default function ListingPage() {
           )}
           </div>
         </div>
-      </section>
+        </section>
 
-      {lightboxOpen ? (
-        <div
-          className={styles.lightboxBackdrop}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Listing photos, fullscreen"
-          onClick={() => setLightboxOpen(false)}
-        >
+        {lightboxOpen ? (
+          <div
+            className={styles.lightboxBackdrop}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Listing photos, fullscreen"
+            onClick={() => setLightboxOpen(false)}
+          >
           <button
             type="button"
             className={styles.lightboxCloseBtn}
@@ -472,8 +492,9 @@ export default function ListingPage() {
               />
             </div>
           </div>
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

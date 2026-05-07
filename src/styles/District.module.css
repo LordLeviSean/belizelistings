@@ -1,89 +1,132 @@
 .page {
   min-height: 100vh;
-  background: #0b0f14;
-  color: #f5f5f0;
+  background:
+    radial-gradient(ellipse 42% 30% at 12% 8%, rgba(137, 205, 189, 0.16), transparent 60%),
+    radial-gradient(ellipse 36% 26% at 82% 8%, rgba(159, 179, 217, 0.14), transparent 58%),
+    radial-gradient(ellipse 44% 36% at 54% 92%, rgba(220, 198, 154, 0.11), transparent 68%),
+    #eef8f4;
+  color: #35564e;
 }
 
-.wrapper {
-  max-width: 1100px;
+.districtPageShell {
+  max-width: 1160px;
   margin: 0 auto;
-  padding: 0 16px 40px;
+  width: 100%;
+  padding: 14px 16px 30px;
 }
 
-.backLink {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.5);
+.districtHero {
+  border-radius: 24px;
+  padding: 18px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(186, 214, 205, 0.4);
+  background:
+    radial-gradient(circle at 18% 16%, rgba(var(--district-accent-rgb, 137, 205, 189), 0.22), transparent 54%),
+    radial-gradient(circle at 84% 20%, rgba(169, 189, 221, 0.18), transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(243, 250, 247, 0.72));
+  box-shadow:
+    0 14px 34px rgba(130, 174, 163, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(10px);
 }
 
-.backLink:hover {
-  color: #fff;
+.districtHeroMain {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
 }
 
-/* HEADER */
-.header {
-  margin-bottom: 0;
+.districtHeroLeft {
+  min-width: 0;
+}
+
+.districtHeroTopRow {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
-.header h1 {
-  font-size: 28px;
+.districtBackLink {
+  color: rgba(86, 123, 112, 0.8);
+  text-decoration: none;
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.districtBackLink:hover {
+  color: rgba(62, 96, 87, 0.98);
+}
+
+.districtDescriptor {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(var(--district-accent-rgb, 137, 205, 189), 0.88);
+}
+
+.listPaneTitle {
+  margin: 0;
+  font-size: clamp(2.15rem, 2.6vw, 2.8rem);
+  font-family: "DM Serif Display", "Georgia", "Times New Roman", serif;
+  font-weight: 400;
+  line-height: 1.02;
   letter-spacing: 0.01em;
-  color: #fff;
+  color: rgba(49, 77, 70, 0.96);
 }
 
-.header p {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 14px;
+.districtSubtitle {
+  margin: 8px 0 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(92, 128, 118, 0.72);
 }
 
-.hero {
-  padding: 20px;
-  border-radius: 16px;
-  background: linear-gradient(
-    to bottom right,
-    rgba(255, 255, 255, 0.04),
-    rgba(255, 255, 255, 0.01)
-  );
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  margin-bottom: 20px;
+.districtEditorial {
+  margin: 10px 0 0;
+  max-width: 66ch;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: rgba(72, 107, 98, 0.86);
+}
+
+.listPaneLead {
+  margin: 12px 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(64, 98, 89, 0.86);
+}
+
+.districtHeroRight {
+  display: grid;
+  gap: 10px;
 }
 
 .miniMapPreview {
   position: relative;
-  margin-top: 14px;
-  height: 110px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: linear-gradient(180deg, rgba(11, 15, 20, 0.8), rgba(11, 15, 20, 0.45));
+  border: 1px solid rgba(181, 212, 204, 0.46);
+  background: linear-gradient(180deg, rgba(252, 255, 254, 0.82), rgba(240, 248, 245, 0.72));
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 16px;
-  box-shadow:
-    inset 0 0 20px rgba(0, 0, 0, 0.4),
-    0 0 32px rgba(34, 197, 94, 0.04);
+  height: 128px;
 }
 
-.miniMapPreview p {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.55);
-}
-
-.miniMapPreview strong {
-  color: #fff;
-  font-size: 16px;
-  margin-top: 4px;
-}
-
-.miniMapTrend {
-  margin-top: 6px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.68);
+.embeddedMapSilhouette {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: saturate(0.7) brightness(1.03) contrast(0.86);
+  opacity: 0.36;
+  transform: scale(0.92) translateY(3px);
 }
 
 .miniMapGlow {
@@ -91,329 +134,144 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 18% 38%, rgba(34, 197, 94, 0.16), transparent 34%),
-    radial-gradient(circle at 78% 26%, rgba(82, 128, 214, 0.14), transparent 36%);
+    radial-gradient(circle at 26% 38%, rgba(137, 205, 189, 0.18), transparent 40%),
+    radial-gradient(circle at 74% 32%, rgba(159, 179, 217, 0.14), transparent 42%);
 }
 
-.saveSearchBtn {
-  min-height: 44px;
-  height: auto;
-  padding: 8px 14px;
-  max-width: 100%;
-  line-height: 1.35;
-  text-align: left;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: #f5f5f0;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    opacity 0.35s ease,
-    border-color 0.2s ease,
-    transform 0.35s ease;
-}
-
-.saveSearchBtn:hover:not(:disabled) {
-  background: rgba(34, 197, 94, 0.12);
-  border-color: rgba(34, 197, 94, 0.3);
-}
-
-.saveSearchBtn:disabled {
-  cursor: default;
-}
-
-.saveSearchBtnSaved {
-  opacity: 0.96;
-  animation: saveSearchFadeIn 0.45s ease;
-}
-
-@keyframes saveSearchFadeIn {
-  from {
-    opacity: 0.25;
-    transform: translateY(2px);
-  }
-  to {
-    opacity: 0.96;
-    transform: translateY(0);
-  }
-}
-
-.quickStats {
-  display: flex;
+.districtMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 16px;
-  flex-wrap: wrap;
 }
 
-.sortRow {
-  margin-top: 14px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.districtMetaCard {
+  border-radius: 12px;
+  border: 1px solid rgba(184, 215, 206, 0.38);
+  background: rgba(251, 255, 253, 0.74);
+  padding: 9px 10px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.46);
 }
 
-.sortLabel {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.sortSelect {
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #141a21;
-  color: #f5f5f0;
-  padding: 8px 12px;
-}
-
-.statPill {
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.saveFeedback {
-  margin: 0;
-  font-size: 13px;
-  color: rgba(var(--glow-rgb), 0.95);
-  font-weight: 500;
-}
-
-.advancedFilters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.filterInput {
-  width: 120px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #141a21;
-  color: #f5f5f0;
-  font-size: 14px;
-}
-
-/* STATUS */
-.status {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 16px 0;
-}
-
-.statusBtn {
-  padding: 10px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.02);
-  color: #9aa09a;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.statusBtn:hover {
-  background: rgba(255,255,255,0.06);
-  color: #fff;
-}
-
-.active {
-  background: #4f6b57;
-  color: #fff;
-  border-color: transparent;
-}
-
-/* LIST — matches homepage sidebar stack (vertical scroll context) */
-.listWrap {
-  max-width: 640px;
-  margin: 0 auto;
-  margin-top: 24px;
-  width: 100%;
-  min-width: 0;
-  overflow-x: hidden;
-}
-
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  width: 100%;
-  min-width: 0;
-  max-width: 640px;
-  margin: 0 auto;
-  overflow-x: hidden;
-}
-
-.listItem {
-  transition: all 0.2s ease;
-  border-radius: 14px;
-}
-
-.listItem:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.25);
-}
-
-.listItem:active {
-  transform: scale(0.98);
-}
-
-.listItem :global(a:active) {
-  transform: scale(0.98);
-}
-
-.featuredWrap {
-  margin-top: 24px;
-}
-
-.featuredCard {
-  display: block;
-  padding: 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(34, 197, 94, 0.25);
-  transition: all 0.2s ease;
-  opacity: 0;
-  transform: translateY(8px);
-  animation: featuredIn 0.3s ease forwards;
-}
-
-.featuredCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.28);
-}
-
-.featuredCard:active {
-  transform: scale(0.98);
-}
-
-@keyframes featuredIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.featuredLabel {
+.districtMetaLabel {
+  margin: 0 0 3px;
   font-size: 10px;
   letter-spacing: 0.08em;
-  color: #22c55e;
-  display: inline-block;
-  margin-bottom: 10px;
+  text-transform: uppercase;
+  color: rgba(95, 130, 121, 0.72);
 }
 
-.featuredInner {
-  display: flex;
-  gap: 16px;
-  align-items: center;
+.districtMetaValue {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 620;
+  color: rgba(61, 93, 85, 0.96);
 }
 
-.featuredImage {
-  border-radius: 12px;
-  overflow: hidden;
-  width: 110px;
-  height: 110px;
-  flex: 0 0 110px;
+.listPane {
+  border-radius: 18px;
+  border: 1px solid rgba(187, 214, 206, 0.38);
+  background: linear-gradient(180deg, rgba(254, 255, 255, 0.74), rgba(244, 251, 248, 0.68));
+  box-shadow:
+    0 12px 30px rgba(136, 177, 167, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
 
-.featuredImage img {
+.listPaneHeader {
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid rgba(188, 215, 207, 0.32);
+}
+
+.listPaneMeta {
+  margin: 0 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(95, 128, 119, 0.78);
+}
+
+.districtStatusToggle {
+  margin: 0 0 10px;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  justify-content: stretch;
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(184, 213, 205, 0.4);
+  border-radius: 12px;
 }
 
-.featuredInfo h3 {
-  font-size: 20px;
-  color: #fff;
-  margin: 0 0 8px;
-}
-
-.featuredInfo {
-  flex: 1;
-}
-
-.featuredPrice {
-  font-size: 22px;
-  font-weight: 600;
-  color: #fff;
-  margin-bottom: 4px;
-}
-
-.featuredMeta {
+.districtToggleButton {
+  border-radius: 9px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-/* EMPTY */
-.empty {
-  text-align: center;
-  color: #8e979b;
-  padding: 28px 16px;
-}
-
-.empty h3 {
-  color: #fff;
-  margin-bottom: 8px;
-}
-
-.empty p {
-  color: rgba(255, 255, 255, 0.55);
-  margin-bottom: 14px;
-}
-
-.emptyCta {
-  border: none;
-  border-radius: 10px;
-  padding: 10px 14px;
-  background: #22c55e;
-  color: #06110a;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.emptyCta:hover {
-  transform: translateY(-1px);
-  background: #16a34a;
+.browseSortLabel {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(95, 128, 119, 0.78);
 }
 
-.nearbyWrap {
-  margin-top: 24px;
-  padding: 16px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+.browseSortSelect,
+.districtSortSelect {
+  width: 100%;
+  max-width: 320px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(184, 213, 205, 0.4);
+  background: rgba(255, 255, 255, 0.8);
+  color: rgba(63, 96, 88, 0.92);
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.nearbyWrap h3 {
-  color: #fff;
-  font-size: 18px;
-  font-weight: 500;
-  margin-bottom: 10px;
-}
-
-.nearbyPills {
+.listings {
+  padding: 12px;
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.nearbyPills .statPill {
-  cursor: pointer;
-  transition: all 0.2s ease;
+.emptyState {
+  margin: 10px;
+  border: 1px dashed rgba(182, 211, 203, 0.52);
+  border-radius: 12px;
+  padding: 16px;
+  color: rgba(94, 126, 117, 0.84);
+  background: rgba(252, 255, 254, 0.66);
 }
 
-.nearbyPills .statPill:hover {
-  background: rgba(34, 197, 94, 0.15);
-  transform: translateY(-1px);
+@media (max-width: 980px) {
+  .districtHeroMain {
+    grid-template-columns: 1fr;
+  }
+
+  .districtMetaGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .districtPageShell {
+    padding: 10px 12px 20px;
+  }
+
+  .districtHero {
+    padding: 14px;
+  }
+
+  .listPaneTitle {
+    font-size: clamp(1.8rem, 7.2vw, 2.2rem);
+  }
+
+  .districtMetaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .browseSortSelect,
+  .districtSortSelect {
+    max-width: none;
+  }
 }

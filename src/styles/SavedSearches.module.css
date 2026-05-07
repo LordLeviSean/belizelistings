@@ -1,7 +1,7 @@
 .page {
   min-height: 100vh;
-  background: #0b0f14;
-  color: #f5f5f0;
+  background: #eef8f4;
+  color: #3e635a;
 }
 
 .wrapper {
@@ -20,29 +20,29 @@
 .subtitle {
   margin: 0 0 28px;
   font-size: 14px;
-  color: #8e979b;
+  color: #6d8a83;
   line-height: 1.5;
 }
 
 .empty {
   padding: 40px 20px;
   text-align: center;
-  border: 1px dashed rgba(245, 245, 240, 0.12);
+  border: 1px dashed rgba(151, 190, 179, 0.36);
   border-radius: 14px;
-  color: #9aa0a4;
+  color: #69847d;
 }
 
 .emptyTitle {
   margin: 0 0 12px;
   font-size: 17px;
   font-weight: 600;
-  color: #e8ebe8;
+  color: #466a61;
 }
 
 .emptyHint {
   margin: 0;
   font-size: 14px;
-  color: #7a8288;
+  color: #6f8b83;
   line-height: 1.55;
   max-width: 420px;
   margin-inline: auto;
@@ -66,8 +66,8 @@
 
   padding: 18px 18px;
   border-radius: 14px;
-  border: 1px solid rgba(245, 245, 240, 0.08);
-  background: linear-gradient(180deg, #12171d, #0f141a);
+  border: 1px solid rgba(151, 190, 179, 0.3);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(244, 251, 248, 0.88));
 }
 
 .itemBody {
@@ -79,21 +79,21 @@
   margin: 0 0 10px;
   font-size: 18px;
   font-weight: 700;
-  color: #f5f5f0;
+  color: #41655c;
   letter-spacing: 0.01em;
 }
 
 .summary {
   margin: 0 0 8px;
   font-size: 13px;
-  color: #9aa09a;
+  color: #68847c;
   line-height: 1.45;
 }
 
 .meta {
   margin: 0;
   font-size: 12px;
-  color: #6b7377;
+  color: #7b978f;
 }
 
 .actions {
@@ -107,23 +107,23 @@
   padding: 10px 18px;
   border-radius: 10px;
   border: 1px solid rgba(120, 199, 162, 0.35);
-  background: #47604f;
-  color: #f5f5f0;
+  background: #86c6b2;
+  color: #f7fcfa;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .viewBtn:hover {
-  background: #5d7a65;
+  background: #77b8a4;
 }
 
 .deleteBtn {
   padding: 10px 16px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(151, 190, 179, 0.34);
   background: transparent;
-  color: #c8cfd0;
+  color: #648078;
   font-size: 14px;
   cursor: pointer;
 }

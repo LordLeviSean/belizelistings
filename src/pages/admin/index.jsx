@@ -10,7 +10,7 @@ import { supabase } from "../../lib/supabaseClient";
 import useUserRole from "../../hooks/useUserRole";
 import useLivePaletteMode from "../../hooks/useLivePaletteMode";
 import usePulseMode from "../../hooks/usePulseMode";
-import useSpotlightMode from "../../hooks/useSpotlightMode";
+import useSeaFlowMode from "../../hooks/useSeaFlowMode";
 import styles from "../../styles/Dashboard.module.css";
 
 export default function AdminPage() {
@@ -29,7 +29,7 @@ export default function AdminPage() {
   const [updatedAtLabel, setUpdatedAtLabel] = useState("moments ago");
   const { enabled: livePaletteModeEnabled, setMode: setLivePaletteMode } = useLivePaletteMode();
   const { enabled: pulseModeEnabled, setMode: setPulseMode } = usePulseMode();
-  const { enabled: spotlightModeEnabled, setMode: setSpotlightMode } = useSpotlightMode();
+  const { enabled: seaFlowModeEnabled, setMode: setSeaFlowMode } = useSeaFlowMode();
 
   const refreshStats = async () => {
     const [{ count: pending }, { count: approved }, { count: listings }, { count: users }] = await Promise.all([
@@ -171,24 +171,29 @@ export default function AdminPage() {
               <button type="button" className={`${styles.rejectButton} ${styles.quickDangerMuted}`} style={{ marginTop: 8 }} onClick={() => handleBulkAction("rejected")} disabled={bulkLoading === "rejected"}>
                 {bulkLoading === "rejected" ? "Processing..." : "Bulk Reject"}
               </button>
-              <div className={styles.livePaletteControl}>
-                <p className={styles.livePaletteLabel}>Live Palette Mode</p>
-                <label className={styles.livePaletteSwitch}>
-                  <input
-                    type="checkbox"
-                    checked={livePaletteModeEnabled}
-                    onChange={(e) => setLivePaletteMode(e.target.checked)}
-                    aria-label="Toggle live palette mode"
-                  />
-                  <span className={styles.livePaletteSlider} />
-                </label>
-              </div>
-              {livePaletteModeEnabled ? (
-                <div className={styles.livePaletteControl}>
+              <div className={styles.effectControls}>
+                <div className={styles.effectCard}>
+                  <div>
+                    <p className={styles.livePaletteLabel}>Live Palette Mode</p>
+                    <p className={styles.livePaletteSubtext}>
+                      Subtle district color breathing in the BelizeListings wordmark.
+                    </p>
+                  </div>
+                  <label className={styles.livePaletteSwitch}>
+                    <input
+                      type="checkbox"
+                      checked={livePaletteModeEnabled}
+                      onChange={(e) => setLivePaletteMode(e.target.checked)}
+                      aria-label="Toggle live palette mode"
+                    />
+                    <span className={styles.livePaletteSlider} />
+                  </label>
+                </div>
+                <div className={styles.effectCard}>
                   <div>
                     <p className={styles.livePaletteLabel}>Pulse Mode</p>
                     <p className={styles.livePaletteSubtext}>
-                      Higher-energy ambient palette motion using the Belize district color system.
+                      Calm editorial pulse layered over live palette transitions.
                     </p>
                   </div>
                   <label className={styles.livePaletteSwitch}>
@@ -201,31 +206,24 @@ export default function AdminPage() {
                     <span className={styles.livePaletteSlider} />
                   </label>
                 </div>
-              ) : null}
-              {livePaletteModeEnabled && pulseModeEnabled ? (
-                <p className={styles.livePaletteIndicator}>
-                  High-energy ambient motion enabled.
-                </p>
-              ) : null}
-              {livePaletteModeEnabled ? (
-                <div className={styles.livePaletteControl}>
+                <div className={styles.effectCard}>
                   <div>
-                    <p className={styles.livePaletteLabel}>Spotlight Mode</p>
+                    <p className={styles.livePaletteLabel}>Sea Flow Mode</p>
                     <p className={styles.livePaletteSubtext}>
-                      Premium illuminated signage glow behind the BelizeListings wordmark.
+                      Layered sea-glass current motion behind the homepage map surface.
                     </p>
                   </div>
                   <label className={styles.livePaletteSwitch}>
                     <input
                       type="checkbox"
-                      checked={spotlightModeEnabled}
-                      onChange={(e) => setSpotlightMode(e.target.checked)}
-                      aria-label="Toggle spotlight mode"
+                      checked={seaFlowModeEnabled}
+                      onChange={(e) => setSeaFlowMode(e.target.checked)}
+                      aria-label="Toggle sea flow mode"
                     />
                     <span className={styles.livePaletteSlider} />
                   </label>
                 </div>
-              ) : null}
+              </div>
               <h4 style={{ marginTop: 16, marginBottom: 8 }}>Recent Activity</h4>
               <div style={{ display: "grid", gap: 6 }}>
                 {activity.length ? activity.map((item) => <p key={item} className={styles.muted}>{item}</p>) : <p className={styles.muted}>No activity yet</p>}

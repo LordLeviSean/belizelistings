@@ -6,8 +6,8 @@
   flex-direction: column;
 
   min-height: 100vh;
-  background: #0b0f14;
-  color: #eef3ee;
+  background: #eef8f4;
+  color: #3c6057;
 
   font-family: Inter, "Open Sans", Arial, sans-serif;
 }
@@ -27,14 +27,14 @@
 .logo {
   font-size: 18px;
   font-weight: 600;
-  color: #eef3ee;
+  color: #446961;
 }
 
 .nav {
   display: flex;
   gap: 24px;
   font-size: 14px;
-  color: #aab0b2;
+  color: #6e8b84;
 }
 
 .nav span,
@@ -43,8 +43,8 @@
 }
 
 .active {
-  color: #eef3ee;
-  border-bottom: 2px solid #5c735f;
+  color: #3d6259;
+  border-bottom: 2px solid #84c3af;
   padding-bottom: 2px;
 }
 
@@ -64,7 +64,7 @@
 
 .search {
   font-size: 14px;
-  color: #cfd6cf;
+  color: #6e8b84;
 }
 
 .filters {
@@ -82,9 +82,8 @@
   border-radius: 999px;
 
   border: 1px solid rgba(255,255,255,0.08);
-  background: #14181c;
-
-  color: #aab0b2;
+  background: rgba(255, 255, 255, 0.78);
+  color: #638079;
   font-size: 13px;
 
   cursor: pointer;
@@ -92,13 +91,13 @@
 }
 
 .filterButton:hover {
-  border-color: #5c735f;
+  border-color: #84c3af;
 }
 
 .activeFilter {
-  background: #5c735f;
-  color: #fff;
-  border-color: #5c735f;
+  background: #84c3af;
+  color: #f8fcfa;
+  border-color: #84c3af;
 }
 
 /* =========================
@@ -108,10 +107,9 @@
   padding: 8px 12px;
   border-radius: 10px;
 
-  border: 1px solid #2b3134;
-  background: #14181c;
-
-  color: #eef3ee;
+  border: 1px solid rgba(151, 190, 179, 0.34);
+  background: rgba(255, 255, 255, 0.82);
+  color: #42665d;
   font-size: 13px;
 
   width: 100px;
@@ -132,7 +130,7 @@
 .listHeader h2 {
   font-size: 18px;
   font-weight: 600;
-  color: #dfe7df;
+  color: #476c63;
 }
 
 .list {
@@ -142,7 +140,7 @@
 }
 
 .empty {
-  color: #7f888c;
+  color: #7b9790;
   font-size: 14px;
 }
 

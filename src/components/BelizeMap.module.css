@@ -45,23 +45,14 @@
   align-items: center;
   justify-content: center;
   overflow: visible;
-  --map-fly-scale: 1;
-  --map-fly-x: 0%;
-  --map-fly-y: 0%;
-  width: 102%;
-  height: 102%;
+  width: 98%;
+  height: 98%;
 }
 
 .mapStage .mapSvg {
-  transform: translate3d(var(--map-fly-x), var(--map-fly-y), 0)
-    scale(var(--map-fly-scale));
-  transform-origin: center center;
-  transition: transform 560ms cubic-bezier(0.22, 0.78, 0.19, 1);
-  will-change: transform;
-}
-
-.mapStageFlying .mapSvg {
-  transition-duration: 560ms;
+  transform: none;
+  transition: none;
+  will-change: auto;
 }
 
 .mapOverlays {
@@ -99,12 +90,21 @@
   position: static;
   touch-action: manipulation;
   cursor: default;
-  transform: scale(1.045) translate(0.28%, -0.92%);
+  transform: scale(0.995) translate(0.12%, -0.5%);
   transform-origin: center center;
 }
 
 .map.mapFitLayout .mapStage .mapSvg :global(svg #mainland_base) {
   pointer-events: none;
+  filter:
+    drop-shadow(0 18px 30px rgba(93, 147, 176, 0.16))
+    drop-shadow(0 0 18px rgba(164, 212, 223, 0.2));
+}
+
+.map.mapFitLayout .mapStage .mapSvg :global(svg g[id] path) {
+  stroke: rgba(236, 247, 251, 0.42);
+  stroke-width: 0.9;
+  vector-effect: non-scaling-stroke;
 }
 
 @media (max-width: 1100px) {
@@ -122,9 +122,10 @@
   }
 
   .map.mapFitLayout .mapStage .mapSvg :global(svg) {
-    transform: scale(1.03) translate(0, -0.62%);
+    transform: scale(0.99) translate(0, -0.42%);
   }
 }
+
 
 .mapNoSelect,
 .mapNoSelect .mapStage,
@@ -172,11 +173,14 @@
 .mapDistrictGroup :global(path) {
   pointer-events: auto;
   transition:
+    transform 0.52s cubic-bezier(0.21, 0.78, 0.24, 1),
     filter 0.15s ease,
     opacity 0.15s ease,
     fill 0.15s ease,
     stroke 0.15s ease,
     stroke-width 0.15s ease;
+  transform-origin: center center;
+  will-change: transform, filter;
 }
 
 /* Informational hover — light lift */
@@ -191,7 +195,12 @@
 
 .districtClicked :global(path) {
   opacity: 1;
-  filter: brightness(1.18) saturate(1.08) drop-shadow(0 0 7px rgba(114, 183, 174, 0.34));
+  transform: translateY(-8px) scale(1.035);
+  filter:
+    brightness(1.2)
+    saturate(1.1)
+    drop-shadow(0 10px 14px rgba(91, 145, 175, 0.22))
+    drop-shadow(0 0 8px rgba(114, 183, 174, 0.32));
 }
 
 /* Authoritative selection — tight rim light, restrained elevation (not under-glow) */

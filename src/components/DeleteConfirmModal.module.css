@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(227, 241, 236, 0.68);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12,20 +12,20 @@
 .modal {
   width: 100%;
   max-width: 400px;
-  background: #111822;
-  border: 1px solid rgba(245, 245, 240, 0.12);
+  background: rgba(252, 254, 253, 0.96);
+  border: 1px solid rgba(151, 190, 179, 0.3);
   border-radius: 12px;
   padding: 18px;
-  color: #f5f5f0;
+  color: #40635b;
 }
 
 .input {
   width: 100%;
   margin-top: 10px;
   border-radius: 8px;
-  border: 1px solid rgba(245, 245, 240, 0.14);
-  background: rgba(255, 255, 255, 0.03);
-  color: #f5f5f0;
+  border: 1px solid rgba(151, 190, 179, 0.34);
+  background: rgba(255, 255, 255, 0.82);
+  color: #41655c;
   padding: 10px;
 }
 
@@ -39,9 +39,9 @@
 .cancelButton,
 .deleteButton {
   border-radius: 10px;
-  border: 1px solid rgba(245, 245, 240, 0.2);
-  background: rgba(255, 255, 255, 0.04);
-  color: #f5f5f0;
+  border: 1px solid rgba(151, 190, 179, 0.34);
+  background: rgba(255, 255, 255, 0.72);
+  color: #41655c;
   padding: 10px 12px;
   cursor: pointer;
 }

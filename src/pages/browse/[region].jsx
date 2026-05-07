@@ -10,7 +10,7 @@ import { fetchApprovedListingsWithImages } from "../../lib/listingQueries";
 import { filterListings } from "../../utils/filterListings";
 import useFavorites from "../../hooks/useFavorites";
 
-import styles from "../../styles/HomeMapFirst.module.css";
+import styles from "../../styles/District.module.css";
 
 /** URL segment → canonical display district (matches `listing.district` when normalized). */
 const REGION_SLUG_TO_DISTRICT_LABEL = {
@@ -205,35 +205,47 @@ export default function BrowseRegionPage() {
         <SiteNav active="browse" />
         <main className={styles.districtPageShell} style={{ "--district-accent-rgb": accentRgb }}>
           <section className={styles.districtHero}>
-            <span className={styles.districtWatermark} aria-hidden="true">
-              {regionLabel}
-            </span>
-            <div className={styles.districtHeroTopRow}>
-              <Link href="/" className={styles.districtBackLink}>
-                ← Map & exploration
-              </Link>
-              <p className={styles.districtDescriptor}>{descriptor}</p>
-            </div>
-            <h1 className={styles.listPaneTitle}>{regionLabel}</h1>
-            <p className={styles.listPaneLead} aria-live="polite">
-              {loadingListings ? "Loading…" : listLead}
-            </p>
-            {!loadingListings ? (
-              <div className={styles.districtMetaGrid}>
-                <div className={styles.districtMetaCard}>
-                  <p className={styles.districtMetaLabel}>Total Inventory</p>
-                  <p className={styles.districtMetaValue}>{districtAllRows.length}</p>
+            <div className={styles.districtHeroMain}>
+              <div className={styles.districtHeroLeft}>
+                <div className={styles.districtHeroTopRow}>
+                  <Link href="/" className={styles.districtBackLink}>
+                    ← Map & exploration
+                  </Link>
+                  <p className={styles.districtDescriptor}>{descriptor}</p>
                 </div>
-                <div className={styles.districtMetaCard}>
-                  <p className={styles.districtMetaLabel}>For Sale</p>
-                  <p className={styles.districtMetaValue}>{marketMix.forSale}</p>
-                </div>
-                <div className={styles.districtMetaCard}>
-                  <p className={styles.districtMetaLabel}>For Rent</p>
-                  <p className={styles.districtMetaValue}>{marketMix.forRent}</p>
-                </div>
+                <h1 className={styles.listPaneTitle}>{regionLabel}</h1>
+                <p className={styles.districtSubtitle}>Coastal district intelligence</p>
+                <p className={styles.districtEditorial}>
+                  A curated, map-led view of the {regionLabel} property landscape with a calmer editorial
+                  browsing rhythm and atmospheric regional context.
+                </p>
+                <p className={styles.listPaneLead} aria-live="polite">
+                  {loadingListings ? "Loading…" : listLead}
+                </p>
               </div>
-            ) : null}
+              <aside className={styles.districtHeroRight} aria-label={`${regionLabel} district context`}>
+                <div className={styles.miniMapPreview}>
+                  <img src="/maps/clean-mainland-districts.svg" alt="" className={styles.embeddedMapSilhouette} />
+                  <div className={styles.miniMapGlow} />
+                </div>
+                {!loadingListings ? (
+                  <div className={styles.districtMetaGrid}>
+                    <div className={styles.districtMetaCard}>
+                      <p className={styles.districtMetaLabel}>Total Inventory</p>
+                      <p className={styles.districtMetaValue}>{districtAllRows.length}</p>
+                    </div>
+                    <div className={styles.districtMetaCard}>
+                      <p className={styles.districtMetaLabel}>For Sale</p>
+                      <p className={styles.districtMetaValue}>{marketMix.forSale}</p>
+                    </div>
+                    <div className={styles.districtMetaCard}>
+                      <p className={styles.districtMetaLabel}>For Rent</p>
+                      <p className={styles.districtMetaValue}>{marketMix.forRent}</p>
+                    </div>
+                  </div>
+                ) : null}
+              </aside>
+            </div>
           </section>
 
           <section className={styles.listPane}>
@@ -241,10 +253,9 @@ export default function BrowseRegionPage() {
               {!loadingListings ? <p className={styles.listPaneMeta}>{listMeta}</p> : null}
 
               <div
-                className={filterBarStyles.statusToggle}
+                className={`${filterBarStyles.statusToggle} ${styles.districtStatusToggle}`}
                 role="tablist"
                 aria-label="Listing type"
-                style={{ marginTop: 12, marginBottom: 10, width: "100%", justifyContent: "stretch" }}
               >
                 {LISTING_TYPE_OPTIONS.map((option) => (
                   <button
@@ -252,10 +263,10 @@ export default function BrowseRegionPage() {
                     type="button"
                     role="tab"
                     aria-selected={listingType === option.value}
-                    className={`${filterBarStyles.toggleButton} ${
+                    className={`${filterBarStyles.toggleButton} ${styles.districtToggleButton} ${
                       listingType === option.value ? filterBarStyles.toggleButtonActive : ""
                     }`}
-                    style={{ flex: "1 1 0", minWidth: 0 }}
+                    style={{ flex: "1 1 0", minWidth: 0, width: "100%" }}
                     onClick={() => {
                       setListingType(option.value);
                       syncFiltersToUrl(option.value, sortBy);
@@ -271,7 +282,7 @@ export default function BrowseRegionPage() {
               </label>
               <select
                 id="browse-region-sort"
-                className={styles.browseSortSelect}
+                className={`${styles.browseSortSelect} ${styles.districtSortSelect}`}
                 value={sortBy}
                 onChange={(e) => {
                   const v = e.target.value;

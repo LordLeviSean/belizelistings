@@ -3,14 +3,17 @@
   isolation: isolate;
   min-height: 100vh;
 
-  background: var(--bg-main);
+  background:
+    linear-gradient(160deg, rgba(245, 250, 247, 0.96), rgba(233, 244, 240, 0.92)),
+    var(--bg-main);
   color: var(--text-primary);
 
-  font-family: Inter, "Open Sans", Arial, sans-serif;
+  font-family: "DM Sans", "Inter", "Open Sans", Arial, sans-serif;
 
   background-image:
-    radial-gradient(circle at 16% 8%, rgba(137, 205, 189, 0.13), transparent 46%),
-    radial-gradient(circle at 80% 4%, rgba(159, 179, 217, 0.1), transparent 44%);
+    radial-gradient(ellipse 40% 28% at 12% 8%, rgba(137, 205, 189, 0.15), transparent 62%),
+    radial-gradient(ellipse 32% 24% at 78% 5%, rgba(159, 179, 217, 0.12), transparent 58%),
+    radial-gradient(ellipse 36% 40% at 54% 86%, rgba(214, 190, 140, 0.08), transparent 66%);
 }
 
 /* ambient texture */
@@ -105,15 +108,16 @@
 /* MAIN LAYOUT — map hero (~72–75%) + listings pane under nav only */
 .mainSplit {
   display: grid;
-  grid-template-columns: minmax(0, 2.42fr) minmax(360px, 1fr);
-  height: calc(100dvh - 72px);
-  max-height: calc(100dvh - 72px);
-  gap: 12px;
-  padding: 14px 18px;
+  grid-template-columns: minmax(0, 1fr);
+  height: calc(100dvh - 64px);
+  max-height: calc(100dvh - 64px);
+  gap: 0;
+  padding: 10px 20px 2px;
   min-width: 0;
   min-height: 0;
-  overflow-x: hidden;
+  overflow: hidden;
   align-items: stretch;
+  position: relative;
 }
 
 /* MAP — inset frame so scaled SVG breathes without clipping landmass */
@@ -126,20 +130,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 18px;
-  overflow: hidden;
-  padding-inline: clamp(8px, 1.35vmin, 14px);
-  padding-top: clamp(18px, 2.7vmin, 30px);
-  padding-bottom: clamp(14px, 2.1vmin, 22px);
+  border-radius: 0;
+  overflow: visible;
+  padding-inline: clamp(12px, 1.8vmin, 22px);
+  padding-top: clamp(6px, 1.3vmin, 14px);
+  padding-bottom: clamp(2px, 0.7vmin, 8px);
   box-sizing: border-box;
   /* Keep map content above decorative ::after in the stacking order */
   isolation: isolate;
-  background:
-    radial-gradient(ellipse 56% 42% at 36% 34%, rgba(137, 205, 189, 0.16), transparent 72%),
-    radial-gradient(ellipse 54% 40% at 34% 69%, rgba(137, 205, 189, 0.1), transparent 76%),
-    radial-gradient(ellipse 48% 38% at 56% 28%, rgba(159, 179, 217, 0.11), transparent 70%),
-    transparent;
-  border: 1px solid transparent;
+  background: transparent;
+  border: none;
   box-shadow: none;
   position: relative;
 }
@@ -157,33 +157,47 @@
 .mapPane::after {
   content: "";
   position: absolute;
-  inset: -1px;
+  inset: -20% -16%;
   pointer-events: none;
-  border-radius: 18px;
-  box-shadow:
-    0 0 72px rgba(137, 205, 189, 0.1),
-    0 0 98px rgba(159, 179, 217, 0.06);
-  background: radial-gradient(ellipse at 34% 52%, rgba(12, 17, 23, 0) 34%, rgba(10, 14, 19, 0.11) 100%);
+  border-radius: 0;
+  box-shadow: none;
+  background:
+    radial-gradient(ellipse 66% 58% at 38% 52%, rgba(138, 204, 191, 0.2), transparent 74%),
+    radial-gradient(ellipse 62% 52% at 62% 46%, rgba(157, 181, 218, 0.16), transparent 74%);
+  filter: blur(22px);
+  opacity: 0.88;
 }
 
-/* LIST PANEL */
-.listPane {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  max-height: 100%;
-  min-height: 0;
-  min-width: 0;
-  max-width: 100%;
-  border-radius: 15px;
+.mapPane.mapPaneSeaFlow::before {
+  content: "";
+  position: absolute;
+  inset: -42% -34%;
+  pointer-events: none;
+  z-index: 0;
   background:
-    linear-gradient(180deg, rgba(17, 23, 29, 0.9), rgba(15, 20, 26, 0.86));
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  overflow: hidden;
-  box-shadow:
-    0 8px 16px rgba(0, 0, 0, 0.2),
-    0 0 34px rgba(137, 205, 189, 0.05);
+    radial-gradient(ellipse 84% 78% at 12% 40%, rgba(69, 151, 141, 0.9), transparent 76%),
+    radial-gradient(ellipse 80% 72% at 84% 26%, rgba(88, 136, 196, 0.86), transparent 76%),
+    radial-gradient(ellipse 88% 82% at 56% 80%, rgba(78, 148, 176, 0.76), transparent 84%);
+  filter: blur(44px);
+  mix-blend-mode: soft-light;
+  opacity: 1;
+  animation:
+    seaFlowDriftA 8.5s ease-in-out infinite alternate,
+    seaFlowPastelCycle 30s linear infinite;
 }
+
+.mapPane.mapPaneSeaFlow::after {
+  background:
+    radial-gradient(ellipse 82% 74% at 24% 58%, rgba(64, 145, 164, 0.84), transparent 80%),
+    radial-gradient(ellipse 76% 68% at 72% 34%, rgba(110, 151, 208, 0.8), transparent 78%),
+    radial-gradient(ellipse 84% 76% at 60% 78%, rgba(99, 173, 163, 0.68), transparent 84%);
+  filter: blur(30px);
+  opacity: 1;
+  animation:
+    seaFlowDriftB 10s ease-in-out infinite alternate,
+    seaFlowPastelCycle 34s linear infinite reverse;
+}
+
 
 /* HEADER */
 .listPaneHeader {
@@ -192,13 +206,13 @@
 }
 
 .listPaneTitle {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   line-height: 1.35;
   margin: 0;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(233, 239, 236, 0.9);
+  color: rgba(220, 232, 227, 0.86);
 }
 
 .listPaneLead {
@@ -250,14 +264,12 @@
 
 /* LISTINGS */
 .listings {
-  /* Scroll container: intentional vertical scroll */
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 8px 10px 10px;
+  overflow: visible;
+  padding: 10px 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
   max-width: 680px;
   width: 100%;
@@ -398,12 +410,57 @@
   100% { transform: translate3d(1%,-1%,0); }
 }
 
+@keyframes seaFlowDriftA {
+  0% {
+    transform: translate3d(-12.2%, 4.2%, 0) scale(0.82);
+    opacity: 0.56;
+  }
+  100% {
+    transform: translate3d(13.4%, -4.8%, 0) scale(1.34);
+    opacity: 1;
+  }
+}
+
+@keyframes seaFlowDriftB {
+  0% {
+    transform: translate3d(11.4%, -4.2%, 0) scale(0.8);
+    opacity: 0.54;
+  }
+  100% {
+    transform: translate3d(-12.8%, 4.8%, 0) scale(1.32);
+    opacity: 1;
+  }
+}
+
+@keyframes seaFlowPastelCycle {
+  0% {
+    filter: blur(34px) hue-rotate(0deg) saturate(1.02) brightness(0.98);
+  }
+  22% {
+    filter: blur(34px) hue-rotate(14deg) saturate(1.08) brightness(1);
+  }
+  44% {
+    filter: blur(34px) hue-rotate(28deg) saturate(1.1) brightness(1.02);
+  }
+  66% {
+    filter: blur(34px) hue-rotate(10deg) saturate(1.06) brightness(1);
+  }
+  82% {
+    filter: blur(34px) hue-rotate(-8deg) saturate(1.04) brightness(0.99);
+  }
+  100% {
+    filter: blur(34px) hue-rotate(0deg) saturate(1.02) brightness(0.98);
+  }
+}
+
+
 /* RESPONSIVE */
 @media (max-width: 1100px) {
   .mainSplit {
     grid-template-columns: 1fr;
     height: auto;
     max-height: none;
+    overflow: visible;
   }
 
   .mapPane {
@@ -414,12 +471,6 @@
 
   .mapPane > * {
     max-height: none;
-  }
-
-  .listPane {
-    min-height: 42vh;
-    max-height: none;
-    height: auto;
   }
 
   .districtMetaGrid {
