@@ -26,6 +26,28 @@ const REGION_SLUG_TO_DISTRICT_LABEL = {
 
 const VALID_REGION_SLUGS = new Set(Object.keys(REGION_SLUG_TO_DISTRICT_LABEL));
 
+const REGION_DESCRIPTOR = {
+  corozal: "Northern borderland inventory",
+  "orange-walk": "Agricultural growth corridor",
+  belize: "Urban commercial hub",
+  cayo: "Inland eco-estate market",
+  "stann-creek": "Luxury coastal inventory",
+  toledo: "Southern frontier opportunities",
+  "ambergris-caye": "Island resort market",
+  "caye-caulker": "Boutique island inventory",
+};
+
+const REGION_ACCENT_RGB = {
+  corozal: "143, 196, 181",
+  "orange-walk": "214, 198, 134",
+  belize: "139, 180, 217",
+  cayo: "126, 186, 134",
+  "stann-creek": "135, 204, 186",
+  toledo: "171, 155, 205",
+  "ambergris-caye": "117, 197, 204",
+  "caye-caulker": "152, 185, 222",
+};
+
 const LISTING_TYPE_OPTIONS = [
   { label: "All", value: "all" },
   { label: "For Sale", value: "for-sale" },
@@ -171,6 +193,8 @@ export default function BrowseRegionPage() {
   const n = filteredListings.length;
   const listLead = `${n} active ${n === 1 ? "listing" : "listings"}`;
   const listMeta = `${marketMix.forSale} for sale · ${marketMix.forRent} rentals in this district`;
+  const descriptor = REGION_DESCRIPTOR[regionSlug] || "Regional market inventory";
+  const accentRgb = REGION_ACCENT_RGB[regionSlug] || "137, 205, 189";
 
   return (
     <>
@@ -179,104 +203,125 @@ export default function BrowseRegionPage() {
       </Head>
       <div className={`${styles.page} browse-region-page`}>
         <SiteNav active="browse" />
-
-        <main
-          className={styles.listPane}
-          style={{ maxWidth: 900, margin: "0 auto", width: "100%", padding: "1.25rem 1.25rem 2.5rem" }}
-        >
-          <div className={styles.listPaneHeader}>
-            <p style={{ marginBottom: "0.5rem" }}>
-              <Link href="/" style={{ color: "var(--text-secondary)" }}>
+        <main className={styles.districtPageShell} style={{ "--district-accent-rgb": accentRgb }}>
+          <section className={styles.districtHero}>
+            <span className={styles.districtWatermark} aria-hidden="true">
+              {regionLabel}
+            </span>
+            <div className={styles.districtHeroTopRow}>
+              <Link href="/" className={styles.districtBackLink}>
                 ← Map & exploration
               </Link>
-            </p>
+              <p className={styles.districtDescriptor}>{descriptor}</p>
+            </div>
             <h1 className={styles.listPaneTitle}>{regionLabel}</h1>
             <p className={styles.listPaneLead} aria-live="polite">
               {loadingListings ? "Loading…" : listLead}
             </p>
-            {!loadingListings ? <p className={styles.listPaneMeta}>{listMeta}</p> : null}
+            {!loadingListings ? (
+              <div className={styles.districtMetaGrid}>
+                <div className={styles.districtMetaCard}>
+                  <p className={styles.districtMetaLabel}>Total Inventory</p>
+                  <p className={styles.districtMetaValue}>{districtAllRows.length}</p>
+                </div>
+                <div className={styles.districtMetaCard}>
+                  <p className={styles.districtMetaLabel}>For Sale</p>
+                  <p className={styles.districtMetaValue}>{marketMix.forSale}</p>
+                </div>
+                <div className={styles.districtMetaCard}>
+                  <p className={styles.districtMetaLabel}>For Rent</p>
+                  <p className={styles.districtMetaValue}>{marketMix.forRent}</p>
+                </div>
+              </div>
+            ) : null}
+          </section>
 
-            <div
-              className={filterBarStyles.statusToggle}
-              role="tablist"
-              aria-label="Listing type"
-              style={{ marginTop: 12, marginBottom: 10, width: "100%", justifyContent: "stretch" }}
-            >
-              {LISTING_TYPE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="tab"
-                  aria-selected={listingType === option.value}
-                  className={`${filterBarStyles.toggleButton} ${
-                    listingType === option.value ? filterBarStyles.toggleButtonActive : ""
-                  }`}
-                  style={{ flex: "1 1 0", minWidth: 0 }}
-                  onClick={() => {
-                    setListingType(option.value);
-                    syncFiltersToUrl(option.value, sortBy);
-                  }}
-                >
-                  {option.label}
-                </button>
-              ))}
+          <section className={styles.listPane}>
+            <div className={styles.listPaneHeader}>
+              {!loadingListings ? <p className={styles.listPaneMeta}>{listMeta}</p> : null}
+
+              <div
+                className={filterBarStyles.statusToggle}
+                role="tablist"
+                aria-label="Listing type"
+                style={{ marginTop: 12, marginBottom: 10, width: "100%", justifyContent: "stretch" }}
+              >
+                {LISTING_TYPE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={listingType === option.value}
+                    className={`${filterBarStyles.toggleButton} ${
+                      listingType === option.value ? filterBarStyles.toggleButtonActive : ""
+                    }`}
+                    style={{ flex: "1 1 0", minWidth: 0 }}
+                    onClick={() => {
+                      setListingType(option.value);
+                      syncFiltersToUrl(option.value, sortBy);
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              <label className={styles.browseSortLabel} htmlFor="browse-region-sort">
+                Sort
+              </label>
+              <select
+                id="browse-region-sort"
+                className={styles.browseSortSelect}
+                value={sortBy}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSortBy(v);
+                  syncFiltersToUrl(listingType, v);
+                }}
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <label className={styles.browseSortLabel} htmlFor="browse-region-sort">
-              Sort
-            </label>
-            <select
-              id="browse-region-sort"
-              className={styles.browseSortSelect}
-              value={sortBy}
-              onChange={(e) => {
-                const v = e.target.value;
-                setSortBy(v);
-                syncFiltersToUrl(listingType, v);
-              }}
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {loadingListings ? (
-            <p style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>Loading listings…</p>
-          ) : filteredListings.length === 0 ? (
-            <div className={styles.emptyState}>
-              <p>No listings match these filters in {regionLabel}.</p>
-              <p style={{ marginTop: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setListingType("all");
-                    setSortBy("newest");
-                    syncFiltersToUrl("all", "newest");
-                  }}
-                >
-                  Reset filters
-                </button>
-                {" · "}
-                <Link href="/">Explore map</Link>
-              </p>
-            </div>
-          ) : (
-            <div className={`${styles.listings} safeFlexCol`}>
-              {filteredListings.map((listing) => (
-                <ListingCard
-                  key={listing.id}
-                  listing={listing}
-                  showFavoriteButton={isAuthenticated}
-                  isFavorited={isFavorite(listing.id)}
-                  favoriteBusy={isBusy(listing.id)}
-                  onToggleFavorite={toggleFavorite}
-                />
-              ))}
-            </div>
-          )}
+            {loadingListings ? (
+              <p style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>Loading listings…</p>
+            ) : filteredListings.length === 0 ? (
+              <div className={styles.emptyState}>
+                <p>No listings match these filters in {regionLabel}.</p>
+                <p style={{ marginTop: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setListingType("all");
+                      setSortBy("newest");
+                      syncFiltersToUrl("all", "newest");
+                    }}
+                  >
+                    Reset filters
+                  </button>
+                  {" · "}
+                  <Link href="/">Explore map</Link>
+                </p>
+              </div>
+            ) : (
+              <div className={`${styles.listings} safeFlexCol`}>
+                {filteredListings.map((listing) => (
+                  <ListingCard
+                    key={listing.id}
+                    listing={listing}
+                    showFavoriteButton={isAuthenticated}
+                    isFavorited={isFavorite(listing.id)}
+                    favoriteBusy={isBusy(listing.id)}
+                    onToggleFavorite={toggleFavorite}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
         </main>
       </div>
     </>

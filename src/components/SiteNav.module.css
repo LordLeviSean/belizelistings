@@ -105,27 +105,27 @@
 .brandWordmarkLive .brandLetter:nth-child(14) { animation-delay: -5.85s, -4.55s; }
 
 .brandWordmarkPulse .brandLetter {
-  animation-name: districtPaletteDriftPulse, districtPaletteBreathePulse, districtPaletteSurge;
-  animation-duration: 15.5s, 5.2s, 11.8s;
-  animation-timing-function: ease-in-out, ease-in-out, ease-in-out;
-  animation-iteration-count: infinite, infinite, infinite;
-  animation-direction: alternate, alternate, normal;
+  animation-name: districtPaletteDriftPulse, districtPaletteBreathePulse, districtPaletteSurge, districtPaletteMicroSurge;
+  animation-duration: var(--pulse-drift-dur, 2.6s), var(--pulse-breathe-dur, 1.3s), var(--pulse-surge-dur, 2.7s), var(--pulse-micro-dur, 1.1s);
+  animation-timing-function: ease-in-out, ease-in-out, ease-in-out, cubic-bezier(0.22, 0.74, 0.29, 1);
+  animation-iteration-count: infinite, infinite, infinite, infinite;
+  animation-direction: alternate, alternate, normal, normal;
 }
 
-.brandWordmarkPulse .brandLetter:nth-child(1) { animation-delay: -0.10s, -0.00s, -1.0s; }
-.brandWordmarkPulse .brandLetter:nth-child(2) { animation-delay: -0.62s, -0.33s, -4.8s; }
-.brandWordmarkPulse .brandLetter:nth-child(3) { animation-delay: -1.34s, -0.81s, -7.2s; }
-.brandWordmarkPulse .brandLetter:nth-child(4) { animation-delay: -2.05s, -1.27s, -2.6s; }
-.brandWordmarkPulse .brandLetter:nth-child(5) { animation-delay: -2.76s, -1.71s, -9.1s; }
-.brandWordmarkPulse .brandLetter:nth-child(6) { animation-delay: -3.61s, -2.12s, -5.0s; }
-.brandWordmarkPulse .brandLetter:nth-child(7) { animation-delay: -4.23s, -2.58s, -10.4s; }
-.brandWordmarkPulse .brandLetter:nth-child(8) { animation-delay: -4.96s, -3.02s, -6.8s; }
-.brandWordmarkPulse .brandLetter:nth-child(9) { animation-delay: -5.72s, -3.46s, -3.7s; }
-.brandWordmarkPulse .brandLetter:nth-child(10) { animation-delay: -6.31s, -3.95s, -8.3s; }
-.brandWordmarkPulse .brandLetter:nth-child(11) { animation-delay: -7.14s, -4.37s, -1.8s; }
-.brandWordmarkPulse .brandLetter:nth-child(12) { animation-delay: -7.76s, -4.82s, -10.9s; }
-.brandWordmarkPulse .brandLetter:nth-child(13) { animation-delay: -8.58s, -5.16s, -5.9s; }
-.brandWordmarkPulse .brandLetter:nth-child(14) { animation-delay: -9.33s, -5.60s, -2.9s; }
+.brandWordmarkPulse .brandLetter:nth-child(1) { --pulse-drift-dur: 2.25s; --pulse-breathe-dur: 1.08s; --pulse-surge-dur: 1.9s; --pulse-micro-dur: 0.88s; animation-delay: -0.10s, -0.00s, -1.0s, -0.35s; }
+.brandWordmarkPulse .brandLetter:nth-child(2) { --pulse-drift-dur: 2.95s; --pulse-breathe-dur: 1.26s; --pulse-surge-dur: 2.55s; --pulse-micro-dur: 1.15s; animation-delay: -0.62s, -0.33s, -4.8s, -1.16s; }
+.brandWordmarkPulse .brandLetter:nth-child(3) { --pulse-drift-dur: 2.05s; --pulse-breathe-dur: 0.96s; --pulse-surge-dur: 2.9s; --pulse-micro-dur: 0.93s; animation-delay: -1.34s, -0.81s, -7.2s, -0.62s; }
+.brandWordmarkPulse .brandLetter:nth-child(4) { --pulse-drift-dur: 3.15s; --pulse-breathe-dur: 1.42s; --pulse-surge-dur: 2.05s; --pulse-micro-dur: 1.22s; animation-delay: -2.05s, -1.27s, -2.6s, -1.47s; }
+.brandWordmarkPulse .brandLetter:nth-child(5) { --pulse-drift-dur: 2.45s; --pulse-breathe-dur: 1.12s; --pulse-surge-dur: 3.05s; --pulse-micro-dur: 0.97s; animation-delay: -2.76s, -1.71s, -9.1s, -0.58s; }
+.brandWordmarkPulse .brandLetter:nth-child(6) { --pulse-drift-dur: 2.85s; --pulse-breathe-dur: 1.34s; --pulse-surge-dur: 2.15s; --pulse-micro-dur: 1.26s; animation-delay: -3.61s, -2.12s, -5.0s, -1.94s; }
+.brandWordmarkPulse .brandLetter:nth-child(7) { --pulse-drift-dur: 2.0s; --pulse-breathe-dur: 0.9s; --pulse-surge-dur: 3.25s; --pulse-micro-dur: 0.86s; animation-delay: -4.23s, -2.58s, -10.4s, -0.26s; }
+.brandWordmarkPulse .brandLetter:nth-child(8) { --pulse-drift-dur: 2.6s; --pulse-breathe-dur: 1.2s; --pulse-surge-dur: 2.4s; --pulse-micro-dur: 1.1s; animation-delay: -4.96s, -3.02s, -6.8s, -1.42s; }
+.brandWordmarkPulse .brandLetter:nth-child(9) { --pulse-drift-dur: 3.25s; --pulse-breathe-dur: 1.48s; --pulse-surge-dur: 2.0s; --pulse-micro-dur: 1.28s; animation-delay: -5.72s, -3.46s, -3.7s, -0.92s; }
+.brandWordmarkPulse .brandLetter:nth-child(10) { --pulse-drift-dur: 2.28s; --pulse-breathe-dur: 1.04s; --pulse-surge-dur: 2.8s; --pulse-micro-dur: 0.94s; animation-delay: -6.31s, -3.95s, -8.3s, -0.41s; }
+.brandWordmarkPulse .brandLetter:nth-child(11) { --pulse-drift-dur: 2.88s; --pulse-breathe-dur: 1.32s; --pulse-surge-dur: 2.1s; --pulse-micro-dur: 1.24s; animation-delay: -7.14s, -4.37s, -1.8s, -1.86s; }
+.brandWordmarkPulse .brandLetter:nth-child(12) { --pulse-drift-dur: 1.96s; --pulse-breathe-dur: 0.88s; --pulse-surge-dur: 3.0s; --pulse-micro-dur: 0.82s; animation-delay: -7.76s, -4.82s, -10.9s, -0.53s; }
+.brandWordmarkPulse .brandLetter:nth-child(13) { --pulse-drift-dur: 2.5s; --pulse-breathe-dur: 1.14s; --pulse-surge-dur: 2.45s; --pulse-micro-dur: 1.05s; animation-delay: -8.58s, -5.16s, -5.9s, -1.32s; }
+.brandWordmarkPulse .brandLetter:nth-child(14) { --pulse-drift-dur: 3.05s; --pulse-breathe-dur: 1.4s; --pulse-surge-dur: 2.0s; --pulse-micro-dur: 1.2s; animation-delay: -9.33s, -5.60s, -2.9s, -0.74s; }
 
 @keyframes districtPaletteDrift {
   0%   { color: var(--district-c1); }
@@ -156,21 +156,47 @@
 }
 
 @keyframes districtPaletteBreathePulse {
-  0%   { filter: brightness(0.995) saturate(0.98); text-shadow: 0 0 0 rgba(137, 205, 189, 0); }
-  46%  { filter: brightness(1.05) saturate(1.03); text-shadow: 0 0 8px rgba(137, 205, 189, 0.16); }
-  100% { filter: brightness(1.0) saturate(1.0); text-shadow: 0 0 0 rgba(137, 205, 189, 0); }
+  0%   { filter: brightness(0.994) saturate(0.99); text-shadow: 0 0 0 rgba(137, 205, 189, 0); }
+  24%  { filter: brightness(1.06) saturate(1.04); text-shadow: 0 0 8px rgba(137, 205, 189, 0.16); }
+  54%  { filter: brightness(1.028) saturate(1.03); text-shadow: 0 0 6px rgba(159, 179, 217, 0.12); }
+  78%  { filter: brightness(1.052) saturate(1.04); text-shadow: 0 0 9px rgba(137, 205, 189, 0.15); }
+  100% { filter: brightness(1.004) saturate(1.01); text-shadow: 0 0 0 rgba(137, 205, 189, 0); }
 }
 
 @keyframes districtPaletteSurge {
-  0%, 72%, 100% { filter: brightness(1); }
-  76% { filter: brightness(1.065); }
-  80% { filter: brightness(1.03); }
+  0%, 56%, 100% { filter: brightness(1); }
+  59% { filter: brightness(1.095) saturate(1.045); }
+  64% { filter: brightness(1.03) saturate(1.02); }
+  80% { filter: brightness(1.082) saturate(1.04); }
+  84% { filter: brightness(1.018) saturate(1.01); }
+}
+
+@keyframes districtPaletteMicroSurge {
+  0%, 82%, 100% { opacity: 1; }
+  85% { opacity: 0.98; filter: brightness(1.11) saturate(1.06); }
+  89% { opacity: 1; filter: brightness(1.02) saturate(1.02); }
+  93% { opacity: 1; filter: brightness(1.085) saturate(1.04); }
 }
 
 .brandWordmarkSpotlight {
+  /* Intensity ceiling + shared spotlight vars */
+  --spot-inner-alpha: 0.26;
+  --spot-mid-alpha: 0.22;
+  --spot-wide-alpha: 0.16;
+  --spot-halo-opacity: 0.92;
+  --spot-halo-blur: 14px;
+  --spot-halo-scale: 1;
+  --spot-bleed-alpha: 0.15;
   text-shadow:
-    0 0 10px rgba(137, 205, 189, 0.18),
-    0 0 22px rgba(137, 183, 219, 0.12),
+    /* tight inner lift for perceived edge illumination */
+    0 0 2px rgba(137, 205, 189, var(--spot-inner-alpha)),
+    0 0 4px rgba(159, 179, 217, calc(var(--spot-inner-alpha) * 0.85)),
+    /* medium atmospheric body */
+    0 0 10px rgba(137, 205, 189, var(--spot-mid-alpha)),
+    0 0 18px rgba(159, 179, 217, calc(var(--spot-mid-alpha) * 0.9)),
+    /* wide volumetric halo (soft, feathered) */
+    0 0 34px rgba(137, 205, 189, var(--spot-wide-alpha)),
+    0 0 56px rgba(159, 179, 217, calc(var(--spot-wide-alpha) * 0.85)),
     0 1px 0 rgba(255, 255, 255, 0.05);
   position: relative;
 }
@@ -186,12 +212,78 @@
   pointer-events: none;
   background: radial-gradient(
     ellipse at center,
-    rgba(137, 205, 189, 0.2) 0%,
-    rgba(159, 179, 217, 0.12) 48%,
+    rgba(137, 205, 189, 0.42) 0%,
+    rgba(137, 205, 189, 0.24) 24%,
+    rgba(159, 179, 217, 0.2) 56%,
+    rgba(159, 179, 217, 0.06) 78%,
     rgba(159, 179, 217, 0) 100%
   );
-  filter: blur(8px);
-  opacity: 0.55;
+  filter: blur(var(--spot-halo-blur));
+  opacity: var(--spot-halo-opacity);
+  transform: scaleX(var(--spot-halo-scale));
+  transition:
+    opacity 0.8s ease,
+    filter 0.8s ease,
+    transform 0.8s ease;
+}
+
+.brandWordmarkSpotlight::before {
+  /* subtle ambient bleed into surrounding navbar glass */
+  content: "";
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  top: -52%;
+  bottom: -65%;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(137, 205, 189, var(--spot-bleed-alpha)) 0%,
+    rgba(159, 179, 217, calc(var(--spot-bleed-alpha) * 0.72)) 48%,
+    rgba(159, 179, 217, 0) 100%
+  );
+  filter: blur(22px);
+  opacity: 0.7;
+}
+
+.brandWordmarkSpotlight.brandWordmarkPulse {
+  --spot-inner-alpha: 0.3;
+  --spot-mid-alpha: 0.27;
+  --spot-wide-alpha: 0.2;
+  --spot-halo-opacity: 0.98;
+  --spot-halo-blur: 15px;
+  --spot-halo-scale: 1.035;
+  --spot-bleed-alpha: 0.24;
+  text-shadow:
+    0 0 2px rgba(137, 205, 189, var(--spot-inner-alpha)),
+    0 0 5px rgba(159, 179, 217, calc(var(--spot-inner-alpha) * 0.9)),
+    0 0 12px rgba(137, 205, 189, var(--spot-mid-alpha)),
+    0 0 22px rgba(159, 179, 217, calc(var(--spot-mid-alpha) * 0.92)),
+    0 0 40px rgba(137, 205, 189, var(--spot-wide-alpha)),
+    0 0 62px rgba(159, 179, 217, calc(var(--spot-wide-alpha) * 0.88)),
+    0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.brandWordmarkSpotlight.brandWordmarkPulse::after {
+  animation: spotlightPulseHalo 3.2s cubic-bezier(0.26, 0.72, 0.25, 1) infinite alternate;
+}
+
+.brandWordmarkSpotlight.brandWordmarkPulse::before {
+  animation: spotlightPulseBleed 4.4s ease-in-out infinite alternate;
+}
+
+@keyframes spotlightPulseHalo {
+  0%   { opacity: 0.84; filter: blur(13px); transform: scaleX(0.992); }
+  34%  { opacity: 1; filter: blur(15px); transform: scaleX(1.032); }
+  62%  { opacity: 0.9; filter: blur(14px); transform: scaleX(1.012); }
+  100% { opacity: 0.86; filter: blur(13px); transform: scaleX(0.995); }
+}
+
+@keyframes spotlightPulseBleed {
+  0%   { opacity: 0.7; filter: blur(22px); }
+  42%  { opacity: 0.84; filter: blur(25px); }
+  100% { opacity: 0.73; filter: blur(23px); }
 }
 
 .navLinks {
