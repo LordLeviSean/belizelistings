@@ -400,6 +400,14 @@
   max-width: 210px;
 }
 
+.livePaletteIndicator {
+  margin: 6px 2px 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(144, 194, 200, 0.92);
+  letter-spacing: 0.02em;
+}
+
 .livePaletteSwitch {
   position: relative;
   display: inline-flex;

@@ -99,7 +99,7 @@
   position: static;
   touch-action: manipulation;
   cursor: default;
-  transform: scale(1.045) translate(0.28%, -0.16%);
+  transform: scale(1.045) translate(0.28%, -0.92%);
   transform-origin: center center;
 }
 
@@ -122,7 +122,7 @@
   }
 
   .map.mapFitLayout .mapStage .mapSvg :global(svg) {
-    transform: scale(1.03) translate(0, -0.08%);
+    transform: scale(1.03) translate(0, -0.62%);
   }
 }
 

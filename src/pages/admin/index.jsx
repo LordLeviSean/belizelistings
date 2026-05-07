@@ -202,6 +202,11 @@ export default function AdminPage() {
                   </label>
                 </div>
               ) : null}
+              {livePaletteModeEnabled && pulseModeEnabled ? (
+                <p className={styles.livePaletteIndicator}>
+                  High-energy ambient motion enabled.
+                </p>
+              ) : null}
               {livePaletteModeEnabled ? (
                 <div className={styles.livePaletteControl}>
                   <div>

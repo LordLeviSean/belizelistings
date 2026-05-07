@@ -105,7 +105,7 @@
 /* MAIN LAYOUT — map hero (~72–75%) + listings pane under nav only */
 .mainSplit {
   display: grid;
-  grid-template-columns: minmax(0, 2.35fr) minmax(360px, 1fr);
+  grid-template-columns: minmax(0, 2.42fr) minmax(360px, 1fr);
   height: calc(100dvh - 72px);
   max-height: calc(100dvh - 72px);
   gap: 12px;
@@ -126,22 +126,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
+  border-radius: 18px;
   overflow: hidden;
-  padding: clamp(6px, 1.1vmin, 12px);
+  padding-inline: clamp(8px, 1.35vmin, 14px);
+  padding-top: clamp(18px, 2.7vmin, 30px);
+  padding-bottom: clamp(14px, 2.1vmin, 22px);
   box-sizing: border-box;
   /* Keep map content above decorative ::after in the stacking order */
   isolation: isolate;
   background:
-    radial-gradient(circle at 16% 14%, rgba(137, 205, 189, 0.22), transparent 48%),
-    radial-gradient(circle at 82% 22%, rgba(159, 179, 217, 0.18), transparent 50%),
-    #0f1418;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.018),
-    inset 0 -12px 20px rgba(0, 0, 0, 0.22),
-    0 0 28px rgba(137, 205, 189, 0.11),
-    0 0 72px rgba(159, 179, 217, 0.08);
+    radial-gradient(ellipse 56% 42% at 36% 34%, rgba(137, 205, 189, 0.16), transparent 72%),
+    radial-gradient(ellipse 54% 40% at 34% 69%, rgba(137, 205, 189, 0.1), transparent 76%),
+    radial-gradient(ellipse 48% 38% at 56% 28%, rgba(159, 179, 217, 0.11), transparent 70%),
+    transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
   position: relative;
 }
 
@@ -160,9 +159,11 @@
   position: absolute;
   inset: -1px;
   pointer-events: none;
-  border-radius: 14px;
-  box-shadow: 0 0 54px rgba(137, 205, 189, 0.11);
-  background: radial-gradient(circle at center, transparent 48%, rgba(0, 0, 0, 0.18) 100%);
+  border-radius: 18px;
+  box-shadow:
+    0 0 72px rgba(137, 205, 189, 0.1),
+    0 0 98px rgba(159, 179, 217, 0.06);
+  background: radial-gradient(ellipse at 34% 52%, rgba(12, 17, 23, 0) 34%, rgba(10, 14, 19, 0.11) 100%);
 }
 
 /* LIST PANEL */

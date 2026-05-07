@@ -57,13 +57,6 @@ export default function SiteNav({ active = "browse" }) {
 
       <nav className={styles.navLinks} aria-label="Primary navigation">
         <Link
-          href="/"
-          className={`${styles.navLink} ${active === "browse" ? styles.navLinkActive : ""}`}
-        >
-          Browse
-        </Link>
-
-        <Link
           href="/favorites"
           className={`${styles.navLink} ${active === "favorites" ? styles.navLinkActive : ""}`}
         >
