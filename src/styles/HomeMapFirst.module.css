@@ -101,23 +101,36 @@
   text-underline-offset: 6px;
 }
 
-/* MAIN LAYOUT */
+/* MAIN LAYOUT — map hero (~72–75%) + listings pane under nav only */
 .mainSplit {
   display: grid;
-  grid-template-columns: 1fr 360px;
-  height: calc(100dvh - 130px);
-  gap: 12px;
-  padding: 16px;
+  grid-template-columns: minmax(0, 3fr) minmax(260px, 1fr);
+  height: calc(100dvh - 72px);
+  max-height: calc(100dvh - 72px);
+  gap: 10px;
+  padding: 14px;
   min-width: 0;
+  min-height: 0;
   overflow-x: hidden;
+  align-items: stretch;
 }
 
-/* MAP */
+/* MAP — inset frame so scaled SVG breathes without clipping landmass */
 .mapPane {
   width: 100%;
   height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 18px;
   overflow: hidden;
+  padding: clamp(10px, 1.4vmin, 16px);
+  box-sizing: border-box;
+  /* Keep map content above decorative ::after in the stacking order */
+  isolation: isolate;
   background:
     radial-gradient(circle at 18% 15%, rgba(106, 206, 196, 0.18), transparent 42%),
     radial-gradient(circle at 84% 20%, rgba(94, 126, 191, 0.14), transparent 44%),
@@ -129,6 +142,16 @@
     0 0 24px rgba(106, 206, 196, 0.14),
     0 0 60px rgba(34, 197, 94, 0.08);
   position: relative;
+}
+
+.mapPane > * {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-height: 0;
+  min-width: 0;
+  max-height: 100%;
 }
 
 .mapPane::after {
@@ -146,6 +169,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  max-height: 100%;
+  min-height: 0;
   min-width: 0;
   max-width: 100%;
   border-radius: 16px;
@@ -157,18 +182,62 @@
 
 /* HEADER */
 .listPaneHeader {
-  padding: 16px;
+  padding: 12px 12px 10px;
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.listPaneHeader h1 {
+.listPaneTitle {
   font-size: 16px;
   font-weight: 600;
+  line-height: 1.35;
+  margin: 0 0 4px;
 }
 
-.listPaneHeader p {
-  font-size: 12px;
+.listPaneLead {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+  letter-spacing: 0.01em;
+}
+
+.listPaneMeta {
+  font-size: 11px;
+  line-height: 1.45;
   color: var(--text-secondary);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.browseSortLabel {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0 0 6px;
+}
+
+.browseSortSelect {
+  width: 100%;
+  max-width: 320px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(20, 26, 33, 0.85);
+  color: var(--text-primary);
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.browseSortSelect:focus {
+  outline: none;
+  border-color: rgba(var(--glow-rgb), 0.45);
+  box-shadow: 0 0 0 2px rgba(var(--glow-rgb), 0.15);
 }
 
 /* LISTINGS */
@@ -177,10 +246,10 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   max-width: 640px;
   width: 100%;
@@ -204,7 +273,7 @@
 
 /* EMPTY */
 .emptyState {
-  margin: 12px;
+  margin: 10px;
   border: 1px dashed var(--border-subtle);
   border-radius: 12px;
   padding: 16px;
@@ -233,8 +302,22 @@
   .mainSplit {
     grid-template-columns: 1fr;
     height: auto;
+    max-height: none;
   }
 
-  .mapPane { min-height: 62vh; }
-  .listPane { min-height: 42vh; }
+  .mapPane {
+    min-height: 72vh;
+    max-height: none;
+    height: auto;
+  }
+
+  .mapPane > * {
+    max-height: none;
+  }
+
+  .listPane {
+    min-height: 42vh;
+    max-height: none;
+    height: auto;
+  }
 }

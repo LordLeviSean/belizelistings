@@ -129,6 +129,32 @@
   transform: translateY(-1px);
 }
 
+.statusToggle {
+  display: inline-flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.toggleButton {
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  transition: all 0.2s ease;
+}
+
+.toggleButton:hover {
+  background: var(--bg-elevated);
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.toggleButtonActive {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.15);
+}
+
 .primaryAction {
   background: linear-gradient(135deg, #22c55e, #16a34a);
   box-shadow: 0 0 20px rgba(34, 197, 94, 0.25);
@@ -182,6 +208,22 @@
   border-radius: 14px;
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.archivedCard {
+  opacity: 0.66;
+  border-color: rgba(156, 163, 175, 0.35);
+}
+
+.cardActionBusy {
+  opacity: 0.74;
+  transform: scale(0.995);
+}
+
+.archivedHint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #9da7b3;
 }
 
 .card:hover {
@@ -329,6 +371,80 @@
 
 .sectionTitle {
   margin: 0 0 10px;
+}
+
+.livePaletteControl {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.livePaletteLabel {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.livePaletteSubtext {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+  max-width: 210px;
+}
+
+.livePaletteSwitch {
+  position: relative;
+  display: inline-flex;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.livePaletteSwitch input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.livePaletteSlider {
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.38);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  transition: background-color 0.22s ease, border-color 0.22s ease;
+  position: relative;
+}
+
+.livePaletteSlider::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #e6edf3;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  transition: transform 0.22s ease;
+}
+
+.livePaletteSwitch input:checked + .livePaletteSlider {
+  background: rgba(114, 183, 174, 0.42);
+  border-color: rgba(114, 183, 174, 0.58);
+}
+
+.livePaletteSwitch input:checked + .livePaletteSlider::after {
+  transform: translateX(20px);
 }
 
 .muted {
@@ -548,6 +664,11 @@
   box-shadow: 0 0 18px rgba(34, 197, 94, 0.12);
 }
 
+.pendingTone {
+  border-color: rgba(245, 158, 11, 0.38);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.12);
+}
+
 .pendingCardRemoving {
   opacity: 0;
   transform: translateY(8px) scale(0.99);
@@ -631,6 +752,20 @@
 .listingsRow:hover {
   border-color: rgba(34, 197, 94, 0.3);
   background: #1a2430;
+}
+
+.vacancyLow {
+  border-left: 3px solid rgba(148, 163, 184, 0.55);
+}
+
+.vacancyMedium {
+  border-left: 3px solid rgba(251, 191, 36, 0.65);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.16);
+}
+
+.vacancySevere {
+  border-left: 3px solid rgba(239, 68, 68, 0.8);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.26);
 }
 
 .listingsThumb {
@@ -734,6 +869,24 @@
   color: #bfdbfe;
   border-color: rgba(59, 130, 246, 0.4);
   background: rgba(59, 130, 246, 0.14);
+}
+
+.statusVacant {
+  color: #fde68a;
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.statusOccupied {
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.42);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.statusArchived {
+  color: #d1d5db;
+  border-color: rgba(156, 163, 175, 0.45);
+  background: rgba(107, 114, 128, 0.18);
 }
 
 .userCreateGrid {

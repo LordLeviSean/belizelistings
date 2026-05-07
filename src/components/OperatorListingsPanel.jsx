@@ -1,19 +1,25 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
-import { traceAction, traceLog } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
 import styles from "../styles/Dashboard.module.css";
 
-export default function AllListingsPanel({ onAction }) {
+const FILTERS = [
+  { label: "All", value: "all" },
+  { label: "Approved", value: "approved" },
+  { label: "Pending", value: "pending" },
+  { label: "Archived", value: "archived" },
+];
+
+export default function OperatorListingsPanel({ onAction }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [listings, setListings] = useState([]);
   const [ownerMap, setOwnerMap] = useState({});
   const [loading, setLoading] = useState(false);
   const [actionKey, setActionKey] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [editingId, setEditingId] = useState("");
-  const [removingIds, setRemovingIds] = useState([]);
   const [editForm, setEditForm] = useState({
     title: "",
     price: "",
@@ -34,7 +40,7 @@ export default function AllListingsPanel({ onAction }) {
       .select("*, listing_images(image_url,position)")
       .order("created_at", { ascending: false });
     if (error) {
-      console.error("[all-listings-panel] load error", error);
+      console.error("[operator-listings-panel] load error", error);
       setLoading(false);
       return;
     }
@@ -48,6 +54,8 @@ export default function AllListingsPanel({ onAction }) {
         nextOwnerMap[String(profile.id)] = profile.full_name || profile.email || String(profile.id).slice(0, 8);
       }
       setOwnerMap(nextOwnerMap);
+    } else {
+      setOwnerMap({});
     }
     setLoading(false);
   }, []);
@@ -58,7 +66,7 @@ export default function AllListingsPanel({ onAction }) {
 
   useEffect(() => {
     const channel = supabase
-      .channel("admin-listings-all")
+      .channel("admin-listings-operator")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "listings" },
@@ -73,76 +81,36 @@ export default function AllListingsPanel({ onAction }) {
     };
   }, [loadListings]);
 
-  const approveListing = async (listingId) => {
-    setActionKey(`${listingId}:approve`);
-    traceAction({
-      type: "admin_approve_listing",
-      payload: { listingId },
-    });
-    const { error } = await supabase.from("listings").update({ status: "approved" }).eq("id", listingId);
-    traceAction({
-      type: "admin_approve_listing_result",
-      payload: { listingId },
-      result: { ok: !error, error: error?.message ?? null },
-    });
+  const filteredListings = useMemo(() => {
+    if (statusFilter === "all") return listings;
+    return listings.filter((listing) => listing.status === statusFilter);
+  }, [listings, statusFilter]);
+
+  const archiveListing = async (listingId) => {
+    setActionKey(`${listingId}:archive`);
+    const { error } = await supabase.from("listings").update({ status: "archived" }).eq("id", listingId);
     if (error) {
-      console.error("[all-listings-panel] approve error", error);
       setActionKey("");
+      showToast({ type: "error", message: "Unable to archive listing" });
       return;
     }
     await loadListings();
-    onAction?.("Approved listing");
-    showToast({ type: "success", message: "Listing approved" });
+    onAction?.("Archived listing from operator panel");
+    showToast({ type: "info", message: "Listing archived" });
     setActionKey("");
   };
 
-  const rejectListing = async (listingId) => {
-    setActionKey(`${listingId}:reject`);
-    traceAction({
-      type: "admin_reject_listing",
-      payload: { listingId },
-    });
-    const { error } = await supabase.from("listings").update({ status: "rejected" }).eq("id", listingId);
-    traceAction({
-      type: "admin_reject_listing_result",
-      payload: { listingId },
-      result: { ok: !error, error: error?.message ?? null },
-    });
+  const republishListing = async (listingId) => {
+    setActionKey(`${listingId}:republish`);
+    const { error } = await supabase.from("listings").update({ status: "pending" }).eq("id", listingId);
     if (error) {
-      console.error("[all-listings-panel] reject error", error);
       setActionKey("");
+      showToast({ type: "error", message: "Unable to re-publish listing" });
       return;
     }
     await loadListings();
-    onAction?.("Rejected listing");
-    showToast({ type: "info", message: "Listing rejected" });
-    setActionKey("");
-  };
-
-  const deleteListing = async (listingId) => {
-    setActionKey(`${listingId}:delete`);
-    traceAction({
-      type: "admin_delete_listing",
-      payload: { listingId },
-    });
-    await supabase.from("favorites").delete().eq("listing_id", String(listingId));
-    const { data, error } = await supabase.from("listings").delete().eq("id", listingId).select();
-    traceAction({
-      type: "admin_delete_listing_result",
-      payload: { listingId },
-      result: { ok: !error, error: error?.message ?? null, deletedRows: data?.length ?? 0 },
-    });
-    if (error) {
-      console.error("[all-listings-panel] delete error", error);
-      setActionKey("");
-      return;
-    }
-    setRemovingIds((prev) => [...prev, String(listingId)]);
-    setListings((prev) => prev.filter((listing) => String(listing.id) !== String(listingId)));
-    traceLog("DELETE RESULT:", { listingId, data, error: null });
-    await loadListings();
-    onAction?.("Deleted listing permanently");
-    showToast({ type: "info", message: "Listing deleted" });
+    onAction?.("Re-published listing to pending");
+    showToast({ type: "success", message: "Listing moved to pending review" });
     setActionKey("");
   };
 
@@ -178,104 +146,117 @@ export default function AllListingsPanel({ onAction }) {
     };
     const { error } = await supabase.from("listings").update(payload).eq("id", listingId);
     if (error) {
-      console.error("[all-listings-panel] edit error", error);
+      console.error("[operator-listings-panel] edit error", error);
       setActionKey("");
+      showToast({ type: "error", message: "Unable to update listing" });
       return;
     }
     setEditingId("");
     await loadListings();
-    onAction?.("Updated listing");
+    onAction?.("Updated listing from operator panel");
     showToast({ type: "success", message: "Listing updated" });
     setActionKey("");
   };
 
   if (loading) {
     return (
-      <div className={styles.listingsTable}>
+      <div className={styles.pendingGrid}>
         {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className={`${styles.listingsRow} skeleton`} style={{ minHeight: 76 }} />
+          <div key={index} className={`${styles.card} skeleton`} style={{ minHeight: 120 }} />
         ))}
       </div>
     );
   }
 
   return (
-    <div className={styles.listingsTable}>
-      <div className={styles.listingsHeaderRow}>
-        <span>Image</span>
-        <span>Title</span>
-        <span>Owner</span>
-        <span>Status</span>
-        <span>Price</span>
-        <span>Actions</span>
+    <div className={styles.pendingGrid}>
+      <div className={styles.statusToggle} role="tablist" aria-label="Operator listing status filter">
+        {FILTERS.map((filter) => (
+          <button
+            key={filter.value}
+            type="button"
+            role="tab"
+            aria-selected={statusFilter === filter.value}
+            className={`${styles.toggleButton} ${statusFilter === filter.value ? styles.toggleButtonActive : ""}`}
+            onClick={() => setStatusFilter(filter.value)}
+          >
+            {filter.label}
+          </button>
+        ))}
       </div>
-      {listings.map((listing) => {
+
+      {filteredListings.map((listing) => {
         const imageUrl = listing?.listing_images?.[0]?.image_url || "/placeholder.jpg";
+        const isArchived = listing.status === "archived";
+        const isPending = listing.status === "pending";
+        const isBusy = actionKey.startsWith(`${listing.id}:`);
         return (
-        <div key={listing.id} className={`${styles.listingsRow} ${removingIds.includes(String(listing.id)) ? styles.rowRemoving : ""}`}>
-          <img src={imageUrl} alt={listing.title || "Listing"} className={styles.listingsThumb} />
-          <div>
-            {editingId === String(listing.id) ? null : (
-              <>
-                <p><strong>{listing.title || "Untitled listing"}</strong></p>
-                <p className={styles.muted}>{listing.district || "Unknown district"} · {listing.listing_type || "unknown"} · {listing.beds ?? 0} bd / {listing.baths ?? 0} ba</p>
-              </>
-            )}
-          </div>
-          <p className={styles.muted}>{ownerMap[String(listing.user_id)] || String(listing.user_id || "unknown")}</p>
-          <span className={`${styles.statusBadge} ${styles[`status${String(listing.status || "").charAt(0).toUpperCase()}${String(listing.status || "").slice(1)}`]}`}>
-            {listing.status || "unknown"}
-          </span>
-          <p className={styles.muted}>{Number(listing.price || 0).toLocaleString()} {listing.currency || "BZD"}</p>
-          <div className={styles.rowActions}>
-            {editingId === String(listing.id) ? (
-              <button type="button" className={styles.rejectButton} onClick={() => setEditingId("")}>Close</button>
-            ) : (
-              <>
-            <button
-              type="button"
-              className={styles.approveButton}
-              onClick={() => approveListing(listing.id)}
-              disabled={actionKey === `${listing.id}:approve` || actionKey === `${listing.id}:reject` || actionKey === `${listing.id}:delete`}
-            >
-              {actionKey === `${listing.id}:approve` ? "Processing..." : "Approve"}
-            </button>
-            <button
-              type="button"
-              className={styles.rejectButton}
-              onClick={() => rejectListing(listing.id)}
-              disabled={actionKey === `${listing.id}:approve` || actionKey === `${listing.id}:reject` || actionKey === `${listing.id}:delete`}
-            >
-              {actionKey === `${listing.id}:reject` ? "Processing..." : "Reject"}
-            </button>
-            <button
-              type="button"
-              className={styles.deleteListingButton}
-              onClick={() => deleteListing(listing.id)}
-              disabled={actionKey === `${listing.id}:approve` || actionKey === `${listing.id}:reject` || actionKey === `${listing.id}:delete`}
-            >
-              {actionKey === `${listing.id}:delete` ? "Processing..." : "Delete"}
-            </button>
-                <button
-                  type="button"
-                  className={styles.dashboardLink}
-                  onClick={() => startEdit(listing)}
-                  disabled={actionKey === `${listing.id}:approve` || actionKey === `${listing.id}:reject` || actionKey === `${listing.id}:delete`}
+          <div
+            key={listing.id}
+            className={`${styles.pendingCard} ${isArchived ? styles.archivedCard : ""} ${isPending ? styles.pendingTone : ""} ${
+              isBusy ? styles.cardActionBusy : ""
+            }`}
+          >
+            <img src={imageUrl} alt={listing.title || "Listing"} className={styles.pendingImage} />
+            <div className={styles.pendingBody}>
+              <div className={styles.pendingMeta}>
+                <h3 className={styles.pendingTitle}>{listing.title || "Untitled listing"}</h3>
+                <p className={styles.pendingPrice}>
+                  {Number(listing.price || 0).toLocaleString()} {listing.currency || "BZD"}
+                </p>
+                <p className={styles.pendingSubtle}>
+                  Owner: {ownerMap[String(listing.user_id)] || String(listing.user_id || "unknown")}
+                </p>
+                <span
+                  className={`${styles.statusBadge} ${
+                    styles[`status${String(listing.status || "").charAt(0).toUpperCase()}${String(listing.status || "").slice(1)}`]
+                  }`}
                 >
-                  Edit
-                </button>
+                  {isArchived ? "Archived (Not Public)" : listing.status || "unknown"}
+                </span>
+              </div>
+              <div className={styles.adminActionRow}>
                 <button
                   type="button"
                   className={styles.dashboardLink}
                   onClick={() => router.push(`/listing/${listing.id}?admin=true`)}
+                  disabled={isBusy}
                 >
                   View
                 </button>
-              </>
-            )}
+                {isArchived ? (
+                  <button
+                    type="button"
+                    className={styles.approveButton}
+                    onClick={() => republishListing(listing.id)}
+                    disabled={isBusy}
+                  >
+                    {actionKey === `${listing.id}:republish` ? "Publishing..." : "Re-publish"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className={styles.deleteListingButton}
+                    onClick={() => archiveListing(listing.id)}
+                    disabled={isBusy}
+                  >
+                    {actionKey === `${listing.id}:archive` ? "Removing..." : "Remove Listing"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={styles.dashboardLink}
+                  onClick={() => startEdit(listing)}
+                  disabled={isBusy}
+                >
+                  Edit
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      )})}
+        );
+      })}
+
       {editingId ? (
         <div className={styles.modalBackdrop} onClick={() => setEditingId("")}>
           <div className={styles.modalCard} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">

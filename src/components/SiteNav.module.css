@@ -24,14 +24,174 @@
 .brand {
   font-size: 22px;
   font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--text-primary);
+  letter-spacing: 0.006em;
   text-decoration: none;
-  text-shadow: 0 0 8px rgba(var(--glow-rgb), 0.18);
+  text-shadow: 0 0 6px rgba(var(--glow-rgb), 0.14);
+  position: relative;
 }
 
-.brand:hover {
-  color: var(--text-primary);
+.brandWordmark {
+  display: inline-flex;
+  align-items: center;
+  --district-c1: #89cdbd;
+  --district-c2: #89b7db;
+  --district-c3: #d8c27b;
+  --district-c4: #b5a7d9;
+  --district-c5: #8ac89b;
+  --district-c6: #d7c6a1;
+  --district-c7: #90c2c8;
+  --district-c8: #9fb3d9;
+  letter-spacing: -0.012em;
+}
+
+.brandLetter {
+  color: #e8edea;
+  display: inline-block;
+  filter: brightness(0.985) saturate(0.95);
+}
+
+.brandLetter:nth-child(8n + 1) { color: #89cdbd; } /* mint */
+.brandLetter:nth-child(8n + 2) { color: #89b7db; } /* bay blue */
+.brandLetter:nth-child(8n + 3) { color: #d8c27b; } /* sand gold */
+.brandLetter:nth-child(8n + 4) { color: #b5a7d9; } /* lavender */
+.brandLetter:nth-child(8n + 5) { color: #8ac89b; } /* district green */
+.brandLetter:nth-child(8n + 6) { color: #d7c6a1; } /* limestone */
+.brandLetter:nth-child(8n + 7) { color: #90c2c8; } /* sea glass */
+.brandLetter:nth-child(8n + 8) { color: #9fb3d9; } /* soft royal */
+
+.brand:hover .brandLetter {
+  filter: brightness(1.05);
+}
+
+.brand::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: -7px;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(137, 205, 189, 0),
+    rgba(137, 205, 189, 0.22),
+    rgba(159, 179, 217, 0.2),
+    rgba(137, 205, 189, 0)
+  );
+  opacity: 0.32;
+}
+
+.brandWordmarkLive .brandLetter {
+  animation-name: districtPaletteDrift, districtPaletteBreathe;
+  animation-duration: 26s, 7.5s;
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  animation-direction: alternate, alternate;
+}
+
+.brandWordmarkLive .brandLetter:nth-child(1) { animation-delay: -0.00s, -0.00s; }
+.brandWordmarkLive .brandLetter:nth-child(2) { animation-delay: -0.45s, -0.35s; }
+.brandWordmarkLive .brandLetter:nth-child(3) { animation-delay: -0.90s, -0.70s; }
+.brandWordmarkLive .brandLetter:nth-child(4) { animation-delay: -1.35s, -1.05s; }
+.brandWordmarkLive .brandLetter:nth-child(5) { animation-delay: -1.80s, -1.40s; }
+.brandWordmarkLive .brandLetter:nth-child(6) { animation-delay: -2.25s, -1.75s; }
+.brandWordmarkLive .brandLetter:nth-child(7) { animation-delay: -2.70s, -2.10s; }
+.brandWordmarkLive .brandLetter:nth-child(8) { animation-delay: -3.15s, -2.45s; }
+.brandWordmarkLive .brandLetter:nth-child(9) { animation-delay: -3.60s, -2.80s; }
+.brandWordmarkLive .brandLetter:nth-child(10) { animation-delay: -4.05s, -3.15s; }
+.brandWordmarkLive .brandLetter:nth-child(11) { animation-delay: -4.50s, -3.50s; }
+.brandWordmarkLive .brandLetter:nth-child(12) { animation-delay: -4.95s, -3.85s; }
+.brandWordmarkLive .brandLetter:nth-child(13) { animation-delay: -5.40s, -4.20s; }
+.brandWordmarkLive .brandLetter:nth-child(14) { animation-delay: -5.85s, -4.55s; }
+
+.brandWordmarkPulse .brandLetter {
+  animation-name: districtPaletteDriftPulse, districtPaletteBreathePulse, districtPaletteSurge;
+  animation-duration: 15.5s, 5.2s, 11.8s;
+  animation-timing-function: ease-in-out, ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite, infinite;
+  animation-direction: alternate, alternate, normal;
+}
+
+.brandWordmarkPulse .brandLetter:nth-child(1) { animation-delay: -0.10s, -0.00s, -1.0s; }
+.brandWordmarkPulse .brandLetter:nth-child(2) { animation-delay: -0.62s, -0.33s, -4.8s; }
+.brandWordmarkPulse .brandLetter:nth-child(3) { animation-delay: -1.34s, -0.81s, -7.2s; }
+.brandWordmarkPulse .brandLetter:nth-child(4) { animation-delay: -2.05s, -1.27s, -2.6s; }
+.brandWordmarkPulse .brandLetter:nth-child(5) { animation-delay: -2.76s, -1.71s, -9.1s; }
+.brandWordmarkPulse .brandLetter:nth-child(6) { animation-delay: -3.61s, -2.12s, -5.0s; }
+.brandWordmarkPulse .brandLetter:nth-child(7) { animation-delay: -4.23s, -2.58s, -10.4s; }
+.brandWordmarkPulse .brandLetter:nth-child(8) { animation-delay: -4.96s, -3.02s, -6.8s; }
+.brandWordmarkPulse .brandLetter:nth-child(9) { animation-delay: -5.72s, -3.46s, -3.7s; }
+.brandWordmarkPulse .brandLetter:nth-child(10) { animation-delay: -6.31s, -3.95s, -8.3s; }
+.brandWordmarkPulse .brandLetter:nth-child(11) { animation-delay: -7.14s, -4.37s, -1.8s; }
+.brandWordmarkPulse .brandLetter:nth-child(12) { animation-delay: -7.76s, -4.82s, -10.9s; }
+.brandWordmarkPulse .brandLetter:nth-child(13) { animation-delay: -8.58s, -5.16s, -5.9s; }
+.brandWordmarkPulse .brandLetter:nth-child(14) { animation-delay: -9.33s, -5.60s, -2.9s; }
+
+@keyframes districtPaletteDrift {
+  0%   { color: var(--district-c1); }
+  14%  { color: var(--district-c2); }
+  28%  { color: var(--district-c3); }
+  42%  { color: var(--district-c4); }
+  56%  { color: var(--district-c5); }
+  70%  { color: var(--district-c6); }
+  84%  { color: var(--district-c7); }
+  100% { color: var(--district-c8); }
+}
+
+@keyframes districtPaletteBreathe {
+  0%   { filter: brightness(0.985) saturate(0.96); text-shadow: 0 0 0 rgba(137, 205, 189, 0); }
+  50%  { filter: brightness(1.03) saturate(1.01); text-shadow: 0 0 6px rgba(137, 205, 189, 0.12); }
+  100% { filter: brightness(0.99) saturate(0.97); text-shadow: 0 0 0 rgba(137, 205, 189, 0); }
+}
+
+@keyframes districtPaletteDriftPulse {
+  0%   { color: var(--district-c1); }
+  12%  { color: var(--district-c2); }
+  26%  { color: var(--district-c4); }
+  41%  { color: var(--district-c3); }
+  58%  { color: var(--district-c6); }
+  73%  { color: var(--district-c5); }
+  86%  { color: var(--district-c7); }
+  100% { color: var(--district-c8); }
+}
+
+@keyframes districtPaletteBreathePulse {
+  0%   { filter: brightness(0.995) saturate(0.98); text-shadow: 0 0 0 rgba(137, 205, 189, 0); }
+  46%  { filter: brightness(1.05) saturate(1.03); text-shadow: 0 0 8px rgba(137, 205, 189, 0.16); }
+  100% { filter: brightness(1.0) saturate(1.0); text-shadow: 0 0 0 rgba(137, 205, 189, 0); }
+}
+
+@keyframes districtPaletteSurge {
+  0%, 72%, 100% { filter: brightness(1); }
+  76% { filter: brightness(1.065); }
+  80% { filter: brightness(1.03); }
+}
+
+.brandWordmarkSpotlight {
+  text-shadow:
+    0 0 10px rgba(137, 205, 189, 0.18),
+    0 0 22px rgba(137, 183, 219, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+}
+
+.brandWordmarkSpotlight::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -6px;
+  height: 14px;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(137, 205, 189, 0.2) 0%,
+    rgba(159, 179, 217, 0.12) 48%,
+    rgba(159, 179, 217, 0) 100%
+  );
+  filter: blur(8px);
+  opacity: 0.55;
 }
 
 .navLinks {

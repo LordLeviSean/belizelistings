@@ -1,172 +1,273 @@
-import React, { useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import { normalizeDistrict } from "../utils/normalize";
+import {
+  BELIZE_MAP_REGION_CONFIG,
+  BELIZE_MAP_REGION_ORDER,
+} from "@/constants/belizeMapRegions";
 import styles from "./BelizeMap.module.css";
 
-const DISTRICT_SLUGS = {
-  Belize: "belize",
-  Cayo: "cayo",
-  "Orange Walk": "orange-walk",
-  Corozal: "corozal",
-  "Stann Creek": "stann-creek",
-  Toledo: "toledo",
+const MAP_URL = "/maps/clean-mainland-districts.svg";
+
+const TIP_PAD = 10;
+const TIP_CURSOR_OFF = 14;
+const TIP_EST_W = 200;
+const TIP_EST_H = 30;
+const FLY_MS = 560;
+
+const DISTRICT_FLY_PRESETS = {
+  corozal: { tx: "-3.2%", ty: "-6.4%" },
+  orange_walk: { tx: "-1.8%", ty: "-4.8%" },
+  belize: { tx: "-0.4%", ty: "-1.1%" },
+  cayo: { tx: "1.6%", ty: "-0.8%" },
+  stann_creek: { tx: "2.4%", ty: "2.2%" },
+  toledo: { tx: "2.8%", ty: "5.4%" },
+  ambergris_caye: { tx: "-6.2%", ty: "-1.6%" },
+  caye_caulker: { tx: "-3.6%", ty: "1.2%" },
 };
-const BASE_FILL = "#4a6052";
-const ACTIVE_FILL = "#759074";
 
-const BelizeMap = ({
-  listings,
-  listingType,
-  minPrice,
-  maxPrice,
-  beds,
-  baths,
-}) => {
+function tooltipPosition(clientX, clientY) {
+  if (typeof window === "undefined") {
+    return { left: clientX + TIP_CURSOR_OFF, top: clientY + TIP_CURSOR_OFF };
+  }
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  let left = clientX + TIP_CURSOR_OFF;
+  let top = clientY + TIP_CURSOR_OFF;
+
+  if (left + TIP_EST_W + TIP_PAD > vw) {
+    left = clientX - TIP_EST_W - 8;
+  }
+  if (top + TIP_EST_H + TIP_PAD > vh) {
+    top = clientY - TIP_EST_H - 8;
+  }
+
+  left = Math.min(Math.max(TIP_PAD, left), vw - TIP_EST_W - TIP_PAD);
+  top = Math.min(Math.max(TIP_PAD, top), vh - TIP_EST_H - TIP_PAD);
+
+  return { left, top };
+}
+
+/**
+ * Map-first discovery: hover for preview, click navigates to `/browse/[slug]`.
+ * Optional `districtListingCounts` reserved for future overlay layers.
+ */
+const BelizeMap = ({ districtListingCounts = null }) => {
+  void districtListingCounts;
+
   const router = useRouter();
+  const routerRef = useRef(router);
 
-  const [hoverInfo, setHoverInfo] = useState(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [hoveredDistrict, setHoveredDistrict] = useState(null);
-  
+  const mapContainerRef = useRef(null);
+  const flyTimeoutRef = useRef(0);
+  const [fetchedMarkup, setFetchedMarkup] = useState("");
+  const [hoverTooltip, setHoverTooltip] = useState(null);
+  const [clickedRegionId, setClickedRegionId] = useState(null);
+  const clickedRegionRef = useRef(null);
+  const tooltipMoveRafRef = useRef(0);
 
-  const handleClick = (districtName) => {
-    const slug = DISTRICT_SLUGS[districtName];
-    if (!slug) return;
-  
-    const query = {};
-    if (listingType && listingType !== "all") query.status = listingType;
-    if (minPrice) query.minPrice = minPrice;
-    if (maxPrice) query.maxPrice = maxPrice;
-    if (beds) query.beds = beds;
-    if (baths) query.baths = baths;
+  const svgMarkup = fetchedMarkup;
 
-    router.push({
-      pathname: `/listings/district/${slug}`,
-      query,
-    });
+  const svgInnerHtml = useMemo(() => {
+    if (!svgMarkup) return undefined;
+    return { __html: svgMarkup };
+  }, [svgMarkup]);
+
+  const tooltipCoords = hoverTooltip
+    ? tooltipPosition(hoverTooltip.x, hoverTooltip.y)
+    : { left: 0, top: 0 };
+
+  const cancelTooltipMoveRaf = () => {
+    if (tooltipMoveRafRef.current) {
+      cancelAnimationFrame(tooltipMoveRafRef.current);
+      tooltipMoveRafRef.current = 0;
+    }
   };
 
-  const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left + 12,
-      y: e.clientY - rect.top + 12,
-    });
+  const cancelFlyTimeout = () => {
+    if (flyTimeoutRef.current) {
+      window.clearTimeout(flyTimeoutRef.current);
+      flyTimeoutRef.current = 0;
+    }
   };
 
-  const getListingCount = (districtName) => {
-    if (!listings) return 0;
-    const slug = DISTRICT_SLUGS[districtName];
-    return listings.filter((l) => normalizeDistrict(l.district) === slug).length;
-  };
+  useEffect(() => {
+    let isMounted = true;
 
-  const handleMouseEnter = (district) => {
-    setHoverInfo({
-      name: district,
-      count: getListingCount(district),
-    });
-    setHoveredDistrict(district);
-  };
+    const loadMap = async () => {
+      try {
+        const response = await fetch(MAP_URL);
+        if (!response.ok) return;
+        const svgText = await response.text();
+        if (isMounted) setFetchedMarkup(svgText);
+      } catch {
+        // Asset missing or network error — map stays empty.
+      }
+    };
 
-  const handleMouseLeave = () => {
-    setHoverInfo(null);
-    setHoveredDistrict(null);
+    loadMap();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    routerRef.current = router;
+  }, [router]);
+
+  useLayoutEffect(() => {
+    clickedRegionRef.current = clickedRegionId;
+  }, [clickedRegionId]);
+
+  useLayoutEffect(() => {
+    if (!svgMarkup) return;
+
+    const container = mapContainerRef.current;
+    const svg = container?.querySelector("svg");
+    if (!svg) return;
+
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+    const interactiveGroups = [];
+    const disposers = [];
+
+    for (const regionId of BELIZE_MAP_REGION_ORDER) {
+      const cfg = BELIZE_MAP_REGION_CONFIG[regionId];
+      if (!cfg?.slug) continue;
+
+      const group = svg.getElementById(regionId);
+      if (!group) continue;
+      interactiveGroups.push({ regionId, group });
+
+      const label = cfg.label;
+
+      group.classList.add(styles.mapDistrictGroup);
+
+      const onEnter = (e) => {
+        if (clickedRegionRef.current) return;
+        group.classList.add(styles.districtHover);
+        interactiveGroups.forEach(({ regionId: otherId, group: otherGroup }) => {
+          if (otherId !== regionId) {
+            otherGroup.classList.add(styles.districtDimmed);
+          }
+        });
+        cancelTooltipMoveRaf();
+        setHoverTooltip({ label, x: e.clientX, y: e.clientY });
+      };
+
+      const onMove = (e) => {
+        if (tooltipMoveRafRef.current) return;
+        tooltipMoveRafRef.current = requestAnimationFrame(() => {
+          tooltipMoveRafRef.current = 0;
+          setHoverTooltip((prev) =>
+            prev && prev.label === label
+              ? { ...prev, x: e.clientX, y: e.clientY }
+              : prev
+          );
+        });
+      };
+
+      const onLeave = () => {
+        group.classList.remove(styles.districtHover);
+        interactiveGroups.forEach(({ group: otherGroup }) => {
+          otherGroup.classList.remove(styles.districtDimmed);
+        });
+        cancelTooltipMoveRaf();
+        setHoverTooltip(null);
+      };
+
+      const onClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (clickedRegionRef.current) return;
+        setClickedRegionId(regionId);
+        cancelTooltipMoveRaf();
+        setHoverTooltip(null);
+
+        interactiveGroups.forEach(({ regionId: otherId, group: otherGroup }) => {
+          otherGroup.classList.remove(styles.districtHover);
+          if (otherId === regionId) {
+            otherGroup.classList.add(styles.districtClicked);
+            otherGroup.classList.remove(styles.districtDimmed);
+          } else {
+            otherGroup.classList.remove(styles.districtClicked);
+            otherGroup.classList.add(styles.districtDimmed);
+          }
+        });
+
+        cancelFlyTimeout();
+        flyTimeoutRef.current = window.setTimeout(() => {
+          void routerRef.current.push(`/browse/${cfg.slug}`);
+        }, FLY_MS);
+      };
+
+      group.addEventListener("mouseenter", onEnter);
+      group.addEventListener("mousemove", onMove);
+      group.addEventListener("mouseleave", onLeave);
+      group.addEventListener("click", onClick);
+
+      disposers.push(() => {
+        group.removeEventListener("mouseenter", onEnter);
+        group.removeEventListener("mousemove", onMove);
+        group.removeEventListener("mouseleave", onLeave);
+        group.removeEventListener("click", onClick);
+        group.classList.remove(styles.mapDistrictGroup);
+        group.classList.remove(styles.districtHover);
+        group.classList.remove(styles.districtDimmed);
+        group.classList.remove(styles.districtClicked);
+      });
+    }
+
+    return () => {
+      cancelTooltipMoveRaf();
+      cancelFlyTimeout();
+      setHoverTooltip(null);
+      disposers.forEach((d) => d());
+    };
+  }, [svgMarkup]);
+
+  useEffect(() => {
+    return () => {
+      cancelFlyTimeout();
+    };
+  }, []);
+
+  const flyPreset = clickedRegionId
+    ? DISTRICT_FLY_PRESETS[clickedRegionId] ?? { tx: "0%", ty: "0%" }
+    : { tx: "0%", ty: "0%" };
+  const mapStageStyle = {
+    "--map-fly-scale": clickedRegionId ? "1.185" : "1",
+    "--map-fly-x": flyPreset.tx,
+    "--map-fly-y": flyPreset.ty,
   };
 
   return (
-    <div className={styles.map} onMouseMove={handleMouseMove}>
-      <svg
-        viewBox="0 0 1000 1000"
-        preserveAspectRatio="xMidYMid meet"
-        xmlns="http://www.w3.org/2000/svg"
-        stroke="#ffffff"
-        width="100%"
-        height="100%"
-        strokeWidth="0.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+    <div className={`${styles.map} ${styles.mapNoSelect} ${styles.mapFitLayout}`}>
+      <div
+        className={`${styles.mapStage} ${clickedRegionId ? styles.mapStageFlying : ""}`}
+        style={mapStageStyle}
       >
-        <g id="features">
-          {/* Cayo */}
-          <path
-            id="BZCY"
-            d="M272.7 776.9l3-35.8 6-97.5 5.6-90.2-0.5-99.1 10.1-8.3 13.8-9.2 4.7-1.7 3.7-0.2 2.6 1 2.6 0.6 38.7-4.4 4.6-1.5 3.4-2.4 2-2.8 2.4-2.8 2.3-0.8 5 0.9 5.9 0.4 7.8-0.3 3.4 0.2 4.8-0.5 9 0.4 7.5-1 6-2.1 9.8-6.6 5.6-2.1 3.9-0.6 6.8-3.4 2.5-0.7 4.7 1.6 7.8-3.3 2-3.5 2-4.4 2.8-1.4 1.2 2.1 0.8 4.8 3.4 69.4 0 0.2-0.4 12.6 0.4 1.9 3.7 5.4 2.8 6.6 0.3 3.9-0.1 3.2-1.6 4.1-0.4 2.5-1.2 3.8-0.7 1.7-0.7 0.8-0.7 0.4-0.6 1-0.6 1.2-0.3 1.8-1.2 2.1-0.6 0.8-0.8 0.7-1.1 0.6-7.4 2.7-1.1 3.4 1.2 2.9 4.8 7.9 4.6 4.1 2.3 2.4-0.2 2.9-1.5 1.6-1.9 1.3-1.1 1.5-3.4 7.1-2 5.6-2.1 3.9-2 3-3.9 2.8-1.6 1.5-2.3 4-10 11.1-0.6 1.7 0 1.5 0.4 1.4-0.1 2.1-0.8 4.7-0.1 1.8 0.5 4.3-0.3 1.8-0.6 1.5-0.8 1.1-1.1 0.9-3.2 1.5-1.9 1.8-0.6 1.1 0.3 1.3 4.4 3.2 1.2 1.4-0.1 1.1-1 0.9-1.4 0.4-5.9 1-6.4 2.2-1.8 1.2-1.6 1.6-9.2 14.2-1.9 5.2-3.6 6.6-1.9 6.8 0 1.5 1.2 4.4-5.6 0.3-2.6 1.4-1 0.7-1.9 2.1-3.6 4.5-0.8 1.7-0.3 1.4 1.4 5.9 0.3 1.8-1 3.6-6.7 6.9-5.3 4.1-1.5 0.7-2.7 0.8-2.3 1.2-8.9 6.9-3 1.8-2 0.5-1.6-0.2-2 0.4-3.8 1.7-1.9 1.3-1.4 1.4-1.5 2.2 0 1.2 0.4 2.9-1.4 1-13.1 5-1.8 0.4-1.4 0-1.1-0.6-2.3-2.5-1-0.9-1.1-0.7-1.6-0.6-0.8 0.5-2.2 2.5-6.8 6.6-2.5 1.9-2.2 1.1-5.6 0.6-2.4 0.9-1.3 0.2-4.4 0.4-11.7 4.8-1.5 1-1.4 1.7-1.1 1.6-0.2 0.7-0.2 1.8-0.6 1.4-0.9 1.5-2.3 2.8-1.6 1.7-1.9 2.4-3.7 5.6z"
-            fill={hoveredDistrict === "Cayo" ? ACTIVE_FILL : BASE_FILL}
-            style={{ transition: "fill 0.3s ease" }}
-            onClick={() => handleClick("Cayo")}
-            onMouseEnter={() => handleMouseEnter("Cayo")}
-            onMouseLeave={handleMouseLeave}
-          />
-
-          {/* Orange Walk */}
-          <path
-            id="BZOW"
-            d="M460.4 408l-4.7-1.6-2.5 0.7-6.8 3.4-3.9 0.6-5.6 2.1-9.8 6.6-6 2.1-7.5 1-9-0.4-4.8 0.5-3.4-0.2-7.8 0.3-5.9-0.4-5-0.9-2.3 0.8-2.4 2.8-2 2.8-3.4 2.4-4.6 1.5-38.7 4.4-2.6-0.6-2.6-1-3.7 0.2-4.7 1.7-13.8 9.2-10.1 8.3-1.8-96.6-1.4-75.5-0.3-30.4 2.5-13.9 2.5-3.6 4.6-6.6 27.6-10.1 7.1 2.5 5.5 5 5 5.6 5.6 4.3 4 0.4 3.7-0.8 3.2 0.7 4.5 9.9 4.3 3.2 13.4 7.9 2.9-0.9 2-2.8 1.5-7.7 1.5-2.5 17-12.8 3.1-3.8 4.8-13.6 1.6-3.2 4.9-4.2 4.6-2.6 3.9-3 3.3-5.2 1-3.8 1-7.9 1-3.5 8.2-14 1.1-3.9-1.1-4.9-1.2-1 9.4-7.1 9.7-4.6 4-3.1 3.3-5.3 1-4 3.4 0.7 21.2 9.4 15.2 11.2 24.2 33.1 45.7 41.7-73.8 19.1-17.6 10.1-2.1 6.1-0.7 3-0.4 3.5 0.2 2.6 1.2 4.6 0.3 2.2-0.1 4.5-2 9.2-0.2 1.6 0 1.9 1.1 7.8 0.1 2-1.1 8.3 0.2 2.5 1.7 4.5 0.4 1.8-0.2 2.3-1.5 1.6-2.8 1.2-3.3 1-9.8 4.6-3.8 5.9-4.3 12.3-0.2 6.2 4.1 50.6z"
-            fill={hoveredDistrict === "Orange Walk" ? ACTIVE_FILL : BASE_FILL}
-            style={{ transition: "fill 0.3s ease" }}
-            onClick={() => handleClick("Orange Walk")}
-            onMouseEnter={() => handleMouseEnter("Orange Walk")}
-            onMouseLeave={handleMouseLeave}
-          />
-
-          {/* Corozal */}
-          <path
-            id="BZCZL"
-            d="M575 227l-45.7-41.7-24.2-33.1-15.2-11.2-21.2-9.4-3.4-0.7 0.3-1.3 0.6-5.5 1.2-6 3.2-5.6 10.3-11.9 4.1-6.6 1.2-4 1.3-8.9 3-8.4 1.8-10.6 1.7-3.8 2.5-2.6 10.3-8.1 3.4 0.4 3.1 1.7 3.4 1 2.9-0.4 6.7-2.4 3.6-1.8 2.2-0.6 1.8 0.6 3.2 3.1 2.5 1.5 1.9-0.3 2-1.1 2.5-0.7 20.6-0.2 1.9 0.4 0 1.2 5.7 5.3-6.5 8.5-25.8 18.7-2.4 5.1 3.8 5.5 4.7 0.3 16-7.3-1.9 5.1-3.1 5.4-7.6 9.7-1.9 3.1 1 1.6 2.6-0.2 2.9-2.1 5.6-6.3 11-8 5.2-2.5 5.6-1 7.4 1 9.7 4.8 4.3 1.4 7.1-1.1 10-7 11.6-3.6 3.9-0.5 1.7 1.3-0.6 4.9-1.9 3.3-6.6 5.1-7.6 3.2-1.5 1.5-0.1 3.9 2.4 0.8 2.9-1.2 2.5-4.2 2.7-1.9 3.4-1.5 3.3-0.6 1.1 1.9 2.7 41.4-2.7 32.1-1.1 5.5-4.6 8.3-1.1 5.5-12.5 32.1-5.7 3.9 0 0.1-39.1-4.3z"
-            fill={hoveredDistrict === "Corozal" ? ACTIVE_FILL : BASE_FILL}
-            style={{ transition: "fill 0.3s ease" }}
-            onClick={() => handleClick("Corozal")}
-            onMouseEnter={() => handleMouseEnter("Corozal")}
-            onMouseLeave={handleMouseLeave}
-          />
-
-          {/* Stann Creek */}
-          <path
-            id="BZSC"
-            d="M412.1 676.9l-1.2-4.4 0-1.5 1.9-6.8 3.6-6.6 1.9-5.2 9.2-14.2 1.6-1.6 1.8-1.2 6.4-2.2 5.9-1 1.4-0.4 1-0.9 0.1-1.1-1.2-1.4-4.4-3.2-0.3-1.3 0.6-1.1 1.9-1.8 3.2-1.5 1.1-0.9 0.8-1.1 0.6-1.5 0.3-1.8-0.5-4.3 0.1-1.8 0.8-4.7 0.1-2.1-0.4-1.4 0-1.5 0.6-1.7 10-11.1 2.3-4 1.6-1.5 3.9-2.8 2-3 2.1-3.9 2-5.6 3.4-7.1 1.1-1.5 1.9-1.3 1.5-1.6 0.2-2.9-2.3-2.4-4.6-4.1-4.8-7.9-1.2-2.9 1.1-3.4 88.1-1.6 3.1-1.1 1.7-1 6.8-2.6 4.4-4.6 0.3 3.1 1.7 8 1.3 4.3 3.2 1.8 7.1 2.4 4 5.3 2.8 6.7 1.5 7.6 0.9 11 1.9 8.5-0.8 4-2.1 0.9-2.9 0-3.2 1.2-3.7 3.3-4.5 5.3-3.9 6-1.6 5.6 1.5 6.4 6.5 10.3 1.3 6 0.6 0 1.1 0.9 0.9 1.6-0.3 2-1.3 0.3-4.3-0.6-1.4 0.3-4.3 3.4-1.7 2.1-0.6 3.1-0.8 1.7-1.6 1.7-1.7 2.4-0.7 3.6 0.3 4.2 1.6 5.4 0.4 3.4-3.1 24.6-2.1 3.8-2.9 3-3.3 4.4-3.8 14.2-1.8 4.3-1.1 6.2 2.2 8.7-1.4 3.2-2.4 3.1-2.2 0.2-1-5.4 10.4-39.5 5.6-5.9 2.1-3.5-8.7 4.5-9 22.8-7.3 8.4 2.2 0.4 4.7 2.2-2.3 1.2-1.7 0.5-2.1-0.3-3-1.4 0.7 3.1 0.8 1.4 1.8 0.4 3.5-0.1 0 2.1-3.6 2.4-2.5 3.5-0.6 4.2 0.9 1.8-3.8-1.6-0.9-2.6-1.4-0.4-3.3-0.2-6.9 1.1-1.5-0.1-1.8-0.4-3.5-0.1-1.4 0.1-13.1-0.8-1 0.3-2 0.1-13.5-1.9-2-0.9 0.5-1.5 0.7-0.8 0.7-1.4 0-1.5 0.2-1.1 0.5-5.7 0.4-2.2 0.2-1.2-0.1-1.3-0.6-1.7-1.4-2.6-0.9-1.3-0.7-1.6-0.9-1.4-0.7-1.3-1-1.4-1.1-1.7-4.1-4.5-1.4-2-0.2-1.7 1.3-3.2 0.1-1.4-0.1-1.4-0.8-1.5-1-2.9-1-1.6-1.7-1.6-11.5-6.4-4.9-1.2-7.6-0.9-24.9 0.6-9.6 3.2z"
-            fill={hoveredDistrict === "Stann Creek" ? ACTIVE_FILL : BASE_FILL}
-            style={{ transition: "fill 0.3s ease" }}
-            onClick={() => handleClick("Stann Creek")}
-            onMouseEnter={() => handleMouseEnter("Stann Creek")}
-            onMouseLeave={handleMouseLeave}
-          />
-
-          {/* Belize District */}
-          <path
-            id="BZBZ"
-            d="M469.2 529.7l7.4-2.7 1.1-0.6 0.8-0.7 0.6-0.8 1.2-2.1 0.3-1.8 0.6-1.2 0.6-1 0.7-0.4 0.7-0.8 0.7-1.7 1.2-3.8 0.4-2.5 1.6-4.1 0.1-3.2-0.3-3.9-2.8-6.6-3.7-5.4-0.4-1.9 0.4-12.6 0-0.2-3.4-69.4-0.8-4.8-1.2-2.1-2.8 1.4-2 4.4-2 3.5-7.8 3.3-4.1-50.6 0.2-6.2 4.3-12.3 3.8-5.9 9.8-4.6 3.3-1 2.8-1.2 1.5-1.6 0.2-2.3-0.4-1.8-1.7-4.5-0.2-2.5 1.1-8.3-0.1-2-1.1-7.8 0-1.9 0.2-1.6 2-9.2 0.1-4.5-0.3-2.2-1.2-4.6-0.2-2.6 0.4-3.5 0.7-3 2.1-6.1 17.6-10.1 73.8-19.1 39.1 4.3-13.8 27.3 2 9-4 29-8.2 28.9-2.6 5.8-8.6 10.4-3.5 6.4-1.5 7.5 1.4 8.3 4 4.3 11.9 6 2.5 5.3 3.2 2.9 13.9 2.5 3.1 2.8-4 6.8-8.6-0.1-8.5-1.3-3.8 3.2-0.9 5.4-13.8 46.1-3.2 35.4-0.3 7.3-1.2 13.6 2.4 7.4 1.3 6.6 0 0.7-4.4 4.6-6.8 2.6-1.7 1-3.1 1.1-88.1 1.6z m254.1-98.9l4.2-3.7 3.8 6.2 5.6 16.7-1.5 2.6-0.6 3.5 0.1 8.2-2.3 0 0.1-3.6-0.1-1.2-1.9 0.6-1.3 1-0.8 1.4-0.7 1.8 0.2-21.1-1.1-8.8-3.7-3.6z m3.5-54.8l4 0.2 4.8 1.1 4.1 3.5 2 6.9-1.4 5.3-6.8 13.6-4.5 6-3.3 5.9-4.9 3.2-6.6-5.2-3.4 5.7-4.2 3.2-3.8 4.2-2.4 8.5-2.1 15.6-0.8 2.6-1.7 3.5-1.5 4.3-0.3 5-4.7-4.8 1.2-1.2 0.4-1.1 0.2-1.2 0.4-1.3 0.8-7.4 3.1-12.2 1.6-16.8 2.6-5.5 4.3-4 5.8-4.2 6.8-7.2 3.4-0.3 4.9 2.1 4.2 0.6 3.2-3 2.6-6.9 0.6-7.3-2.8-4.4-3.7 3.3-3 1.7-2.6-0.3 0.2-2.2 3.3-9.5z m-82.9-33.5l4.5 3.9 3.3 8.5 3.3 18.5-2.3 0-1.7-3.3-2.9-8.3-4.2-19.3z m-27.7-14.3l6.9-3.3 18.9-13 3.9-1.7-3.1 11.3-7.7 7-10.4 3.5-10.8 0.9 0-1.6 0.4-1.1 1.9-2z m82.1-120l2.1 0-2.6 15.2-6.5 13.9-10.4 10.2-14.4 3.9 0-2.4 3.5 0.2 1.1-0.2 12.1-8.7 4.3-6.1 1.8-9-5.3 0.2 1.4-10.8 6.1-21.9 0.7-1.5 1.6-1.3 1.6-1.6 0.7-2.7 0.2-3.5 4.9-18.4 3.3-3.1 5.2 2.2 7.3-4.8 3.3 4.7-0.5 7.8-4.4 4.1-2.5 3.9-6.8 18.9-3.2 6.3-2.3-1.6-2.3-1-0.8 3.6-1.2 2.6-2 1.9-2.8 1.4 0 2.4 2.5 5 3.1-4.6 0.8-2.1 0.4-3.1z m-60.5 177.7l6.1 4.7 3.1 4.6-0.7 3.5-0.9 1.5-0.1 2.1-1.4 3.2-2.3-0.3-0.6-2.9-0.4-7.2-0.5-1.5-2.6 0.3-2.9-1.3-1.9-2.4-1.1-1.8-1.1-1 0.1-2 2.2-1.5 5 2z m42-200.4l2-0.8 0.9 1-0.7 3.6-2.7 2.4-3.6 0.7-1-2.2 2.4-3.5 1.7-1.1 1-0.1z m9.9-9.7l0.8 1.4 0.2 3.8-1.9 3.6-2.8 2.1-1.2-0.3-0.4-1.8-0.5-1.3 0.5-1.3 1.7-0.9 1.8-1.5 0.6-2 0.6-1.3 0.6-0.5z m20.3-31.3l1.2 0.6 0.2 1.4-0.2 1.8-1.2 3.5-3.1 4.1-1.9-1.7 0.9-6 1.3-2.1 1 0.9 0.2-0.8-0.5-1.5 0.1-0.6 1.1 0.3 0.9 0.1z"
-            fill={hoveredDistrict === "Belize" ? ACTIVE_FILL : BASE_FILL}
-            style={{ transition: "fill 0.3s ease" }}
-            onClick={() => handleClick("Belize")}
-            onMouseEnter={() => handleMouseEnter("Belize")}
-            onMouseLeave={handleMouseLeave}
-          />
-
-          {/* Toledo */}
-          <path
-            id="BZTO"
-            d="M272.7 776.9l3.7-5.6 1.9-2.4 1.6-1.7 2.3-2.8 0.9-1.5 0.6-1.4 0.2-1.8 0.2-0.7 1.1-1.6 1.4-1.7 1.5-1 11.7-4.8 4.4-0.4 1.3-0.2 2.4-0.9 5.6-0.6 2.2-1.1 2.5-1.9 6.8-6.6 2.2-2.5 0.8-0.5 1.6 0.6 1.1 0.7 1 0.9 2.3 2.5 1.1 0.6 1.4 0 1.8-0.4 13.1-5 1.4-1-0.4-2.9 0-1.2 1.5-2.2 1.4-1.4 1.9-1.3 3.8-1.7 2-0.4 1.6 0.2 2-0.5 3-1.8 8.9-6.9 2.3-1.2 2.7-0.8 1.5-0.7 5.3-4.1 6.7-6.9 1-3.6-0.3-1.8-1.4-5.9 0.3-1.4 0.8-1.7 3.6-4.5 1.9-2.1 1-0.7 2.6-1.4 5.6-0.3 9.6-3.2 24.9-0.6 7.6 0.9 4.9 1.2 11.5 6.4 1.7 1.6 1 1.6 1 2.9 0.8 1.5 0.1 1.4-0.1 1.4-1.3 3.2 0.2 1.7 1.4 2 4.1 4.5 1.1 1.7 1 1.4 0.7 1.3 0.9 1.4 0.7 1.6 0.9 1.3 1.4 2.6 0.6 1.7 0.1 1.3-0.2 1.2-0.4 2.2-0.5 5.7-0.2 1.1 0 1.5-0.7 1.4-0.7 0.8-0.5 1.5 2 0.9 13.5 1.9 2-0.1 1-0.3 13.1 0.8 1.4-0.1 3.5 0.1 1.8 0.4 1.5 0.1 6.9-1.1 3.3 0.2 1.4 0.4 0.9 2.6 3.8 1.6 1.2 2.5-6.2 4.8-6.8 13.7-6.3 2.9-0.6 1.9-0.6 8.2 0.1 1.7-1.9 1.2-1.7 0-1.2-0.6 0-0.6-2.1 1.4-0.7 0.7-0.4 0.9-1.3 1.7-4.3 10.4-1.3 1.7-2.6 1.5-8.7 11.5-1 1.8-1.4 4.6-0.9 1.7-0.2 1 0.4 2.9-0.2 1-0.9 0.2-2.7-0.4-1 0.2-1.4 0.8-4 0.9-1.6 0.9-0.7 1.3-1.6 5.6 0-14.4-2.2 0-2.3 7.5-4.7 1.1-4.6-2.9-2-4.5-1.3-1.9-2.8-0.3-2.8 0.6-1.2 0.4-0.4 1.2 0.1-6.1-0.9-2.3-2.4-0.8-11.3 1.6-1.9 1.3-1.6 1.6-2.3 1.4-4.5 0.6-4.7 2.2-1.4 5.5 0.8 13.4-1.3 7.2-3.1 5.3-4.7 3.2-5.8 1.1-1.7 0.9-2 2.2-1.6 2.6-1.5 6.1-2 1.7-2.9 1.2-3.2 1.8-3.7 3.2-1.6 1.8-1.5 2.1-0.8 3.8 0.3 3.9-0.9 2.9-8.7 2.6-5.8 3.5-5.5 4.6-3.8 4.7-1.1 8.6 6.9 14.4-1.2 8.1-12.6 4.9-29.4-7.6-10.7 0.1-9.5 1.6-25.5-1.2-6 2.6-3.1 0.1-3.9 1.3-3.1 1.6-0.7 1.1-2.8-4.5 0.2-4.3 0.6-16.8 8.5-80 5.1-71.6z"
-            fill={hoveredDistrict === "Toledo" ? ACTIVE_FILL : BASE_FILL}
-            style={{ transition: "fill 0.3s ease" }}
-            onClick={() => handleClick("Toledo")}
-            onMouseEnter={() => handleMouseEnter("Toledo")}
-            onMouseLeave={handleMouseLeave}
-          />
-        </g>
-      </svg>
-
-      {/* Tooltip */}
-      {hoverInfo && (
-  <div
-    className={styles.tooltip}
-    style={{ top: mousePos.y, left: mousePos.x }}
-  >
-    {hoverInfo.name}: {hoverInfo.count}{" "}
-    {hoverInfo.count === 1 ? "listing" : "listings"}
-  </div>
-)}
-
+        <div
+          ref={mapContainerRef}
+          className={styles.mapSvg}
+          dangerouslySetInnerHTML={svgInnerHtml}
+        />
+        {/* Future: district badges, heat, pricing, pulses — absolute layer; keep pointer-events: none until interactive overlays ship */}
+        <div className={styles.mapOverlays} aria-hidden="true" />
+      </div>
+      {hoverTooltip ? (
+        <div
+          className={styles.mapDistrictTooltip}
+          style={{
+            left: tooltipCoords.left,
+            top: tooltipCoords.top,
+          }}
+          role="status"
+        >
+          {hoverTooltip.label}
+        </div>
+      ) : null}
     </div>
   );
-}
-export default BelizeMap;
+};
+
+export default React.memo(BelizeMap);

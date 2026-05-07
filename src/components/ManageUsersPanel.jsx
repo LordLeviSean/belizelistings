@@ -189,12 +189,13 @@ export default function ManageUsersPanel({ onAction }) {
         const approved = userListings.filter((l) => l.status === "approved").length;
         const pending = userListings.filter((l) => l.status === "pending").length;
         const rejected = userListings.filter((l) => l.status === "rejected").length;
+        const archived = userListings.filter((l) => l.status === "archived").length;
         return (
           <div key={user.id} className={styles.card}>
             <p><strong>{user.full_name || user.email || "User"}</strong></p>
             <p className={styles.muted}>{user.email || "No email"}</p>
             <p className={styles.muted}>
-              Total: {userListings.length} · Approved: {approved} · Pending: {pending} · Rejected: {rejected}
+              Total: {userListings.length} · Approved: {approved} · Pending: {pending} · Rejected: {rejected} · Archived: {archived}
             </p>
             <select
               className={styles.select}

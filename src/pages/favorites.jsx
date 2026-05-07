@@ -3,6 +3,7 @@ import Link from "next/link";
 import useFavorites from "../hooks/useFavorites";
 import SiteNav from "../components/SiteNav";
 import BackButton from "../components/BackButton";
+import Breadcrumbs from "../components/Breadcrumbs";
 import ListingCard from "../components/ListingCard";
 import { useToast } from "../components/ui/ToastProvider";
 import styles from "../styles/Favorites.module.css";
@@ -50,6 +51,7 @@ export default function FavoritesPage() {
       <SiteNav active="favorites" />
 
       <div className={styles.wrapper}>
+        <Breadcrumbs />
         <BackButton label="Back to Browse" />
         <div className={styles.header}>
           <div>

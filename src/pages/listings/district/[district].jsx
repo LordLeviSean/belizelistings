@@ -6,6 +6,7 @@ import useScrollMemory from "../../../hooks/useScrollMemory";
 import useSavedSearches from "../../../hooks/useSavedSearches";
 import { normalizeRouterQueryToFilters } from "../../../utils/savedSearchUtils";
 import BackButton from "../../../components/BackButton";
+import Breadcrumbs from "../../../components/Breadcrumbs";
 import ListingCard from "../../../components/ListingCard";
 import DistrictLayout from "../../../components/DistrictLayout";
 import useFavorites from "../../../hooks/useFavorites";
@@ -130,6 +131,7 @@ export default function DistrictListings() {
   return (
     <div className={styles.page}>
       <div className={styles.wrapper}>
+        <Breadcrumbs />
         <BackButton label="Back to Browse" />
 
         <DistrictLayout

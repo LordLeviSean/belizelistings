@@ -9,6 +9,8 @@ import { useRouter } from "next/router";
 import { useState, useRef, useEffect } from "react";
 import { createDebugger } from "@/lib/debug";
 import ListingImage from "@/components/ui/ListingImage";
+import BackButton from "@/components/BackButton";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import { fetchListingByIdWithImages } from "../../lib/listingQueries";
 import useAuth from "../../hooks/useAuth";
 import useRoleAccess from "../../hooks/useRoleAccess";
@@ -230,14 +232,6 @@ export default function ListingPage() {
   if (!listing) return <div className={styles.loadingState}>Listing not found</div>;
   const isLand = listing.beds === 0 && listing.baths === 0 && listing.garage === 0;
 
-  const handleBack = () => {
-    if (typeof window !== "undefined" && window.history.state?.idx > 0) {
-      router.back();
-    } else {
-      router.push("/");
-    }
-  };
-
   const hasImages = images.length > 0;
 
   return (
@@ -316,6 +310,7 @@ export default function ListingPage() {
 
       <section className={`${styles.detailColumn} safeFlexCol`}>
         <div className={styles.detailTop}>
+          <Breadcrumbs />
           <div
             style={{
               display: "flex",
@@ -325,9 +320,7 @@ export default function ListingPage() {
             }}
           >
             <div>
-              <button type="button" onClick={handleBack} className={backStyles.backSubtle}>
-                ← Back
-              </button>
+              <BackButton className={backStyles.backSubtle} />
             </div>
             <div>
               {isAuthenticated ? (

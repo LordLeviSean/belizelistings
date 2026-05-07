@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import SiteNav from "@/components/SiteNav";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import useUserRole from "@/hooks/useUserRole";
 
 export default function UserDashboard() {
@@ -24,6 +25,7 @@ export default function UserDashboard() {
     <div className="page">
       <SiteNav active="dashboard" />
       <div className="pageContent">
+        <Breadcrumbs />
         <h1 className="pageTitle">Dashboard</h1>
         <p className="pageSubtitle">Browse and save listings.</p>
       </div>
