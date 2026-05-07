@@ -9,8 +9,8 @@
   font-family: Inter, "Open Sans", Arial, sans-serif;
 
   background-image:
-    radial-gradient(circle at 16% 8%, rgba(137, 205, 189, 0.2), transparent 44%),
-    radial-gradient(circle at 80% 4%, rgba(159, 179, 217, 0.16), transparent 42%);
+    radial-gradient(circle at 16% 8%, rgba(137, 205, 189, 0.13), transparent 46%),
+    radial-gradient(circle at 80% 4%, rgba(159, 179, 217, 0.1), transparent 44%);
 }
 
 /* ambient texture */
@@ -21,11 +21,11 @@
   pointer-events: none;
   z-index: -1;
 
-  opacity: 0.05;
+  opacity: 0.032;
 
   background-image:
-    radial-gradient(circle at 18% 14%, rgba(var(--glow-rgb), 0.18), transparent 30%),
-    radial-gradient(circle at 82% 10%, rgba(109, 164, 214, 0.12), transparent 35%),
+    radial-gradient(circle at 18% 14%, rgba(var(--glow-rgb), 0.11), transparent 33%),
+    radial-gradient(circle at 82% 10%, rgba(109, 164, 214, 0.07), transparent 37%),
     radial-gradient(rgba(255, 255, 255, 0.15) 0.5px, transparent 0.5px);
 
   background-size: auto, auto, 3px 3px;
@@ -105,11 +105,11 @@
 /* MAIN LAYOUT — map hero (~72–75%) + listings pane under nav only */
 .mainSplit {
   display: grid;
-  grid-template-columns: minmax(0, 5.2fr) minmax(230px, 1fr);
+  grid-template-columns: minmax(0, 2.35fr) minmax(360px, 1fr);
   height: calc(100dvh - 72px);
   max-height: calc(100dvh - 72px);
-  gap: 8px;
-  padding: 12px;
+  gap: 12px;
+  padding: 14px 18px;
   min-width: 0;
   min-height: 0;
   overflow-x: hidden;
@@ -128,7 +128,7 @@
   justify-content: center;
   border-radius: 14px;
   overflow: hidden;
-  padding: clamp(4px, 0.9vmin, 10px);
+  padding: clamp(6px, 1.1vmin, 12px);
   box-sizing: border-box;
   /* Keep map content above decorative ::after in the stacking order */
   isolation: isolate;
@@ -174,7 +174,7 @@
   min-height: 0;
   min-width: 0;
   max-width: 100%;
-  border-radius: 14px;
+  border-radius: 15px;
   background:
     linear-gradient(180deg, rgba(17, 23, 29, 0.9), rgba(15, 20, 26, 0.86));
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -258,7 +258,7 @@
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  max-width: 560px;
+  max-width: 680px;
   width: 100%;
   margin: 0 auto;
   scrollbar-gutter: stable;
@@ -406,7 +406,7 @@
   }
 
   .mapPane {
-    min-height: 72vh;
+    min-height: 68vh;
     max-height: none;
     height: auto;
   }

@@ -48,6 +48,8 @@
   --map-fly-scale: 1;
   --map-fly-x: 0%;
   --map-fly-y: 0%;
+  width: 102%;
+  height: 102%;
 }
 
 .mapStage .mapSvg {
@@ -97,7 +99,7 @@
   position: static;
   touch-action: manipulation;
   cursor: default;
-  transform: scale(1.17) translate(0.45%, -0.3%);
+  transform: scale(1.045) translate(0.28%, -0.16%);
   transform-origin: center center;
 }
 
@@ -120,7 +122,7 @@
   }
 
   .map.mapFitLayout .mapStage .mapSvg :global(svg) {
-    transform: scale(1.08) translate(0, -0.15%);
+    transform: scale(1.03) translate(0, -0.08%);
   }
 }
 
