@@ -2,22 +2,49 @@ import { useMemo, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import SiteNav from "../components/SiteNav";
 import ListingCard from "../components/ListingCard";
-import { BELIZE_MAP_REGION_CONFIG } from "../constants/belizeMapRegions";
+import {
+  getRegionByAny,
+  getRegionLabel,
+  isChildRegion,
+  normalizeRegionSlug,
+} from "../constants/geographyLayer";
 import { fetchApprovedListingsWithImages } from "../lib/listingQueries";
 import useFavorites from "../hooks/useFavorites";
 import { useFavoriteSignupPrompt } from "../components/FavoriteSignupPromptProvider";
+import { getListingRegionSlug } from "../utils/canonicalListing";
 import styles from "../styles/SearchResults.module.css";
 
 function listingMatchesQuery(listing, query) {
-  const district = BELIZE_MAP_REGION_CONFIG[listing?.district]?.label || listing?.district || "";
+  const district = getRegionLabel(getListingRegionSlug(listing));
   const haystack = `${listing?.title || ""} ${district} ${listing?.property_type || ""} ${listing?.status || ""} ${listing?.price || ""}`;
   return haystack.toLowerCase().includes(query.toLowerCase());
 }
 
 function listingMatchesDistrictSlug(listing, slug) {
   if (!slug) return true;
-  const cfg = BELIZE_MAP_REGION_CONFIG[listing?.district];
-  return cfg?.slug === slug;
+  const listingRegion = normalizeRegionSlug(getListingRegionSlug(listing));
+  const routeRegion = normalizeRegionSlug(slug);
+  return listingRegion === routeRegion || isChildRegion(listingRegion, routeRegion);
+}
+
+function getListingMarketSignals(listing) {
+  return [
+    listing?.listing_type,
+    listing?.market_type,
+    listing?.listing_status,
+    listing?.status,
+    listing?.category,
+  ]
+    .map((value) => String(value || "").toLowerCase().trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getListingMarketKind(listing) {
+  const signals = getListingMarketSignals(listing);
+  if (/(rent|rental|lease|for-rent|for rent)/.test(signals)) return "rent";
+  if (/(sale|sell|for-sale|for sale)/.test(signals)) return "sale";
+  return "sale";
 }
 
 function listingMatchesMarket(listing, market) {
@@ -57,6 +84,10 @@ export default function SearchPage() {
     () => (router.isReady ? String(router.query?.market ?? "").toLowerCase().trim() : ""),
     [router.isReady, router.query?.market]
   );
+  const subregionParam = useMemo(
+    () => (router.isReady ? String(router.query?.subregion ?? "").toLowerCase().trim() : ""),
+    [router.isReady, router.query?.subregion]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -78,13 +109,20 @@ export default function SearchPage() {
   }, []);
 
   const filteredListings = useMemo(() => {
+    const normalizedDistrict = normalizeRegionSlug(districtSlug);
+    const normalizedSubregion = normalizeRegionSlug(subregionParam);
+    const useSubregionFilter =
+      normalizedSubregion &&
+      getRegionByAny(normalizedSubregion) &&
+      isChildRegion(normalizedSubregion, normalizedDistrict);
     return allListings.filter((listing) => {
       if (!listingMatchesDistrictSlug(listing, districtSlug)) return false;
+      if (useSubregionFilter && normalizeRegionSlug(listing?.district) !== normalizedSubregion) return false;
       if (!listingMatchesMarket(listing, marketParam || "all")) return false;
       if (!query) return true;
       return listingMatchesQuery(listing, query);
     });
-  }, [allListings, query, districtSlug, marketParam]);
+  }, [allListings, query, districtSlug, marketParam, subregionParam]);
 
   return (
     <div className={styles.page}>
@@ -95,7 +133,7 @@ export default function SearchPage() {
           <p>
             {loading
               ? "Loading listings..."
-              : `${filteredListings.length} result${filteredListings.length === 1 ? "" : "s"}${query ? ` for "${query}"` : ""}${districtSlug ? " · filtered by district" : ""}${marketParam ? " · filtered by market" : ""}`}
+              : `${filteredListings.length} result${filteredListings.length === 1 ? "" : "s"}${query ? ` for "${query}"` : ""}${districtSlug ? " · filtered by region" : ""}${subregionParam ? " · filtered by subregion" : ""}${marketParam ? " · filtered by market" : ""}`}
           </p>
         </header>
 

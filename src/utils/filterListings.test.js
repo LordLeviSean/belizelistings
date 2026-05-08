@@ -11,6 +11,33 @@ describe("filterListings", () => {
     expect(filterListings(sample, { district: "belize" }).map((l) => l.id)).toEqual([1, 3]);
   });
 
+  test("filters by canonical region_slug with district fallback", () => {
+    const rows = [
+      { id: "a", district: "belize", region_slug: "san-pedro", listing_type: "sale", price: 10, beds: 1, baths: 1 },
+      { id: "b", district: "belize", region_slug: "belize", listing_type: "sale", price: 20, beds: 1, baths: 1 },
+    ];
+    expect(filterListings(rows, { district: "belize" }).map((l) => l.id)).toEqual(["b"]);
+    expect(filterListings(rows, { district: "ambergris-caye" }).map((l) => l.id)).toEqual(["a"]);
+    expect(filterListings(rows, { district: "san-pedro" }).map((l) => l.id)).toEqual(["a"]);
+  });
+
+  test("filters canonical rows with subregion_slug + parent region_slug", () => {
+    const rows = [
+      {
+        id: "x",
+        district: "san-pedro",
+        region_slug: "ambergris-caye",
+        subregion_slug: "san-pedro",
+        listing_type: "sale",
+        price: 10,
+        beds: 1,
+        baths: 1,
+      },
+    ];
+    expect(filterListings(rows, { district: "ambergris-caye" }).map((l) => l.id)).toEqual(["x"]);
+    expect(filterListings(rows, { district: "san-pedro" }).map((l) => l.id)).toEqual(["x"]);
+  });
+
   test("filters by status (non-all)", () => {
     expect(filterListings(sample, { status: "rent" }).map((l) => l.id)).toEqual([2, 3]);
   });

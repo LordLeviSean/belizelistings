@@ -260,9 +260,75 @@
 .mapDistrictGroup.districtActive {
   filter: brightness(1.065) saturate(1.04) drop-shadow(0 0 5px rgba(108, 196, 186, 0.2))
     drop-shadow(0 -0.5px 0 rgba(255, 255, 255, 0.085));
+  animation: districtActivePulse 3.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
 
 .mapDistrictGroup.districtActive.districtHover {
   filter: brightness(1.082) saturate(1.05) drop-shadow(0 0 6px rgba(108, 196, 186, 0.22))
     drop-shadow(0 -0.5px 0 rgba(255, 255, 255, 0.092));
+  animation: none;
+}
+
+@keyframes districtActivePulse {
+  0% {
+    filter: brightness(1.05) saturate(1.02)
+      drop-shadow(0 0 4px rgba(108, 196, 186, 0.18)) drop-shadow(
+        0 -0.5px 0 rgba(255, 255, 255, 0.07)
+      );
+  }
+  50% {
+    filter: brightness(1.075) saturate(1.04)
+      drop-shadow(0 0 6px rgba(108, 196, 186, 0.22)) drop-shadow(
+        0 -0.5px 0 rgba(255, 255, 255, 0.1)
+      );
+  }
+  100% {
+    filter: brightness(1.05) saturate(1.02)
+      drop-shadow(0 0 4px rgba(108, 196, 186, 0.18)) drop-shadow(
+        0 -0.5px 0 rgba(255, 255, 255, 0.07)
+      );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mapDistrictGroup.districtActive {
+    animation: none !important;
+  }
+}
+
+/* District hero map panel variant (light, integrated surface) */
+.mapDistrictHero {
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse 84% 62% at 18% 14%, rgba(66, 154, 164, 0.12), transparent 66%),
+    radial-gradient(ellipse 78% 58% at 84% 12%, rgba(130, 172, 230, 0.12), transparent 68%),
+    linear-gradient(180deg, rgba(242, 250, 252, 0.3), rgba(232, 244, 248, 0.18));
+  box-shadow:
+    inset 0 0 0 1px rgba(154, 210, 200, 0.22),
+    inset 0 -14px 26px rgba(14, 30, 40, 0.08),
+    0 24px 60px rgba(18, 36, 44, 0.1),
+    0 0 56px rgba(118, 202, 194, 0.14);
+}
+
+.mapDistrictHero .mapStage {
+  filter: saturate(1.02) contrast(1.01);
+}
+
+.mapDistrictHero .mapDistrictGroup.districtDimmed {
+  opacity: 0.46;
+  filter: saturate(0.74) brightness(0.76);
+}
+
+.mapDistrictHero .mapDistrictGroup.districtActive {
+  filter:
+    brightness(1.08)
+    saturate(1.06)
+    drop-shadow(0 0 7px rgba(108, 196, 186, 0.24))
+    drop-shadow(0 8px 14px rgba(68, 128, 162, 0.13));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mapDistrictHero .mapDistrictGroup.districtActive {
+    animation: none !important;
+  }
 }

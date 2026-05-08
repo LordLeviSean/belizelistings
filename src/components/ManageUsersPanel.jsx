@@ -1,9 +1,35 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
+import { clearAllFavoritesForListing } from "../lib/favorites";
 import { traceAction } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
+import { isMissingColumnError } from "../lib/supabaseCompat";
+import { getLifecycleLabel } from "../constants/operationalModel";
+import { getLifecycleStatus } from "../utils/canonicalListing";
 import styles from "../styles/Dashboard.module.css";
+
+function listingOwnerProfileId(listing) {
+  return String(listing?.user_id || listing?.agent_id || "").trim();
+}
+
+async function loadAllListingsForAdminUsers(supabase) {
+  const selectAttempts = [
+    "id, user_id, agent_id, status, lifecycle_status, moderation_status",
+    "id, user_id, status, lifecycle_status, moderation_status",
+    "id, user_id, agent_id, status",
+    "id, user_id, status",
+  ];
+  for (const columns of selectAttempts) {
+    const { data, error } = await supabase.from("listings").select(columns);
+    if (!error) return data || [];
+    if (!isMissingColumnError(error)) {
+      console.error("[manage-users-panel] listings query failed", error);
+      return [];
+    }
+  }
+  return [];
+}
 
 export default function ManageUsersPanel({ onAction }) {
   const router = useRouter();
@@ -20,12 +46,15 @@ export default function ManageUsersPanel({ onAction }) {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [{ data: usersData }, { data: listingsData }] = await Promise.all([
+    const [{ data: usersData, error: usersError }, listingsRows] = await Promise.all([
       supabase.from("profiles").select("*"),
-      supabase.from("listings").select("id, user_id, status"),
+      loadAllListingsForAdminUsers(supabase),
     ]);
+    if (usersError) {
+      console.error("[manage-users-panel] profiles load error", usersError);
+    }
     setUsers(usersData || []);
-    setListings(listingsData || []);
+    setListings(listingsRows);
     setLoading(false);
   }, []);
 
@@ -53,7 +82,8 @@ export default function ManageUsersPanel({ onAction }) {
   const listingBuckets = useMemo(() => {
     const byUser = {};
     for (const listing of listings) {
-      const key = String(listing.user_id || "");
+      const key = listingOwnerProfileId(listing);
+      if (!key) continue;
       if (!byUser[key]) byUser[key] = [];
       byUser[key].push(listing);
     }
@@ -99,6 +129,9 @@ export default function ManageUsersPanel({ onAction }) {
       console.error("[manage-users-panel] listing status error", error);
       setActionKey("");
       return;
+    }
+    if (status === "approved") {
+      await clearAllFavoritesForListing(listingId);
     }
     await loadData();
     onAction?.(`Updated listing to ${status}`);
@@ -186,10 +219,10 @@ export default function ManageUsersPanel({ onAction }) {
       </div>
       {users.map((user) => {
         const userListings = listingBuckets[String(user.id)] || [];
-        const approved = userListings.filter((l) => l.status === "approved").length;
-        const pending = userListings.filter((l) => l.status === "pending").length;
-        const rejected = userListings.filter((l) => l.status === "rejected").length;
-        const archived = userListings.filter((l) => l.status === "archived").length;
+        const approved = userListings.filter((l) => getLifecycleStatus(l) === "approved").length;
+        const pending = userListings.filter((l) => getLifecycleStatus(l) === "pending").length;
+        const rejected = userListings.filter((l) => getLifecycleStatus(l) === "rejected").length;
+        const archived = userListings.filter((l) => getLifecycleStatus(l) === "archived").length;
         return (
           <div key={user.id} className={styles.card}>
             <p><strong>{user.full_name || user.email || "User"}</strong></p>
@@ -217,7 +250,12 @@ export default function ManageUsersPanel({ onAction }) {
                     <div>
                       <p style={{ margin: 0, fontWeight: 600 }}>Listing {String(listing.id).slice(0, 8)}</p>
                       <p className={styles.muted} style={{ margin: 0 }}>
-                        Status: <span className={`${styles.statusBadge} ${styles[`status${String(listing.status || "").charAt(0).toUpperCase()}${String(listing.status || "").slice(1)}`]}`}>{listing.status || "unknown"}</span>
+                        Status:{" "}
+                        <span
+                          className={`${styles.statusBadge} ${styles[`status${String(getLifecycleStatus(listing) || "draft").charAt(0).toUpperCase()}${String(getLifecycleStatus(listing) || "draft").slice(1)}`]}`}
+                        >
+                          {getLifecycleLabel(getLifecycleStatus(listing))}
+                        </span>
                       </p>
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>

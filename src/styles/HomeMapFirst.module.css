@@ -880,9 +880,17 @@
   font-size: 11px;
   letter-spacing: 0.06em;
   border-radius: 999px;
+  padding: 6px 11px;
+}
+
+.propertyBadgeSale {
   background: rgba(239, 234, 186, 0.92);
   color: rgba(102, 93, 52, 0.9);
-  padding: 6px 11px;
+}
+
+.propertyBadgeRent {
+  background: rgba(202, 232, 223, 0.92);
+  color: rgba(54, 98, 88, 0.92);
 }
 
 .carouselDots {
@@ -999,6 +1007,15 @@
   height: 12px;
   stroke-width: 2;
   vertical-align: text-bottom;
+}
+
+.propertyRegionCaption {
+  margin: 7px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-weight: 620;
+  color: rgba(94, 124, 130, 0.68);
 }
 
 @keyframes heroAtmosphereGlow {

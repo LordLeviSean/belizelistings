@@ -134,3 +134,12 @@
   overflow: hidden;
 }
 
+.regionCaption {
+  margin: 2px 0 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 620;
+  color: rgba(103, 134, 125, 0.68);
+}
+

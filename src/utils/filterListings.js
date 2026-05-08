@@ -1,5 +1,6 @@
 // src/utils/filterListings.js
-import { normalizeDistrict } from "./normalize";
+import { isChildRegion, normalizeRegionSlug } from "../constants/geographyLayer";
+import { getListingRegionSlug } from "./canonicalListing";
 
 export function filterListings(listings, filters = {}) {
   const {
@@ -15,9 +16,13 @@ export function filterListings(listings, filters = {}) {
   } = filters;
 
   return listings.filter((listing) => {
-    // 📍 District filter
-    if (district && normalizeDistrict(listing.district) !== normalizeDistrict(district)) {
-      return false;
+    // Region-aware filter with child-region continuity.
+    if (district) {
+      const listingRegion = normalizeRegionSlug(getListingRegionSlug(listing));
+      const targetRegion = normalizeRegionSlug(district);
+      if (listingRegion !== targetRegion && !isChildRegion(listingRegion, targetRegion)) {
+        return false;
+      }
     }
 
     // 🏷 Listing type filter

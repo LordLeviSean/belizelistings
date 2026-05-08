@@ -32,6 +32,28 @@ export async function addFavorite(listingId) {
   return { data, error };
 }
 
+/** Delete every favorites row for a listing (all users). Use when a listing is published or sent back to review. */
+export async function clearAllFavoritesForListing(listingId) {
+  const normalized = String(listingId ?? "");
+  if (!normalized) return { error: null };
+  const { error } = await supabase.from("favorites").delete().eq("listing_id", normalized);
+  if (error) {
+    console.warn("[favorites] clearAllFavoritesForListing", normalized, error);
+  }
+  return { error };
+}
+
+/** Bulk variant for admin actions (e.g. bulk approve). */
+export async function clearAllFavoritesForListings(listingIds) {
+  const ids = [...new Set((listingIds || []).map((id) => String(id ?? "")).filter(Boolean))];
+  if (!ids.length) return { error: null };
+  const { error } = await supabase.from("favorites").delete().in("listing_id", ids);
+  if (error) {
+    console.warn("[favorites] clearAllFavoritesForListings", ids.length, error);
+  }
+  return { error };
+}
+
 export async function removeFavorite(listingId, { silent = false } = {}) {
   const {
     data: { user },

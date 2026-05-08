@@ -1,13 +1,15 @@
 import { useRouter } from "next/router";
+import { getRegionLabel } from "../constants/geographyLayer";
 
 function toLabel(segment) {
-  if (segment === "listings") return "Districts";
+  if (segment === "listings") return "Regions";
   if (segment === "dashboard") return "Dashboard";
   if (segment === "agent") return "Operator";
   if (segment === "admin") return "Admin";
   if (segment === "favorites") return "Favorites";
   if (segment === "listing") return "Listing";
-  return segment.replace(/-/g, " ");
+  const regionLabel = getRegionLabel(segment);
+  return regionLabel || segment.replace(/-/g, " ");
 }
 
 export default function Breadcrumbs() {

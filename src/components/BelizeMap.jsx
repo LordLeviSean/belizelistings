@@ -4,6 +4,7 @@ import {
   BELIZE_MAP_REGION_CONFIG,
   BELIZE_MAP_REGION_ORDER,
 } from "@/constants/belizeMapRegions";
+import { getRegionByAny, getRegionCaption, normalizeRegionSlug } from "@/constants/geographyLayer";
 import styles from "./BelizeMap.module.css";
 
 const MAP_URL = "/maps/clean-mainland-districts.svg";
@@ -37,10 +38,16 @@ function tooltipPosition(clientX, clientY) {
 }
 
 /**
- * Map-first discovery: hover for preview, click navigates to `/browse/[slug]`.
+ * Map-first discovery: hover for preview, click navigates to district browsing.
  * Optional `districtListingCounts` reserved for future overlay layers.
  */
-const BelizeMap = ({ districtListingCounts = null }) => {
+const BelizeMap = ({
+  districtListingCounts = null,
+  variant = null,
+  activeDistrictSlug = null,
+  activeSubregionSlug = null,
+  onDistrictClick = null,
+}) => {
   void districtListingCounts;
 
   const router = useRouter();
@@ -110,6 +117,17 @@ const BelizeMap = ({ districtListingCounts = null }) => {
     const interactiveGroups = [];
     const disposers = [];
 
+    let activeRegionId = null;
+    if (activeDistrictSlug) {
+      for (const regionId of BELIZE_MAP_REGION_ORDER) {
+        const cfg = BELIZE_MAP_REGION_CONFIG[regionId];
+        if (cfg?.slug === activeDistrictSlug) {
+          activeRegionId = regionId;
+          break;
+        }
+      }
+    }
+
     for (const regionId of BELIZE_MAP_REGION_ORDER) {
       const cfg = BELIZE_MAP_REGION_CONFIG[regionId];
       if (!cfg?.slug) continue;
@@ -118,7 +136,12 @@ const BelizeMap = ({ districtListingCounts = null }) => {
       if (!group) continue;
       interactiveGroups.push({ regionId, group });
 
-      const label = cfg.label;
+      const subregion = activeSubregionSlug ? getRegionByAny(activeSubregionSlug) : null;
+      const isSubregionOnThisRegion =
+        subregion &&
+        normalizeRegionSlug(subregion?.mapRegion) === normalizeRegionSlug(regionId) &&
+        normalizeRegionSlug(cfg.slug) === normalizeRegionSlug(activeDistrictSlug);
+      const label = isSubregionOnThisRegion ? `${subregion.label} · ${cfg.label}` : cfg.label;
 
       group.classList.add(styles.mapDistrictGroup);
 
@@ -130,6 +153,17 @@ const BelizeMap = ({ districtListingCounts = null }) => {
             otherGroup.classList.add(styles.districtDimmed);
           }
         });
+
+        // Restore focus isolation for the pre-selected district (district pages).
+        if (activeRegionId) {
+          interactiveGroups.forEach(({ regionId: otherId, group: otherGroup }) => {
+            if (otherId === activeRegionId) {
+              otherGroup.classList.add(styles.districtActive);
+              otherGroup.classList.remove(styles.districtDimmed);
+            }
+          });
+        }
+
         setHoverTooltip({ label, x: e.clientX, y: e.clientY });
       };
 
@@ -141,9 +175,22 @@ const BelizeMap = ({ districtListingCounts = null }) => {
 
       const onLeave = () => {
         group.classList.remove(styles.districtHover);
-        interactiveGroups.forEach(({ group: otherGroup }) => {
-          otherGroup.classList.remove(styles.districtDimmed);
-        });
+
+        if (activeRegionId) {
+          interactiveGroups.forEach(({ regionId: otherId, group: otherGroup }) => {
+            if (otherId === activeRegionId) {
+              otherGroup.classList.add(styles.districtActive);
+              otherGroup.classList.remove(styles.districtDimmed);
+            } else {
+              otherGroup.classList.remove(styles.districtActive);
+              otherGroup.classList.add(styles.districtDimmed);
+            }
+          });
+        } else {
+          interactiveGroups.forEach(({ group: otherGroup }) => {
+            otherGroup.classList.remove(styles.districtDimmed);
+          });
+        }
         setHoverTooltip(null);
       };
 
@@ -156,6 +203,7 @@ const BelizeMap = ({ districtListingCounts = null }) => {
 
         interactiveGroups.forEach(({ regionId: otherId, group: otherGroup }) => {
           otherGroup.classList.remove(styles.districtHover);
+          otherGroup.classList.remove(styles.districtActive);
           if (otherId === regionId) {
             otherGroup.classList.add(styles.districtClicked);
             otherGroup.classList.remove(styles.districtDimmed);
@@ -167,7 +215,17 @@ const BelizeMap = ({ districtListingCounts = null }) => {
 
         cancelFlyTimeout();
         flyTimeoutRef.current = window.setTimeout(() => {
-          void routerRef.current.push(`/browse/${cfg.slug}`);
+          const payload = {
+            regionId,
+            slug: cfg.slug,
+            label: cfg.label,
+            caption: getRegionCaption(cfg.slug),
+          };
+          if (onDistrictClick) {
+            onDistrictClick(cfg.slug, payload);
+            return;
+          }
+          void routerRef.current.push(`/listings/district/${cfg.slug}`);
         }, FLY_MS);
       };
 
@@ -185,6 +243,20 @@ const BelizeMap = ({ districtListingCounts = null }) => {
         group.classList.remove(styles.districtHover);
         group.classList.remove(styles.districtDimmed);
         group.classList.remove(styles.districtClicked);
+        group.classList.remove(styles.districtActive);
+      });
+    }
+
+    // Initial active district focus (district pages).
+    if (activeRegionId) {
+      interactiveGroups.forEach(({ regionId: otherId, group: otherGroup }) => {
+        if (otherId === activeRegionId) {
+          otherGroup.classList.add(styles.districtActive);
+          otherGroup.classList.remove(styles.districtDimmed);
+        } else {
+          otherGroup.classList.remove(styles.districtActive);
+          otherGroup.classList.add(styles.districtDimmed);
+        }
       });
     }
 
@@ -202,7 +274,11 @@ const BelizeMap = ({ districtListingCounts = null }) => {
   }, []);
 
   return (
-    <div className={`${styles.map} ${styles.mapNoSelect} ${styles.mapFitLayout}`}>
+    <div
+      className={`${styles.map} ${styles.mapNoSelect} ${styles.mapFitLayout} ${
+        variant === "districtHero" ? styles.mapDistrictHero : ""
+      }`}
+    >
       <div className={styles.mapStage}>
         <div
           ref={mapContainerRef}

@@ -3,19 +3,35 @@ import { useRouter } from "next/router";
 import { supabase } from "@/lib/supabaseClient";
 import SiteNav from "@/components/SiteNav";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import PropertiesPanel from "@/components/PropertiesPanel";
 import VacancyPanel from "@/components/VacancyPanel";
 import useUserRole from "@/hooks/useUserRole";
 import { useToast } from "@/components/ui/ToastProvider";
+import {
+  AGENT_FREE_ACTIVE_LISTING_CAP,
+  getArchiveStatus,
+  getRepublishStatus,
+  PLATFORM_TIERS,
+} from "@/constants/operationalModel";
+import { getUserActiveListingCount } from "@/lib/listingPersistence";
+import {
+  applyListingLifecycleAction,
+  permanentlyDeleteArchivedListing,
+} from "@/utils/ownershipAttribution";
+import { clearAllFavoritesForListing } from "@/lib/favorites";
+import { OWNERSHIP_ACTIONS } from "@/constants/ownershipModel";
+import { getLifecycleStatus } from "@/utils/canonicalListing";
 import styles from "@/styles/Dashboard.module.css";
 
 export default function AgentDashboard() {
   const router = useRouter();
-  const { user, role, loading: roleLoading } = useUserRole();
+  const { user, role, loading: roleLoading, tier } = useUserRole();
   const { showToast } = useToast();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState("");
+  const [deleteTargetId, setDeleteTargetId] = useState("");
   const [activeTab, setActiveTab] = useState("listings");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
 
@@ -54,12 +70,16 @@ export default function AgentDashboard() {
     }
 
     setActionId(String(listingId));
-    const { error } = await supabase
-      .from("listings")
-      .update({ status: "archived" })
-      .eq("id", listingId);
+    const { error } = await applyListingLifecycleAction(supabase, {
+      listingId,
+      action: OWNERSHIP_ACTIONS.ARCHIVE,
+      extraUpdates: {
+        status: getArchiveStatus(),
+      },
+    });
     if (error) {
       setActionId("");
+      showToast({ type: "error", message: error?.message || "Unable to archive listing" });
       return;
     }
     await loadListings();
@@ -69,22 +89,57 @@ export default function AgentDashboard() {
 
   const republishListing = async (listingId) => {
     setActionId(String(listingId));
-    const { error } = await supabase
-      .from("listings")
-      .update({ status: "pending" })
-      .eq("id", listingId);
+    if (tier === PLATFORM_TIERS.AGENT_FREE && user?.id) {
+      const activeCount = await getUserActiveListingCount(supabase, user.id);
+      if (activeCount >= AGENT_FREE_ACTIVE_LISTING_CAP) {
+        showToast({
+          type: "error",
+          message: `Free Agent limit reached (${AGENT_FREE_ACTIVE_LISTING_CAP} active listings). Archive another listing before restoring.`,
+        });
+        setActionId("");
+        return;
+      }
+    }
+    const { error } = await applyListingLifecycleAction(supabase, {
+      listingId,
+      action: OWNERSHIP_ACTIONS.REPUBLISH,
+      extraUpdates: {
+        status: getRepublishStatus(),
+      },
+    });
     if (error) {
       setActionId("");
+      showToast({ type: "error", message: error?.message || "Unable to restore listing" });
       return;
     }
+    await clearAllFavoritesForListing(listingId);
     await loadListings();
     showToast({ type: "success", message: "Listing moved to pending review" });
     setActionId("");
   };
 
+  const permanentlyDeleteListing = async () => {
+    if (!deleteTargetId) return;
+    setActionId(`delete:${deleteTargetId}`);
+    const { error } = await permanentlyDeleteArchivedListing(supabase, {
+      listingId: deleteTargetId,
+      statusHint: "archived",
+    });
+    if (error) {
+      showToast({ type: "error", message: error.message || "Unable to permanently delete listing" });
+      setActionId("");
+      return;
+    }
+    await loadListings();
+    showToast({ type: "info", message: "Listing permanently deleted" });
+    setDeleteTargetId("");
+    setActionId("");
+  };
+
   const filteredListings = listings.filter((listing) => {
-    if (visibilityFilter === "archived") return listing.status === "archived";
-    if (visibilityFilter === "active") return listing.status !== "archived";
+    const lifecycle = getLifecycleStatus(listing);
+    if (visibilityFilter === "archived") return lifecycle === "archived";
+    if (visibilityFilter === "active") return lifecycle !== "archived";
     return true;
   });
 
@@ -151,7 +206,7 @@ export default function AgentDashboard() {
               {filteredListings.map((l) => (
                 <div
                   key={l.id}
-                  className={`${styles.card} ${l.status === "archived" ? styles.archivedCard : ""} ${
+                  className={`${styles.card} ${getLifecycleStatus(l) === "archived" ? styles.archivedCard : ""} ${
                     actionId === String(l.id) ? styles.cardActionBusy : ""
                   }`}
                 >
@@ -159,21 +214,32 @@ export default function AgentDashboard() {
                   <p className={styles.muted}>{Number(l.price || 0).toLocaleString()} BZD</p>
                   <div>
                     <span className={`${styles.statusBadge} ${styles[`status${String(l.status || "").charAt(0).toUpperCase()}${String(l.status || "").slice(1)}`]}`}>
-                      {l.status === "archived" ? "Archived (Not Public)" : l.status || "draft"}
+                      {getLifecycleStatus(l) === "archived" ? "Archived (Not Public)" : getLifecycleStatus(l) || "draft"}
                     </span>
-                    {l.status === "archived" ? (
+                    {getLifecycleStatus(l) === "archived" ? (
                       <p className={styles.archivedHint}>Hidden from public listings</p>
                     ) : null}
                   </div>
-                  {l.status === "archived" ? (
-                    <button
-                      className={styles.approveButton}
-                      type="button"
-                      onClick={() => republishListing(l.id)}
-                      disabled={actionId === String(l.id)}
-                    >
-                      {actionId === String(l.id) ? "Publishing..." : "Re-publish Listing"}
-                    </button>
+                  {getLifecycleStatus(l) === "archived" ? (
+                    <>
+                      <button
+                        className={styles.approveButton}
+                        type="button"
+                        onClick={() => republishListing(l.id)}
+                        disabled={actionId === String(l.id) || actionId === `delete:${l.id}`}
+                      >
+                        {actionId === String(l.id) ? "Publishing..." : "Re-publish Listing"}
+                      </button>
+                      <button
+                        className={`${styles.rejectButton} ${styles.quickDangerMuted}`}
+                        type="button"
+                        onClick={() => setDeleteTargetId(String(l.id))}
+                        disabled={actionId === String(l.id) || actionId === `delete:${l.id}`}
+                        style={{ marginTop: 8 }}
+                      >
+                        Permanently Delete
+                      </button>
+                    </>
                   ) : (
                     <button
                       className={styles.deleteListingButton}
@@ -189,6 +255,21 @@ export default function AgentDashboard() {
             </div>
           </>
         ) : null}
+        <DeleteConfirmModal
+          isOpen={Boolean(deleteTargetId)}
+          onClose={() => setDeleteTargetId("")}
+          onConfirm={permanentlyDeleteListing}
+          loading={actionId === `delete:${deleteTargetId}` && Boolean(deleteTargetId)}
+          mode="delete"
+          title="Permanent Deletion"
+          description={
+            <>
+              This permanently removes the listing and associated operational history. This action
+              cannot be undone. Type <strong>delete</strong> to continue.
+            </>
+          }
+          confirmLabel="Permanently Delete"
+        />
 
         {activeTab === "properties" ? <PropertiesPanel userId={user?.id} /> : null}
 

@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { ensureProfile } from "../lib/ensureProfile";
+import { resolveTierFromProfile } from "../constants/operationalModel";
+import { getTrustTierCapabilities, resolveProfileVerification } from "../constants/trustModel";
 
 export default function useUserRole() {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState("user");
+  const [tier, setTier] = useState("public");
+  const [verification, setVerification] = useState(resolveProfileVerification());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,6 +19,8 @@ export default function useUserRole() {
         if (!cancelled) {
           setUser(null);
           setRole("user");
+          setTier("public");
+          setVerification(resolveProfileVerification());
           setLoading(false);
         }
         return;
@@ -33,7 +39,10 @@ export default function useUserRole() {
         .maybeSingle();
 
       if (!cancelled) {
-        setRole(profile?.role ?? "user");
+        const resolvedRole = profile?.role ?? "user";
+        setRole(resolvedRole);
+        setTier(resolveTierFromProfile(profile));
+        setVerification(resolveProfileVerification(profile || {}));
         setLoading(false);
       }
     };
@@ -63,5 +72,12 @@ export default function useUserRole() {
     };
   }, []);
 
-  return { user, role, loading };
+  return {
+    user,
+    role,
+    tier,
+    verification,
+    trustCapabilities: getTrustTierCapabilities(tier),
+    loading,
+  };
 }

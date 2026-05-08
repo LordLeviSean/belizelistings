@@ -4,6 +4,7 @@ import { filterListings } from "../utils/filterListings";
 import { filtersToFilterListingsInput } from "../utils/savedSearchUtils";
 import { incrementNavAlertBadge } from "../utils/navBadge";
 import { getSavedSearches } from "./useSavedSearches";
+import { isMissingColumnError } from "../lib/supabaseCompat";
 
 const LAST_SEEN_KEY = "belize_alert_last_seen";
 const ALERTS_LOG_KEY = "belize_alerts_log";
@@ -101,10 +102,16 @@ export function runAlertScan(listingsData) {
 export default function useAlerts() {
   useEffect(() => {
     const fetchListings = async () => {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("listings")
         .select("*")
-        .eq("status", "approved");
+        .or("status.eq.approved,moderation_status.eq.approved,lifecycle_status.eq.approved");
+      if (error && isMissingColumnError(error)) {
+        ({ data, error } = await supabase
+          .from("listings")
+          .select("*")
+          .eq("status", "approved"));
+      }
       if (!error) runAlertScan(data || []);
     };
     queueMicrotask(fetchListings);

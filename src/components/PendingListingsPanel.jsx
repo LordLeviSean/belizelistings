@@ -1,28 +1,27 @@
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useAuth from "../hooks/useAuth";
 import { supabase } from "../lib/supabaseClient";
 import { traceAction } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
+import { getRegionLabel } from "../constants/geographyLayer";
+import { getModerationStatus, getRepublishStatus } from "../constants/operationalModel";
+import { formatOperationalTimestamp } from "../utils/listingOperationalMeta";
+import ListingTrustStrip from "./ListingTrustStrip";
+import AgentOperationalStrip from "./AgentOperationalStrip";
+import { buildAgentOperationalSnapshotMap } from "../utils/trustSignals";
+import ListingOwnershipMeta from "./ListingOwnershipMeta";
+import { clearAllFavoritesForListing } from "../lib/favorites";
+import { isMissingColumnError } from "../lib/supabaseCompat";
+import {
+  applyListingLifecycleAction,
+  collectListingOwnershipActorIds,
+} from "../utils/ownershipAttribution";
+import { OWNERSHIP_ACTIONS } from "../constants/ownershipModel";
 import styles from "../styles/Dashboard.module.css";
 
 function formatDistrict(district = "") {
-  return String(district)
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
-function formatPendingTime(value) {
-  const date = new Date(value || Date.now());
-  const now = new Date();
-  const sameDay = date.toDateString() === now.toDateString();
-  const minutesAgo = Math.floor((now.getTime() - date.getTime()) / 60000);
-  if (minutesAgo >= 0 && minutesAgo <= 1) return "Just now";
-  if (sameDay) {
-    return `Today • ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
-  }
-  return date.toLocaleDateString();
+  return getRegionLabel(district);
 }
 
 export default function PendingListingsPanel({ onAction }) {
@@ -37,7 +36,7 @@ export default function PendingListingsPanel({ onAction }) {
 
   const loadPending = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("listings")
       .select(
         `
@@ -48,8 +47,23 @@ export default function PendingListingsPanel({ onAction }) {
           )
         `
       )
-      .eq("status", "pending")
+      .or(`status.eq.${getRepublishStatus()},lifecycle_status.eq.pending,moderation_status.eq.pending_review`)
       .order("created_at", { ascending: false });
+    if (error && isMissingColumnError(error)) {
+      ({ data, error } = await supabase
+        .from("listings")
+        .select(
+          `
+          *,
+          listing_images (
+            image_url,
+            position
+          )
+        `
+        )
+        .eq("status", getRepublishStatus())
+        .order("created_at", { ascending: false }));
+    }
 
     if (error) {
       console.error("[pending-panel] load error", error);
@@ -59,7 +73,13 @@ export default function PendingListingsPanel({ onAction }) {
 
     const rows = data || [];
     setListings(rows);
-    const ownerIds = [...new Set(rows.map((listing) => String(listing.user_id || "")).filter(Boolean))];
+    const ownerIds = [
+      ...new Set(
+        rows
+          .flatMap((listing) => [String(listing.user_id || ""), ...collectListingOwnershipActorIds(listing)])
+          .filter(Boolean)
+      ),
+    ];
     if (ownerIds.length > 0) {
       const { data: profileRows } = await supabase
         .from("profiles")
@@ -79,6 +99,10 @@ export default function PendingListingsPanel({ onAction }) {
   useEffect(() => {
     void loadPending();
   }, []);
+  const agentSnapshotMap = useMemo(
+    () => buildAgentOperationalSnapshotMap(listings),
+    [listings]
+  );
 
   useEffect(() => {
     const channel = supabase
@@ -104,14 +128,15 @@ export default function PendingListingsPanel({ onAction }) {
       type: `admin_${nextStatus}_pending`,
       payload: { listingId, reviewerId: user.id },
     });
-    const { error } = await supabase
-      .from("listings")
-      .update({
+    const action =
+      nextStatus === "approved" ? OWNERSHIP_ACTIONS.APPROVE : OWNERSHIP_ACTIONS.REJECT;
+    const { error } = await applyListingLifecycleAction(supabase, {
+      listingId,
+      action,
+      extraUpdates: {
         status: nextStatus,
-        reviewed_by: user.id,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", listingId);
+      },
+    });
     traceAction({
       type: `admin_${nextStatus}_pending_result`,
       payload: { listingId, reviewerId: user.id },
@@ -121,6 +146,9 @@ export default function PendingListingsPanel({ onAction }) {
       console.error("[pending-panel] moderation error", error);
       setActionKey("");
       return;
+    }
+    if (nextStatus === "approved") {
+      await clearAllFavoritesForListing(listingId);
     }
     setRemovedIds((prev) => [...prev, String(listingId)]);
     window.setTimeout(() => {
@@ -171,13 +199,16 @@ export default function PendingListingsPanel({ onAction }) {
                 <p className={styles.pendingTitle}><strong>{listing.title || "Untitled listing"}</strong></p>
                 <p className={styles.pendingPrice}>{Number(listing.price || 0).toLocaleString()} BZD · {formatDistrict(listing.district)}</p>
                 <p className={styles.pendingSubtle}>Owner: {ownerMap[String(listing.user_id)] || String(listing.user_id || "Unknown")}</p>
-                <p className={styles.pendingSubtle}>{formatPendingTime(listing.created_at)}</p>
+                <p className={styles.pendingSubtle}>{formatOperationalTimestamp(listing.created_at)}</p>
+                <ListingOwnershipMeta listing={listing} ownerMap={ownerMap} />
+                <AgentOperationalStrip snapshot={agentSnapshotMap[String(listing.user_id || "")]} />
+                <ListingTrustStrip listing={listing} variant="pending" />
               </div>
-              <button
+                <button
                 type="button"
                 className={styles.approveButton}
                 disabled={actionKey === `${listing.id}:approved` || actionKey === `${listing.id}:rejected`}
-                onClick={() => moderateListing(listing.id, "approved")}
+                  onClick={() => moderateListing(listing.id, getModerationStatus("approved"))}
               >
                 {actionKey === `${listing.id}:approved` ? "Approving..." : "Approve"}
               </button>
@@ -185,7 +216,7 @@ export default function PendingListingsPanel({ onAction }) {
                 type="button"
                 className={`${styles.rejectButton} ${styles.rejectButtonSoft}`}
                 disabled={actionKey === `${listing.id}:approved` || actionKey === `${listing.id}:rejected`}
-                onClick={() => moderateListing(listing.id, "rejected")}
+                  onClick={() => moderateListing(listing.id, getModerationStatus("rejected"))}
               >
                 {actionKey === `${listing.id}:rejected` ? "Rejecting..." : "Reject"}
               </button>

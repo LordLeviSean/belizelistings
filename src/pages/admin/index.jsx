@@ -1,16 +1,19 @@
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import SiteNav from "../../components/SiteNav";
 import PendingListingsPanel from "../../components/PendingListingsPanel";
 import AllListingsPanel from "../../components/AllListingsPanel";
 import ManageUsersPanel from "../../components/ManageUsersPanel";
 import OperatorListingsPanel from "../../components/OperatorListingsPanel";
-import Breadcrumbs from "../../components/Breadcrumbs";
 import { supabase } from "../../lib/supabaseClient";
 import useUserRole from "../../hooks/useUserRole";
 import useLivePaletteMode from "../../hooks/useLivePaletteMode";
 import usePulseMode from "../../hooks/usePulseMode";
 import useSeaFlowMode from "../../hooks/useSeaFlowMode";
+import { ACTIVITY_SIGNAL_TYPES } from "../../constants/trustModel";
+import { clearAllFavoritesForListings } from "../../lib/favorites";
+import { isMissingColumnError } from "../../lib/supabaseCompat";
+import { getModerationStatus, getRepublishStatus } from "../../constants/operationalModel";
 import styles from "../../styles/Dashboard.module.css";
 
 export default function AdminPage() {
@@ -31,17 +34,51 @@ export default function AdminPage() {
   const { enabled: pulseModeEnabled, setMode: setPulseMode } = usePulseMode();
   const { enabled: seaFlowModeEnabled, setMode: setSeaFlowMode } = useSeaFlowMode();
 
-  const refreshStats = async () => {
-    const [{ count: pending }, { count: approved }, { count: listings }, { count: users }] = await Promise.all([
-      supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "approved"),
-      supabase.from("listings").select("id", { count: "exact", head: true }),
-      supabase.from("profiles").select("id", { count: "exact", head: true }),
-    ]);
+  const refreshStats = useCallback(async () => {
+    const pendingOr = `status.eq.${getRepublishStatus()},moderation_status.eq.pending_review,lifecycle_status.eq.pending`;
+    const approvedOr = `status.eq.${getModerationStatus("approved")},moderation_status.eq.approved,lifecycle_status.eq.approved`;
+    let [{ count: pending, error: pendingError }, { count: approved, error: approvedError }, { count: listings }, { count: users }] =
+      await Promise.all([
+        supabase.from("listings").select("id", { count: "exact", head: true }).or(pendingOr),
+        supabase.from("listings").select("id", { count: "exact", head: true }).or(approvedOr),
+        supabase.from("listings").select("id", { count: "exact", head: true }),
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+      ]);
+
+    if (pendingError && isMissingColumnError(pendingError)) {
+      const { count } = await supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .eq("status", getRepublishStatus());
+      pending = count || 0;
+    } else if (pendingError) {
+      console.warn("[admin] pending count query failed; using legacy status filter", pendingError);
+      const { count } = await supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .eq("status", getRepublishStatus());
+      pending = count ?? pending ?? 0;
+    }
+
+    if (approvedError && isMissingColumnError(approvedError)) {
+      const { count } = await supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .eq("status", getModerationStatus("approved"));
+      approved = count || 0;
+    } else if (approvedError) {
+      console.warn("[admin] approved count query failed; using legacy status filter", approvedError);
+      const { count } = await supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .eq("status", getModerationStatus("approved"));
+      approved = count ?? approved ?? 0;
+    }
+
     setPendingCount(pending || 0);
     setTotals({ listings: listings || 0, users: users || 0, approved: approved || 0 });
     setUpdatedAtLabel("moments ago");
-  };
+  }, []);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -74,19 +111,76 @@ export default function AdminPage() {
     }
   }, [router.query.tab]);
 
-  const pushActivity = (message) => {
+  useEffect(() => {
+    if (!isAdmin) return;
+    let debounce;
+    const channel = supabase
+      .channel("admin-dashboard-listing-stats")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "listings" },
+        () => {
+          clearTimeout(debounce);
+          debounce = setTimeout(() => {
+            void refreshStats();
+          }, 320);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearTimeout(debounce);
+      supabase.removeChannel(channel);
+    };
+  }, [isAdmin, refreshStats]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    void refreshStats();
+  }, [activeTab, isAdmin, refreshStats]);
+
+  const pushActivity = (message, signal = null) => {
     const stamp = new Date().toLocaleTimeString();
-    setActivity((prev) => [`${stamp} - ${message}`, ...prev].slice(0, 8));
+    const event = {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      stamp,
+      message,
+      signal,
+    };
+    setActivity((prev) => [event, ...prev].slice(0, 8));
     setLastAction(message);
   };
 
   const handleBulkAction = async (nextStatus) => {
     if (bulkLoading) return;
     setBulkLoading(nextStatus);
-    const { error } = await supabase.from("listings").update({ status: nextStatus }).eq("status", "pending");
+    const pendingOr = "status.eq.pending,moderation_status.eq.pending_review,lifecycle_status.eq.pending";
+    let { data: updatedRows, error } = await supabase
+      .from("listings")
+      .update({
+        status: nextStatus,
+        lifecycle_status: nextStatus,
+        moderation_status: nextStatus === "approved" ? "approved" : nextStatus,
+      })
+      .or(pendingOr)
+      .select("id");
+    if (error && isMissingColumnError(error)) {
+      ({ data: updatedRows, error } = await supabase
+        .from("listings")
+        .update({ status: nextStatus })
+        .eq("status", "pending")
+        .select("id"));
+    }
+    if (!error && nextStatus === "approved" && updatedRows?.length) {
+      const ids = updatedRows.map((row) => row.id).filter(Boolean);
+      await clearAllFavoritesForListings(ids);
+    }
     if (!error) {
       await refreshStats();
-      pushActivity(`Bulk ${nextStatus} applied`);
+      pushActivity(
+        `Bulk ${nextStatus} applied`,
+        nextStatus === "approved" ? ACTIVITY_SIGNAL_TYPES.NEWLY_APPROVED : null
+      );
     }
     setBulkLoading("");
   };
@@ -109,7 +203,6 @@ export default function AdminPage() {
       <SiteNav active="dashboard" />
       <main className={styles.main}>
         <div className={styles.adminWrapper}>
-          <Breadcrumbs />
           <h1 className={styles.title}>Admin Control Center</h1>
           <p className={styles.muted}>Admin: {adminUserId} · Role: {adminRole}</p>
           <div className={styles.statsGrid}>
@@ -121,10 +214,34 @@ export default function AdminPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, marginTop: 18 }}>
             <section>
               <div className={styles.adminTabs}>
-                <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("pending")}>Pending</button>
-                <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("listings")}>Listings</button>
-                <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("users")}>Users</button>
-                <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("operator")}>Operator</button>
+                <button
+                  type="button"
+                  className={`${styles.dashboardLink} ${activeTab === "pending" ? styles.dashboardLinkActive : ""}`}
+                  onClick={() => setActiveTab("pending")}
+                >
+                  Pending
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.dashboardLink} ${activeTab === "listings" ? styles.dashboardLinkActive : ""}`}
+                  onClick={() => setActiveTab("listings")}
+                >
+                  Listings
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.dashboardLink} ${activeTab === "users" ? styles.dashboardLinkActive : ""}`}
+                  onClick={() => setActiveTab("users")}
+                >
+                  Users
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.dashboardLink} ${activeTab === "operator" ? styles.dashboardLinkActive : ""}`}
+                  onClick={() => setActiveTab("operator")}
+                >
+                  Operator
+                </button>
               </div>
               {activeTab === "pending" && (
                 <PendingListingsPanel
@@ -226,7 +343,15 @@ export default function AdminPage() {
               </div>
               <h4 style={{ marginTop: 16, marginBottom: 8 }}>Recent Activity</h4>
               <div style={{ display: "grid", gap: 6 }}>
-                {activity.length ? activity.map((item) => <p key={item} className={styles.muted}>{item}</p>) : <p className={styles.muted}>No activity yet</p>}
+                {activity.length ? (
+                  activity.map((item) => (
+                    <p key={item.id} className={styles.muted}>
+                      {item.stamp} - {item.message}
+                    </p>
+                  ))
+                ) : (
+                  <p className={styles.muted}>No activity yet</p>
+                )}
               </div>
               <p className={styles.muted} style={{ marginTop: 8 }}>
                 <span className={styles.liveDot} /> Updated {updatedAtLabel}

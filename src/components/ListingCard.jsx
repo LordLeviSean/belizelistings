@@ -2,12 +2,11 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import styles from "./ListingCard.module.css";
 import favoriteStyles from "../styles/FavoriteButton.module.css";
+import { getRegionCaption, getRegionLabel } from "../constants/geographyLayer";
+import { getListingRegionSlug } from "../utils/canonicalListing";
 
 function districtLabel(district = "") {
-  return String(district)
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  return getRegionLabel(district);
 }
 
 function formatPrice(price, currency) {
@@ -30,6 +29,9 @@ export default function ListingCard({
       ? preferredImage
       : "/placeholder.jpg";
   const isLand = listing?.beds === 0 && listing?.baths === 0 && listing?.garage === 0;
+  const regionSlug = getListingRegionSlug(listing) || "unknown";
+  const regionLabel = districtLabel(regionSlug);
+  const regionCaption = getRegionCaption(regionSlug);
 
   return (
     <div>
@@ -66,8 +68,9 @@ export default function ListingCard({
             <p className={styles.meta}>
               {isLand ? "Land Property" : `${listing.beds} bd · ${listing.baths} ba`}
               {" · "}
-              {districtLabel(listing.district || "Unknown")}
+              {regionLabel}
             </p>
+            {regionCaption ? <p className={styles.regionCaption}>{regionCaption}</p> : null}
           </div>
         </div>
       </Link>

@@ -11,22 +11,18 @@ import { createDebugger } from "@/lib/debug";
 import { Heart } from "lucide-react";
 import ListingImage from "@/components/ui/ListingImage";
 import BackButton from "@/components/BackButton";
-import Breadcrumbs from "@/components/Breadcrumbs";
 import SiteNav from "@/components/SiteNav";
 import { fetchListingByIdWithImages } from "../../lib/listingQueries";
 import useAuth from "../../hooks/useAuth";
 import useRoleAccess from "../../hooks/useRoleAccess";
 import useFavorites from "../../hooks/useFavorites";
+import { getRegionCaption, getRegionLabel } from "../../constants/geographyLayer";
+import { getListingRegionSlug } from "../../utils/canonicalListing";
 import styles from "../../styles/ListingDetail.module.css";
-import backStyles from "../../styles/BackNav.module.css";
 import favoriteStyles from "../../styles/FavoriteButton.module.css";
 import { useFavoriteSignupPrompt } from "../../components/FavoriteSignupPromptProvider";
 
-const formatDistrict = (district) =>
-  district
-    ?.split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+const formatDistrict = (district) => getRegionLabel(district);
 
 export default function ListingPage() {
   const router = useRouter();
@@ -162,8 +158,10 @@ export default function ListingPage() {
 
   useEffect(() => {
     const handleKey = (e) => {
-      if (!lightboxOpen) return;
       if (images.length === 0) return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const tag = String(e.target?.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
 
       if (e.key === "ArrowRight") {
         e.preventDefault();
@@ -176,6 +174,7 @@ export default function ListingPage() {
       }
 
       if (e.key === "Escape") {
+        if (!lightboxOpen) return;
         e.preventDefault();
         setLightboxOpen(false);
       }
@@ -209,7 +208,7 @@ export default function ListingPage() {
     const dx = e.changedTouches[0].clientX - touchStartXRef.current;
     touchStartXRef.current = null;
     if (images.length < 2) return;
-    if (Math.abs(dx) < 50) return;
+    if (Math.abs(dx) < 34) return;
     skipHeroClickRef.current = true;
     window.setTimeout(() => {
       skipHeroClickRef.current = false;
@@ -252,6 +251,9 @@ export default function ListingPage() {
     );
   }
   const isLand = listing.beds === 0 && listing.baths === 0 && listing.garage === 0;
+  const regionSlug = getListingRegionSlug(listing);
+  const regionLabel = formatDistrict(regionSlug);
+  const regionCaption = getRegionCaption(regionSlug);
 
   const hasImages = images.length > 0;
 
@@ -333,7 +335,6 @@ export default function ListingPage() {
 
         <section className={`${styles.detailColumn} safeFlexCol`}>
         <div className={styles.detailTop}>
-          <Breadcrumbs />
           <div
             style={{
               display: "flex",
@@ -343,7 +344,7 @@ export default function ListingPage() {
             }}
           >
             <div>
-              <BackButton className={backStyles.backSubtle} />
+              <BackButton label="Back" className={styles.backButton} />
             </div>
             <div>
               <button
@@ -375,8 +376,9 @@ export default function ListingPage() {
               {listing.price.toLocaleString()} {listing.currency}
             </p>
             <span className={styles.location}>
-              {formatDistrict(listing.district)}, Belize
+              {regionLabel}
             </span>
+            {regionCaption ? <span className={styles.locationCaption}>{regionCaption}</span> : null}
           </div>
 
           <div className={styles.infoGrid}>
@@ -389,13 +391,13 @@ export default function ListingPage() {
                 <Info label="Garage" value={listing.garage} />
               </>
             )}
-            <Info label="District" value={formatDistrict(listing.district)} />
+            <Info label="Region" value={regionLabel} />
           </div>
 
           <div className={styles.description}>
             <p>
               A well-positioned property in{" "}
-              <strong>{formatDistrict(listing.district)}</strong>, offering strong potential for both
+              <strong>{regionLabel}</strong>, offering strong potential for both
               living and investment.
             </p>
           </div>

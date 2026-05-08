@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/router";
 import { X } from "lucide-react";
-import { BELIZE_MAP_REGION_CONFIG } from "../constants/belizeMapRegions";
+import { getSelectableRegions } from "../constants/geographyLayer";
 import styles from "./HomeAdvancedFiltersModal.module.css";
 
-const DISTRICT_ENTRIES = Object.entries(BELIZE_MAP_REGION_CONFIG).filter(([, cfg]) => cfg.slug);
+const DISTRICT_ENTRIES = getSelectableRegions();
 
 export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
   const router = useRouter();
@@ -63,16 +63,16 @@ export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
           />
         </label>
         <label className={styles.field}>
-          <span className={styles.label}>District</span>
+          <span className={styles.label}>Region</span>
           <select
             className={styles.select}
             value={districtSlug}
             onChange={(e) => setDistrictSlug(e.target.value)}
           >
-            <option value="">All districts</option>
-            {DISTRICT_ENTRIES.map(([id, cfg]) => (
-              <option key={id} value={cfg.slug}>
-                {cfg.label}
+            <option value="">All regions</option>
+            {DISTRICT_ENTRIES.map((region) => (
+              <option key={region.id} value={region.slug}>
+                {region.label}
               </option>
             ))}
           </select>

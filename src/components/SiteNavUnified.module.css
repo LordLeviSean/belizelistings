@@ -165,21 +165,23 @@
     0 10px 24px rgba(10, 20, 28, 0.18),
     0 1px 0 rgba(255, 255, 255, 0.45) inset;
   transition:
-    background 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    border-color 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    color 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    box-shadow 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    background 0.56s cubic-bezier(0.32, 0.06, 0.2, 1),
+    border-color 0.56s cubic-bezier(0.32, 0.06, 0.2, 1),
+    color 0.56s cubic-bezier(0.32, 0.06, 0.2, 1),
+    transform 0.62s cubic-bezier(0.32, 0.06, 0.2, 1),
+    box-shadow 0.62s cubic-bezier(0.32, 0.06, 0.2, 1),
+    filter 0.56s cubic-bezier(0.32, 0.06, 0.2, 1);
 }
 
 .navLink:hover,
 .navBtn:hover {
-  border-color: rgba(174, 220, 210, 0.48);
+  border-color: rgba(174, 220, 210, 0.44);
   box-shadow:
-    0 14px 34px rgba(10, 20, 28, 0.22),
-    0 1px 0 rgba(255, 255, 255, 0.5) inset,
-    0 0 0 1px rgba(255, 255, 255, 0.12);
+    0 12px 28px rgba(10, 20, 28, 0.2),
+    0 1px 0 rgba(255, 255, 255, 0.48) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.09);
   transform: translateY(-1px);
+  filter: brightness(1.012);
 }
 
 .navLink.navLinkIdle:hover {
@@ -189,28 +191,231 @@
 }
 
 .navLinkActive {
-  border-color: rgba(160, 210, 196, 0.55);
+  border-color: rgba(170, 220, 206, 0.62);
+  filter: brightness(1.024);
   box-shadow:
-    0 8px 20px rgba(10, 20, 28, 0.18),
-    0 0 0 1px rgba(255, 255, 255, 0.12),
-    0 12px 22px rgba(116, 180, 168, 0.14);
+    0 14px 30px rgba(10, 20, 28, 0.22),
+    0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 16px 28px rgba(116, 180, 168, 0.17),
+    0 0 22px rgba(168, 220, 210, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -10px 18px rgba(255, 255, 255, 0.08);
+  transform: translateY(-1.5px);
 }
 
 .navPillFavorites {
-  background: rgba(253, 222, 244, 0.92);
+  background: rgba(248, 238, 246, 0.9);
+  border-color: rgba(220, 176, 206, 0.42);
+  color: rgba(124, 44, 102, 0.92);
+  box-shadow: 0 10px 24px rgba(10, 20, 28, 0.14), 0 1px 0 rgba(255, 255, 255, 0.34) inset;
+}
+
+.navFavoritesActive {
+  background: rgba(253, 222, 244, 0.94);
   border-color: rgba(236, 140, 200, 0.62);
   color: rgba(142, 18, 108, 0.98);
   box-shadow:
-    0 10px 26px rgba(236, 92, 196, 0.24),
-    0 12px 28px rgba(10, 20, 28, 0.16),
-    0 1px 0 rgba(255, 255, 255, 0.35) inset;
+    0 14px 30px rgba(236, 92, 196, 0.28),
+    0 14px 30px rgba(10, 20, 28, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.38) inset,
+    0 0 18px rgba(243, 170, 219, 0.3);
+  animation: favoritesPillHeartbeat 2.8s cubic-bezier(0.38, 0.06, 0.2, 1) infinite;
+}
+
+@keyframes favoritesPillHeartbeat {
+  0%,
+  100% {
+    transform: translateY(-1.1px) scale(1);
+  }
+  16% {
+    transform: translateY(-1.8px) scale(1.012);
+  }
+  32% {
+    transform: translateY(-1.3px) scale(1.005);
+  }
+  48% {
+    transform: translateY(-2.1px) scale(1.015);
+  }
+  66% {
+    transform: translateY(-1.15px) scale(1.003);
+  }
 }
 
 .navPillDashboard {
-  background: rgba(244, 234, 210, 0.88);
-  border-color: rgba(204, 182, 130, 0.48);
-  color: rgba(82, 64, 36, 0.94);
-  box-shadow: 0 10px 24px rgba(10, 20, 28, 0.16), 0 1px 0 rgba(255, 255, 255, 0.35) inset;
+  background: rgba(246, 239, 220, 0.9);
+  border-color: rgba(210, 190, 148, 0.44);
+  color: rgba(86, 68, 38, 0.95);
+  box-shadow:
+    0 10px 24px rgba(10, 20, 28, 0.15),
+    0 1px 0 rgba(255, 255, 255, 0.36) inset;
+}
+
+.navDashboardActive {
+  background: rgba(249, 233, 204, 0.96);
+  border-color: rgba(214, 187, 126, 0.58);
+  color: rgba(72, 58, 32, 0.98);
+  box-shadow:
+    0 16px 32px rgba(10, 20, 28, 0.22),
+    0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 0 22px rgba(216, 194, 123, 0.34),
+    0 0 28px rgba(143, 199, 188, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -10px 16px rgba(255, 255, 255, 0.08);
+  animation: dashboardConfirmJump 1.25s cubic-bezier(0.32, 0.06, 0.2, 1) infinite;
+}
+
+.navIconDashboard {
+  transition: transform 520ms cubic-bezier(0.32, 0.06, 0.2, 1), color 520ms cubic-bezier(0.32, 0.06, 0.2, 1), filter 520ms cubic-bezier(0.32, 0.06, 0.2, 1);
+}
+
+.navIconDashboardHome {
+  color: #d8c27b;
+  transform: translateY(-0.35px) scale(1.03);
+  filter:
+    drop-shadow(0 0 6px rgba(216, 194, 123, 0.42))
+    drop-shadow(0 0 11px rgba(143, 199, 188, 0.24))
+    drop-shadow(0 0 16px rgba(216, 194, 123, 0.18));
+}
+
+.navIconFavorites {
+  transition:
+    transform 980ms cubic-bezier(0.38, 0.06, 0.2, 1),
+    color 920ms cubic-bezier(0.38, 0.06, 0.2, 1),
+    filter 980ms cubic-bezier(0.38, 0.06, 0.2, 1);
+}
+
+.navIconFavoritesHome {
+  color: rgba(170, 66, 116, 0.94);
+  transform: translateY(-0.5px) scale(1.04);
+  filter:
+    drop-shadow(0 0 5px rgba(245, 162, 195, 0.34))
+    drop-shadow(0 0 8px rgba(226, 118, 168, 0.2));
+}
+
+.navIconFavoritesActive {
+  animation:
+    favoritesIconPastelCycle 4.2s linear infinite,
+    favoritesIconHeartbeat 2.8s cubic-bezier(0.38, 0.06, 0.2, 1) infinite;
+  filter: drop-shadow(0 0 7px rgba(244, 158, 198, 0.4));
+}
+
+.navIconDashboardActive {
+  animation: dashboardIconPaletteCycle 2.8s linear infinite;
+  filter: drop-shadow(0 0 7px rgba(137, 205, 189, 0.36));
+}
+
+.navIconDashboardPower {
+  color: #e5c86f;
+  animation: dashboardIconPowerSurge 2.9s cubic-bezier(0.32, 0.06, 0.2, 1) infinite !important;
+  filter:
+    drop-shadow(0 0 8px rgba(229, 200, 111, 0.55))
+    drop-shadow(0 0 14px rgba(216, 194, 123, 0.52))
+    drop-shadow(0 0 20px rgba(255, 231, 156, 0.42));
+}
+
+@keyframes dashboardConfirmJump {
+  0%, 100% {
+    transform: translateY(-1.5px) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.02);
+  }
+}
+
+@keyframes favoritesIconPastelCycle {
+  0% {
+    color: #d86a8e;
+  }
+  25% {
+    color: #e786a6;
+  }
+  50% {
+    color: #f0a0bc;
+  }
+  75% {
+    color: #dd7f9e;
+  }
+  100% {
+    color: #d86a8e;
+  }
+}
+
+@keyframes favoritesIconHeartbeat {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 0 6px rgba(244, 158, 198, 0.32));
+  }
+  14% {
+    transform: translateY(-0.35px) scale(1.08);
+    filter: drop-shadow(0 0 9px rgba(244, 158, 198, 0.44));
+  }
+  26% {
+    transform: translateY(-0.1px) scale(1.03);
+    filter: drop-shadow(0 0 7px rgba(244, 158, 198, 0.38));
+  }
+  44% {
+    transform: translateY(-0.45px) scale(1.095);
+    filter: drop-shadow(0 0 10px rgba(244, 158, 198, 0.48));
+  }
+  62% {
+    transform: translateY(0) scale(1.02);
+    filter: drop-shadow(0 0 7px rgba(244, 158, 198, 0.34));
+  }
+}
+
+@keyframes dashboardIconPaletteCycle {
+  0% {
+    color: #89cdbd;
+  }
+  20% {
+    color: #89b7db;
+  }
+  40% {
+    color: #d8c27b;
+  }
+  60% {
+    color: #b5a7d9;
+  }
+  80% {
+    color: #8ac89b;
+  }
+  100% {
+    color: #89cdbd;
+  }
+}
+
+@keyframes dashboardIconPowerSurge {
+  0% {
+    color: #e0bf5f;
+    transform: translateY(0) scale(1);
+    filter:
+      drop-shadow(0 0 6px rgba(229, 200, 111, 0.48))
+      drop-shadow(0 0 10px rgba(216, 194, 123, 0.4));
+  }
+  28% {
+    color: #eacd77;
+    transform: translateY(-0.35px) scale(1.08);
+    filter:
+      drop-shadow(0 0 9px rgba(234, 205, 119, 0.6))
+      drop-shadow(0 0 16px rgba(245, 220, 135, 0.52))
+      drop-shadow(0 0 22px rgba(255, 239, 176, 0.46));
+  }
+  56% {
+    color: #f0d587;
+    transform: translateY(-0.55px) scale(1.115);
+    filter:
+      drop-shadow(0 0 12px rgba(240, 213, 135, 0.7))
+      drop-shadow(0 0 20px rgba(248, 227, 156, 0.58))
+      drop-shadow(0 0 30px rgba(255, 243, 196, 0.55));
+  }
+  100% {
+    color: #e0bf5f;
+    transform: translateY(0) scale(1);
+    filter:
+      drop-shadow(0 0 6px rgba(229, 200, 111, 0.48))
+      drop-shadow(0 0 10px rgba(216, 194, 123, 0.4));
+  }
 }
 
 .navPillAgents {

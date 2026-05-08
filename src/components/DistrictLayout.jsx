@@ -1,80 +1,170 @@
-import Link from "next/link";
 import styles from "../styles/District.module.css";
 
 export default function DistrictLayout({
   districtLabel,
+  districtCaption,
   filteredCount,
-  saveUiSaved,
-  onSaveSearch,
-  avgPriceLabel,
-  typeMixLabel,
-  insightLine,
-  sortBy,
-  onSortChange,
   status,
   onStatusChange,
-  featuredListing,
-  featuredTag,
+  searchTerm,
+  onSearchTermChange,
+  propertyType,
+  onPropertyTypeChange,
+  priceBucket,
+  onPriceBucketChange,
+  bedrooms,
+  onBedroomsChange,
+  bathrooms,
+  onBathroomsChange,
+  showAdvancedFilters,
+  onToggleAdvancedFilters,
+  onResetFilters,
+  sortBy,
+  onSortChange,
   renderListings,
-  nearbyDistricts,
-  getDistrictCount,
-  formatDistrict,
-  onNavigateDistrict,
+  renderAdvancedFilters,
   onBrowseAll,
 }) {
   return (
     <>
-      <div className={styles.hero}>
-        <div className={styles.header}>
-          <div>
-            <h1>{districtLabel} District</h1>
-            <p>{filteredCount} properties available</p>
-          </div>
-          <button
-            type="button"
-            disabled={saveUiSaved}
-            className={`${styles.saveSearchBtn} ${saveUiSaved ? styles.saveSearchBtnSaved : ""}`}
-            onClick={onSaveSearch}
-          >
-            {saveUiSaved ? "Search saved" : "Save Search"}
-          </button>
-        </div>
-        <div className={styles.quickStats}>
-          <span className={styles.statPill}>{avgPriceLabel}</span>
-          <span className={styles.statPill}>Listings: {filteredCount}</span>
-          <span className={styles.statPill}>{typeMixLabel}</span>
-          <span className={styles.statPill}>{insightLine}</span>
-        </div>
-        <div className={styles.sortRow}>
-          <label className={styles.sortLabel} htmlFor="district-sort">
-            Sort
-          </label>
-          <select id="district-sort" className={styles.sortSelect} value={sortBy} onChange={onSortChange}>
-            <option value="newest">Newest</option>
-            <option value="price-asc">Price Low to High</option>
-            <option value="price-desc">Price High to Low</option>
-          </select>
-        </div>
-        <div className={styles.miniMapPreview}>
-          <div className={styles.miniMapGlow} />
-          <p>Area Snapshot</p>
-          <strong>{districtLabel} District</strong>
-          <span className={styles.miniMapTrend}>Demand is active in this area</span>
-        </div>
-      </div>
+      <section className={styles.districtTitleBlock}>
+        <h1 className={styles.districtTitle}>{districtLabel}</h1>
+        {districtCaption ? <p className={styles.districtCaption}>{districtCaption}</p> : null}
+      </section>
 
-      <div className={styles.status}>
-        {["all", "for-sale", "rent"].map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => onStatusChange(type)}
-            className={`${styles.statusBtn} ${(status || "all") === type ? styles.active : ""}`}
-          >
-            {type === "all" ? "All" : type === "for-sale" ? "For Sale" : "For Rent"}
+      <section className={styles.filterBarShell}>
+        <div className={styles.filterRowTop}>
+          <div className={styles.filterSearchWrap}>
+            <input
+              className={styles.filterInput}
+              type="search"
+              placeholder={`Search listings in ${districtLabel}...`}
+              value={searchTerm}
+              onChange={(event) => onSearchTermChange(event.target.value)}
+              aria-label={`Search listings in ${districtLabel}`}
+            />
+          </div>
+          <button type="button" className={styles.clearAllBtn} onClick={onResetFilters}>
+            Clear All
           </button>
-        ))}
-      </div>
+          <button type="button" className={styles.moreFiltersBtn} onClick={onToggleAdvancedFilters}>
+            More Filters
+          </button>
+        </div>
+
+        <div className={styles.filterRowGrid}>
+          <div className={styles.filterSelectWrap}>
+            <label className={styles.filterLabel} htmlFor="district-status-filter">
+              Status
+            </label>
+            <select
+              id="district-status-filter"
+              className={styles.filterSelect}
+              value={status || "all"}
+              onChange={(event) => onStatusChange(event.target.value)}
+            >
+              <option value="all">All Statuses</option>
+              <option value="for-sale">For Sale</option>
+              <option value="rent">For Rent</option>
+            </select>
+          </div>
+
+          <div className={styles.filterSelectWrap}>
+            <label className={styles.filterLabel} htmlFor="district-type-filter">
+              Type
+            </label>
+            <select
+              id="district-type-filter"
+              className={styles.filterSelect}
+              value={propertyType}
+              onChange={(event) => onPropertyTypeChange(event.target.value)}
+            >
+              <option value="all">All Types</option>
+              <option value="house">House</option>
+              <option value="condo">Condo</option>
+              <option value="land">Land</option>
+              <option value="apartment">Apartment</option>
+              <option value="commercial">Commercial</option>
+            </select>
+          </div>
+
+          <div className={styles.filterSelectWrap}>
+            <label className={styles.filterLabel} htmlFor="district-price-filter">
+              Price
+            </label>
+            <select
+              id="district-price-filter"
+              className={styles.filterSelect}
+              value={priceBucket}
+              onChange={(event) => onPriceBucketChange(event.target.value)}
+            >
+              <option value="any">Any Price</option>
+              <option value="0-100000">Up to 100,000</option>
+              <option value="100000-300000">100,000 - 300,000</option>
+              <option value="300000-700000">300,000 - 700,000</option>
+              <option value="700000-999999999">700,000+</option>
+            </select>
+          </div>
+
+          <div className={styles.filterSelectWrap}>
+            <label className={styles.filterLabel} htmlFor="district-beds-filter">
+              Bedrooms
+            </label>
+            <select
+              id="district-beds-filter"
+              className={styles.filterSelect}
+              value={bedrooms}
+              onChange={(event) => onBedroomsChange(event.target.value)}
+            >
+              <option value="any">Any</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
+            </select>
+          </div>
+
+          <div className={styles.filterSelectWrap}>
+            <label className={styles.filterLabel} htmlFor="district-baths-filter">
+              Bathrooms
+            </label>
+            <select
+              id="district-baths-filter"
+              className={styles.filterSelect}
+              value={bathrooms}
+              onChange={(event) => onBathroomsChange(event.target.value)}
+            >
+              <option value="any">Any</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+            </select>
+          </div>
+          <div className={styles.filterSelectWrap}>
+            <label className={styles.filterLabel} htmlFor="district-sort">
+              Sort By
+            </label>
+            <select id="district-sort" className={styles.filterSelect} value={sortBy} onChange={onSortChange}>
+              <option value="newest">Newest First</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+            </select>
+          </div>
+        </div>
+
+        {showAdvancedFilters ? (
+          <div className={styles.advancedFilterPanel}>
+            {renderAdvancedFilters?.()}
+            <button type="button" className={styles.resetFiltersBtn} onClick={onResetFilters}>
+              Reset All
+            </button>
+          </div>
+        ) : null}
+
+        <div className={styles.filterBarBottom}>
+          <div className={styles.resultCount}>{filteredCount} Results</div>
+        </div>
+      </section>
 
       {filteredCount === 0 ? (
         <div className={styles.empty}>
@@ -86,47 +176,13 @@ export default function DistrictLayout({
         </div>
       ) : null}
 
-      {featuredListing ? (
-        <div className={styles.featuredWrap}>
-          <Link href={`/listing/${featuredListing.id}`} className={styles.featuredCard}>
-            <span className={styles.featuredLabel}>{featuredTag}</span>
-            <div className={styles.featuredInner}>
-              <div className={styles.featuredImage}>
-                <img
-                  src={featuredListing.images?.[0]?.image_url || "/placeholder.jpg"}
-                  alt={featuredListing.title || "Featured listing"}
-                />
-              </div>
-              <div className={styles.featuredInfo}>
-                <h3>{featuredListing.title || "Untitled listing"}</h3>
-                <p className={styles.featuredPrice}>
-                  {Number(featuredListing.price || 0).toLocaleString()} {featuredListing.currency || "BZD"}
-                </p>
-                <p className={styles.featuredMeta}>
-                  {featuredListing.beds || 0} bd · {featuredListing.baths || 0} ba · {districtLabel}
-                </p>
-              </div>
-            </div>
-          </Link>
-        </div>
-      ) : null}
-
       {renderListings()}
 
-      <div className={styles.nearbyWrap}>
-        <h3>Explore Nearby Districts</h3>
-        <div className={styles.nearbyPills}>
-          {nearbyDistricts.map((slug) => {
-            const label = formatDistrict(slug);
-            const count = getDistrictCount(slug);
-            return (
-              <button key={slug} type="button" className={styles.statPill} onClick={() => onNavigateDistrict(slug)}>
-                {label} ({count})
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {filteredCount > 0 ? (
+        <section className={styles.inventoryEndCap} aria-label="Inventory continuation">
+          <p>More verified inventory arriving soon.</p>
+        </section>
+      ) : null}
     </>
   );
 }
