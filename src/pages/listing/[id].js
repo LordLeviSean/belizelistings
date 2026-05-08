@@ -8,9 +8,11 @@ Use CSS modules for structural layout.
 import { useRouter } from "next/router";
 import { useState, useRef, useEffect } from "react";
 import { createDebugger } from "@/lib/debug";
+import { Heart } from "lucide-react";
 import ListingImage from "@/components/ui/ListingImage";
 import BackButton from "@/components/BackButton";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import SiteNav from "@/components/SiteNav";
 import { fetchListingByIdWithImages } from "../../lib/listingQueries";
 import useAuth from "../../hooks/useAuth";
 import useRoleAccess from "../../hooks/useRoleAccess";
@@ -18,6 +20,7 @@ import useFavorites from "../../hooks/useFavorites";
 import styles from "../../styles/ListingDetail.module.css";
 import backStyles from "../../styles/BackNav.module.css";
 import favoriteStyles from "../../styles/FavoriteButton.module.css";
+import { useFavoriteSignupPrompt } from "../../components/FavoriteSignupPromptProvider";
 
 const formatDistrict = (district) =>
   district
@@ -45,6 +48,7 @@ export default function ListingPage() {
   const debugRef = useRef(createDebugger("PUBLIC_PAGE"));
   const [debugState, setDebugState] = useState({});
   const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
+  const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
   const isDebug =
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("debug") === "true";
@@ -221,22 +225,41 @@ export default function ListingPage() {
 
   if (!router.isReady) {
     return (
-      <div className={styles.notFoundPage}>
-        <p className={styles.loadingText}>Loading…</p>
+      <div className={styles.pageShell}>
+        <SiteNav active="browse" />
+        <div className={styles.notFoundPage}>
+          <p className={styles.loadingText}>Loading…</p>
+        </div>
       </div>
     );
   }
 
-  if (loading) return <div className={styles.loadingState}>Loading listing...</div>;
+  if (loading) {
+    return (
+      <div className={styles.pageShell}>
+        <SiteNav active="browse" />
+        <div className={styles.loadingState}>Loading listing...</div>
+      </div>
+    );
+  }
 
-  if (!listing) return <div className={styles.loadingState}>Listing not found</div>;
+  if (!listing) {
+    return (
+      <div className={styles.pageShell}>
+        <SiteNav active="browse" />
+        <div className={styles.loadingState}>Listing not found</div>
+      </div>
+    );
+  }
   const isLand = listing.beds === 0 && listing.baths === 0 && listing.garage === 0;
 
   const hasImages = images.length > 0;
 
   return (
-    <div className={styles.page}>
-      <section className={`${styles.heroColumn} safeFlexCol`} aria-label="Listing photos">
+    <div className={styles.pageShell}>
+      <SiteNav active="browse" />
+      <div className={styles.page}>
+        <section className={`${styles.heroColumn} safeFlexCol`} aria-label="Listing photos">
         <div
           className={styles.mainImageFrame}
           onClick={onMainImageFrameClick}
@@ -306,9 +329,9 @@ export default function ListingPage() {
             ))}
           </div>
         )}
-      </section>
+        </section>
 
-      <section className={`${styles.detailColumn} safeFlexCol`}>
+        <section className={`${styles.detailColumn} safeFlexCol`}>
         <div className={styles.detailTop}>
           <Breadcrumbs />
           <div
@@ -323,20 +346,24 @@ export default function ListingPage() {
               <BackButton className={backStyles.backSubtle} />
             </div>
             <div>
-              {isAuthenticated ? (
-                <button
-                  type="button"
-                  aria-label={isFavorite(listing.id) ? "Remove from favorites" : "Add to favorites"}
-                  aria-pressed={isFavorite(listing.id)}
-                  onClick={() => toggleFavorite(listing.id)}
-                  disabled={isBusy(listing.id)}
-                  className={`${favoriteStyles.favoriteButton} ${
-                    isFavorite(listing.id) ? favoriteStyles.favoriteButtonActive : ""
-                  }`}
-                >
-                  {isFavorite(listing.id) ? "♥" : "♡"}
-                </button>
-              ) : null}
+              <button
+                type="button"
+                aria-label={isFavorite(listing.id) ? "Remove from favorites" : "Add to favorites"}
+                aria-pressed={isFavorite(listing.id)}
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    openFavoriteSignupPrompt();
+                    return;
+                  }
+                  void toggleFavorite(listing.id);
+                }}
+                disabled={isBusy(listing.id)}
+                className={`${favoriteStyles.favoriteButton} ${
+                  isFavorite(listing.id) ? favoriteStyles.favoriteButtonActive : ""
+                }`}
+              >
+                <Heart fill={isFavorite(listing.id) ? "currentColor" : "none"} />
+              </button>
             </div>
           </div>
         </div>
@@ -400,16 +427,16 @@ export default function ListingPage() {
           )}
           </div>
         </div>
-      </section>
+        </section>
 
-      {lightboxOpen ? (
-        <div
-          className={styles.lightboxBackdrop}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Listing photos, fullscreen"
-          onClick={() => setLightboxOpen(false)}
-        >
+        {lightboxOpen ? (
+          <div
+            className={styles.lightboxBackdrop}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Listing photos, fullscreen"
+            onClick={() => setLightboxOpen(false)}
+          >
           <button
             type="button"
             className={styles.lightboxCloseBtn}
@@ -472,8 +499,9 @@ export default function ListingPage() {
               />
             </div>
           </div>
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

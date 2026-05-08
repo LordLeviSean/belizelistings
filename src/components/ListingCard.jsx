@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Heart } from "lucide-react";
 import styles from "./ListingCard.module.css";
 import favoriteStyles from "../styles/FavoriteButton.module.css";
 
@@ -57,7 +58,7 @@ export default function ListingCard({
                   disabled={favoriteBusy}
                   className={`${favoriteStyles.favoriteButton} ${isFavorited ? favoriteStyles.favoriteButtonActive : ""}`}
                 >
-                  {isFavorited ? "♥" : "♡"}
+                  <Heart fill={isFavorited ? "currentColor" : "none"} />
                 </button>
               ) : null}
             </div>

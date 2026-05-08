@@ -1,28 +1,28 @@
 :root {
-  --background: #0b0f14;
-  --foreground: #ffffff;
-  --bg-main: #0b0f14;
-  --bg-card: rgba(255,255,255,0.02);
-  --bg-elevated: rgba(255,255,255,0.04);
-  --border-subtle: rgba(255,255,255,0.06);
-  --border-strong: rgba(255,255,255,0.12);
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255,255,255,0.6);
-  --text-tertiary: rgba(255,255,255,0.4);
-  --accent: #22c55e;
-  --accent-hover: #16a34a;
-  --danger: #b42318;
-  --danger-hover: #d92d20;
-  --warning: #f79009;
+  --background: #f3faf7;
+  --foreground: #35554d;
+  --bg-main: #eef8f4;
+  --bg-card: rgba(255, 255, 255, 0.68);
+  --bg-elevated: rgba(255, 255, 255, 0.82);
+  --border-subtle: rgba(147, 186, 176, 0.3);
+  --border-strong: rgba(137, 174, 166, 0.45);
+  --text-primary: #32534b;
+  --text-secondary: rgba(66, 98, 90, 0.75);
+  --text-tertiary: rgba(86, 118, 109, 0.58);
+  --accent: #6fb89f;
+  --accent-hover: #5fa58d;
+  --danger: #bc6f79;
+  --danger-hover: #ab616f;
+  --warning: #c2a06a;
   --radius: 14px;
   --section-spacing: 24px;
   --card-padding: 16px;
   --element-gap-sm: 8px;
   --element-gap-md: 12px;
   --element-gap-lg: 16px;
-  --motion-fast: 220ms;
+  --motion-fast: 260ms;
   --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --glow-rgb: 106, 206, 196;
+  --glow-rgb: 127, 193, 181;
   --glow-soft: 0 0 0 1px rgba(var(--glow-rgb), 0.18), 0 0 16px rgba(var(--glow-rgb), 0.14);
   --glow-medium: 0 0 0 1px rgba(var(--glow-rgb), 0.24), 0 0 22px rgba(var(--glow-rgb), 0.18);
   --glow-strong: 0 0 0 1px rgba(var(--glow-rgb), 0.3), 0 0 30px rgba(var(--glow-rgb), 0.24);
@@ -30,8 +30,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b0f14;
-    --foreground: #ffffff;
+    --background: #f3faf7;
+    --foreground: #35554d;
   }
 }
 
@@ -45,9 +45,10 @@ body {
 body {
   color: var(--text-primary);
   background: var(--bg-main);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "DM Sans", "Inter", "Segoe UI", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0.003em;
 }
 
 body::before {
@@ -56,10 +57,12 @@ body::before {
   inset: 0;
 
   background:
-    radial-gradient(circle at 25% 25%, rgba(34,197,94,0.08), transparent 40%),
-    radial-gradient(circle at 75% 15%, rgba(59,130,246,0.06), transparent 40%);
+    radial-gradient(ellipse 52% 40% at 16% 18%, rgba(137, 205, 189, 0.14), transparent 62%),
+    radial-gradient(ellipse 40% 34% at 76% 12%, rgba(159, 179, 217, 0.12), transparent 58%),
+    radial-gradient(ellipse 42% 48% at 6% 72%, rgba(232, 210, 234, 0.055), transparent 64%),
+    radial-gradient(ellipse 44% 46% at 46% 86%, rgba(214, 190, 140, 0.08), transparent 68%);
 
-  filter: blur(80px);
+  filter: blur(84px);
   pointer-events: none;
   z-index: -1;
 }
@@ -76,15 +79,24 @@ a {
 }
 
 button {
-  transition: all 240ms ease;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    opacity var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease),
+    filter var(--motion-fast) var(--motion-ease);
 }
 
+/**
+ * Components own lift/scale; a global hover translate stacks into “cheap” layered motion.
+ */
 button:hover {
-  transform: translateY(-1px);
+  transform: none;
 }
 
 button:active {
-  transform: scale(0.98);
+  transform: scale(0.985);
 }
 
 .ui-card {
@@ -96,7 +108,7 @@ button:active {
 
 .ui-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(34, 197, 94, 0.25);
+  border-color: rgba(120, 178, 164, 0.34);
 }
 
 /* Flex safety: prevents min-width:auto from blocking shrink / ellipsis in flex layouts */
@@ -152,7 +164,7 @@ button:active {
 
 .card:hover {
   transform: translateY(-2px);
-  border-color: rgba(34, 197, 94, 0.3);
+  border-color: rgba(120, 178, 164, 0.38);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
@@ -179,9 +191,9 @@ button:active {
 }
 
 .btnPrimary {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: linear-gradient(135deg, #8ecdb9, #7abca8);
   border: none;
-  color: #fff;
+  color: #f7fcfa;
   padding: 10px 16px;
   border-radius: 10px;
   font-weight: 500;
@@ -190,20 +202,20 @@ button:active {
 
 .btnPrimary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25);
+  box-shadow: 0 8px 20px rgba(128, 186, 172, 0.32);
 }
 
 .btnSecondary {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(147, 186, 176, 0.34);
+  color: #3b5e56;
   padding: 10px 16px;
   border-radius: 10px;
   transition: all 0.2s ease;
 }
 
 .btnSecondary:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.78);
 }
 
 .backButton {
@@ -243,8 +255,8 @@ button:active {
 
 .softGlow {
   box-shadow:
-    0 0 40px rgba(34, 197, 94, 0.06),
-    inset 0 0 20px rgba(255, 255, 255, 0.02);
+    0 0 40px rgba(128, 188, 174, 0.12),
+    inset 0 0 20px rgba(255, 255, 255, 0.32);
 }
 
 .interactive {
@@ -265,11 +277,3 @@ button:active {
   pointer-events: none !important;
 }
 
-/* Stable hook classes from src/pages/index.js (CSS modules hash the first class) */
-.home-map-page-root::before {
-  display: none !important;
-}
-
-.home-map-pane::after {
-  display: none !important;
-}

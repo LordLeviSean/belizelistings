@@ -29,7 +29,7 @@ export default function FavoritesPage() {
     try {
       const { error } = await clearAllFavorites({ silent: true });
       if (error) throw error;
-      showToast({ type: "info", message: "All favorites cleared" });
+      showToast({ type: "favorite_clear", message: "All favorites cleared" });
     } catch (error) {
       console.error(error);
       showToast({ type: "error", message: "Failed to clear favorites" });

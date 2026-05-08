@@ -3,11 +3,12 @@
   width: 100%;
   max-width: 100%;
 
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  border: 1px solid rgba(189, 216, 208, 0.34);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.014));
-  padding: 11px 12px;
+    radial-gradient(circle at 14% 10%, rgba(137, 205, 189, 0.16), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(241, 249, 246, 0.76));
+  padding: 9px 10px;
 
   text-decoration: none;
   color: inherit;
@@ -21,19 +22,19 @@
 }
 
 .card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(137, 205, 189, 0.24);
+  transform: translateY(-3px);
+  border-color: rgba(168, 202, 191, 0.5);
   background:
-    linear-gradient(180deg, rgba(137, 205, 189, 0.06), rgba(159, 179, 217, 0.04));
+    linear-gradient(180deg, rgba(244, 252, 249, 0.96), rgba(236, 247, 243, 0.9));
   box-shadow:
-    0 10px 18px rgba(0, 0, 0, 0.3),
-    0 0 28px rgba(137, 205, 189, 0.1);
+    0 12px 24px rgba(132, 176, 165, 0.18),
+    0 0 26px rgba(137, 205, 189, 0.12);
 }
 
 .inner {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 9px;
 
   min-width: 0;
   overflow: hidden;
@@ -41,17 +42,17 @@
 
 .thumb {
   /* flex default min-width: auto uses the image’s intrinsic width → row blows out */
-  flex: 0 0 74px;
-  width: 74px;
+  flex: 0 0 78px;
+  width: 78px;
   min-width: 0;
-  max-width: 74px;
-  height: 74px;
+  max-width: 78px;
+  height: 78px;
 
   border-radius: 10px;
   overflow: hidden;
 
-  background: #101418;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: rgba(242, 250, 247, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
 
   box-sizing: border-box;
   position: relative;
@@ -78,7 +79,7 @@
   flex-direction: column;
   justify-content: center;
 
-  gap: 4px;
+  gap: 2px;
 
   flex: 1;
   min-width: 0;
@@ -88,16 +89,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .title {
   margin: 0;
 
   font-size: 14px;
-  font-weight: 470;
-  color: rgba(238, 242, 240, 0.9);
-  line-height: 1.32;
+  font-weight: 560;
+  color: rgba(60, 92, 84, 0.94);
+  line-height: 1.18;
   display: -webkit-box;
   line-clamp: 2;
   -webkit-line-clamp: 2;
@@ -108,10 +109,10 @@
 
 .price {
   margin: 0;
-  margin-top: 2px;
-  font-size: 20px;
-  font-weight: 650;
-  color: #f6fbf8;
+  margin-top: 1px;
+  font-size: 16px;
+  font-weight: 640;
+  color: rgba(51, 83, 75, 0.96);
   letter-spacing: 0.01em;
 
   white-space: nowrap;
@@ -122,10 +123,10 @@
 .meta {
   margin: 1px 0 0;
 
-  font-size: 12px;
-  color: rgba(230, 236, 233, 0.58);
+  font-size: 11px;
+  color: rgba(96, 128, 119, 0.82);
 
-  line-height: 1.35;
+  line-height: 1.22;
   display: -webkit-box;
   line-clamp: 2;
   -webkit-line-clamp: 2;

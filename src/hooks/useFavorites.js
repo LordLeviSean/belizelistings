@@ -114,7 +114,7 @@ export default function useFavorites() {
               payload: { listingId: normalizedId },
               result: { ok: true },
             });
-            showToast({ type: "info", message: "Removed from favorites" });
+            showToast({ type: "favorite_remove", message: "Removed from favorites" });
           } else {
             setFavoriteIdsState((prev) => [...prev, normalizedId]);
             traceAction({
@@ -134,7 +134,7 @@ export default function useFavorites() {
                 payload: { listingId: normalizedId },
                 result: { ok: true },
               });
-              showToast({ type: "success", message: "Added to favorites" });
+              showToast({ type: "favorite_add", message: "Added to favorites" });
             } else {
               setFavoriteIdsState((prev) => prev.filter((fav) => fav !== normalizedId));
               traceAction({
@@ -175,7 +175,7 @@ export default function useFavorites() {
       } else {
         await loadFavorites();
         if (!silent) {
-          showToast({ type: "info", message: "Removed from favorites" });
+          showToast({ type: "favorite_remove", message: "Removed from favorites" });
         }
       }
       setBusyIds((prev) => prev.filter((id) => id !== normalizedId));
@@ -195,7 +195,7 @@ export default function useFavorites() {
         setFavorites([]);
         setFavoriteIdsState([]);
         if (!silent) {
-          showToast({ type: "info", message: "All favorites cleared" });
+          showToast({ type: "favorite_clear", message: "All favorites cleared" });
         }
       } else if (!silent) {
         showToast({ type: "error", message: "Failed to clear favorites" });

@@ -1,7 +1,7 @@
 .page {
   min-height: 100vh;
-  background: #0b0f14;
-  color: #f5f5f0;
+  background: #eef8f4;
+  color: #3b5f56;
   background-image: radial-gradient(circle at 20% 0%, rgba(var(--glow-rgb), 0.12), transparent 40%);
   transition: background-image 0.35s var(--motion-ease);
 }
@@ -26,9 +26,9 @@
   gap: 12px;
   padding: 18px;
   border-radius: 12px;
-  border: 1px solid rgba(245, 245, 240, 0.08);
-  background: linear-gradient(180deg, rgba(18, 23, 31, 0.95), rgba(13, 17, 24, 0.92));
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(151, 190, 179, 0.3);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(243, 250, 247, 0.88));
+  box-shadow: 0 10px 28px rgba(132, 171, 161, 0.2);
   transition:
     border-color var(--motion-fast) var(--motion-ease),
     box-shadow var(--motion-fast) var(--motion-ease);
@@ -37,10 +37,10 @@
 .cardSignup {
   border-color: rgba(109, 164, 214, 0.28);
   box-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.28),
+    0 10px 28px rgba(132, 171, 161, 0.2),
     0 0 0 1px rgba(109, 164, 214, 0.08) inset,
     0 0 24px rgba(109, 164, 214, 0.06);
-  background: linear-gradient(165deg, rgba(22, 30, 42, 0.97), rgba(13, 17, 24, 0.93));
+  background: linear-gradient(165deg, rgba(249, 253, 251, 0.94), rgba(241, 249, 246, 0.9));
 }
 
 .cardHeader {
@@ -77,15 +77,15 @@
   margin: 0;
   font-size: 14px;
   line-height: 1.45;
-  color: #9aa6b2;
+  color: #739088;
 }
 
 .input {
   width: 100%;
   border-radius: 10px;
-  border: 1px solid rgba(245, 245, 240, 0.12);
-  background: rgba(255, 255, 255, 0.03);
-  color: #f5f5f0;
+  border: 1px solid rgba(151, 190, 179, 0.34);
+  background: rgba(255, 255, 255, 0.82);
+  color: #3f635b;
   padding: 11px 12px;
   font-size: 14px;
   outline: none;
@@ -107,7 +107,7 @@
 }
 
 .primaryBtn {
-  color: #f5f5f0;
+  color: #f7fcfa;
   background: rgba(var(--glow-rgb), 0.2);
   border-color: rgba(var(--glow-rgb), 0.5);
 }
@@ -132,14 +132,14 @@
 }
 
 .secondaryBtn {
-  color: #b8c0c8;
+  color: #6a8780;
   background: transparent;
 }
 
 .secondaryBtn:hover {
-  color: #f5f5f0;
-  border-color: rgba(245, 245, 240, 0.2);
-  background: rgba(255, 255, 255, 0.02);
+  color: #3f635b;
+  border-color: rgba(151, 190, 179, 0.42);
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .messageError,

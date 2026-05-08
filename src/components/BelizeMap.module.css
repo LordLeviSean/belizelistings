@@ -12,17 +12,17 @@
 }
 
 /**
- * Home browse split: map scales to fit panel height; aspect-ratio preserved.
- * Stage uses overflow: visible so scaled SVG is not clipped before the pane frame.
+ * Homepage map-fit layout — SVG may overflow vertically (pane handles cocoon/rim).
  */
 .map.mapFitLayout {
+  --map-ease: cubic-bezier(0.32, 0.06, 0.2, 1);
   box-sizing: border-box;
   width: 100%;
   height: 100%;
   min-height: 0;
   max-height: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   overflow: visible;
   position: relative;
@@ -45,23 +45,31 @@
   align-items: center;
   justify-content: center;
   overflow: visible;
-  --map-fly-scale: 1;
-  --map-fly-x: 0%;
-  --map-fly-y: 0%;
-  width: 102%;
-  height: 102%;
+  width: 98%;
+  height: 98%;
 }
 
 .mapStage .mapSvg {
-  transform: translate3d(var(--map-fly-x), var(--map-fly-y), 0)
-    scale(var(--map-fly-scale));
-  transform-origin: center center;
-  transition: transform 560ms cubic-bezier(0.22, 0.78, 0.19, 1);
-  will-change: transform;
+  transform: none;
+  transition: none;
+  will-change: auto;
 }
 
-.mapStageFlying .mapSvg {
-  transition-duration: 560ms;
+.map.mapFitLayout .mapStage {
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 0;
+  width: 100%;
+  height: 100%;
+  transition: filter 1.06s var(--map-ease);
+}
+
+.map.mapFitLayout .mapStage:has(.districtHover) {
+  filter: saturate(1.028) brightness(1.012);
+}
+
+.map.mapFitLayout .mapStage:has(.districtClicked) {
+  filter: saturate(1.038) brightness(1.016);
 }
 
 .mapOverlays {
@@ -79,13 +87,23 @@
   max-height: 100%;
   aspect-ratio: 499 / 962;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   flex-shrink: 1;
   min-height: 0;
   overflow: visible;
   position: relative;
   z-index: 1;
+  transform: translateY(3%);
+  transition: transform 1.06s var(--map-ease);
+}
+
+.map.mapFitLayout .mapStage:has(.districtHover) .mapSvg {
+  transform: translateY(calc(3% - 5px)) perspective(840px) rotateX(0.18deg);
+}
+
+.map.mapFitLayout .mapStage:has(.districtClicked) .mapSvg {
+  transform: translateY(calc(3% - 6px)) perspective(840px) rotateX(0.22deg);
 }
 
 .map.mapFitLayout .mapStage .mapSvg :global(svg) {
@@ -99,12 +117,23 @@
   position: static;
   touch-action: manipulation;
   cursor: default;
-  transform: scale(1.045) translate(0.28%, -0.92%);
-  transform-origin: center center;
+  transform: scale(1.132, 1.186) translate(0.12%, 0);
+  transform-origin: center bottom;
 }
 
 .map.mapFitLayout .mapStage .mapSvg :global(svg #mainland_base) {
   pointer-events: none;
+  filter:
+    drop-shadow(0 28px 52px rgba(62, 128, 168, 0.16))
+    drop-shadow(0 0 44px rgba(124, 210, 220, 0.2))
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.082));
+}
+
+.map.mapFitLayout .mapStage .mapSvg :global(svg g[id] path) {
+  stroke: rgba(248, 252, 255, 0.68);
+  stroke-width: 1.02;
+  vector-effect: non-scaling-stroke;
+  transition: stroke 0.68s var(--map-ease);
 }
 
 @media (max-width: 1100px) {
@@ -122,7 +151,13 @@
   }
 
   .map.mapFitLayout .mapStage .mapSvg :global(svg) {
-    transform: scale(1.03) translate(0, -0.62%);
+    transform: scale(1.07, 1.121) translate(0, 0);
+    transform-origin: center bottom;
+  }
+
+  .map.mapFitLayout .mapStage {
+    align-items: flex-end;
+    padding-bottom: 0;
   }
 }
 
@@ -140,67 +175,94 @@
   height: 100%;
 }
 
-/** Follow-cursor label; fixed; edge-clamped in JS */
+/** Follow-cursor label — softer float / magnet hand-off from JS */
 .mapDistrictTooltip {
   position: fixed;
   z-index: 60;
   pointer-events: none;
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 8px 14px;
+  border-radius: 11px;
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.045em;
-  color: rgba(245, 248, 246, 0.96);
-  background: rgba(16, 20, 24, 0.5);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(114, 183, 174, 0.18);
+  font-weight: 550;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: rgba(246, 250, 252, 0.96);
+  background: rgba(22, 32, 36, 0.4);
+  backdrop-filter: blur(20px) saturate(1.12);
+  -webkit-backdrop-filter: blur(20px) saturate(1.12);
+  border: 1px solid rgba(154, 210, 200, 0.2);
   box-shadow:
-    0 6px 18px rgba(0, 0, 0, 0.26),
-    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
-    0 0 24px rgba(114, 183, 174, 0.14);
+    0 16px 40px rgba(18, 36, 44, 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.065) inset,
+    0 0 26px rgba(122, 198, 186, 0.1);
   white-space: nowrap;
   opacity: 1;
-  transition: opacity 0.14s ease;
+  transform: translate3d(0, -3px, 0);
+  will-change: left, top;
+  transition:
+    left 0.42s var(--map-ease),
+    top 0.42s var(--map-ease),
+    opacity 460ms var(--map-ease),
+    transform 520ms var(--map-ease),
+    box-shadow 520ms var(--map-ease);
 }
 
-/** Native map: listeners on each district `<g id="…">`. */
+/** Native map: listeners live on district `<g id="…">` — animate the group */
 .mapDistrictGroup {
   cursor: pointer;
+  transform: translateZ(0);
+  transform-origin: center;
+  transform-box: fill-box;
+  transition:
+    transform 0.72s var(--map-ease),
+    filter 0.68s var(--map-ease),
+    opacity 0.68s var(--map-ease);
+  will-change: transform, filter;
 }
 
 .mapDistrictGroup :global(path) {
   pointer-events: auto;
   transition:
-    filter 0.15s ease,
-    opacity 0.15s ease,
-    fill 0.15s ease,
-    stroke 0.15s ease,
-    stroke-width 0.15s ease;
+    fill 0.66s var(--map-ease),
+    stroke 0.66s var(--map-ease),
+    stroke-width 0.66s var(--map-ease);
 }
 
-/* Informational hover — light lift */
-.districtHover :global(path) {
-  filter: brightness(1.095) saturate(1.04) drop-shadow(0 0 5px rgba(114, 183, 174, 0.25));
+/* Hover — soft activation + restrained coastal aura */
+.mapDistrictGroup.districtHover {
+  transform: translateY(-0.75px) scale(1.0065);
+  filter:
+    brightness(1.04)
+    saturate(1.036)
+    drop-shadow(0 0 20px rgba(120, 214, 200, 0.14))
+    drop-shadow(0 0 8px rgba(120, 214, 200, 0.09))
+    drop-shadow(0 4px 10px rgba(68, 128, 162, 0.12))
+    drop-shadow(0 -2px 10px rgba(255, 255, 255, 0.048));
 }
 
-.districtDimmed :global(path) {
-  opacity: 0.84;
-  filter: saturate(0.93) brightness(0.93);
+.mapDistrictGroup.districtDimmed {
+  opacity: 0.52;
+  filter: saturate(0.8) brightness(0.78);
 }
 
-.districtClicked :global(path) {
+.mapDistrictGroup.districtClicked {
   opacity: 1;
-  filter: brightness(1.18) saturate(1.08) drop-shadow(0 0 7px rgba(114, 183, 174, 0.34));
+  transform: translateY(-2.75px) scale(1.012);
+  filter:
+    brightness(1.06)
+    saturate(1.048)
+    drop-shadow(0 10px 18px rgba(72, 140, 175, 0.16))
+    drop-shadow(0 0 11px rgba(108, 198, 186, 0.18))
+    drop-shadow(0 -2px 12px rgba(255, 255, 255, 0.06));
 }
 
-/* Authoritative selection — tight rim light, restrained elevation (not under-glow) */
-.districtActive :global(path) {
-  filter: brightness(1.1) saturate(1.04) drop-shadow(0 0 3px rgba(114, 183, 174, 0.22))
-    drop-shadow(0 -0.5px 0 rgba(255, 255, 255, 0.06));
+.mapDistrictGroup.districtActive {
+  filter: brightness(1.065) saturate(1.04) drop-shadow(0 0 5px rgba(108, 196, 186, 0.2))
+    drop-shadow(0 -0.5px 0 rgba(255, 255, 255, 0.085));
 }
 
-.districtActive.districtHover :global(path) {
-  filter: brightness(1.12) saturate(1.05) drop-shadow(0 0 4px rgba(114, 183, 174, 0.28))
-    drop-shadow(0 -0.5px 0 rgba(255, 255, 255, 0.08));
+.mapDistrictGroup.districtActive.districtHover {
+  filter: brightness(1.082) saturate(1.05) drop-shadow(0 0 6px rgba(108, 196, 186, 0.22))
+    drop-shadow(0 -0.5px 0 rgba(255, 255, 255, 0.092));
 }
