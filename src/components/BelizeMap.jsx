@@ -9,10 +9,10 @@ import styles from "./BelizeMap.module.css";
 const MAP_URL = "/maps/clean-mainland-districts.svg";
 
 const TIP_PAD = 10;
-const TIP_CURSOR_OFF = 14;
+const TIP_CURSOR_OFF = 21;
 const TIP_EST_W = 200;
 const TIP_EST_H = 30;
-const FLY_MS = 560;
+const FLY_MS = 640;
 
 function tooltipPosition(clientX, clientY) {
   if (typeof window === "undefined") {
@@ -52,8 +52,6 @@ const BelizeMap = ({ districtListingCounts = null }) => {
   const [hoverTooltip, setHoverTooltip] = useState(null);
   const [clickedRegionId, setClickedRegionId] = useState(null);
   const clickedRegionRef = useRef(null);
-  const tooltipMoveRafRef = useRef(0);
-
   const svgMarkup = fetchedMarkup;
 
   const svgInnerHtml = useMemo(() => {
@@ -64,13 +62,6 @@ const BelizeMap = ({ districtListingCounts = null }) => {
   const tooltipCoords = hoverTooltip
     ? tooltipPosition(hoverTooltip.x, hoverTooltip.y)
     : { left: 0, top: 0 };
-
-  const cancelTooltipMoveRaf = () => {
-    if (tooltipMoveRafRef.current) {
-      cancelAnimationFrame(tooltipMoveRafRef.current);
-      tooltipMoveRafRef.current = 0;
-    }
-  };
 
   const cancelFlyTimeout = () => {
     if (flyTimeoutRef.current) {
@@ -139,20 +130,13 @@ const BelizeMap = ({ districtListingCounts = null }) => {
             otherGroup.classList.add(styles.districtDimmed);
           }
         });
-        cancelTooltipMoveRaf();
         setHoverTooltip({ label, x: e.clientX, y: e.clientY });
       };
 
       const onMove = (e) => {
-        if (tooltipMoveRafRef.current) return;
-        tooltipMoveRafRef.current = requestAnimationFrame(() => {
-          tooltipMoveRafRef.current = 0;
-          setHoverTooltip((prev) =>
-            prev && prev.label === label
-              ? { ...prev, x: e.clientX, y: e.clientY }
-              : prev
-          );
-        });
+        setHoverTooltip((prev) =>
+          prev && prev.label === label ? { ...prev, x: e.clientX, y: e.clientY } : prev
+        );
       };
 
       const onLeave = () => {
@@ -160,7 +144,6 @@ const BelizeMap = ({ districtListingCounts = null }) => {
         interactiveGroups.forEach(({ group: otherGroup }) => {
           otherGroup.classList.remove(styles.districtDimmed);
         });
-        cancelTooltipMoveRaf();
         setHoverTooltip(null);
       };
 
@@ -169,7 +152,6 @@ const BelizeMap = ({ districtListingCounts = null }) => {
         e.stopPropagation();
         if (clickedRegionRef.current) return;
         setClickedRegionId(regionId);
-        cancelTooltipMoveRaf();
         setHoverTooltip(null);
 
         interactiveGroups.forEach(({ regionId: otherId, group: otherGroup }) => {
@@ -207,7 +189,6 @@ const BelizeMap = ({ districtListingCounts = null }) => {
     }
 
     return () => {
-      cancelTooltipMoveRaf();
       cancelFlyTimeout();
       setHoverTooltip(null);
       disposers.forEach((d) => d());

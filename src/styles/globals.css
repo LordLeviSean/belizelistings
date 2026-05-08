@@ -20,7 +20,7 @@
   --element-gap-sm: 8px;
   --element-gap-md: 12px;
   --element-gap-lg: 16px;
-  --motion-fast: 220ms;
+  --motion-fast: 260ms;
   --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --glow-rgb: 127, 193, 181;
   --glow-soft: 0 0 0 1px rgba(var(--glow-rgb), 0.18), 0 0 16px rgba(var(--glow-rgb), 0.14);
@@ -59,6 +59,7 @@ body::before {
   background:
     radial-gradient(ellipse 52% 40% at 16% 18%, rgba(137, 205, 189, 0.14), transparent 62%),
     radial-gradient(ellipse 40% 34% at 76% 12%, rgba(159, 179, 217, 0.12), transparent 58%),
+    radial-gradient(ellipse 42% 48% at 6% 72%, rgba(232, 210, 234, 0.055), transparent 64%),
     radial-gradient(ellipse 44% 46% at 46% 86%, rgba(214, 190, 140, 0.08), transparent 68%);
 
   filter: blur(84px);
@@ -78,15 +79,24 @@ a {
 }
 
 button {
-  transition: all 240ms ease;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    opacity var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease),
+    filter var(--motion-fast) var(--motion-ease);
 }
 
+/**
+ * Components own lift/scale; a global hover translate stacks into “cheap” layered motion.
+ */
 button:hover {
-  transform: translateY(-1px);
+  transform: none;
 }
 
 button:active {
-  transform: scale(0.98);
+  transform: scale(0.985);
 }
 
 .ui-card {
@@ -267,11 +277,3 @@ button:active {
   pointer-events: none !important;
 }
 
-/* Stable hook classes from src/pages/index.js (CSS modules hash the first class) */
-.home-map-page-root::before {
-  display: none !important;
-}
-
-.home-map-pane::after {
-  display: none !important;
-}

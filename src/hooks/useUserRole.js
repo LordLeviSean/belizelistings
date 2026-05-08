@@ -47,8 +47,11 @@ export default function useUserRole() {
 
     void bootstrap();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!cancelled) {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      // Ignore background/session refresh events to prevent navbar flicker on tab refocus.
+      const shouldSetLoading =
+        event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED";
+      if (!cancelled && shouldSetLoading) {
         setLoading(true);
       }
       void resolveUserRole(session?.user ?? null);

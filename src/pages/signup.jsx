@@ -5,7 +5,7 @@ export default function Signup() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/login");
+    router.replace("/login?signup=1");
   }, [router]);
 
   return null;

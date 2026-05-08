@@ -8,6 +8,7 @@ Use CSS modules for structural layout.
 import { useRouter } from "next/router";
 import { useState, useRef, useEffect } from "react";
 import { createDebugger } from "@/lib/debug";
+import { Heart } from "lucide-react";
 import ListingImage from "@/components/ui/ListingImage";
 import BackButton from "@/components/BackButton";
 import Breadcrumbs from "@/components/Breadcrumbs";
@@ -19,6 +20,7 @@ import useFavorites from "../../hooks/useFavorites";
 import styles from "../../styles/ListingDetail.module.css";
 import backStyles from "../../styles/BackNav.module.css";
 import favoriteStyles from "../../styles/FavoriteButton.module.css";
+import { useFavoriteSignupPrompt } from "../../components/FavoriteSignupPromptProvider";
 
 const formatDistrict = (district) =>
   district
@@ -46,6 +48,7 @@ export default function ListingPage() {
   const debugRef = useRef(createDebugger("PUBLIC_PAGE"));
   const [debugState, setDebugState] = useState({});
   const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
+  const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
   const isDebug =
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("debug") === "true";
@@ -343,20 +346,24 @@ export default function ListingPage() {
               <BackButton className={backStyles.backSubtle} />
             </div>
             <div>
-              {isAuthenticated ? (
-                <button
-                  type="button"
-                  aria-label={isFavorite(listing.id) ? "Remove from favorites" : "Add to favorites"}
-                  aria-pressed={isFavorite(listing.id)}
-                  onClick={() => toggleFavorite(listing.id)}
-                  disabled={isBusy(listing.id)}
-                  className={`${favoriteStyles.favoriteButton} ${
-                    isFavorite(listing.id) ? favoriteStyles.favoriteButtonActive : ""
-                  }`}
-                >
-                  {isFavorite(listing.id) ? "♥" : "♡"}
-                </button>
-              ) : null}
+              <button
+                type="button"
+                aria-label={isFavorite(listing.id) ? "Remove from favorites" : "Add to favorites"}
+                aria-pressed={isFavorite(listing.id)}
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    openFavoriteSignupPrompt();
+                    return;
+                  }
+                  void toggleFavorite(listing.id);
+                }}
+                disabled={isBusy(listing.id)}
+                className={`${favoriteStyles.favoriteButton} ${
+                  isFavorite(listing.id) ? favoriteStyles.favoriteButtonActive : ""
+                }`}
+              >
+                <Heart fill={isFavorite(listing.id) ? "currentColor" : "none"} />
+              </button>
             </div>
           </div>
         </div>

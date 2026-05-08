@@ -10,6 +10,7 @@ import Breadcrumbs from "../../../components/Breadcrumbs";
 import ListingCard from "../../../components/ListingCard";
 import DistrictLayout from "../../../components/DistrictLayout";
 import useFavorites from "../../../hooks/useFavorites";
+import { useFavoriteSignupPrompt } from "../../../components/FavoriteSignupPromptProvider";
 import styles from "../../../styles/District.module.css";
 
 const formatDistrict = (district) =>
@@ -38,6 +39,15 @@ export default function DistrictListings() {
   const { district, status } = router.query;
   const { saveSearch } = useSavedSearches();
   const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
+  const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
+
+  function handleFavoriteClick(listingId) {
+    if (!isAuthenticated) {
+      openFavoriteSignupPrompt();
+      return;
+    }
+    void toggleFavorite(listingId);
+  }
   const [listingsData, setListingsData] = useState([]);
   const [loadingListings, setLoadingListings] = useState(true);
   const [saveUiSaved, setSaveUiSaved] = useState(false);
@@ -166,10 +176,10 @@ export default function DistrictListings() {
                     <div key={listing.id} className={styles.listItem}>
                       <ListingCard
                         listing={listing}
-                        showFavoriteButton={isAuthenticated}
+                        showFavoriteButton
                         isFavorited={isFavorite(listing.id)}
                         favoriteBusy={isBusy(listing.id)}
-                        onToggleFavorite={toggleFavorite}
+                        onToggleFavorite={handleFavoriteClick}
                       />
                     </div>
                   ))}

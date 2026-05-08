@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useLayoutEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
@@ -35,6 +35,18 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSignup, setIsSignup] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!router.isReady) return;
+    const signup = router.query.signup;
+    const mode = router.query.mode;
+    const wantSignup =
+      signup === "1" ||
+      signup === "true" ||
+      String(signup || "").toLowerCase() === "yes" ||
+      mode === "signup";
+    if (wantSignup) setIsSignup(true);
+  }, [router.isReady, router.query.signup, router.query.mode]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);

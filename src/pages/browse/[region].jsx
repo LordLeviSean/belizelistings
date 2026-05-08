@@ -9,6 +9,7 @@ import SiteNav from "../../components/SiteNav";
 import { fetchApprovedListingsWithImages } from "../../lib/listingQueries";
 import { filterListings } from "../../utils/filterListings";
 import useFavorites from "../../hooks/useFavorites";
+import { useFavoriteSignupPrompt } from "../../components/FavoriteSignupPromptProvider";
 
 import styles from "../../styles/District.module.css";
 
@@ -69,6 +70,15 @@ export default function BrowseRegionPage() {
   const router = useRouter();
   const { region: regionParam } = router.query;
   const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
+  const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
+
+  function handleFavoriteClick(listingId) {
+    if (!isAuthenticated) {
+      openFavoriteSignupPrompt();
+      return;
+    }
+    void toggleFavorite(listingId);
+  }
 
   const [listingsData, setListingsData] = useState([]);
   const [loadingListings, setLoadingListings] = useState(true);
@@ -324,10 +334,10 @@ export default function BrowseRegionPage() {
                   <ListingCard
                     key={listing.id}
                     listing={listing}
-                    showFavoriteButton={isAuthenticated}
+                    showFavoriteButton
                     isFavorited={isFavorite(listing.id)}
                     favoriteBusy={isBusy(listing.id)}
-                    onToggleFavorite={toggleFavorite}
+                    onToggleFavorite={handleFavoriteClick}
                   />
                 ))}
               </div>
