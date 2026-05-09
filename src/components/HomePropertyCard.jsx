@@ -49,6 +49,7 @@ export default function HomePropertyCard({
   showFavoriteButton = false,
   isFavorited = false,
   favoriteBusy = false,
+  favoriteSurface = "default",
   onFavoriteClick,
   carouselIndex,
   onCarouselIndexChange,
@@ -130,9 +131,13 @@ export default function HomePropertyCard({
           <span className={homeStyles.propertyFavoriteWrap}>
             <button
               type="button"
-              className={`${favoriteStyles.favoriteButton} ${
-                isFavorited ? favoriteStyles.favoriteButtonActive : ""
-              }`}
+              className={[
+                favoriteStyles.favoriteButton,
+                isFavorited ? favoriteStyles.favoriteButtonActive : "",
+                favoriteSurface === "saved" ? favoriteStyles.favoriteButtonWarm : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
               aria-pressed={isFavorited}
               disabled={favoriteBusy}

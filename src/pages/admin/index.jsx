@@ -13,7 +13,8 @@ import useSeaFlowMode from "../../hooks/useSeaFlowMode";
 import { ACTIVITY_SIGNAL_TYPES } from "../../constants/trustModel";
 import { clearAllFavoritesForListings } from "../../lib/favorites";
 import { isMissingColumnError } from "../../lib/supabaseCompat";
-import { getModerationStatus, getRepublishStatus } from "../../constants/operationalModel";
+import { getOperationalLifecycleCountsFromDb } from "../../lib/listingOperationalStats";
+import AdminOperationalStats from "../../components/AdminOperationalStats";
 import styles from "../../styles/Dashboard.module.css";
 
 export default function AdminPage() {
@@ -24,9 +25,15 @@ export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminUserId, setAdminUserId] = useState("");
   const [adminRole, setAdminRole] = useState("");
-  const [pendingCount, setPendingCount] = useState(0);
   const [lastAction, setLastAction] = useState("Live");
-  const [totals, setTotals] = useState({ listings: 0, users: 0, approved: 0 });
+  const [totals, setTotals] = useState({
+    listings: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    archived: 0,
+    users: 0,
+  });
   const [bulkLoading, setBulkLoading] = useState("");
   const [activity, setActivity] = useState([]);
   const [updatedAtLabel, setUpdatedAtLabel] = useState("moments ago");
@@ -35,48 +42,26 @@ export default function AdminPage() {
   const { enabled: seaFlowModeEnabled, setMode: setSeaFlowMode } = useSeaFlowMode();
 
   const refreshStats = useCallback(async () => {
-    const pendingOr = `status.eq.${getRepublishStatus()},moderation_status.eq.pending_review,lifecycle_status.eq.pending`;
-    const approvedOr = `status.eq.${getModerationStatus("approved")},moderation_status.eq.approved,lifecycle_status.eq.approved`;
-    let [{ count: pending, error: pendingError }, { count: approved, error: approvedError }, { count: listings }, { count: users }] =
-      await Promise.all([
-        supabase.from("listings").select("id", { count: "exact", head: true }).or(pendingOr),
-        supabase.from("listings").select("id", { count: "exact", head: true }).or(approvedOr),
-        supabase.from("listings").select("id", { count: "exact", head: true }),
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
-      ]);
+    const [operational, { count: usersCount, error: usersError }] = await Promise.all([
+      getOperationalLifecycleCountsFromDb(supabase),
+      supabase.from("profiles").select("id", { count: "exact", head: true }),
+    ]);
 
-    if (pendingError && isMissingColumnError(pendingError)) {
-      const { count } = await supabase
-        .from("listings")
-        .select("id", { count: "exact", head: true })
-        .eq("status", getRepublishStatus());
-      pending = count || 0;
-    } else if (pendingError) {
-      console.warn("[admin] pending count query failed; using legacy status filter", pendingError);
-      const { count } = await supabase
-        .from("listings")
-        .select("id", { count: "exact", head: true })
-        .eq("status", getRepublishStatus());
-      pending = count ?? pending ?? 0;
+    if (operational.error) {
+      console.warn("[admin] operational lifecycle tally failed", operational.error);
+    }
+    if (usersError) {
+      console.warn("[admin] users count query failed", usersError);
     }
 
-    if (approvedError && isMissingColumnError(approvedError)) {
-      const { count } = await supabase
-        .from("listings")
-        .select("id", { count: "exact", head: true })
-        .eq("status", getModerationStatus("approved"));
-      approved = count || 0;
-    } else if (approvedError) {
-      console.warn("[admin] approved count query failed; using legacy status filter", approvedError);
-      const { count } = await supabase
-        .from("listings")
-        .select("id", { count: "exact", head: true })
-        .eq("status", getModerationStatus("approved"));
-      approved = count ?? approved ?? 0;
-    }
-
-    setPendingCount(pending || 0);
-    setTotals({ listings: listings || 0, users: users || 0, approved: approved || 0 });
+    setTotals({
+      listings: operational.totalOperational,
+      pending: operational.pending,
+      approved: operational.approved,
+      rejected: operational.rejected,
+      archived: operational.archived,
+      users: usersCount ?? 0,
+    });
     setUpdatedAtLabel("moments ago");
   }, []);
 
@@ -205,12 +190,14 @@ export default function AdminPage() {
         <div className={styles.adminWrapper}>
           <h1 className={styles.title}>Admin Control Center</h1>
           <p className={styles.muted}>Admin: {adminUserId} · Role: {adminRole}</p>
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}><p className={styles.statLabel}>Total Listings</p><p className={styles.statValue}>{totals.listings}</p></div>
-            <div className={styles.statCard}><p className={styles.statLabel}>Pending</p><p className={styles.statValue}>{pendingCount}</p></div>
-            <div className={styles.statCard}><p className={styles.statLabel}>Approved</p><p className={styles.statValue}>{totals.approved}</p></div>
-            <div className={styles.statCard}><p className={styles.statLabel}>Users</p><p className={styles.statValue}>{totals.users}</p></div>
-          </div>
+          <AdminOperationalStats
+            total={totals.listings}
+            pending={totals.pending}
+            approved={totals.approved}
+            rejected={totals.rejected}
+            archived={totals.archived}
+            users={totals.users}
+          />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, marginTop: 18 }}>
             <section>
               <div className={styles.adminTabs}>

@@ -14,6 +14,7 @@ export const OWNERSHIP_ACTIONS = Object.freeze({
   REJECT: "reject",
   ARCHIVE: "archive",
   REPUBLISH: "republish",
+  RESUBMIT: "resubmit",
   VERIFY: "verify",
   CLOSE_RENTED: "close_rented",
   CLOSE_SOLD: "close_sold",

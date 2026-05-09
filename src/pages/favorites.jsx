@@ -96,6 +96,7 @@ export default function FavoritesPage() {
                   listing={listing}
                   showFavoriteButton
                   isFavorited
+                  favoriteSurface="saved"
                   favoriteBusy={isBusy(listing.id)}
                   onFavoriteClick={handleRemove}
                   imageSizes="(max-width: 760px) 100vw, (max-width: 980px) 50vw, 33vw"

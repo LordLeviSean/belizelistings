@@ -13,9 +13,11 @@ import {
   getArchiveStatus,
   getLifecycleLabel,
   getModerationStatus,
+  getRepublishStatus,
+  LISTING_LIFECYCLE,
 } from "../constants/operationalModel";
 import styles from "../styles/Dashboard.module.css";
-import { getLifecycleStatus, getModerationStatus as getCanonicalModerationStatus } from "../utils/canonicalListing";
+import { getLifecycleStatus, isPubliclyVisibleListing } from "../utils/canonicalListing";
 import {
   applyListingLifecycleAction,
   collectListingOwnershipActorIds,
@@ -34,8 +36,9 @@ const EDITOR_STEPS = [
 const REGION_OPTIONS = getSelectableRegions();
 const STATUS_FILTERS = [
   { label: "All", value: "all" },
-  { label: "Pending Review", value: "pending" },
   { label: "Published", value: "approved" },
+  { label: "Pending Review", value: "pending" },
+  { label: "Rejected", value: "rejected" },
   { label: "Archived", value: "archived" },
 ];
 
@@ -48,7 +51,6 @@ export default function AllListingsPanel({ onAction }) {
   const [actionKey, setActionKey] = useState("");
   const [editingId, setEditingId] = useState("");
   const [editStep, setEditStep] = useState(0);
-  const [removingIds, setRemovingIds] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [editForm, setEditForm] = useState({
@@ -102,10 +104,10 @@ export default function AllListingsPanel({ onAction }) {
     if (statusFilter === "all") return listings;
     return listings.filter((listing) => {
       const lifecycle = getLifecycleStatus(listing);
-      const moderation = getCanonicalModerationStatus(listing);
-      if (statusFilter === "pending") return lifecycle === "pending" || moderation === "pending_review";
-      if (statusFilter === "approved") return lifecycle === "approved" || moderation === "approved";
-      if (statusFilter === "archived") return lifecycle === "archived" || moderation === "archived";
+      if (statusFilter === "pending") return lifecycle === LISTING_LIFECYCLE.PENDING_REVIEW;
+      if (statusFilter === "approved") return isPubliclyVisibleListing(listing);
+      if (statusFilter === "rejected") return lifecycle === LISTING_LIFECYCLE.REJECTED;
+      if (statusFilter === "archived") return lifecycle === LISTING_LIFECYCLE.ARCHIVED;
       return true;
     });
   }, [listings, statusFilter]);
@@ -180,9 +182,58 @@ export default function AllListingsPanel({ onAction }) {
       setActionKey("");
       return;
     }
+    const rejected = getModerationStatus("rejected");
+    setListings((prev) =>
+      prev.map((listing) =>
+        String(listing.id) === String(listingId)
+          ? {
+              ...listing,
+              status: rejected,
+              lifecycle_status: rejected,
+              moderation_status: "rejected",
+              published_at: null,
+              reviewed_at: null,
+            }
+          : listing
+      )
+    );
+    await clearAllFavoritesForListing(listingId);
     await loadListings();
     onAction?.("Rejected listing");
-    showToast({ type: "info", message: "Listing rejected" });
+    showToast({ type: "info", message: "Listing moved to Rejected" });
+    setActionKey("");
+  };
+
+  const resubmitListing = async (listingId) => {
+    setActionKey(`${listingId}:resubmit`);
+    const { error } = await applyListingLifecycleAction(supabase, {
+      listingId,
+      action: OWNERSHIP_ACTIONS.RESUBMIT,
+      extraUpdates: {},
+    });
+    if (error) {
+      showToast({ type: "error", message: "Unable to resubmit listing" });
+      setActionKey("");
+      return;
+    }
+    const pending = getRepublishStatus();
+    setListings((prev) =>
+      prev.map((listing) =>
+        String(listing.id) === String(listingId)
+          ? {
+              ...listing,
+              status: pending,
+              lifecycle_status: pending,
+              moderation_status: "pending_review",
+              published_at: null,
+              reviewed_at: null,
+            }
+          : listing
+      )
+    );
+    await loadListings();
+    onAction?.("Resubmitted listing to pending review");
+    showToast({ type: "success", message: "Listing moved to Pending Review" });
     setActionKey("");
   };
 
@@ -215,8 +266,6 @@ export default function AllListingsPanel({ onAction }) {
       setActionKey("");
       return;
     }
-    setStatusFilter("archived");
-    setRemovingIds((prev) => [...prev, String(listingId)]);
     const archived = getArchiveStatus();
     setListings((prev) =>
       prev.map((listing) =>
@@ -247,19 +296,16 @@ export default function AllListingsPanel({ onAction }) {
     const { error } = await applyListingLifecycleAction(supabase, {
       listingId,
       action: OWNERSHIP_ACTIONS.REPUBLISH,
-      extraUpdates: {
-        status: "pending",
-      },
+      extraUpdates: {},
     });
     if (error) {
       showToast({ type: "error", message: "Unable to restore listing" });
       setActionKey("");
       return;
     }
-    await clearAllFavoritesForListing(listingId);
     await loadListings();
     onAction?.("Restored archived listing");
-    showToast({ type: "success", message: "Listing restored to pending review" });
+    showToast({ type: "success", message: "Listing moved to Pending Review" });
     setActionKey("");
   };
 
@@ -275,7 +321,6 @@ export default function AllListingsPanel({ onAction }) {
       setActionKey("");
       return;
     }
-    setRemovingIds((prev) => [...prev, String(deleteTarget.id)]);
     setListings((prev) => prev.filter((listing) => String(listing.id) !== String(deleteTarget.id)));
     await loadListings();
     onAction?.("Permanently deleted archived listing");
@@ -441,18 +486,28 @@ export default function AllListingsPanel({ onAction }) {
       {filteredListings.map((listing) => {
         const imageUrl = listing?.listing_images?.[0]?.image_url || "/placeholder.jpg";
         const effectiveLifecycle = getLifecycleStatus(listing);
-        const isArchived = effectiveLifecycle === "archived";
-        const statusClassKey = `${effectiveLifecycle.charAt(0).toUpperCase()}${effectiveLifecycle.slice(1)}`;
+        const isArchived = effectiveLifecycle === LISTING_LIFECYCLE.ARCHIVED;
+        const isRejected = effectiveLifecycle === LISTING_LIFECYCLE.REJECTED;
+        const lcLabel = effectiveLifecycle || "draft";
+        const statusClassKey = `${lcLabel.charAt(0).toUpperCase()}${lcLabel.slice(1)}`;
+        const rowBusy =
+          actionKey === `${listing.id}:approve` ||
+          actionKey === `${listing.id}:reject` ||
+          actionKey === `${listing.id}:archive` ||
+          actionKey === `${listing.id}:resubmit`;
         return (
-        <div key={listing.id} className={`${styles.listingsRow} ${removingIds.includes(String(listing.id)) ? styles.rowRemoving : ""}`}>
+        <div key={listing.id} className={styles.listingsRow}>
           <img src={imageUrl} alt={listing.title || "Listing"} className={styles.listingsThumb} />
           <div>
             {editingId === String(listing.id) ? null : (
               <>
                 <p><strong>{listing.title || "Untitled listing"}</strong></p>
                 <p className={styles.muted}>{listing.district || "Unknown region"} · {listing.listing_type || "unknown"} · {listing.beds ?? 0} bd / {listing.baths ?? 0} ba</p>
-                {String(listing.status || "").toLowerCase() === "archived" ? (
+                {isArchived ? (
                   <p className={styles.muted}>Eligible for restore or permanent deletion</p>
+                ) : null}
+                {isRejected ? (
+                  <p className={styles.muted}>Edit if needed, then resubmit for review.</p>
                 ) : null}
                 <ListingOwnershipMeta listing={listing} ownerMap={ownerMap} />
                 <ListingTrustStrip listing={listing} variant="admin" mode="single" />
@@ -488,13 +543,38 @@ export default function AllListingsPanel({ onAction }) {
                   Permanently Delete
                 </button>
               </>
+            ) : isRejected ? (
+              <>
+                <button
+                  type="button"
+                  className={styles.approveButton}
+                  onClick={() => resubmitListing(listing.id)}
+                  disabled={rowBusy || actionKey === `${listing.id}:resubmit`}
+                >
+                  {actionKey === `${listing.id}:resubmit` ? "Submitting..." : "Resubmit for Review"}
+                </button>
+                <button
+                  type="button"
+                  className={styles.deleteListingButton}
+                  onClick={() => archiveListing(listing.id)}
+                  disabled={rowBusy}
+                >
+                  {actionKey === `${listing.id}:archive` ? "Processing..." : "Archive"}
+                </button>
+                <button type="button" className={styles.dashboardLink} onClick={() => startEdit(listing)} disabled={rowBusy}>
+                  Edit
+                </button>
+                <button type="button" className={styles.dashboardLink} onClick={() => router.push(`/listing/${listing.id}?admin=true`)}>
+                  View
+                </button>
+              </>
             ) : (
               <>
                 <button
                   type="button"
                   className={styles.approveButton}
                   onClick={() => approveListing(listing.id)}
-                  disabled={actionKey === `${listing.id}:approve` || actionKey === `${listing.id}:reject` || actionKey === `${listing.id}:archive`}
+                  disabled={rowBusy}
                 >
                   {actionKey === `${listing.id}:approve` ? "Processing..." : "Approve"}
                 </button>
@@ -502,7 +582,7 @@ export default function AllListingsPanel({ onAction }) {
                   type="button"
                   className={styles.rejectButton}
                   onClick={() => rejectListing(listing.id)}
-                  disabled={actionKey === `${listing.id}:approve` || actionKey === `${listing.id}:reject` || actionKey === `${listing.id}:archive`}
+                  disabled={rowBusy}
                 >
                   {actionKey === `${listing.id}:reject` ? "Processing..." : "Reject"}
                 </button>
@@ -510,31 +590,18 @@ export default function AllListingsPanel({ onAction }) {
                   type="button"
                   className={styles.deleteListingButton}
                   onClick={() => archiveListing(listing.id)}
-                  disabled={actionKey === `${listing.id}:approve` || actionKey === `${listing.id}:reject` || actionKey === `${listing.id}:archive`}
+                  disabled={rowBusy}
                 >
                   {actionKey === `${listing.id}:archive` ? "Processing..." : "Archive"}
                 </button>
+                <button type="button" className={styles.dashboardLink} onClick={() => startEdit(listing)} disabled={rowBusy}>
+                  Edit
+                </button>
+                <button type="button" className={styles.dashboardLink} onClick={() => router.push(`/listing/${listing.id}?admin=true`)}>
+                  View
+                </button>
               </>
             )}
-            {!isArchived ? (
-              <button
-                type="button"
-                  className={styles.dashboardLink}
-                  onClick={() => startEdit(listing)}
-                  disabled={actionKey === `${listing.id}:approve` || actionKey === `${listing.id}:reject` || actionKey === `${listing.id}:archive`}
-              >
-                  Edit
-              </button>
-            ) : null}
-                {!isArchived ? (
-                  <button
-                    type="button"
-                    className={styles.dashboardLink}
-                    onClick={() => router.push(`/listing/${listing.id}?admin=true`)}
-                  >
-                    View
-                  </button>
-                ) : null}
               </>
             )}
           </div>

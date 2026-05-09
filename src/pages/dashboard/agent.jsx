@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import {
   AGENT_FREE_ACTIVE_LISTING_CAP,
   getArchiveStatus,
-  getRepublishStatus,
+  LISTING_LIFECYCLE,
   PLATFORM_TIERS,
 } from "@/constants/operationalModel";
 import { getUserActiveListingCount } from "@/lib/listingPersistence";
@@ -19,7 +19,6 @@ import {
   applyListingLifecycleAction,
   permanentlyDeleteArchivedListing,
 } from "@/utils/ownershipAttribution";
-import { clearAllFavoritesForListing } from "@/lib/favorites";
 import { OWNERSHIP_ACTIONS } from "@/constants/ownershipModel";
 import { getLifecycleStatus } from "@/utils/canonicalListing";
 import styles from "@/styles/Dashboard.module.css";
@@ -103,18 +102,32 @@ export default function AgentDashboard() {
     const { error } = await applyListingLifecycleAction(supabase, {
       listingId,
       action: OWNERSHIP_ACTIONS.REPUBLISH,
-      extraUpdates: {
-        status: getRepublishStatus(),
-      },
+      extraUpdates: {},
     });
     if (error) {
       setActionId("");
       showToast({ type: "error", message: error?.message || "Unable to restore listing" });
       return;
     }
-    await clearAllFavoritesForListing(listingId);
     await loadListings();
-    showToast({ type: "success", message: "Listing moved to pending review" });
+    showToast({ type: "success", message: "Listing moved to Pending Review" });
+    setActionId("");
+  };
+
+  const resubmitForReviewListing = async (listingId) => {
+    setActionId(String(listingId));
+    const { error } = await applyListingLifecycleAction(supabase, {
+      listingId,
+      action: OWNERSHIP_ACTIONS.RESUBMIT,
+      extraUpdates: {},
+    });
+    if (error) {
+      setActionId("");
+      showToast({ type: "error", message: error?.message || "Unable to resubmit listing" });
+      return;
+    }
+    await loadListings();
+    showToast({ type: "success", message: "Listing moved to Pending Review" });
     setActionId("");
   };
 
@@ -138,8 +151,9 @@ export default function AgentDashboard() {
 
   const filteredListings = listings.filter((listing) => {
     const lifecycle = getLifecycleStatus(listing);
-    if (visibilityFilter === "archived") return lifecycle === "archived";
-    if (visibilityFilter === "active") return lifecycle !== "archived";
+    if (visibilityFilter === "archived") return lifecycle === LISTING_LIFECYCLE.ARCHIVED;
+    if (visibilityFilter === "rejected") return lifecycle === LISTING_LIFECYCLE.REJECTED;
+    if (visibilityFilter === "active") return lifecycle !== LISTING_LIFECYCLE.ARCHIVED;
     return true;
   });
 
@@ -175,6 +189,7 @@ export default function AgentDashboard() {
               {[
                 { label: "All", value: "all" },
                 { label: "Active", value: "active" },
+                { label: "Rejected", value: "rejected" },
                 { label: "Archived", value: "archived" },
               ].map((option) => (
                 <button
@@ -203,24 +218,33 @@ export default function AgentDashboard() {
               {!loading && filteredListings.length === 0 ? (
                 <p className={styles.muted}>No listings yet.</p>
               ) : null}
-              {filteredListings.map((l) => (
+              {filteredListings.map((l) => {
+                const lc = getLifecycleStatus(l);
+                const isArchived = lc === LISTING_LIFECYCLE.ARCHIVED;
+                const isRejected = lc === LISTING_LIFECYCLE.REJECTED;
+                const lcKey = lc || "draft";
+                const badgeClass = `${lcKey.charAt(0).toUpperCase()}${lcKey.slice(1)}`;
+                return (
                 <div
                   key={l.id}
-                  className={`${styles.card} ${getLifecycleStatus(l) === "archived" ? styles.archivedCard : ""} ${
+                  className={`${styles.card} ${isArchived ? styles.archivedCard : ""} ${isRejected ? styles.rejectedTone : ""} ${
                     actionId === String(l.id) ? styles.cardActionBusy : ""
                   }`}
                 >
                   <h3 style={{ margin: 0 }}>{l.title}</h3>
                   <p className={styles.muted}>{Number(l.price || 0).toLocaleString()} BZD</p>
                   <div>
-                    <span className={`${styles.statusBadge} ${styles[`status${String(l.status || "").charAt(0).toUpperCase()}${String(l.status || "").slice(1)}`]}`}>
-                      {getLifecycleStatus(l) === "archived" ? "Archived (Not Public)" : getLifecycleStatus(l) || "draft"}
+                    <span className={`${styles.statusBadge} ${styles[`status${badgeClass}`]}`}>
+                      {isArchived ? "Archived (Not Public)" : lc || "draft"}
                     </span>
-                    {getLifecycleStatus(l) === "archived" ? (
+                    {isArchived ? (
                       <p className={styles.archivedHint}>Hidden from public listings</p>
                     ) : null}
+                    {isRejected ? (
+                      <p className={styles.archivedHint}>Not public — resubmit after edits for another review.</p>
+                    ) : null}
                   </div>
-                  {getLifecycleStatus(l) === "archived" ? (
+                  {isArchived ? (
                     <>
                       <button
                         className={styles.approveButton}
@@ -240,6 +264,27 @@ export default function AgentDashboard() {
                         Permanently Delete
                       </button>
                     </>
+                  ) : isRejected ? (
+                    <>
+                      <button
+                        className={styles.approveButton}
+                        type="button"
+                        onClick={() => resubmitForReviewListing(l.id)}
+                        disabled={actionId === String(l.id)}
+                        style={{ marginTop: 8 }}
+                      >
+                        {actionId === String(l.id) ? "Submitting..." : "Resubmit for Review"}
+                      </button>
+                      <button
+                        className={styles.deleteListingButton}
+                        type="button"
+                        onClick={() => archiveListing(l.id)}
+                        disabled={actionId === String(l.id)}
+                        style={{ marginTop: 8 }}
+                      >
+                        {actionId === String(l.id) ? "Removing..." : "Archive Listing"}
+                      </button>
+                    </>
                   ) : (
                     <button
                       className={styles.deleteListingButton}
@@ -251,7 +296,7 @@ export default function AgentDashboard() {
                     </button>
                   )}
                 </div>
-              ))}
+              )})}
             </div>
           </>
         ) : null}

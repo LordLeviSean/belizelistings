@@ -8,9 +8,9 @@ import ListingTrustStrip from "./ListingTrustStrip";
 import ListingOwnershipMeta from "./ListingOwnershipMeta";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import { getSelectableRegions } from "../constants/geographyLayer";
-import { getArchiveStatus, getModerationStatus, getRepublishStatus } from "../constants/operationalModel";
+import { getArchiveStatus, getModerationStatus, getRepublishStatus, LISTING_LIFECYCLE } from "../constants/operationalModel";
 import styles from "../styles/Dashboard.module.css";
-import { getLifecycleStatus, getModerationStatus as getCanonicalModerationStatus } from "../utils/canonicalListing";
+import { getLifecycleStatus, isPubliclyVisibleListing } from "../utils/canonicalListing";
 import {
   applyListingLifecycleAction,
   collectListingOwnershipActorIds,
@@ -22,6 +22,7 @@ const FILTERS = [
   { label: "All", value: "all" },
   { label: "Published", value: "approved" },
   { label: "Pending Review", value: "pending" },
+  { label: "Rejected", value: "rejected" },
   { label: "Archived", value: "archived" },
 ];
 
@@ -117,10 +118,10 @@ export default function OperatorListingsPanel({ onAction }) {
     if (statusFilter === "all") return listings;
     return listings.filter((listing) => {
       const lifecycle = getLifecycleStatus(listing);
-      const moderation = getCanonicalModerationStatus(listing);
-      if (statusFilter === "approved") return lifecycle === "approved" || moderation === "approved";
-      if (statusFilter === "pending") return lifecycle === "pending" || moderation === "pending_review";
-      if (statusFilter === "archived") return lifecycle === "archived" || moderation === "archived";
+      if (statusFilter === "approved") return isPubliclyVisibleListing(listing);
+      if (statusFilter === "pending") return lifecycle === LISTING_LIFECYCLE.PENDING_REVIEW;
+      if (statusFilter === "rejected") return lifecycle === LISTING_LIFECYCLE.REJECTED;
+      if (statusFilter === "archived") return lifecycle === LISTING_LIFECYCLE.ARCHIVED;
       return true;
     });
   }, [listings, statusFilter]);
@@ -138,10 +139,108 @@ export default function OperatorListingsPanel({ onAction }) {
       showToast({ type: "error", message: "Unable to archive listing" });
       return;
     }
+    const archived = getArchiveStatus();
+    setListings((prev) =>
+      prev.map((listing) =>
+        String(listing.id) === String(listingId)
+          ? {
+              ...listing,
+              status: archived,
+              lifecycle_status: archived,
+              moderation_status: "archived",
+            }
+          : listing
+      )
+    );
     await loadListings();
-    setStatusFilter("archived");
     onAction?.("Archived listing from operator panel");
     showToast({ type: "info", message: "Listing archived" });
+    setActionKey("");
+  };
+
+  const approveListing = async (listingId) => {
+    setActionKey(`${listingId}:approve`);
+    const { error } = await applyListingLifecycleAction(supabase, {
+      listingId,
+      action: OWNERSHIP_ACTIONS.APPROVE,
+      extraUpdates: { status: getModerationStatus("approved") },
+    });
+    if (error) {
+      setActionKey("");
+      showToast({ type: "error", message: "Unable to approve listing" });
+      return;
+    }
+    await clearAllFavoritesForListing(listingId);
+    await loadListings();
+    onAction?.("Operator approved listing");
+    showToast({ type: "success", message: "Listing approved" });
+    setActionKey("");
+  };
+
+  const rejectListing = async (listingId) => {
+    setActionKey(`${listingId}:reject`);
+    const { error } = await applyListingLifecycleAction(supabase, {
+      listingId,
+      action: OWNERSHIP_ACTIONS.REJECT,
+      extraUpdates: { status: getModerationStatus("rejected") },
+    });
+    if (error) {
+      setActionKey("");
+      showToast({ type: "error", message: "Unable to reject listing" });
+      return;
+    }
+    const rejected = getModerationStatus("rejected");
+    setListings((prev) =>
+      prev.map((listing) =>
+        String(listing.id) === String(listingId)
+          ? {
+              ...listing,
+              status: rejected,
+              lifecycle_status: rejected,
+              moderation_status: "rejected",
+              published_at: null,
+              reviewed_at: null,
+            }
+          : listing
+      )
+    );
+    await clearAllFavoritesForListing(listingId);
+    await loadListings();
+    onAction?.("Operator rejected listing");
+    showToast({ type: "info", message: "Listing moved to Rejected" });
+    setActionKey("");
+  };
+
+  const resubmitListing = async (listingId) => {
+    setActionKey(`${listingId}:resubmit`);
+    const { error } = await applyListingLifecycleAction(supabase, {
+      listingId,
+      action: OWNERSHIP_ACTIONS.RESUBMIT,
+      extraUpdates: {},
+    });
+    if (error) {
+      setActionKey("");
+      showToast({ type: "error", message: "Unable to resubmit listing" });
+      return;
+    }
+    const pending = getRepublishStatus();
+    setListings((prev) =>
+      prev.map((listing) =>
+        String(listing.id) === String(listingId)
+          ? {
+              ...listing,
+              status: pending,
+              lifecycle_status: pending,
+              moderation_status: "pending_review",
+              published_at: null,
+              reviewed_at: null,
+            }
+          : listing
+      )
+    );
+    await loadListings();
+    onAction?.("Operator resubmitted listing");
+    showToast({ type: "success", message: "Listing moved to Pending Review" });
     setActionKey("");
   };
 
@@ -150,19 +249,31 @@ export default function OperatorListingsPanel({ onAction }) {
     const { error } = await applyListingLifecycleAction(supabase, {
       listingId,
       action: OWNERSHIP_ACTIONS.REPUBLISH,
-      extraUpdates: {
-        status: getRepublishStatus(),
-      },
+      extraUpdates: {},
     });
     if (error) {
       setActionKey("");
       showToast({ type: "error", message: "Unable to re-publish listing" });
       return;
     }
-    await clearAllFavoritesForListing(listingId);
+    const pending = getRepublishStatus();
+    setListings((prev) =>
+      prev.map((listing) =>
+        String(listing.id) === String(listingId)
+          ? {
+              ...listing,
+              status: pending,
+              lifecycle_status: pending,
+              moderation_status: "pending_review",
+              published_at: null,
+              reviewed_at: null,
+            }
+          : listing
+      )
+    );
     await loadListings();
     onAction?.("Re-published listing to pending");
-    showToast({ type: "success", message: "Listing moved to pending review" });
+    showToast({ type: "success", message: "Listing moved to Pending Review" });
     setActionKey("");
   };
 
@@ -336,15 +447,17 @@ export default function OperatorListingsPanel({ onAction }) {
       {filteredListings.map((listing) => {
         const imageUrl = listing?.listing_images?.[0]?.image_url || "/placeholder.jpg";
         const lifecycle = getLifecycleStatus(listing);
-        const isArchived = lifecycle === "archived";
-        const isPending = lifecycle === "pending";
+        const isArchived = lifecycle === LISTING_LIFECYCLE.ARCHIVED;
+        const isRejected = lifecycle === LISTING_LIFECYCLE.REJECTED;
+        const isPending = lifecycle === LISTING_LIFECYCLE.PENDING_REVIEW;
+        const isPublished = isPubliclyVisibleListing(listing);
         const isBusy = actionKey.startsWith(`${listing.id}:`);
         return (
           <div
             key={listing.id}
             className={`${styles.pendingCard} ${isArchived ? styles.archivedCard : ""} ${isPending ? styles.pendingTone : ""} ${
-              isBusy ? styles.cardActionBusy : ""
-            }`}
+              isRejected ? styles.rejectedTone : ""
+            } ${isBusy ? styles.cardActionBusy : ""}`}
           >
             <img src={imageUrl} alt={listing.title || "Listing"} className={styles.pendingImage} />
             <div className={styles.pendingBody}>
@@ -362,6 +475,9 @@ export default function OperatorListingsPanel({ onAction }) {
                   <p className={styles.pendingSubtle}>
                     Eligible for restore or permanent deletion
                   </p>
+                ) : null}
+                {isRejected ? (
+                  <p className={styles.pendingSubtle}>Edit if needed, then resubmit for review.</p>
                 ) : null}
               </div>
               <div className={styles.adminActionRow}>
@@ -384,8 +500,68 @@ export default function OperatorListingsPanel({ onAction }) {
                       Permanently Delete
                     </button>
                   </>
+                ) : isRejected ? (
+                  <>
+                    <button
+                      type="button"
+                      className={styles.approveButton}
+                      onClick={() => resubmitListing(listing.id)}
+                      disabled={isBusy}
+                    >
+                      {actionKey === `${listing.id}:resubmit` ? "Submitting..." : "Resubmit for Review"}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.deleteListingButton}
+                      onClick={() => archiveListing(listing.id)}
+                      disabled={isBusy}
+                    >
+                      {actionKey === `${listing.id}:archive` ? "Removing..." : "Archive"}
+                    </button>
+                    <button type="button" className={styles.dashboardLink} onClick={() => startEdit(listing)} disabled={isBusy}>
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.dashboardLink}
+                      onClick={() => router.push(`/listing/${listing.id}?admin=true`)}
+                      disabled={isBusy}
+                    >
+                      View
+                    </button>
+                  </>
                 ) : (
                   <>
+                    {isPending ? (
+                      <>
+                        <button
+                          type="button"
+                          className={styles.approveButton}
+                          onClick={() => approveListing(listing.id)}
+                          disabled={isBusy}
+                        >
+                          {actionKey === `${listing.id}:approve` ? "Approving..." : "Approve"}
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.rejectButton}
+                          onClick={() => rejectListing(listing.id)}
+                          disabled={isBusy}
+                        >
+                          {actionKey === `${listing.id}:reject` ? "Rejecting..." : "Reject"}
+                        </button>
+                      </>
+                    ) : null}
+                    {isPublished && !isPending ? (
+                      <button
+                        type="button"
+                        className={styles.rejectButton}
+                        onClick={() => rejectListing(listing.id)}
+                        disabled={isBusy}
+                      >
+                        {actionKey === `${listing.id}:reject` ? "Rejecting..." : "Reject"}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className={styles.dashboardLink}

@@ -52,7 +52,6 @@ export default function DistrictListings() {
   const [listingsData, setListingsData] = useState([]);
   const [loadingListings, setLoadingListings] = useState(true);
   const [sortBy, setSortBy] = useState("newest");
-  const [searchTerm, setSearchTerm] = useState("");
   const [propertyType, setPropertyType] = useState("all");
   const [priceBucket, setPriceBucket] = useState("any");
   const [bedrooms, setBedrooms] = useState("any");
@@ -128,7 +127,6 @@ export default function DistrictListings() {
   }).filter((listing) => listingMatchesRouteRegion(listing));
 
   const filteredBase = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
     const [minPrice, maxPrice] =
       priceBucket === "any"
         ? [0, Number.POSITIVE_INFINITY]
@@ -143,8 +141,6 @@ export default function DistrictListings() {
       const typeValue = String(
         listing?.property_type || listing?.listing_type || listing?.type || ""
       ).toLowerCase();
-      const titleValue = String(listing?.title || "").toLowerCase();
-      const districtValue = String(getListingRegionSlug(listing) || "").toLowerCase();
       const featureText = String(
         listing?.features || listing?.amenities || listing?.description || ""
       ).toLowerCase();
@@ -160,9 +156,6 @@ export default function DistrictListings() {
       const lotDepthValue = Number(listing?.lot_depth || 0);
       const landSizeValue = Number(listing?.land_size || 0);
       const interiorSizeValue = Number(listing?.interior_size || 0);
-      const haystack = `${titleValue} ${districtValue} ${typeValue}`.trim();
-
-      if (q && !haystack.includes(q)) return false;
       if (propertyType !== "all" && !typeValue.includes(propertyType)) return false;
       if (price < minPrice || price > maxPrice) return false;
       if (beds < minBeds) return false;
@@ -209,7 +202,6 @@ export default function DistrictListings() {
     parking,
     priceBucket,
     propertyType,
-    searchTerm,
     viewType,
     verifiedOnly,
     yearBuilt,
@@ -250,8 +242,6 @@ export default function DistrictListings() {
               status: nextStatus === "all" ? undefined : nextStatus,
             })
           }
-          searchTerm={searchTerm}
-          onSearchTermChange={setSearchTerm}
           propertyType={propertyType}
           onPropertyTypeChange={setPropertyType}
           priceBucket={priceBucket}
@@ -263,7 +253,6 @@ export default function DistrictListings() {
           showAdvancedFilters={showAdvancedFilters}
           onToggleAdvancedFilters={() => setShowAdvancedFilters((prev) => !prev)}
           onResetFilters={() => {
-            setSearchTerm("");
             setPropertyType("all");
             setPriceBucket("any");
             setBedrooms("any");

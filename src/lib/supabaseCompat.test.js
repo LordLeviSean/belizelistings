@@ -1,4 +1,8 @@
-import { extractMissingColumnName, isMissingColumnError } from "./supabaseCompat";
+import {
+  extractMissingColumnName,
+  isMissingColumnError,
+  isMissingRelationshipError,
+} from "./supabaseCompat";
 
 describe("supabaseCompat", () => {
   test("extractMissingColumnName parses Postgres-style messages", () => {
@@ -39,6 +43,19 @@ describe("supabaseCompat", () => {
       isMissingColumnError({
         message: "something",
         details: `column "foo" does not exist`,
+      })
+    ).toBe(true);
+  });
+
+  test("isMissingColumnError: PostgreSQL 42703", () => {
+    expect(isMissingColumnError({ code: "42703", message: "undefined_column" })).toBe(true);
+  });
+
+  test("isMissingRelationshipError: embed / FK not in schema cache", () => {
+    expect(
+      isMissingRelationshipError({
+        message:
+          "Could not find a relationship between 'listings' and 'listing_images' in the schema cache",
       })
     ).toBe(true);
   });

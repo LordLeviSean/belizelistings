@@ -6,8 +6,6 @@ export default function DistrictLayout({
   filteredCount,
   status,
   onStatusChange,
-  searchTerm,
-  onSearchTermChange,
   propertyType,
   onPropertyTypeChange,
   priceBucket,
@@ -33,25 +31,6 @@ export default function DistrictLayout({
       </section>
 
       <section className={styles.filterBarShell}>
-        <div className={styles.filterRowTop}>
-          <div className={styles.filterSearchWrap}>
-            <input
-              className={styles.filterInput}
-              type="search"
-              placeholder={`Search listings in ${districtLabel}...`}
-              value={searchTerm}
-              onChange={(event) => onSearchTermChange(event.target.value)}
-              aria-label={`Search listings in ${districtLabel}`}
-            />
-          </div>
-          <button type="button" className={styles.clearAllBtn} onClick={onResetFilters}>
-            Clear All
-          </button>
-          <button type="button" className={styles.moreFiltersBtn} onClick={onToggleAdvancedFilters}>
-            More Filters
-          </button>
-        </div>
-
         <div className={styles.filterRowGrid}>
           <div className={styles.filterSelectWrap}>
             <label className={styles.filterLabel} htmlFor="district-status-filter">
@@ -152,18 +131,35 @@ export default function DistrictLayout({
           </div>
         </div>
 
+        <div className={styles.filterInventoryMeta}>
+          <div className={styles.resultCount} aria-live="polite">
+            <span className={styles.resultCountValue}>{filteredCount}</span>
+            <span className={styles.resultCountLabel}> Results</span>
+          </div>
+          <button
+            type="button"
+            className={styles.moreFiltersBtn}
+            onClick={onToggleAdvancedFilters}
+            aria-expanded={showAdvancedFilters}
+            id="district-more-filters-trigger"
+          >
+            More Filters
+          </button>
+        </div>
+
         {showAdvancedFilters ? (
-          <div className={styles.advancedFilterPanel}>
+          <div
+            className={styles.advancedFilterPanel}
+            id="district-advanced-filters"
+            role="region"
+            aria-labelledby="district-more-filters-trigger"
+          >
             {renderAdvancedFilters?.()}
             <button type="button" className={styles.resetFiltersBtn} onClick={onResetFilters}>
               Reset All
             </button>
           </div>
         ) : null}
-
-        <div className={styles.filterBarBottom}>
-          <div className={styles.resultCount}>{filteredCount} Results</div>
-        </div>
       </section>
 
       {filteredCount === 0 ? (

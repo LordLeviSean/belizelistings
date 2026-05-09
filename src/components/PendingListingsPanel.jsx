@@ -5,13 +5,14 @@ import { supabase } from "../lib/supabaseClient";
 import { traceAction } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
 import { getRegionLabel } from "../constants/geographyLayer";
-import { getModerationStatus, getRepublishStatus } from "../constants/operationalModel";
+import { getModerationStatus, getRepublishStatus, LISTING_LIFECYCLE } from "../constants/operationalModel";
+import { clearAllFavoritesForListing } from "../lib/favorites";
+import { getLifecycleStatus } from "../utils/canonicalListing";
 import { formatOperationalTimestamp } from "../utils/listingOperationalMeta";
 import ListingTrustStrip from "./ListingTrustStrip";
 import AgentOperationalStrip from "./AgentOperationalStrip";
 import { buildAgentOperationalSnapshotMap } from "../utils/trustSignals";
 import ListingOwnershipMeta from "./ListingOwnershipMeta";
-import { clearAllFavoritesForListing } from "../lib/favorites";
 import { isMissingColumnError } from "../lib/supabaseCompat";
 import {
   applyListingLifecycleAction,
@@ -71,7 +72,9 @@ export default function PendingListingsPanel({ onAction }) {
       return;
     }
 
-    const rows = data || [];
+    const rows = (data || []).filter(
+      (listing) => getLifecycleStatus(listing) === LISTING_LIFECYCLE.PENDING_REVIEW
+    );
     setListings(rows);
     const ownerIds = [
       ...new Set(
@@ -158,7 +161,7 @@ export default function PendingListingsPanel({ onAction }) {
     onAction?.(`${nextStatus === "approved" ? "Approved" : "Rejected"} pending listing`);
     showToast({
       type: "success",
-      message: nextStatus === "approved" ? "Listing approved" : "Listing rejected",
+      message: nextStatus === "approved" ? "Listing approved" : "Listing moved to Rejected",
     });
     setActionKey("");
   };

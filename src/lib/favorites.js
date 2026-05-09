@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { filterPublicInventory } from "../utils/canonicalListing";
 
 export async function addFavorite(listingId) {
   const {
@@ -98,16 +99,18 @@ export async function getUserFavorites() {
 
   if (error) return { data: [], error };
 
-  const listings = (data || [])
-    .map((row) => row.listing)
-    .filter(Boolean)
-    .map((listing) => ({
-      ...listing,
-      id: String(listing.id ?? ""),
-      images: (listing.listing_images || [])
-        .filter((img) => img?.image_url)
-        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
-    }));
+  const listings = filterPublicInventory(
+    (data || [])
+      .map((row) => row.listing)
+      .filter(Boolean)
+      .map((listing) => ({
+        ...listing,
+        id: String(listing.id ?? ""),
+        images: (listing.listing_images || [])
+          .filter((img) => img?.image_url)
+          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
+      }))
+  );
 
   return { data: listings, error: null };
 }

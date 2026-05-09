@@ -1,5 +1,12 @@
-/** Shared favorites control — teal glass + muted coral heart (homepage cards + ListingCard). */
-.favoriteButton {
+/**
+ * Canonical favorite control — matches homepage `HomePropertyCard`
+ * (teal glass, muted coral heart, timings below).
+ *
+ * Selectors use `button.favoriteButton` so hover/active win over globals.css `button:hover` / `button:active`.
+ *
+ * `favoriteButtonWarm` — Favorites page only; slightly warmer rose-peach glass.
+ */
+button.favoriteButton {
   width: 32px;
   height: 32px;
   border-radius: 999px;
@@ -20,10 +27,11 @@
     background 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
     color 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
     border-color 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    box-shadow 580ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow 580ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    opacity 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.favoriteButton :global(svg) {
+button.favoriteButton :global(svg) {
   width: 16px;
   height: 16px;
   stroke-width: 2;
@@ -35,17 +43,7 @@
     fill 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.favoriteButton:hover {
-  background: rgba(244, 252, 251, 0.96);
-  border-color: rgba(122, 188, 176, 0.55);
-  box-shadow:
-    0 10px 26px rgba(56, 98, 92, 0.1),
-    0 0 28px rgba(122, 198, 186, 0.12),
-    0 0 0 1px rgba(255, 255, 255, 0.42) inset;
-  transform: scale(1.05);
-}
-
-.favoriteButtonActive {
+button.favoriteButton.favoriteButtonActive {
   background: rgba(236, 206, 228, 0.42);
   border-color: rgba(188, 108, 162, 0.48);
   color: rgba(128, 36, 96, 0.95);
@@ -56,7 +54,41 @@
   animation: popFav 620ms cubic-bezier(0.32, 0.06, 0.2, 1);
 }
 
-.favoriteButton:disabled {
+/** Saved-inventory page: richer warmth while keeping size, stroke, and motion tokens */
+button.favoriteButton.favoriteButtonWarm.favoriteButtonActive {
+  background: rgba(255, 224, 214, 0.5);
+  border-color: rgba(210, 120, 108, 0.48);
+  color: rgba(132, 40, 86, 0.96);
+  box-shadow:
+    0 0 28px rgba(220, 130, 110, 0.24),
+    0 0 22px rgba(198, 110, 160, 0.16),
+    0 0 0 1px rgba(255, 255, 255, 0.34) inset;
+}
+
+button.favoriteButton:hover:not(:disabled) {
+  background: rgba(244, 252, 251, 0.96);
+  border-color: rgba(122, 188, 176, 0.55);
+  box-shadow:
+    0 10px 26px rgba(56, 98, 92, 0.1),
+    0 0 28px rgba(122, 198, 186, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.42) inset;
+  transform: scale(1.05);
+}
+
+button.favoriteButton.favoriteButtonWarm:hover:not(:disabled) {
+  background: rgba(255, 238, 230, 0.94);
+  border-color: rgba(206, 128, 112, 0.52);
+  box-shadow:
+    0 12px 28px rgba(92, 52, 48, 0.08),
+    0 0 32px rgba(230, 150, 130, 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.42) inset;
+}
+
+button.favoriteButton:active:not(:disabled) {
+  transform: scale(1.02);
+}
+
+button.favoriteButton:disabled {
   opacity: 0.65;
   cursor: not-allowed;
   transform: none;
@@ -72,4 +104,13 @@
   100% {
     transform: scale(1);
   }
+}
+
+/** Export hooks for CSS modules; visuals are on `button.favoriteButton…` compounds above. */
+.favoriteButtonActive {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.favoriteButtonWarm {
+  -webkit-tap-highlight-color: transparent;
 }

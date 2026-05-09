@@ -124,32 +124,33 @@
     0 10px 24px rgba(16, 28, 36, 0.1),
     0 1px 0 rgba(255, 255, 255, 0.65) inset;
   transition:
-    background 280ms cubic-bezier(0.32, 0.06, 0.2, 1),
-    border-color 280ms cubic-bezier(0.32, 0.06, 0.2, 1),
-    color 280ms cubic-bezier(0.32, 0.06, 0.2, 1),
-    transform 320ms cubic-bezier(0.32, 0.06, 0.2, 1),
-    box-shadow 320ms cubic-bezier(0.32, 0.06, 0.2, 1);
+    background 160ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    border-color 160ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    color 160ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    transform 160ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    box-shadow 160ms cubic-bezier(0.32, 0.06, 0.2, 1);
 }
 
 .dashboardLink:hover {
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(239, 247, 243, 0.92));
-  border-color: rgba(123, 178, 165, 0.48);
+  border-color: rgba(46, 139, 120, 0.42);
   transform: translateY(-1.5px);
   box-shadow:
     0 13px 28px rgba(16, 28, 36, 0.12),
     0 0 0 1px rgba(255, 255, 255, 0.68) inset,
-    0 0 20px rgba(137, 205, 189, 0.18);
+    0 0 22px rgba(46, 139, 120, 0.22);
 }
 
 .dashboardLinkActive {
-  background: linear-gradient(155deg, rgba(244, 252, 249, 0.96), rgba(229, 244, 239, 0.92));
-  border-color: rgba(108, 168, 154, 0.56);
-  color: rgba(38, 66, 61, 0.96);
+  background: linear-gradient(155deg, rgba(232, 251, 246, 0.98), rgba(210, 242, 232, 0.94));
+  border-color: rgba(32, 122, 108, 0.62);
+  color: rgba(18, 58, 52, 0.98);
+  font-weight: 600;
   transform: translateY(-1px);
   box-shadow:
-    0 14px 30px rgba(12, 28, 34, 0.14),
-    0 0 0 1px rgba(255, 255, 255, 0.68) inset,
-    0 0 24px rgba(137, 205, 189, 0.24);
+    0 16px 36px rgba(12, 40, 36, 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.72) inset,
+    0 0 28px rgba(46, 139, 120, 0.32);
 }
 
 .statusToggle {
@@ -165,17 +166,28 @@
   padding: 8px 12px;
   color: var(--text-primary);
   background: var(--bg-card);
-  transition: all 0.2s ease;
+  transition:
+    background 160ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    border-color 160ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    color 160ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    box-shadow 160ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    transform 160ms cubic-bezier(0.32, 0.06, 0.2, 1);
 }
 
 .toggleButton:hover {
   background: var(--bg-elevated);
-  border-color: rgba(120, 178, 164, 0.38);
+  border-color: rgba(46, 139, 120, 0.4);
+  box-shadow: 0 4px 14px rgba(16, 28, 36, 0.08);
 }
 
 .toggleButtonActive {
-  border-color: rgba(120, 178, 164, 0.48);
-  background: rgba(120, 178, 164, 0.2);
+  border-color: rgba(32, 122, 108, 0.55);
+  background: linear-gradient(160deg, rgba(210, 242, 232, 0.95), rgba(184, 232, 218, 0.88));
+  color: rgba(18, 58, 52, 0.96);
+  font-weight: 600;
+  box-shadow:
+    0 8px 22px rgba(12, 40, 36, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.55) inset;
 }
 
 .primaryAction {
@@ -219,7 +231,7 @@
 
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 16px;
   margin-top: 24px;
 }
@@ -234,8 +246,10 @@
 }
 
 .archivedCard {
-  opacity: 0.66;
-  border-color: rgba(156, 163, 175, 0.35);
+  opacity: 0.92;
+  border-color: rgba(148, 158, 172, 0.42);
+  background: linear-gradient(160deg, rgba(236, 239, 244, 0.88), rgba(255, 255, 255, 0.72));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .cardActionBusy {
@@ -294,6 +308,156 @@
   color: #2f363c;
   letter-spacing: -0.015em;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* —— Admin operational intelligence strip (Caribbean / sea-glass) —— */
+.operationalStatsShell {
+  margin-top: 22px;
+  padding: 4px;
+  border-radius: 22px;
+  background: linear-gradient(
+    135deg,
+    rgba(137, 205, 189, 0.22),
+    rgba(94, 184, 200, 0.14) 40%,
+    rgba(255, 214, 165, 0.12) 100%
+  );
+  box-shadow:
+    0 18px 48px rgba(12, 40, 44, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.operationalStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 12px;
+}
+
+.operationalStatCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  padding: 18px 18px 16px;
+  min-height: 118px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.55), rgba(245, 252, 250, 0.38));
+  backdrop-filter: blur(16px) saturate(1.15);
+  box-shadow:
+    0 12px 32px rgba(16, 52, 56, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  transition:
+    transform 170ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    box-shadow 170ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    border-color 170ms ease;
+}
+
+.operationalStatCard:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 20px 44px rgba(16, 52, 56, 0.14),
+    0 0 28px rgba(46, 160, 150, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.operationalStatAccent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(46, 160, 150, 0.85), rgba(120, 210, 195, 0.5), transparent);
+  opacity: 0.9;
+  animation: operationalShimmer 4.5s ease-in-out infinite;
+}
+
+@keyframes operationalShimmer {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: translateX(-8%);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(8%);
+  }
+}
+
+.operationalStatLabel {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(38, 66, 68, 0.72);
+}
+
+.operationalStatValue {
+  margin: 8px 0 0;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: rgba(22, 48, 52, 0.94);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.operationalStatSub {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: rgba(55, 78, 82, 0.62);
+  line-height: 1.35;
+}
+
+.operationalStatTotal .operationalStatAccent {
+  background: linear-gradient(90deg, rgba(46, 139, 120, 0.95), rgba(255, 206, 132, 0.65));
+}
+
+.operationalStatTotal {
+  background: linear-gradient(168deg, rgba(255, 255, 255, 0.62), rgba(232, 248, 244, 0.45));
+}
+
+.operationalStatPending .operationalStatAccent {
+  background: linear-gradient(90deg, rgba(255, 190, 120, 0.88), rgba(255, 232, 200, 0.45));
+}
+
+.operationalStatApproved .operationalStatAccent {
+  background: linear-gradient(90deg, rgba(38, 150, 138, 0.92), rgba(140, 220, 205, 0.48));
+}
+
+.operationalStatRejected {
+  background: linear-gradient(168deg, rgba(255, 250, 246, 0.62), rgba(255, 232, 224, 0.44));
+  border-color: rgba(210, 150, 132, 0.38);
+}
+
+.operationalStatRejected .operationalStatAccent {
+  background: linear-gradient(90deg, rgba(205, 125, 108, 0.82), rgba(255, 205, 188, 0.42));
+}
+
+.operationalStatRejected:hover {
+  box-shadow:
+    0 20px 44px rgba(96, 56, 48, 0.09),
+    0 0 24px rgba(210, 130, 112, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.operationalStatArchived .operationalStatAccent {
+  background: linear-gradient(90deg, rgba(130, 142, 158, 0.72), rgba(210, 218, 228, 0.38));
+}
+
+.operationalStatUsers .operationalStatAccent {
+  background: linear-gradient(90deg, rgba(100, 150, 200, 0.75), rgba(180, 210, 235, 0.4));
+}
+
+.rejectedTone {
+  border-color: rgba(210, 145, 128, 0.4);
+  background: linear-gradient(148deg, rgba(255, 244, 238, 0.88), rgba(255, 255, 255, 0.78));
+  box-shadow:
+    0 10px 26px rgba(120, 64, 52, 0.08),
+    0 0 14px rgba(215, 130, 110, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .systemBar {
@@ -943,8 +1107,11 @@
 }
 
 .pendingTone {
-  border-color: rgba(245, 158, 11, 0.38);
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.12);
+  border-color: rgba(232, 196, 130, 0.48);
+  background: linear-gradient(145deg, rgba(255, 250, 238, 0.92), rgba(255, 255, 255, 0.76));
+  box-shadow:
+    0 0 16px rgba(255, 200, 130, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .pendingCardRemoving {
@@ -1125,22 +1292,26 @@
   text-transform: capitalize;
 }
 
+/* Lifecycle color language: warm operational luxury (Caribbean-modern) */
 .statusApproved {
-  color: #4a7f6f;
-  border-color: rgba(120, 178, 164, 0.42);
-  background: rgba(120, 178, 164, 0.14);
+  color: rgba(26, 82, 76, 0.94);
+  border-color: rgba(64, 168, 152, 0.48);
+  background: linear-gradient(135deg, rgba(198, 238, 228, 0.55), rgba(110, 200, 182, 0.2));
+  box-shadow: 0 0 14px rgba(72, 168, 152, 0.14);
 }
 
 .statusPending {
-  color: #8e7450;
-  border-color: rgba(194, 160, 106, 0.45);
-  background: rgba(194, 160, 106, 0.16);
+  color: rgba(118, 86, 38, 0.92);
+  border-color: rgba(230, 195, 128, 0.52);
+  background: linear-gradient(135deg, rgba(255, 238, 210, 0.58), rgba(248, 210, 155, 0.22));
+  box-shadow: 0 0 12px rgba(255, 190, 120, 0.12);
 }
 
 .statusRejected {
-  color: #96646b;
-  border-color: rgba(188, 111, 121, 0.42);
-  background: rgba(188, 111, 121, 0.15);
+  color: rgba(108, 62, 56, 0.9);
+  border-color: rgba(212, 145, 128, 0.48);
+  background: linear-gradient(135deg, rgba(255, 230, 220, 0.62), rgba(235, 165, 148, 0.2));
+  box-shadow: 0 0 12px rgba(210, 125, 108, 0.12);
 }
 
 .statusDraft {
@@ -1162,9 +1333,10 @@
 }
 
 .statusArchived {
-  color: #d1d5db;
-  border-color: rgba(156, 163, 175, 0.45);
-  background: rgba(107, 114, 128, 0.18);
+  color: rgba(90, 98, 110, 0.88);
+  border-color: rgba(148, 158, 172, 0.48);
+  background: linear-gradient(135deg, rgba(232, 236, 242, 0.75), rgba(176, 186, 198, 0.22));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .userCreateGrid {

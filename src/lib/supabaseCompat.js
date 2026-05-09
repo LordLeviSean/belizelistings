@@ -17,6 +17,9 @@ function collectErrorText(error, depth = 0) {
 
 export function isMissingColumnError(error) {
   const blob = collectErrorText(error);
+  const code = String(error?.code ?? "");
+  // PostgreSQL undefined_column; PostgREST often surfaces this for unknown filter fields.
+  if (code === "42703") return true;
   const schemaCacheUnknown =
     /Could not find the/i.test(blob) && /schema cache/i.test(blob);
   return (
@@ -26,6 +29,16 @@ export function isMissingColumnError(error) {
         /Could not find the/i.test(blob) ||
         /undefined column/i.test(blob) ||
         /unknown column/i.test(blob)))
+  );
+}
+
+/** Embed/select failed: no FK in schema cache between listings and related table. */
+export function isMissingRelationshipError(error) {
+  const blob = collectErrorText(error);
+  return (
+    /Could not find (a|the)/i.test(blob) &&
+    /relationship/i.test(blob) &&
+    /schema cache/i.test(blob)
   );
 }
 

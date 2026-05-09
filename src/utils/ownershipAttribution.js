@@ -1,5 +1,5 @@
 import { OWNERSHIP_ACTIONS, OWNERSHIP_KEYS } from "../constants/ownershipModel";
-import { getArchiveStatus, getRepublishStatus } from "../constants/operationalModel";
+import { getArchiveStatus, getModerationStatus, getRepublishStatus } from "../constants/operationalModel";
 import { MUTATION_ENRICHMENT_STRIP_ORDER } from "../lib/canonicalMutationStrips";
 import { logRawSupabaseError, logSupabaseMutationResult } from "../lib/supabaseRawError";
 import {
@@ -173,11 +173,31 @@ export async function applyListingOwnershipStamp(supabase, { listingId, updates 
   return updateListingSafe(supabase, listingId, updates, { logTag: "ownership-stamp" });
 }
 
+/** Restore from archived, or resubmit from rejected → pending review (not public). */
+function pendingReviewQueuePayload(actor) {
+  const pending = getRepublishStatus();
+  return {
+    status: pending,
+    lifecycle_status: pending,
+    moderation_status: "pending_review",
+    archived_at: null,
+    published_at: null,
+    reviewed_at: null,
+    [OWNERSHIP_KEYS.ARCHIVED_BY]: null,
+    [OWNERSHIP_KEYS.PUBLISHED_BY]: null,
+    [OWNERSHIP_KEYS.REVIEWED_BY]: null,
+    [OWNERSHIP_KEYS.MODERATED_BY]: actor,
+  };
+}
+
 function lifecyclePayloadForAction({ action, actorId, nowIso }) {
   const actor = actorId || null;
   if (action === OWNERSHIP_ACTIONS.APPROVE) {
+    const approved = getModerationStatus("approved");
     return {
-      status: "approved",
+      status: approved,
+      lifecycle_status: approved,
+      moderation_status: "approved",
       reviewed_at: nowIso,
       published_at: nowIso,
       [OWNERSHIP_KEYS.REVIEWED_BY]: actor,
@@ -186,27 +206,32 @@ function lifecyclePayloadForAction({ action, actorId, nowIso }) {
     };
   }
   if (action === OWNERSHIP_ACTIONS.REJECT) {
+    const rejected = getModerationStatus("rejected");
     return {
-      status: "rejected",
-      reviewed_at: nowIso,
-      [OWNERSHIP_KEYS.REVIEWED_BY]: actor,
+      status: rejected,
+      lifecycle_status: rejected,
+      moderation_status: "rejected",
+      published_at: null,
+      reviewed_at: null,
+      last_reviewed_at: nowIso,
+      [OWNERSHIP_KEYS.PUBLISHED_BY]: null,
+      [OWNERSHIP_KEYS.REVIEWED_BY]: null,
       [OWNERSHIP_KEYS.MODERATED_BY]: actor,
     };
   }
   if (action === OWNERSHIP_ACTIONS.ARCHIVE) {
+    const archived = getArchiveStatus();
     return {
-      status: "archived",
+      status: archived,
+      lifecycle_status: archived,
+      moderation_status: "archived",
       archived_at: nowIso,
       [OWNERSHIP_KEYS.ARCHIVED_BY]: actor,
       [OWNERSHIP_KEYS.MODERATED_BY]: actor,
     };
   }
-  if (action === OWNERSHIP_ACTIONS.REPUBLISH) {
-    return {
-      status: "pending",
-      reviewed_at: nowIso,
-      [OWNERSHIP_KEYS.MODERATED_BY]: actor,
-    };
+  if (action === OWNERSHIP_ACTIONS.REPUBLISH || action === OWNERSHIP_ACTIONS.RESUBMIT) {
+    return pendingReviewQueuePayload(actor);
   }
   if (action === OWNERSHIP_ACTIONS.VERIFY) {
     return {
@@ -240,7 +265,8 @@ export async function applyListingLifecycleAction(supabase, { listingId, action,
   }
 
   if (action === OWNERSHIP_ACTIONS.ARCHIVE) {
-    const minimal = { status: getArchiveStatus() };
+    const archived = getArchiveStatus();
+    const minimal = { status: archived, lifecycle_status: archived, moderation_status: "archived" };
     logMutationFailure(`lifecycle:${action}`, "fallback-minimal-archive", primary.error, minimal, {
       priorStage: "primary-failed",
       primaryStripped: primary.meta?.strippedKeys || [],
@@ -292,19 +318,23 @@ export async function applyListingLifecycleAction(supabase, { listingId, action,
       },
     };
   }
-  if (action === OWNERSHIP_ACTIONS.REPUBLISH) {
-    const minimal = { status: getRepublishStatus() };
-    logMutationFailure(`lifecycle:${action}`, "fallback-minimal-republish", primary.error, minimal, {
+  if (action === OWNERSHIP_ACTIONS.REPUBLISH || action === OWNERSHIP_ACTIONS.RESUBMIT) {
+    const minimal = {
+      status: getRepublishStatus(),
+      lifecycle_status: getRepublishStatus(),
+      moderation_status: "pending_review",
+    };
+    logMutationFailure(`lifecycle:${action}`, "fallback-minimal-pending-queue", primary.error, minimal, {
       priorStage: "primary-failed",
       primaryStripped: primary.meta?.strippedKeys || [],
     });
     const minimalResult = await updateListingSafe(supabase, listingId, minimal, {
-      logTag: `lifecycle:${action}:minimal-republish`,
+      logTag: `lifecycle:${action}:minimal-pending-queue`,
     });
     if (!minimalResult.error) {
       logMutationSuccess(
         `lifecycle:${action}`,
-        "success-fallback-minimal-republish",
+        "success-fallback-minimal-pending-queue",
         minimalResult.appliedPayload,
         {
           strippedColumnsPrimary: primary.meta?.strippedKeys || [],

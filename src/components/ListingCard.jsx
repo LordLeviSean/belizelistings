@@ -19,6 +19,7 @@ export default function ListingCard({
   listing,
   showFavoriteButton = false,
   isFavorited = false,
+  favoriteSurface = "default",
   onToggleFavorite,
   favoriteBusy = false,
 }) {
@@ -58,7 +59,13 @@ export default function ListingCard({
                     onToggleFavorite?.(listing.id);
                   }}
                   disabled={favoriteBusy}
-                  className={`${favoriteStyles.favoriteButton} ${isFavorited ? favoriteStyles.favoriteButtonActive : ""}`}
+                  className={[
+                    favoriteStyles.favoriteButton,
+                    isFavorited ? favoriteStyles.favoriteButtonActive : "",
+                    favoriteSurface === "saved" ? favoriteStyles.favoriteButtonWarm : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                 >
                   <Heart fill={isFavorited ? "currentColor" : "none"} />
                 </button>

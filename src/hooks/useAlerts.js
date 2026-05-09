@@ -5,6 +5,7 @@ import { filtersToFilterListingsInput } from "../utils/savedSearchUtils";
 import { incrementNavAlertBadge } from "../utils/navBadge";
 import { getSavedSearches } from "./useSavedSearches";
 import { isMissingColumnError } from "../lib/supabaseCompat";
+import { filterPublicInventory } from "../utils/canonicalListing";
 
 const LAST_SEEN_KEY = "belize_alert_last_seen";
 const ALERTS_LOG_KEY = "belize_alerts_log";
@@ -110,9 +111,12 @@ export default function useAlerts() {
         ({ data, error } = await supabase
           .from("listings")
           .select("*")
-          .eq("status", "approved"));
+          .or("status.eq.approved,moderation_status.eq.approved"));
       }
-      if (!error) runAlertScan(data || []);
+      if (error && isMissingColumnError(error)) {
+        ({ data, error } = await supabase.from("listings").select("*").eq("status", "approved"));
+      }
+      if (!error) runAlertScan(filterPublicInventory(data || []));
     };
     queueMicrotask(fetchListings);
   }, []);
