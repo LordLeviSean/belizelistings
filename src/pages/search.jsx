@@ -13,6 +13,7 @@ import useFavorites from "../hooks/useFavorites";
 import { useFavoriteSignupPrompt } from "../components/FavoriteSignupPromptProvider";
 import { getListingRegionSlug } from "../utils/canonicalListing";
 import styles from "../styles/SearchResults.module.css";
+import PremiumEmptyState from "../components/ui/PremiumEmptyState";
 
 function listingMatchesQuery(listing, query) {
   const district = getRegionLabel(getListingRegionSlug(listing));
@@ -142,16 +143,31 @@ export default function SearchPage() {
             ? Array.from({ length: 6 }).map((_, idx) => (
                 <div key={idx} className={styles.skeleton} />
               ))
-            : filteredListings.map((listing) => (
-                <ListingCard
-                  key={listing.id}
-                  listing={listing}
-                  showFavoriteButton
-                  isFavorited={isFavorite(listing.id)}
-                  favoriteBusy={isBusy(listing.id)}
-                  onToggleFavorite={handleFavoriteClick}
-                />
-              ))}
+            : null}
+          {!loading && filteredListings.length === 0 ? (
+            <PremiumEmptyState
+              variant="search"
+              className={styles.searchEmpty}
+              primary={{ label: "Explore from homepage", href: "/" }}
+              secondary={{
+                label: "Clear filters & terms",
+                onClick: () => {
+                  void router.push({ pathname: "/search", query: {} });
+                },
+              }}
+            />
+          ) : null}
+          {!loading &&
+            filteredListings.map((listing) => (
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                showFavoriteButton
+                isFavorited={isFavorite(listing.id)}
+                favoriteBusy={isBusy(listing.id)}
+                onToggleFavorite={handleFavoriteClick}
+              />
+            ))}
         </section>
       </main>
     </div>

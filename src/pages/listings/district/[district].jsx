@@ -17,7 +17,10 @@ import {
   normalizeRegionSlug,
 } from "../../../constants/geographyLayer";
 import { getListingRegionSlug } from "../../../utils/canonicalListing";
+import { isLandInventoryListing } from "../../../utils/listingPresentation";
+import { listingAmenitiesSearchHaystack } from "../../../constants/listingAmenities";
 import styles from "../../../styles/District.module.css";
+import ambientOceanStyles from "../../../styles/ambientOcean.module.css";
 
 const formatDistrict = (district) => getRegionLabel(district);
 
@@ -141,9 +144,7 @@ export default function DistrictListings() {
       const typeValue = String(
         listing?.property_type || listing?.listing_type || listing?.type || ""
       ).toLowerCase();
-      const featureText = String(
-        listing?.features || listing?.amenities || listing?.description || ""
-      ).toLowerCase();
+      const featureText = listingAmenitiesSearchHaystack(listing);
       const furnishedText = String(listing?.furnishing || listing?.furnished || "").toLowerCase();
       const viewText = String(listing?.view || "").toLowerCase();
       const parkingText = String(listing?.parking || "").toLowerCase();
@@ -158,8 +159,10 @@ export default function DistrictListings() {
       const interiorSizeValue = Number(listing?.interior_size || 0);
       if (propertyType !== "all" && !typeValue.includes(propertyType)) return false;
       if (price < minPrice || price > maxPrice) return false;
-      if (beds < minBeds) return false;
-      if (baths < minBaths) return false;
+      if (!isLandInventoryListing(listing)) {
+        if (beds < minBeds) return false;
+        if (baths < minBaths) return false;
+      }
       if (verifiedOnly && !listing?.verified && !listing?.is_verified) return false;
       if (featureFilter !== "any" && !featureText.includes(featureFilter)) return false;
       if (amenities !== "any" && !featureText.includes(amenities)) return false;
@@ -226,6 +229,7 @@ export default function DistrictListings() {
 
   return (
     <div className={styles.page}>
+      <div className={ambientOceanStyles.ambientFieldViewport} aria-hidden />
       <SiteNav active="browse" />
       <div className={styles.wrapper}>
         <BackButton label="Back" className={styles.backButton} />

@@ -23,12 +23,12 @@ button.favoriteButton {
   justify-content: center;
   box-shadow: 0 4px 14px rgba(68, 108, 102, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.42) inset;
   transition:
-    transform 580ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    background 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    color 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    border-color 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    box-shadow 580ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    opacity 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform var(--dur-4) var(--ease-spring),
+    background var(--dur-3) var(--ease-spring),
+    color var(--dur-3) var(--ease-spring),
+    border-color var(--dur-3) var(--ease-spring),
+    box-shadow var(--dur-4) var(--ease-spring),
+    opacity var(--dur-3) var(--ease-spring);
 }
 
 button.favoriteButton :global(svg) {
@@ -38,9 +38,7 @@ button.favoriteButton :global(svg) {
   display: block;
   flex-shrink: 0;
   transform: translateY(1px);
-  transition:
-    transform 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    fill 480ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: transform var(--dur-3) var(--ease-spring), fill var(--dur-3) var(--ease-spring);
 }
 
 button.favoriteButton.favoriteButtonActive {
@@ -51,7 +49,7 @@ button.favoriteButton.favoriteButtonActive {
     0 0 22px rgba(186, 120, 166, 0.2),
     0 0 26px rgba(122, 198, 186, 0.1),
     0 0 0 1px rgba(255, 255, 255, 0.28) inset;
-  animation: popFav 620ms cubic-bezier(0.32, 0.06, 0.2, 1);
+  animation: popFav var(--dur-5) var(--ease-default);
 }
 
 /** Saved-inventory page: richer warmth while keeping size, stroke, and motion tokens */
@@ -112,5 +110,75 @@ button.favoriteButton:disabled {
 }
 
 .favoriteButtonWarm {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/**
+ * Share control — same footprint + motion as `favoriteButton`, teal-forward (not coral).
+ */
+button.shareIconButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(146, 198, 190, 0.48);
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(52, 118, 108, 0.94);
+  cursor: pointer;
+  font-size: 0;
+  line-height: 0;
+  padding: 0;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(68, 108, 102, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.42) inset;
+  transition:
+    transform var(--dur-4) var(--ease-spring),
+    background var(--dur-3) var(--ease-spring),
+    color var(--dur-3) var(--ease-spring),
+    border-color var(--dur-3) var(--ease-spring),
+    box-shadow var(--dur-4) var(--ease-spring);
+}
+
+button.shareIconButton :global(svg) {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2;
+  display: block;
+  flex-shrink: 0;
+}
+
+button.shareIconButton:hover:not(:disabled) {
+  background: rgba(244, 252, 251, 0.96);
+  border-color: rgba(122, 188, 176, 0.55);
+  box-shadow:
+    0 10px 26px rgba(56, 98, 92, 0.1),
+    0 0 28px rgba(122, 198, 186, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.42) inset;
+  transform: scale(1.05);
+}
+
+.shareIconButtonWarm {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.shareIconButton.shareIconButtonWarm:hover:not(:disabled) {
+  background: rgba(255, 248, 244, 0.96);
+  border-color: rgba(188, 148, 132, 0.42);
+}
+
+button.shareIconButton.shareIconButtonCopied {
+  border-color: rgba(72, 168, 148, 0.52);
+  color: rgba(28, 92, 78, 0.96);
+  box-shadow:
+    0 0 18px rgba(122, 198, 186, 0.22),
+    0 0 0 1px rgba(255, 255, 255, 0.38) inset;
+}
+
+button.shareIconButton:active:not(:disabled) {
+  transform: scale(1.02);
+}
+
+.shareIconButtonCopied {
   -webkit-tap-highlight-color: transparent;
 }

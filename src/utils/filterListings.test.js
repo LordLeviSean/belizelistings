@@ -53,5 +53,13 @@ describe("filterListings", () => {
   test("filters by minimum beds/baths", () => {
     expect(filterListings(sample, { beds: 3, baths: 2 }).map((l) => l.id)).toEqual([2]);
   });
+
+  test("land listings ignore beds/baths minimums", () => {
+    const rows = [
+      ...sample,
+      { id: 9, district: "belize", listing_type: "sale", price: 50, beds: 0, baths: 0, property_type: "land" },
+    ];
+    expect(filterListings(rows, { beds: 3, baths: 2 }).map((l) => l.id)).toEqual([2, 9]);
+  });
 });
 

@@ -1,0 +1,294 @@
+/**
+ * Operational intelligence layer — sea-glass, calm, lifecycle-aligned colors.
+ * Mirrors constants in operationalModel lifecycle semantics (no harsh enterprise red).
+ */
+
+.quickBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.quickBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(132, 180, 170, 0.38);
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(32, 68, 62, 0.92);
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: var(--elev-0);
+  transition: var(--transition-surface), var(--transition-transform);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.quickBtn:hover {
+  border-color: rgba(100, 168, 154, 0.45);
+  background: rgba(255, 255, 255, 0.72);
+  transform: translateY(var(--hover-lift-xs));
+}
+
+.quickBtnPrimary {
+  border-color: rgba(74, 130, 122, 0.35);
+  background: linear-gradient(152deg, rgba(90, 150, 138, 0.2), rgba(64, 120, 112, 0.12));
+  color: rgba(24, 58, 52, 0.95);
+}
+
+.intelGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 960px) {
+  .intelGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.activityPanel {
+  position: relative;
+  border-radius: calc(var(--radius) + 2px);
+  border: 1px solid rgba(154, 210, 200, 0.2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(248, 253, 251, 0.38));
+  box-shadow: var(--elev-1);
+  padding: 12px 12px 10px;
+  overflow: hidden;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.activityPanel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 50% at 20% 0%, rgba(137, 205, 189, 0.1), transparent 70%);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.activityHeader {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 8px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(72, 102, 93, 0.65);
+}
+
+.activityEmpty {
+  margin: 0;
+}
+
+.activityList {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.activityCard {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(154, 210, 200, 0.12);
+  background: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+  line-height: 1.35;
+  transition: var(--transition-surface);
+}
+
+.activityCard:hover {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(130, 180, 170, 0.22);
+}
+
+.toneRejected,
+.tonePending,
+.toneApproved,
+.toneArchived,
+.toneDraft,
+.toneHealth {
+  /* marker classes for icon styling */
+}
+
+.activityIcon {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.tonePending .activityIcon {
+  background: rgba(220, 180, 100, 0.2);
+  box-shadow: 0 0 12px rgba(220, 180, 100, 0.12);
+}
+.toneRejected .activityIcon {
+  background: rgba(220, 120, 110, 0.16);
+  box-shadow: 0 0 12px rgba(220, 120, 110, 0.1);
+}
+.toneApproved .activityIcon {
+  background: rgba(100, 190, 170, 0.2);
+  box-shadow: 0 0 12px rgba(100, 190, 170, 0.12);
+}
+.toneArchived .activityIcon {
+  background: rgba(120, 130, 145, 0.2);
+}
+.toneDraft .activityIcon {
+  background: rgba(180, 150, 210, 0.16);
+}
+.toneHealth .activityIcon {
+  background: rgba(200, 120, 130, 0.16);
+}
+
+.activityBody {
+  min-width: 0;
+  flex: 1;
+}
+
+.activityHeadline {
+  margin: 0;
+  font-weight: 650;
+  color: rgba(28, 64, 72, 0.9);
+}
+
+.activityDetail {
+  margin: 2px 0 0;
+  color: rgba(66, 98, 90, 0.75);
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activityTime {
+  margin: 3px 0 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(95, 128, 119, 0.55);
+}
+
+.healthBadge {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.tierExcellent {
+  color: rgba(32, 90, 78, 0.95);
+  background: rgba(120, 200, 180, 0.22);
+  border-color: rgba(100, 180, 160, 0.35);
+  box-shadow: 0 0 16px rgba(100, 190, 170, 0.12);
+}
+.tierHealthy {
+  color: rgba(40, 88, 78, 0.92);
+  background: rgba(150, 210, 195, 0.18);
+  border-color: rgba(130, 190, 175, 0.3);
+}
+.tierNeeds {
+  color: rgba(100, 72, 32, 0.9);
+  background: rgba(230, 200, 120, 0.2);
+  border-color: rgba(210, 170, 90, 0.35);
+}
+.tierCritical {
+  color: rgba(110, 48, 48, 0.9);
+  background: rgba(220, 150, 140, 0.2);
+  border-color: rgba(200, 120, 110, 0.38);
+}
+
+.warningRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.warningChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(154, 210, 200, 0.22);
+  color: rgba(52, 86, 78, 0.88);
+}
+
+.warningChipAttention {
+  border-color: rgba(210, 175, 95, 0.35);
+  background: rgba(250, 236, 210, 0.35);
+}
+
+.warningChipCritical {
+  border-color: rgba(210, 140, 130, 0.38);
+  background: rgba(252, 230, 226, 0.4);
+}
+
+.performanceStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(154, 210, 200, 0.14);
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(72, 102, 93, 0.78);
+}
+
+.performanceStrip span {
+  font-variant-numeric: tabular-nums;
+}
+
+.pulseQuiet {
+  color: rgba(110, 135, 130, 0.75);
+}
+.pulseSteady {
+  color: rgba(70, 140, 125, 0.88);
+}
+.pulseHigh {
+  color: rgba(50, 120, 105, 0.92);
+}
+
+.listingIntelCard {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quickBtn:hover {
+    transform: none;
+  }
+}

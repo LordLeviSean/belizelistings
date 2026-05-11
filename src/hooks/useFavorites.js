@@ -59,7 +59,7 @@ export default function useFavorites() {
         "postgres_changes",
         { event: "*", schema: "public", table: "favorites", filter: `user_id=eq.${user.id}` },
         () => {
-          loadFavorites();
+          void loadFavorites().catch(() => {});
         }
       )
       .subscribe();
@@ -77,7 +77,7 @@ export default function useFavorites() {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "listings" }, () => {
         clearTimeout(debounce);
         debounce = setTimeout(() => {
-          void loadFavorites();
+          void loadFavorites().catch(() => {});
         }, 280);
       })
       .subscribe();

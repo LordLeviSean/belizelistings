@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
+import { sanitizeListingMutationPayload } from "../lib/listingPayloadSanitize";
+import { LISTING_MUTATION_FLOW, LISTING_MUTATION_OPERATION } from "../lib/listingMutationDiagnostics";
 import { clearAllFavoritesForListing } from "../lib/favorites";
 import { traceAction, traceLog } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
@@ -18,12 +20,14 @@ import {
 } from "../constants/operationalModel";
 import styles from "../styles/Dashboard.module.css";
 import { getLifecycleStatus, isPubliclyVisibleListing } from "../utils/canonicalListing";
+import { isLandInventoryListing } from "../utils/listingPresentation";
 import {
   applyListingLifecycleAction,
   collectListingOwnershipActorIds,
   permanentlyDeleteArchivedListing,
 } from "../utils/ownershipAttribution";
 import { OWNERSHIP_ACTIONS } from "../constants/ownershipModel";
+import PremiumEmptyState, { getPremiumEmptyForRegistryFilter } from "./ui/PremiumEmptyState";
 
 const EDITOR_STEPS = [
   { id: "basic", label: "Basic" },
@@ -348,18 +352,21 @@ export default function AllListingsPanel({ onAction }) {
 
   const saveEdit = async (listingId) => {
     setActionKey(`${listingId}:edit`);
-    const payload = {
-      title: editForm.title.trim(),
-      price: Number(editForm.price || 0),
-      district: editForm.district.trim(),
-      listing_type: editForm.listing_type,
-      property_type: editForm.property_type,
-      beds: editForm.beds === "" ? null : Number(editForm.beds),
-      baths: editForm.baths === "" ? null : Number(editForm.baths),
-      garage: editForm.garage === "" ? null : Number(editForm.garage),
-      status: editForm.status,
-      currency: editForm.currency || "BZD",
-    };
+    const payload = sanitizeListingMutationPayload(
+      {
+        title: editForm.title.trim(),
+        price: Number(editForm.price || 0),
+        district: editForm.district.trim(),
+        listing_type: editForm.listing_type,
+        property_type: editForm.property_type,
+        beds: editForm.beds === "" ? null : Number(editForm.beds),
+        baths: editForm.baths === "" ? null : Number(editForm.baths),
+        garage: editForm.garage === "" ? null : Number(editForm.garage),
+        status: editForm.status,
+        currency: editForm.currency || "BZD",
+      },
+      { mutationFlow: LISTING_MUTATION_FLOW.UNSPECIFIED, operation: LISTING_MUTATION_OPERATION.PATCH }
+    );
     const { error } = await supabase.from("listings").update(payload).eq("id", listingId);
     if (error) {
       console.error("[all-listings-panel] edit error", error);
@@ -495,6 +502,7 @@ export default function AllListingsPanel({ onAction }) {
           actionKey === `${listing.id}:reject` ||
           actionKey === `${listing.id}:archive` ||
           actionKey === `${listing.id}:resubmit`;
+        const rowIsLand = isLandInventoryListing(listing);
         return (
         <div key={listing.id} className={styles.listingsRow}>
           <img src={imageUrl} alt={listing.title || "Listing"} className={styles.listingsThumb} />
@@ -502,7 +510,10 @@ export default function AllListingsPanel({ onAction }) {
             {editingId === String(listing.id) ? null : (
               <>
                 <p><strong>{listing.title || "Untitled listing"}</strong></p>
-                <p className={styles.muted}>{listing.district || "Unknown region"} · {listing.listing_type || "unknown"} · {listing.beds ?? 0} bd / {listing.baths ?? 0} ba</p>
+                <p className={styles.muted}>
+                  {listing.district || "Unknown region"} · {listing.listing_type || "unknown"}
+                  {rowIsLand ? "" : ` · ${listing.beds ?? 0} bd / ${listing.baths ?? 0} ba`}
+                </p>
                 {isArchived ? (
                   <p className={styles.muted}>Eligible for restore or permanent deletion</p>
                 ) : null}
@@ -608,7 +619,7 @@ export default function AllListingsPanel({ onAction }) {
         </div>
       )})}
       {!filteredListings.length ? (
-        <p className={styles.muted}>No listings found for this status.</p>
+        <PremiumEmptyState compact {...getPremiumEmptyForRegistryFilter(statusFilter)} />
       ) : null}
       {editingId ? (
         <div className={styles.modalBackdrop} onClick={() => setEditingId("")}>

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
+import { sanitizeListingMutationPayload } from "../lib/listingPayloadSanitize";
+import { LISTING_MUTATION_FLOW, LISTING_MUTATION_OPERATION } from "../lib/listingMutationDiagnostics";
 import { clearAllFavoritesForListing } from "../lib/favorites";
 import { useToast } from "./ui/ToastProvider";
 import HomePropertyCard from "./HomePropertyCard";
@@ -17,6 +19,7 @@ import {
   permanentlyDeleteArchivedListing,
 } from "../utils/ownershipAttribution";
 import { OWNERSHIP_ACTIONS } from "../constants/ownershipModel";
+import PremiumEmptyState, { getPremiumEmptyForRegistryFilter } from "./ui/PremiumEmptyState";
 
 const FILTERS = [
   { label: "All", value: "all" },
@@ -315,18 +318,21 @@ export default function OperatorListingsPanel({ onAction }) {
 
   const saveEdit = async (listingId) => {
     setActionKey(`${listingId}:edit`);
-    const payload = {
-      title: editForm.title.trim(),
-      price: Number(editForm.price || 0),
-      district: editForm.district.trim(),
-      listing_type: editForm.listing_type,
-      property_type: editForm.property_type,
-      beds: editForm.beds === "" ? null : Number(editForm.beds),
-      baths: editForm.baths === "" ? null : Number(editForm.baths),
-      garage: editForm.garage === "" ? null : Number(editForm.garage),
-      status: editForm.status,
-      currency: editForm.currency || "BZD",
-    };
+    const payload = sanitizeListingMutationPayload(
+      {
+        title: editForm.title.trim(),
+        price: Number(editForm.price || 0),
+        district: editForm.district.trim(),
+        listing_type: editForm.listing_type,
+        property_type: editForm.property_type,
+        beds: editForm.beds === "" ? null : Number(editForm.beds),
+        baths: editForm.baths === "" ? null : Number(editForm.baths),
+        garage: editForm.garage === "" ? null : Number(editForm.garage),
+        status: editForm.status,
+        currency: editForm.currency || "BZD",
+      },
+      { mutationFlow: LISTING_MUTATION_FLOW.UNSPECIFIED, operation: LISTING_MUTATION_OPERATION.PATCH }
+    );
     const { error } = await supabase.from("listings").update(payload).eq("id", listingId);
     if (error) {
       console.error("[operator-listings-panel] edit error", error);
@@ -443,6 +449,10 @@ export default function OperatorListingsPanel({ onAction }) {
           </button>
         ))}
       </div>
+
+      {filteredListings.length === 0 ? (
+        <PremiumEmptyState compact {...getPremiumEmptyForRegistryFilter(statusFilter)} />
+      ) : null}
 
       {filteredListings.map((listing) => {
         const imageUrl = listing?.listing_images?.[0]?.image_url || "/placeholder.jpg";

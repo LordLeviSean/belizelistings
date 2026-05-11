@@ -277,8 +277,8 @@ export default function HomePage() {
                 onChange={(event) => setSearchTerm(event.target.value)}
                 className={styles.searchInput}
                 type="search"
-                placeholder="Narrows Recently added · Enter opens dedicated search…"
-                aria-label="Filter recently added listings; Enter runs full search"
+                placeholder="Explore Belize by district, property type, or lifestyle…"
+                aria-label="Search listings; Enter opens full results"
                 enterKeyHint="search"
               />
               <button
@@ -352,7 +352,7 @@ export default function HomePage() {
           >
             <div className={styles.sectionTitleRow}>
               <h2 className={styles.sectionTitle}>Featured listings</h2>
-              <p className={styles.sectionSubtitle}>Curated band · twelve newest arrivals, ambient drift</p>
+              <p className={styles.sectionSubtitle}>Fresh arrivals across the map</p>
             </div>
             <div className={styles.featuredCarouselViewport} ref={featuredScrollRef}>
               <div className={styles.featuredCarouselTrack}>

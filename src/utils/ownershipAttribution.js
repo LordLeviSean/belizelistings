@@ -6,6 +6,12 @@ import {
   extractMissingColumnName,
   isMissingColumnError,
 } from "../lib/supabaseCompat";
+import {
+  LISTING_MUTATION_FLOW,
+  LISTING_MUTATION_OPERATION,
+  logListingMutationFailureGrouped,
+} from "../lib/listingMutationDiagnostics";
+import { sanitizeListingMutationPayload } from "../lib/listingPayloadSanitize";
 
 const isProd =
   typeof process !== "undefined" && process.env.NODE_ENV === "production";
@@ -63,24 +69,16 @@ export function collectListingOwnershipActorIds(listing = {}) {
 }
 
 function logMutationFailure(logTag, stage, error, payload, extra = {}) {
-  if (typeof console === "undefined" || !console.warn) return;
-  const missing = extractMissingColumnName(error);
-  if (isProd) {
-    console.warn(`[listing-mutation:${logTag}] stage=${stage}`, {
-      missingColumn: missing || null,
-      errorMessage: error?.message || String(error),
-      errorCode: error?.code ?? null,
-    });
-    return;
-  }
-  console.warn(`[listing-mutation:${logTag}] stage=${stage}`, {
-    missingColumn: missing || null,
-    errorMessage: error?.message || String(error),
-    errorDetails: error?.details ?? null,
-    errorCode: error?.code ?? null,
-    payloadKeys: Object.keys(payload || {}),
-    payloadSnapshot: payload,
-    ...extra,
+  if (typeof console === "undefined") return;
+  logListingMutationFailureGrouped({
+    operation: LISTING_MUTATION_OPERATION.PATCH,
+    mutationFlow: extra.mutationFlow ?? LISTING_MUTATION_FLOW.UNSPECIFIED,
+    stage: `${logTag}:${stage}`,
+    attempt: extra.attempt ?? 0,
+    retryMax: extra.retryMax ?? null,
+    strippedKeys: extra.strippedColumnsSoFar ?? [],
+    payload,
+    error,
   });
 }
 
@@ -93,8 +91,15 @@ function logMutationSuccess(logTag, stage, payload, meta = {}) {
 }
 
 async function updateListingSafe(supabase, listingId, updates, options = {}) {
-  const { logTag = "update", maxAttempts = 28 } = options;
-  let payload = { ...(updates || {}) };
+  const {
+    logTag = "update",
+    maxAttempts = 28,
+    mutationFlow = LISTING_MUTATION_FLOW.UNSPECIFIED,
+  } = options;
+  let payload = sanitizeListingMutationPayload({ ...(updates || {}) }, {
+    mutationFlow,
+    operation: LISTING_MUTATION_OPERATION.PATCH,
+  });
   let attempts = 0;
   let lastError = null;
   const strippedKeys = [];
@@ -125,6 +130,9 @@ async function updateListingSafe(supabase, listingId, updates, options = {}) {
       logMutationFailure(logTag, `strip-named:${attempts}`, error, payload, {
         strippedKey: missingFromMessage,
         strippedColumnsSoFar: [...strippedKeys],
+        attempt: attempts,
+        retryMax: maxAttempts,
+        mutationFlow,
       });
       const { [missingFromMessage]: _removed, ...next } = payload;
       payload = next;
@@ -141,6 +149,9 @@ async function updateListingSafe(supabase, listingId, updates, options = {}) {
           strippedKey: stripKey,
           parsedColumn: missingFromMessage || null,
           strippedColumnsSoFar: [...strippedKeys],
+          attempt: attempts,
+          retryMax: maxAttempts,
+          mutationFlow,
         });
         const { [stripKey]: _r, ...next } = payload;
         payload = next;
@@ -152,6 +163,9 @@ async function updateListingSafe(supabase, listingId, updates, options = {}) {
       parsedColumn: missingFromMessage || null,
       missingColumnError: isMissingColumnError(error),
       strippedColumnsSoFar: strippedKeys,
+      attempt: attempts,
+      retryMax: maxAttempts,
+      mutationFlow,
     });
     return {
       data: null,
@@ -169,8 +183,15 @@ async function updateListingSafe(supabase, listingId, updates, options = {}) {
   };
 }
 
-export async function applyListingOwnershipStamp(supabase, { listingId, updates = {} }) {
-  return updateListingSafe(supabase, listingId, updates, { logTag: "ownership-stamp" });
+export async function applyListingOwnershipStamp(supabase, {
+  listingId,
+  updates = {},
+  mutationFlow = LISTING_MUTATION_FLOW.UNSPECIFIED,
+}) {
+  return updateListingSafe(supabase, listingId, updates, {
+    logTag: "ownership-stamp",
+    mutationFlow,
+  });
 }
 
 /** Restore from archived, or resubmit from rejected → pending review (not public). */

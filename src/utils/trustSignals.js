@@ -230,6 +230,42 @@ export function getAgentOperationalSnapshot({
   };
 }
 
+/**
+ * Calm public-facing trust chips for listing detail (conversion surface).
+ */
+export function buildPublicListingTrustChips(listing = {}) {
+  const chips = [];
+  const snap = getListingTrustSnapshot(listing);
+  const stale = getStaleInventoryState(listing);
+
+  if (snap.activitySignals.includes(ACTIVITY_SIGNAL_TYPES.UPDATED_TODAY)) {
+    chips.push({ key: "fresh", label: "Recently updated" });
+  } else if (snap.activitySignals.includes(ACTIVITY_SIGNAL_TYPES.FRESH_INVENTORY)) {
+    chips.push({ key: "fresh_inv", label: "Fresh on market" });
+  }
+
+  if (snap.activitySignals.includes(ACTIVITY_SIGNAL_TYPES.NEWLY_APPROVED)) {
+    chips.push({ key: "newly", label: "Newly listed" });
+  }
+
+  if (
+    snap.verificationStatus === VERIFICATION_STATUS.VERIFIED ||
+    String(listing?.verification_status || "").toLowerCase() === VERIFICATION_STATUS.VERIFIED
+  ) {
+    chips.push({ key: "verified_inv", label: "Verified inventory signal" });
+  }
+
+  if (!stale.isStale && !stale.isAging && listing?.price > 0) {
+    chips.push({ key: "active", label: "Active listing" });
+  }
+
+  if (snap.activitySignals.includes(ACTIVITY_SIGNAL_TYPES.RECENTLY_VERIFIED)) {
+    chips.push({ key: "verified_recent", label: "Recently verified context" });
+  }
+
+  return chips.slice(0, 5);
+}
+
 export function buildAgentOperationalSnapshotMap(listings = [], profileMap = {}) {
   const ownerIds = [...new Set((listings || []).map((item) => String(item?.user_id || "")).filter(Boolean))];
   const map = {};

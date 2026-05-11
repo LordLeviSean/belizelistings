@@ -7,6 +7,7 @@ import useUserRole from "../hooks/useUserRole";
 import useLivePaletteMode from "../hooks/useLivePaletteMode";
 import usePulseMode from "../hooks/usePulseMode";
 import styles from "./SiteNavUnified.module.css";
+import NotificationCenter from "./notifications/NotificationCenter";
 
 /** Premium geometric-humanist wordmark only — scoped to nav brand link */
 const brandWordmarkFont = DM_Sans({
@@ -34,7 +35,19 @@ export default function SiteNav({ active = "auto" }) {
     return null;
   })();
   const resolvedActive = active === "auto" ? routeActive : active;
-  const favoritesFilled = isHomepage || resolvedActive === "favorites";
+  const favoritesNavActive = resolvedActive === "favorites";
+  /**
+   * Homepage Favorites pill (inactive) is canonical: filled heart + navIconFavoritesHome.
+   * Reuse that same chrome on all primary shells where Favorites is not the active tab —
+   * browse (map/listing/search/district), dashboard, admin, agents — so nav never drifts.
+   */
+  const favoritesIdleHomeChrome =
+    !favoritesNavActive &&
+    (isHomepage ||
+      resolvedActive === "browse" ||
+      resolvedActive === "dashboard" ||
+      resolvedActive === "agents");
+  const favoritesFilled = favoritesNavActive || favoritesIdleHomeChrome;
   const dashboardFilled = isHomepage || isFavoritesPage || resolvedActive === "dashboard";
 
   const handleDashboard = () => {
@@ -45,6 +58,7 @@ export default function SiteNav({ active = "auto" }) {
     }
 
     if (role === "admin") router.push("/admin");
+    else if (role === "broker" || role === "brokerage" || role === "property_manager") router.push("/dashboard/broker");
     else if (role === "agent") router.push("/dashboard/agent");
     else router.push("/dashboard/user");
   };
@@ -83,14 +97,14 @@ export default function SiteNav({ active = "auto" }) {
         <Link
           href="/favorites"
           className={`${styles.navLink} ${styles.navPillFavorites} ${
-            resolvedActive === "favorites" ? styles.navLinkActive : ""
-          } ${resolvedActive === "favorites" ? styles.navFavoritesActive : ""}`}
+            favoritesNavActive ? styles.navLinkActive : ""
+          } ${favoritesNavActive ? styles.navFavoritesActive : ""}`}
         >
           <span className={styles.navLinkInner}>
             <Heart
               className={`${styles.navIcon} ${styles.navIconFavorites} ${
-                isHomepage ? styles.navIconFavoritesHome : ""
-              } ${resolvedActive === "favorites" ? styles.navIconFavoritesActive : ""}`}
+                favoritesIdleHomeChrome ? styles.navIconFavoritesHome : ""
+              } ${favoritesNavActive ? styles.navIconFavoritesActive : ""}`}
               fill={favoritesFilled ? "currentColor" : "none"}
               strokeWidth={1.85}
               aria-hidden
@@ -98,6 +112,8 @@ export default function SiteNav({ active = "auto" }) {
             Favorites
           </span>
         </Link>
+
+        <NotificationCenter />
 
         {user ? (
           <button

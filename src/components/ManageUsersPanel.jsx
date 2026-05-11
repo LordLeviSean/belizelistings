@@ -5,6 +5,8 @@ import { clearAllFavoritesForListing } from "../lib/favorites";
 import { traceAction } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
 import { isMissingColumnError } from "../lib/supabaseCompat";
+import { sanitizeListingMutationPayload } from "../lib/listingPayloadSanitize";
+import { LISTING_MUTATION_FLOW, LISTING_MUTATION_OPERATION } from "../lib/listingMutationDiagnostics";
 import { getLifecycleLabel } from "../constants/operationalModel";
 import { getLifecycleStatus } from "../utils/canonicalListing";
 import styles from "../styles/Dashboard.module.css";
@@ -119,7 +121,11 @@ export default function ManageUsersPanel({ onAction }) {
       type: "admin_userpanel_update_listing_status",
       payload: { listingId, status },
     });
-    const { error } = await supabase.from("listings").update({ status }).eq("id", listingId);
+    const patch = sanitizeListingMutationPayload(
+      { status },
+      { mutationFlow: LISTING_MUTATION_FLOW.UNSPECIFIED, operation: LISTING_MUTATION_OPERATION.PATCH }
+    );
+    const { error } = await supabase.from("listings").update(patch).eq("id", listingId);
     traceAction({
       type: "admin_userpanel_update_listing_status_result",
       payload: { listingId, status },

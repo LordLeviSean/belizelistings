@@ -5,11 +5,13 @@ Avoid introducing new layout logic in Tailwind.
 Use CSS modules for structural layout.
 */
 
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState, useRef, useEffect } from "react";
 import { createDebugger } from "@/lib/debug";
 import { Heart } from "lucide-react";
-import ListingImage from "@/components/ui/ListingImage";
+import ListingMediaImage from "@/components/listing/ListingMediaImage";
+import ListingMediaIntrinsic from "@/components/listing/ListingMediaIntrinsic";
 import BackButton from "@/components/BackButton";
 import SiteNav from "@/components/SiteNav";
 import { fetchListingByIdWithImages } from "../../lib/listingQueries";
@@ -21,6 +23,11 @@ import { getListingRegionSlug } from "../../utils/canonicalListing";
 import styles from "../../styles/ListingDetail.module.css";
 import favoriteStyles from "../../styles/FavoriteButton.module.css";
 import { useFavoriteSignupPrompt } from "../../components/FavoriteSignupPromptProvider";
+import ListingTrustStrip from "@/components/listing/ListingTrustStrip";
+import ListingContactActions from "@/components/listing/ListingContactActions";
+import { getListingAtmosphereKey } from "@/utils/listingAtmosphere";
+import { derivePropertyHighlights } from "@/utils/propertyHighlights";
+import { isLandInventoryListing } from "../../utils/listingPresentation";
 
 const formatDistrict = (district) => getRegionLabel(district);
 
@@ -125,6 +132,30 @@ export default function ListingPage() {
     if (images.length === 0) return;
     setIndex((i) => Math.min(Math.max(0, i), images.length - 1));
   }, [images.length, listing?.id]);
+
+  useEffect(() => {
+    if (!router.isReady || !id || images.length === 0) return;
+    try {
+      const raw = sessionStorage.getItem(`bl_listing_gallery_${id}`);
+      if (raw != null) {
+        const n = parseInt(raw, 10);
+        if (!Number.isNaN(n)) {
+          setIndex(Math.min(Math.max(0, n), images.length - 1));
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [id, router.isReady, images.length]);
+
+  useEffect(() => {
+    if (!id) return;
+    try {
+      sessionStorage.setItem(`bl_listing_gallery_${id}`, String(index));
+    } catch {
+      /* ignore */
+    }
+  }, [id, index]);
 
   useEffect(() => {
     if (idRefForHeroDip.current === undefined) {
@@ -250,17 +281,21 @@ export default function ListingPage() {
       </div>
     );
   }
-  const isLand = listing.beds === 0 && listing.baths === 0 && listing.garage === 0;
+  const isLand = isLandInventoryListing(listing);
   const regionSlug = getListingRegionSlug(listing);
   const regionLabel = formatDistrict(regionSlug);
   const regionCaption = getRegionCaption(regionSlug);
+
+  const atmosphere = getListingAtmosphereKey(listing);
+  const highlights = derivePropertyHighlights(listing);
+  const descriptionText = String(listing?.description || "").trim();
 
   const hasImages = images.length > 0;
 
   return (
     <div className={styles.pageShell}>
       <SiteNav active="browse" />
-      <div className={styles.page}>
+      <div className={styles.page} data-atmosphere={atmosphere}>
         <section className={`${styles.heroColumn} safeFlexCol`} aria-label="Listing photos">
         <div
           className={styles.mainImageFrame}
@@ -303,14 +338,19 @@ export default function ListingPage() {
               {index + 1} / {images.length}
             </div>
           ) : null}
+          {hasImages ? <span className={styles.immersiveHint}>Immersive gallery · tap to expand</span> : null}
           <div className={styles.imageStage}>
             <div
               className={`${styles.heroImage} ${heroDip ? styles.heroImageFadeChanging : ""}`}
             >
-              <ListingImage
+              <ListingMediaImage
                 src={images[index]?.image_url || "/placeholder.jpg"}
                 alt="Listing"
+                fill
                 mode="contain"
+                sizes="(max-width: 900px) 92vw, 48vw"
+                priority={index === 0}
+                hoverZoom={false}
               />
             </div>
           </div>
@@ -326,7 +366,7 @@ export default function ListingPage() {
                 onMouseEnter={() => setIndex(i)}
                 aria-label={`Show photo ${i + 1} in gallery`}
               >
-                <ListingImage src={img.image_url} alt="" mode="cover" />
+                <ListingMediaImage src={img.image_url} alt="" fill sizes="72px" hoverZoom={false} />
               </button>
             ))}
           </div>
@@ -373,7 +413,7 @@ export default function ListingPage() {
           <div className={`${styles.listingHeader} safeFlexCol`}>
             <h1 className={styles.title}>{listing.title}</h1>
             <p className={styles.price}>
-              {listing.price.toLocaleString()} {listing.currency}
+              {listing.price.toLocaleString()} {listing.currency || "BZD"}
             </p>
             <span className={styles.location}>
               {regionLabel}
@@ -381,9 +421,21 @@ export default function ListingPage() {
             {regionCaption ? <span className={styles.locationCaption}>{regionCaption}</span> : null}
           </div>
 
+          <ListingTrustStrip listing={listing} />
+
+          {highlights.length > 0 ? (
+            <div className={styles.highlightStrip} aria-label="Highlights">
+              {highlights.map((h) => (
+                <span key={`${h.label}-${h.source}`} className={styles.highlightChip}>
+                  {h.label}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
           <div className={styles.infoGrid}>
             {isLand ? (
-              <Info label="Type" value="Land Property" />
+              <Info label="Type" value="Land" />
             ) : (
               <>
                 <Info label="Beds" value={listing.beds} />
@@ -394,22 +446,29 @@ export default function ListingPage() {
             <Info label="Region" value={regionLabel} />
           </div>
 
-          <div className={styles.description}>
-            <p>
-              A well-positioned property in{" "}
-              <strong>{regionLabel}</strong>, offering strong potential for both
-              living and investment.
+          {descriptionText ? (
+            <section className={styles.description} aria-labelledby="story-heading">
+              <h2 id="story-heading" className={styles.storyLead}>
+                About this property
+              </h2>
+              {descriptionText.split(/\n+/).map((para, pi) => (
+                <p key={pi} className={styles.storyBody}>
+                  {para}
+                </p>
+              ))}
+            </section>
+          ) : null}
+
+          <div className={styles.locContext}>
+            <p className={styles.locContextBlurb}>
+              {regionCaption ? `${regionCaption} · ` : ""}
+              <Link href={`/listings/district/${encodeURIComponent(regionSlug)}`} className={styles.locLink}>
+                Explore {regionLabel}
+              </Link>
             </p>
           </div>
 
-          <div className={styles.actions}>
-            <button type="button" className={styles.primaryBtn}>
-              Contact Agent
-            </button>
-            <button type="button" className={styles.secondaryBtn}>
-              Schedule Viewing
-            </button>
-          </div>
+          <ListingContactActions listing={listing} user={user} />
           {isDebug && (
             <div
               style={{
@@ -488,19 +547,30 @@ export default function ListingPage() {
               {index + 1} / {images.length}
             </div>
             <div className={styles.lightboxImageInner}>
-              <ListingImage
-                src={images[index]?.image_url}
-                alt="Listing full size"
-                mode="contain"
-                style={{
-                  maxWidth: "95vw",
-                  maxHeight: "90vh",
-                  width: "auto",
-                  height: "auto",
-                }}
-              />
+              <ListingMediaIntrinsic src={images[index]?.image_url} alt="Listing full size" />
             </div>
           </div>
+
+          {images.length > 1 ? (
+            <div
+              className={styles.lightboxThumbRail}
+              role="tablist"
+              aria-label="Gallery thumbnails"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {images.map((img, i) => (
+                <button
+                  key={img.image_url || i}
+                  type="button"
+                  className={`${styles.lightboxThumbBtn} ${i === index ? styles.lightboxThumbBtnActive : ""}`}
+                  onClick={() => setIndex(i)}
+                  aria-label={`Photo ${i + 1}`}
+                >
+                  <ListingMediaImage src={img.image_url} alt="" fill sizes="56px" hoverZoom={false} />
+                </button>
+              ))}
+            </div>
+          ) : null}
           </div>
         ) : null}
       </div>

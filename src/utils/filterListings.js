@@ -1,6 +1,7 @@
 // src/utils/filterListings.js
 import { isChildRegion, normalizeRegionSlug } from "../constants/geographyLayer";
 import { getListingRegionSlug } from "./canonicalListing";
+import { isLandInventoryListing } from "./listingPresentation";
 
 export function filterListings(listings, filters = {}) {
   const {
@@ -42,14 +43,14 @@ export function filterListings(listings, filters = {}) {
       return false;
     }
 
-    // 🛏 Beds
-    if (beds !== null && listing.beds < Number(beds)) {
-      return false;
-    }
-
-    // 🛁 Baths
-    if (baths !== null && listing.baths < Number(baths)) {
-      return false;
+    // 🛏 Beds / 🛁 Baths — land inventory has no residential room counts; do not filter out by bd/ba
+    if (!isLandInventoryListing(listing)) {
+      if (beds !== null && listing.beds < Number(beds)) {
+        return false;
+      }
+      if (baths !== null && listing.baths < Number(baths)) {
+        return false;
+      }
     }
 
     return true;

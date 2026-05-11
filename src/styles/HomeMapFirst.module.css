@@ -46,7 +46,7 @@
     radial-gradient(circle at 68% 20%, rgba(152, 186, 240, 0.24), transparent 40%),
     radial-gradient(circle at 78% 76%, rgba(255, 186, 152, 0.2), transparent 42%);
   filter: blur(28px);
-  animation: atmosphereDrift 56s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate;
+  animation: atmosphereDrift var(--ambient-cycle-a) var(--ambient-ease-drift) infinite alternate;
 }
 
 .page::after {
@@ -56,7 +56,7 @@
     radial-gradient(rgba(118, 188, 176, 0.12) 0.5px, transparent 0.5px),
     radial-gradient(ellipse 58% 70% at 48% 52%, rgba(58, 170, 196, 0.12), transparent 74%);
   background-size: auto, 3px 3px, auto;
-  animation: grainDrift 72s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+  animation: grainDrift var(--ambient-cycle-b) var(--ambient-ease-drift) infinite;
 }
 
 .pageMain {
@@ -96,7 +96,7 @@
     radial-gradient(ellipse 42% 32% at 88% 12%, rgba(198, 200, 250, 0.16), transparent 72%);
   filter: blur(40px);
   opacity: 0.72;
-  animation: heroAtmosphereGlow 64s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate;
+  animation: heroAtmosphereGlow var(--ambient-cycle-c) var(--ambient-ease-drift) infinite alternate;
 }
 
 .heroSection::after {
@@ -405,7 +405,7 @@
   inset: 0;
   background: radial-gradient(ellipse 130% 60% at 40% -10%, rgba(255, 255, 255, 0.12), transparent 55%);
   opacity: 0.46;
-  animation: mapWaterGlint 92s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate;
+  animation: mapWaterGlint var(--ambient-cycle-d) var(--ambient-ease-drift) infinite alternate;
   pointer-events: none;
 }
 
@@ -433,9 +433,9 @@
   filter: blur(68px);
   will-change: transform, filter;
   animation:
-    seaFlowDriftA 74s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate,
-    seaFlowPastelCycle 118s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate,
-    mapShimmerDrift 96s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate;
+    seaFlowDriftA 74s var(--ambient-ease-drift) infinite alternate,
+    seaFlowPastelCycle var(--ambient-cycle-e) var(--ambient-ease-drift) infinite alternate,
+    mapShimmerDrift 96s var(--ambient-ease-drift) infinite alternate;
 }
 
 .mapPaneSeaFlowLayers::after {
@@ -460,9 +460,9 @@
   mix-blend-mode: normal;
   will-change: transform, filter;
   animation:
-    seaFlowDriftB 92s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate,
-    seaFlowSurge 84s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate,
-    mapShimmerDriftAlt 110s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate;
+    seaFlowDriftB var(--ambient-cycle-d) var(--ambient-ease-drift) infinite alternate,
+    seaFlowSurge 84s var(--ambient-ease-drift) infinite alternate,
+    mapShimmerDriftAlt 110s var(--ambient-ease-drift) infinite alternate;
 }
 
 .mapPaneMapWrap {
@@ -503,20 +503,6 @@
   padding: 8px 0 10px;
   margin-top: 4px;
   margin-bottom: 0;
-}
-
-.featuredSection::before {
-  content: "";
-  position: absolute;
-  inset: -8% -4% -4%;
-  pointer-events: none;
-  border-radius: calc(var(--ui-radius) + 6px);
-  background:
-    radial-gradient(ellipse 66% 58% at 14% 32%, rgba(248, 224, 250, 0.1), transparent 74%),
-    radial-gradient(ellipse 72% 60% at 86% 18%, rgba(222, 236, 255, 0.12), transparent 72%);
-  filter: blur(40px);
-  opacity: 0.5;
-  z-index: -1;
 }
 
 .sectionTitleRow {
@@ -829,17 +815,31 @@
     0 1px 0 rgba(255, 255, 255, 0.48);
 }
 
+/* Land inventory — subtle sand/lagoon wash, same footprint as residential cards */
+.propertyCardLand {
+  background:
+    radial-gradient(circle at 22% 0%, rgba(214, 190, 140, 0.14), transparent 42%),
+    radial-gradient(circle at 88% 12%, rgba(137, 205, 189, 0.12), transparent 48%),
+    radial-gradient(circle at 18% -8%, rgba(255, 236, 250, 0.18), transparent 46%),
+    rgba(255, 255, 255, 0.86);
+  border-color: rgba(255, 255, 255, 0.48);
+}
+
 .propertyMedia {
   position: relative;
   height: 142px;
   overflow: hidden;
 }
 
-.propertyMedia .propertyFavoriteWrap {
+.propertyMedia .propertyActionsCluster {
   position: absolute;
   top: 9px;
   right: 9px;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
   line-height: 0;
 }
 
@@ -847,11 +847,6 @@
   object-fit: cover;
   object-position: center 42%;
   filter: saturate(1.04) brightness(1.015) contrast(1.04);
-  transition: transform 720ms var(--ui-ease), filter 720ms var(--ui-ease);
-}
-
-.propertyCard:hover .propertyMedia :global(img) {
-  transform: scale(1.04);
 }
 
 .propertyMedia::after {
@@ -1007,6 +1002,35 @@
   height: 12px;
   stroke-width: 2;
   vertical-align: text-bottom;
+}
+
+.propertyMetaLand {
+  color: rgba(58, 90, 96, 0.8);
+}
+
+.propertyMetaLandRow {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.propertyMetaLandGlyph {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  opacity: 0.88;
+}
+
+.propertyMetaLandSep {
+  opacity: 0.45;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .propertyCardLand {
+    transition: none;
+  }
 }
 
 .propertyRegionCaption {

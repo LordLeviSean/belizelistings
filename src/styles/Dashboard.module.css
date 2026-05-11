@@ -33,6 +33,62 @@
   padding: 24px;
 }
 
+.draftResumeStrip {
+  margin-bottom: 22px;
+}
+
+.draftResumeTitle {
+  margin: 0 0 12px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-secondary);
+}
+
+.draftResumeGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.draftResumeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.draftResumeHeading {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.brokerInsightGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  margin-bottom: 18px;
+}
+
+.agentIntelLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 8px;
+}
+
+.agentListingColumn {
+  min-width: 0;
+}
+
+@media (max-width: 960px) {
+  .agentIntelLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .adminHero {
   position: relative;
   padding: 32px;
@@ -84,7 +140,7 @@
 
 .pageSubtitle {
   margin: 6px 0 0;
-  color: #9da7b3;
+  color: var(--text-secondary);
 }
 
 .actionBar {
@@ -114,6 +170,9 @@
 }
 
 .dashboardLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgba(169, 188, 198, 0.38);
   border-radius: 999px;
   padding: 9px 14px;
@@ -151,6 +210,14 @@
     0 16px 36px rgba(12, 40, 36, 0.18),
     0 0 0 1px rgba(255, 255, 255, 0.72) inset,
     0 0 28px rgba(46, 139, 120, 0.32);
+}
+
+button.dashboardLink:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none;
+  filter: none;
 }
 
 .statusToggle {
@@ -237,12 +304,17 @@
 }
 
 .card {
-  backdrop-filter: blur(12px);
-  transition: all 0.25s ease;
-  background: rgba(255, 255, 255, 0.72);
-  border-radius: 14px;
-  padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(var(--glass-blur));
+  transition: var(--transition-surface), transform var(--dur-3) var(--ease-default);
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(245, 252, 249, 0.72)
+  );
+  border-radius: var(--radius);
+  padding: var(--card-padding);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--elev-1);
 }
 
 .archivedCard {
@@ -264,9 +336,9 @@
 }
 
 .card:hover {
-  transform: translateY(-3px) scale(1.01);
-  border-color: rgba(120, 178, 164, 0.42);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  transform: translateY(var(--hover-lift-sm));
+  border-color: var(--border-strong);
+  box-shadow: var(--elev-2), var(--glow-teal-ambient);
 }
 
 .card:active,
@@ -277,24 +349,23 @@
 }
 
 .statCard {
-  background: linear-gradient(170deg, rgba(255, 255, 255, 0.84), rgba(247, 251, 252, 0.78));
-  border: 1px solid rgba(170, 188, 199, 0.34);
-  border-radius: 14px;
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.9), rgba(241, 249, 246, 0.82));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
   padding: 20px;
-  backdrop-filter: blur(12px);
-  transition: all 0.25s ease;
+  backdrop-filter: blur(var(--glass-blur));
+  transition: var(--transition-hover-lift);
   min-height: 122px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  box-shadow: var(--elev-1);
 }
 
 .statCard:hover {
-  transform: translateY(-6px) scale(1.02);
-  border-color: rgba(120, 178, 164, 0.42);
-  box-shadow:
-    0 12px 28px rgba(133, 174, 164, 0.24),
-    0 0 20px rgba(137, 205, 189, 0.2);
+  transform: translateY(var(--hover-lift-sm));
+  border-color: var(--border-strong);
+  box-shadow: var(--elev-2), var(--glow-teal-ambient);
 }
 
 .statLabel {
@@ -776,13 +847,18 @@
 }
 
 .primaryButton {
-  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border-radius: var(--radius);
   border: 1px solid rgba(95, 161, 145, 0.46);
   background: linear-gradient(160deg, rgba(118, 189, 170, 0.98), rgba(101, 171, 153, 0.96));
   color: #fff;
-  padding: 10px 13px;
+  padding: 10px 18px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.92rem;
   box-shadow:
     0 10px 20px rgba(72, 133, 118, 0.28),
     0 1px 0 rgba(255, 255, 255, 0.24) inset;

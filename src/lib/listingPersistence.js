@@ -1,7 +1,16 @@
 import { normalizeRegionSlug, getRegionByAny } from "../constants/geographyLayer";
+import { sanitizeAmenitiesArray } from "../constants/listingAmenities";
+import { isLandInventoryListing } from "../utils/listingPresentation";
+import { applyListingOwnershipStamp } from "../utils/ownershipAttribution";
 import { MUTATION_ENRICHMENT_STRIP_ORDER } from "./canonicalMutationStrips";
 import { extractMissingColumnName, isMissingColumnError } from "./supabaseCompat";
 import { logSupabaseMutationResult, snapshotSupabaseError } from "./supabaseRawError";
+import {
+  LISTING_MUTATION_FLOW,
+  LISTING_MUTATION_OPERATION,
+  logListingMutationFailureGrouped,
+} from "./listingMutationDiagnostics";
+import { sanitizeListingMutationPayload } from "./listingPayloadSanitize";
 
 const NEVER_STRIP_INSERT_KEYS = new Set(["user_id"]);
 
@@ -24,49 +33,24 @@ function assignBrowserInsertGlobals(error, payload) {
 }
 
 function logInsertAttemptFull(stage, result, body, extra = {}) {
-  const { data, error, status, statusText, count } = result || {};
+  const { error } = result || {};
   const strippedKeysHistory = extra.strippedColumnsSoFar ?? extra.strippedKeysHistory ?? [];
 
-  if (isProd) {
-    if (typeof console !== "undefined" && console.warn) {
-      console.warn(`[listing-insert] stage=${stage}`, {
-        errorCode: error?.code ?? null,
-        errorMessage: error?.message ?? null,
-        errorHint: error?.hint ?? null,
-        missingColumn:
-          extra.missingColumn != null ? extra.missingColumn : extractMissingColumnName(error) || null,
-        strippedKeysHistory: [...strippedKeysHistory],
-        survivingKeyCount: Object.keys(body || {}).length,
-      });
-    }
-    return { stage };
+  if (error) {
+    logListingMutationFailureGrouped({
+      operation: LISTING_MUTATION_OPERATION.INSERT,
+      mutationFlow: extra.mutationFlow ?? LISTING_MUTATION_FLOW.UNSPECIFIED,
+      stage,
+      attempt: extra.attempt ?? 0,
+      retryMax: extra.retryMax ?? null,
+      strippedKeys: strippedKeysHistory,
+      payload: body,
+      error,
+    });
+    assignBrowserInsertGlobals(error, body);
   }
 
-  const snapshot = {
-    stage,
-    at: new Date().toISOString(),
-    fullInsertResponse: {
-      data: cloneJson(data),
-      error: error ? snapshotSupabaseError(error) : null,
-      status: status ?? null,
-      statusText: statusText ?? null,
-      count: count ?? null,
-    },
-    errorCode: error?.code ?? null,
-    errorMessage: error?.message ?? null,
-    errorDetails: error?.details ?? null,
-    errorHint: error?.hint ?? null,
-    survivingPayload: cloneJson(body),
-    survivingPayloadKeys: Object.keys(body || {}),
-    strippedKeysHistory: [...strippedKeysHistory],
-    missingColumn:
-      extra.missingColumn != null ? extra.missingColumn : extractMissingColumnName(error) || null,
-    ...extra,
-  };
-
-  console.warn(`[listing-insert] stage=${stage}`, snapshot);
-  assignBrowserInsertGlobals(error ?? null, body);
-  return snapshot;
+  return { stage };
 }
 
 function logInsertSuccess(stage, body, meta = {}) {
@@ -83,7 +67,14 @@ function logInsertSuccess(stage, body, meta = {}) {
 /**
  * Last-resort insert: ONLY title, price, status pending, user_id (RLS-safe partial schema).
  */
-async function runMinimalFinalSafeInsert(supabase, originalPayload, strippedKeys, attempts, priorError) {
+async function runMinimalFinalSafeInsert(
+  supabase,
+  originalPayload,
+  strippedKeys,
+  attempts,
+  priorError,
+  { mutationFlow = LISTING_MUTATION_FLOW.UNSPECIFIED } = {}
+) {
   const minimalPayload = {
     title: String(originalPayload?.title ?? "").trim() || "__bl_listing__",
     price: Number(originalPayload?.price ?? 0),
@@ -120,12 +111,18 @@ async function runMinimalFinalSafeInsert(supabase, originalPayload, strippedKeys
     return { data: result.data, error: null, appliedPayload: minimalPayload };
   }
 
-  if (typeof console !== "undefined" && console.warn) {
-    console.warn("[listing-insert:minimal-final-safe] failed", {
-      errorCode: result.error?.code ?? null,
-      errorMessage: result.error?.message ?? null,
-      errorHint: result.error?.hint ?? null,
+  if (result.error) {
+    logListingMutationFailureGrouped({
+      operation: LISTING_MUTATION_OPERATION.INSERT,
+      mutationFlow,
+      stage: "minimal-final-safe",
+      attempt: attempts,
+      retryMax: null,
+      strippedKeys,
+      payload: minimalPayload,
+      error: result.error,
     });
+    assignBrowserInsertGlobals(result.error, minimalPayload);
   }
   return { data: null, error: result.error, appliedPayload: minimalPayload };
 }
@@ -175,13 +172,11 @@ async function runMinimalListingInsertProbe(supabase, originalPayload) {
   return summary;
 }
 
-export function buildCreateListingPayload({
+function buildListingCoreFields({
   form,
   authUserId,
-  linkedPropertyId = "",
   linkedUnitId = "",
 }) {
-  const nowIso = new Date().toISOString();
   const selectedSlug = normalizeRegionSlug(form?.district || "");
   const meta = getRegionByAny(selectedSlug);
   let regionSlug = selectedSlug;
@@ -192,7 +187,35 @@ export function buildCreateListingPayload({
   }
 
   const listingType = String(form?.listing_type || "sale").trim().toLowerCase();
-  return {
+  const land = isLandInventoryListing({
+    property_type: form?.property_type,
+    listing_type: form?.listing_type,
+    market_type: form?.market_type,
+    category: form?.category,
+  });
+
+  const desc = String(form?.description ?? "").trim();
+  const amenities = sanitizeAmenitiesArray(form?.amenities);
+  const legacy = String(form?.legacyFeaturesTail ?? "").trim();
+  const sqRaw = form?.square_feet;
+  const sqParsed = sqRaw !== "" && sqRaw != null ? Number(sqRaw) : NaN;
+
+  let beds;
+  let baths;
+  let garage;
+  if (land) {
+    beds = null;
+    baths = null;
+    garage = null;
+  } else {
+    const bedsRaw = form?.beds;
+    const bathsRaw = form?.baths;
+    beds = bedsRaw === "" || bedsRaw == null ? 0 : Number(bedsRaw || 0);
+    baths = bathsRaw === "" || bathsRaw == null ? 0 : Number(bathsRaw || 0);
+    garage = 0;
+  }
+
+  const payload = {
     title: String(form?.title || "").trim(),
     price: Number(form?.price || 0),
     property_type: String(form?.property_type || "").trim().toLowerCase(),
@@ -200,16 +223,41 @@ export function buildCreateListingPayload({
     region_slug: regionSlug,
     subregion_slug: subregionSlug,
     listing_type: listingType,
-    beds: Number(form?.beds || 0),
-    baths: Number(form?.baths || 0),
-    garage: 0,
+    beds,
+    baths,
+    garage,
     currency: "BZD",
-    status: "pending",
-    lifecycle_status: "pending",
-    moderation_status: "pending_review",
     user_id: authUserId,
     listed_by: authUserId,
     managed_by: authUserId,
+    unit_id: linkedUnitId || null,
+    description: desc.length > 0 ? desc : null,
+  };
+  payload.amenities = amenities.length > 0 ? amenities : null;
+  if (legacy) {
+    payload.features = amenities.length ? `${legacy}, ${amenities.join(", ")}` : legacy;
+  } else if (amenities.length > 0) {
+    payload.features = amenities.join(", ");
+  } else {
+    payload.features = null;
+  }
+  if (!Number.isNaN(sqParsed)) payload.square_feet = sqParsed;
+  return payload;
+}
+
+/** Full insert payload for submit-for-review / non-draft creation paths. */
+export function buildCreateListingPayload({
+  form,
+  authUserId,
+  linkedUnitId = "",
+}) {
+  const nowIso = new Date().toISOString();
+  const core = buildListingCoreFields({ form, authUserId, linkedUnitId });
+  return {
+    ...core,
+    status: "pending",
+    lifecycle_status: "pending",
+    moderation_status: "pending_review",
     reviewed_by: null,
     moderated_by: null,
     published_by: null,
@@ -233,9 +281,106 @@ export function buildCreateListingPayload({
     vacated_at: null,
     maintenance_hold: false,
     seasonal_hold: false,
-    property_id: linkedPropertyId || null,
-    unit_id: linkedUnitId || null,
   };
+}
+
+/** Insert payload for a private draft row (not moderated, not public inventory). */
+export function buildDraftListingPayload({
+  form,
+  authUserId,
+  linkedUnitId = "",
+}) {
+  const nowIso = new Date().toISOString();
+  const core = buildListingCoreFields({ form, authUserId, linkedUnitId });
+  const title = core.title || "Untitled draft";
+  const price = Number.isFinite(core.price) && core.price > 0 ? core.price : 0;
+
+  return {
+    ...core,
+    title,
+    price,
+    status: "draft",
+    lifecycle_status: "draft",
+    moderation_status: "draft",
+    reviewed_by: null,
+    moderated_by: null,
+    published_by: null,
+    verified_by: null,
+    archived_by: null,
+    closed_by: null,
+    deleted_by: null,
+    published_at: null,
+    verified_at: null,
+    archived_at: null,
+    rented_at: null,
+    sold_at: null,
+    expired_at: null,
+    deleted_at: null,
+    reviewed_at: null,
+    created_at: nowIso,
+    updated_at: nowIso,
+    occupancy_status: null,
+    vacancy_status: null,
+    occupied_at: null,
+    vacated_at: null,
+    maintenance_hold: false,
+    seasonal_hold: false,
+  };
+}
+
+/** Partial update while staying in draft (controlled saves). Omits ownership ids — unchanged server-side. */
+export function buildDraftAutosavePayload({
+  form,
+  authUserId,
+  linkedUnitId = "",
+}) {
+  const nowIso = new Date().toISOString();
+  const core = buildListingCoreFields({
+    form,
+    authUserId,
+    linkedUnitId,
+  });
+  const { user_id: _uid, listed_by: _lb, managed_by: _mb, ...writable } = core;
+
+  const title = writable.title || "Untitled draft";
+  const price = Number.isFinite(writable.price) ? writable.price : 0;
+
+  return {
+    ...writable,
+    title,
+    price,
+    status: "draft",
+    lifecycle_status: "draft",
+    moderation_status: "draft",
+    updated_at: nowIso,
+  };
+}
+
+/** Transition a draft listing to pending review with full field snapshot + canonical lifecycle. */
+export async function submitDraftListingForReview(supabase, {
+  listingId,
+  form,
+  authUserId,
+  linkedUnitId = "",
+}) {
+  const snapshot = buildCreateListingPayload({
+    form,
+    authUserId,
+    linkedUnitId,
+  });
+  const { created_at: _c, user_id: _u, ...rest } = snapshot;
+  const updates = {
+    ...rest,
+    status: "pending",
+    lifecycle_status: "pending",
+    moderation_status: "pending_review",
+    updated_at: new Date().toISOString(),
+  };
+  return applyListingOwnershipStamp(supabase, {
+    listingId,
+    updates,
+    mutationFlow: LISTING_MUTATION_FLOW.SUBMIT_DRAFT_REVIEW,
+  });
 }
 
 function buildInsertSuccessMeta({ strippedKeys, attempts, usedMinimalFinalSafe }) {
@@ -248,9 +393,14 @@ function buildInsertSuccessMeta({ strippedKeys, attempts, usedMinimalFinalSafe }
   };
 }
 
-export async function safeInsertListing(supabase, payload) {
-  const originalPayload = { ...payload };
-  let body = { ...payload };
+export async function safeInsertListing(supabase, payload, options = {}) {
+  const mutationFlow = options.mutationFlow ?? LISTING_MUTATION_FLOW.UNSPECIFIED;
+  const sanitized = sanitizeListingMutationPayload({ ...payload }, {
+    mutationFlow,
+    operation: LISTING_MUTATION_OPERATION.INSERT,
+  });
+  const originalPayload = { ...sanitized };
+  let body = { ...sanitized };
   let attempts = 0;
   const maxAttempts = 48;
   const strippedKeys = [];
@@ -282,6 +432,9 @@ export async function safeInsertListing(supabase, payload) {
     lastError = error;
     logInsertAttemptFull(`strip-or-fatal:${attempts}`, result, body, {
       strippedColumnsSoFar: strippedKeys,
+      mutationFlow,
+      attempt: attempts,
+      retryMax: maxAttempts,
     });
 
     const missingFromMessage = extractMissingColumnName(error);
@@ -308,6 +461,17 @@ export async function safeInsertListing(supabase, payload) {
       }
     }
 
+    logListingMutationFailureGrouped({
+      operation: LISTING_MUTATION_OPERATION.INSERT,
+      mutationFlow,
+      stage: "strip-loop-exhausted",
+      attempt: attempts,
+      retryMax: maxAttempts,
+      strippedKeys,
+      payload: body,
+      error: lastError,
+    });
+    assignBrowserInsertGlobals(lastError, body);
     break;
   }
 
@@ -316,7 +480,8 @@ export async function safeInsertListing(supabase, payload) {
     originalPayload,
     strippedKeys,
     attempts,
-    lastError
+    lastError,
+    { mutationFlow }
   );
 
   if (!finalAttempt.error && finalAttempt.data) {
@@ -339,36 +504,16 @@ export async function safeInsertListing(supabase, payload) {
   const terminalError = finalAttempt.error || lastError || new Error("Unable to insert listing safely.");
   assignBrowserInsertGlobals(terminalError, body);
 
-  if (isProd) {
-    if (typeof console !== "undefined" && console.warn) {
-      console.warn("[listing-insert] terminal failure after minimal-final-safe", {
-        errorMessage: terminalError?.message ?? String(terminalError),
-        errorCode: terminalError?.code ?? null,
-        strippedKeyCount: strippedKeys.length,
-      });
-    }
-  } else {
-    console.error("[listing-insert] terminal=after-minimal-final-safe", {
-      at: new Date().toISOString(),
-      attempts,
-      strippedKeysHistory: strippedKeys,
-      lastInsertResponse: lastResult
-        ? {
-            data: cloneJson(lastResult.data),
-            error: lastResult.error ? snapshotSupabaseError(lastResult.error) : null,
-            status: lastResult.status ?? null,
-            statusText: lastResult.statusText ?? null,
-            count: lastResult.count ?? null,
-          }
-        : null,
-      errorCode: terminalError?.code ?? null,
-      errorMessage: terminalError?.message ?? null,
-      errorDetails: terminalError?.details ?? null,
-      errorHint: terminalError?.hint ?? null,
-      survivingPayload: cloneJson(body),
-      survivingPayloadKeys: Object.keys(body || {}),
-    });
-  }
+  logListingMutationFailureGrouped({
+    operation: LISTING_MUTATION_OPERATION.INSERT,
+    mutationFlow,
+    stage: "terminal-after-minimal-final-safe",
+    attempt: attempts,
+    retryMax: maxAttempts,
+    strippedKeys,
+    payload: body,
+    error: terminalError,
+  });
 
   return {
     data: null,
@@ -392,6 +537,7 @@ export async function getUserActiveListingCount(supabase, userId) {
     .from("listings")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
+    .neq("status", "draft")
     .not("status", "eq", "archived")
     .or("lifecycle_status.is.null,lifecycle_status.neq.archived");
 
@@ -400,7 +546,8 @@ export async function getUserActiveListingCount(supabase, userId) {
       .from("listings")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
-      .neq("status", "archived");
+      .neq("status", "archived")
+      .neq("status", "draft");
     return Number(legacy.count || 0);
   }
 
@@ -416,7 +563,8 @@ export async function getUserActiveListingCount(supabase, userId) {
       .from("listings")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
-      .neq("status", "archived");
+      .neq("status", "archived")
+      .neq("status", "draft");
     return Number(legacy.count || 0);
   }
 

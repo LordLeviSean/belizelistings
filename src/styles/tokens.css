@@ -1,0 +1,141 @@
+/**
+ * BelizeListings — shared visual + motion foundation (Ecosystem Refinement Phase).
+ * Import before other app CSS. Components should prefer these over one-off timings.
+ */
+:root {
+  /* —— Core palette (existing product tokens) —— */
+  --background: #f3faf7;
+  --foreground: #35554d;
+  --bg-main: #eef8f4;
+  --bg-card: rgba(255, 255, 255, 0.68);
+  --bg-elevated: rgba(255, 255, 255, 0.82);
+  --border-subtle: rgba(147, 186, 176, 0.3);
+  --border-strong: rgba(137, 174, 166, 0.45);
+  --text-primary: #32534b;
+  --text-secondary: rgba(66, 98, 90, 0.75);
+  --text-tertiary: rgba(86, 118, 109, 0.58);
+  --accent: #6fb89f;
+  --accent-hover: #5fa58d;
+  --danger: #bc6f79;
+  --danger-hover: #ab616f;
+  --warning: #c2a06a;
+  --radius: 14px;
+  --section-spacing: 24px;
+  --card-padding: 16px;
+  --element-gap-sm: 8px;
+  --element-gap-md: 12px;
+  --element-gap-lg: 16px;
+
+  /* —— Duration scale —— */
+  --dur-instant: 120ms;
+  --dur-1: 180ms;
+  --dur-2: 260ms;
+  --dur-3: 400ms;
+  --dur-4: 580ms;
+  --dur-5: 720ms;
+  --dur-6: 900ms;
+
+  /* —— Easing (single motion philosophy) —— */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-default: cubic-bezier(0.32, 0.06, 0.2, 1);
+  --ease-spring: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Legacy aliases */
+  --motion-fast: var(--dur-2);
+  --motion-medium: var(--dur-3);
+  --motion-slow: var(--dur-4);
+  --motion-ease: var(--ease-out-soft);
+  --motion-ease-emphasis: var(--ease-default);
+
+  /* —— Hover depth (use with transforms; respect prefers-reduced-motion in components) —— */
+  --hover-lift-xs: -1px;
+  --hover-lift-sm: -2px;
+  --hover-lift-md: -3px;
+  --hover-scale-media: 1.04;
+  --hover-scale-control: 1.05;
+
+  /* —— Glass layer —— */
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-bg-strong: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.44);
+  --glass-border-mint: rgba(154, 210, 200, 0.22);
+  --glass-blur: 12px;
+  --glass-blur-strong: 22px;
+  --glass-inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.48);
+
+  /* —— Atmospheric lighting (page washes / map ambience) —— */
+  --ambient-mint: rgba(137, 205, 189, 0.14);
+  --ambient-lagoon: rgba(159, 179, 217, 0.12);
+  --ambient-sand: rgba(214, 190, 140, 0.08);
+  --ambient-blush: rgba(232, 210, 234, 0.055);
+
+  /* —— Glow language —— */
+  --glow-rgb: 127, 193, 181;
+  --glow-soft: 0 0 0 1px rgba(var(--glow-rgb), 0.18), 0 0 16px rgba(var(--glow-rgb), 0.14);
+  --glow-medium: 0 0 0 1px rgba(var(--glow-rgb), 0.24), 0 0 22px rgba(var(--glow-rgb), 0.18);
+  --glow-strong: 0 0 0 1px rgba(var(--glow-rgb), 0.3), 0 0 30px rgba(var(--glow-rgb), 0.24);
+  --glow-teal-ambient: 0 0 28px rgba(122, 198, 186, 0.14);
+  --glow-coral-ambient: 0 0 22px rgba(186, 120, 166, 0.12);
+
+  /* —— Elevation / shadow steps —— */
+  --elev-inset-soft: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  --elev-0: var(--elev-inset-soft);
+  --elev-1: 0 8px 20px rgba(18, 36, 44, 0.06), var(--elev-inset-soft);
+  --elev-2: 0 14px 32px rgba(96, 128, 134, 0.1), var(--elev-inset-soft);
+  --elev-3: 0 20px 40px rgba(88, 122, 128, 0.12), var(--elev-inset-soft);
+
+  /* —— Composable transitions —— */
+  --transition-color: color var(--dur-2) var(--ease-out-soft);
+  --transition-opacity: opacity var(--dur-1) var(--ease-default);
+  --transition-transform: transform var(--dur-4) var(--ease-spring);
+  --transition-surface:
+    background var(--dur-3) var(--ease-out-soft), border-color var(--dur-3) var(--ease-out-soft),
+    box-shadow var(--dur-4) var(--ease-default);
+  --transition-hover-lift:
+    transform var(--dur-3) var(--ease-out-soft), box-shadow var(--dur-4) var(--ease-default),
+    border-color var(--dur-3) var(--ease-out-soft), opacity var(--dur-2) var(--ease-default);
+  --transition-listing-media:
+    transform var(--dur-5) var(--ease-default), filter var(--dur-4) var(--ease-default),
+    opacity var(--dur-2) var(--ease-default);
+
+  --focus-ring-color: rgba(95, 168, 154, 0.55);
+  --focus-ring-offset: 2px;
+
+  /* Listing media skeleton */
+  --listing-media-shimmer: linear-gradient(
+    92deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.08) 38%,
+    rgba(255, 255, 255, 0.42) 50%,
+    rgba(255, 255, 255, 0.1) 62%,
+    rgba(255, 255, 255, 0) 100%
+  );
+
+  /* Atmospheric / ocean current (long cycles — prefer transform + opacity only) */
+  --ambient-cycle-a: 56s;
+  --ambient-cycle-b: 72s;
+  --ambient-cycle-c: 64s;
+  --ambient-cycle-d: 92s;
+  --ambient-cycle-e: 118s;
+  --ambient-ease-drift: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #f3faf7;
+    --foreground: #35554d;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0ms;
+    --dur-1: 0ms;
+    --dur-2: 0ms;
+    --dur-3: 0ms;
+    --dur-4: 0ms;
+    --dur-5: 0ms;
+    --dur-6: 0ms;
+  }
+}

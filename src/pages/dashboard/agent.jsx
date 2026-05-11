@@ -1,8 +1,15 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/lib/supabaseClient";
 import SiteNav from "@/components/SiteNav";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { DashboardShell } from "@/components/dashboard";
+import { DASHBOARD_ROLE } from "@/constants/dashboardRoles";
+import {
+  AgentActivityFeed,
+  AgentQuickActionBar,
+  ListingIntelStrip,
+} from "@/components/operational";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import PropertiesPanel from "@/components/PropertiesPanel";
 import VacancyPanel from "@/components/VacancyPanel";
@@ -21,6 +28,10 @@ import {
 } from "@/utils/ownershipAttribution";
 import { OWNERSHIP_ACTIONS } from "@/constants/ownershipModel";
 import { getLifecycleStatus } from "@/utils/canonicalListing";
+import { INQUIRY_STATUS } from "@/constants/inquiryModel";
+import { fetchInquiriesForAgent, updateInquiryStatus } from "@/lib/listingInquiries";
+import AgentInquiryList from "@/components/inquiry/AgentInquiryList";
+import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import styles from "@/styles/Dashboard.module.css";
 
 export default function AgentDashboard() {
@@ -33,8 +44,10 @@ export default function AgentDashboard() {
   const [deleteTargetId, setDeleteTargetId] = useState("");
   const [activeTab, setActiveTab] = useState("listings");
   const [visibilityFilter, setVisibilityFilter] = useState("all");
+  const [inquiries, setInquiries] = useState([]);
+  const [inquiryBusyId, setInquiryBusyId] = useState("");
 
-  const loadListings = async () => {
+  const loadListings = useCallback(async () => {
     if (!user) {
       router.replace("/login");
       return;
@@ -47,18 +60,68 @@ export default function AgentDashboard() {
 
     const { data } = await supabase
       .from("listings")
-      .select("*")
+      .select("*, listing_images(image_url,position)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     setListings(data || []);
     setLoading(false);
-  };
+  }, [router, role, user]);
+
+  const loadInquiries = useCallback(async () => {
+    if (!user?.id || role !== "agent") return;
+    const { data, error } = await fetchInquiriesForAgent(supabase, user.id, { limit: 100 });
+    if (!error) setInquiries(data || []);
+  }, [user?.id, role]);
 
   useEffect(() => {
     if (roleLoading) return;
     void loadListings();
-  }, [roleLoading, user?.id, role]);
+  }, [roleLoading, loadListings]);
+
+  useEffect(() => {
+    if (roleLoading) return;
+    void loadInquiries();
+  }, [roleLoading, loadInquiries]);
+
+  useEffect(() => {
+    if (!user?.id || role !== "agent") return;
+    const channel = supabase
+      .channel(`agent-listings-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "listings", filter: `user_id=eq.${user.id}` },
+        () => {
+          void loadListings();
+        }
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id, role, loadListings]);
+
+  useEffect(() => {
+    if (!user?.id || role !== "agent") return;
+    const channel = supabase
+      .channel(`agent-inquiries-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "listing_inquiries",
+          filter: `agent_user_id=eq.${user.id}`,
+        },
+        () => {
+          void loadInquiries();
+        }
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id, role, loadInquiries]);
 
   const archiveListing = async (listingId) => {
     const confirmSeenKey = "operator_archive_confirm_seen_v1";
@@ -131,6 +194,31 @@ export default function AgentDashboard() {
     setActionId("");
   };
 
+  const markInquiryResponded = async (inquiryId) => {
+    if (!user?.id) return;
+    setInquiryBusyId(String(inquiryId));
+    const { error } = await updateInquiryStatus(supabase, {
+      inquiryId,
+      agentUserId: user.id,
+      status: INQUIRY_STATUS.RESPONDED,
+    });
+    setInquiryBusyId("");
+    if (error) {
+      const msg = error.message || "";
+      if (/listing_inquiries|relation|does not exist/i.test(msg)) {
+        showToast({
+          type: "info",
+          message: "Run the listing inquiries migration in Supabase to enable lead inbox.",
+        });
+      } else {
+        showToast({ type: "error", message: msg || "Could not update inquiry" });
+      }
+      return;
+    }
+    await loadInquiries();
+    showToast({ type: "success", message: "Marked as responded" });
+  };
+
   const permanentlyDeleteListing = async () => {
     if (!deleteTargetId) return;
     setActionId(`delete:${deleteTargetId}`);
@@ -149,31 +237,129 @@ export default function AgentDashboard() {
     setActionId("");
   };
 
+  const draftRows = useMemo(() => {
+    return listings
+      .filter((l) => getLifecycleStatus(l) === LISTING_LIFECYCLE.DRAFT)
+      .slice()
+      .sort((a, b) => {
+        const tb = new Date(b.updated_at || b.created_at || 0).getTime();
+        const ta = new Date(a.updated_at || a.created_at || 0).getTime();
+        return tb - ta;
+      });
+  }, [listings]);
+
+  const draftCount = draftRows.length;
+
+  const listingsById = useMemo(() => {
+    const m = {};
+    for (const row of listings) {
+      if (row?.id != null) m[row.id] = row;
+    }
+    return m;
+  }, [listings]);
+
+  const unreadInquiryCount = useMemo(
+    () =>
+      inquiries.filter((q) => !q.read_at && q.status === INQUIRY_STATUS.NEW).length,
+    [inquiries]
+  );
+
   const filteredListings = listings.filter((listing) => {
     const lifecycle = getLifecycleStatus(listing);
+    if (visibilityFilter === "drafts") return lifecycle === LISTING_LIFECYCLE.DRAFT;
     if (visibilityFilter === "archived") return lifecycle === LISTING_LIFECYCLE.ARCHIVED;
     if (visibilityFilter === "rejected") return lifecycle === LISTING_LIFECYCLE.REJECTED;
     if (visibilityFilter === "active") return lifecycle !== LISTING_LIFECYCLE.ARCHIVED;
     return true;
   });
 
+  const listingEmptyProps =
+    visibilityFilter === "drafts"
+      ? { variant: "drafts", primary: { label: "Create listing", href: "/dashboard/create" } }
+      : visibilityFilter === "archived"
+        ? { variant: "archived" }
+        : visibilityFilter === "rejected"
+          ? { variant: "rejected", primary: { label: "Create listing", href: "/dashboard/create" } }
+          : visibilityFilter === "active"
+            ? { variant: "active", primary: { label: "Create listing", href: "/dashboard/create" } }
+            : { variant: "listings", primary: { label: "Create listing", href: "/dashboard/create" } };
+
+  const handleResumeDraft = () => {
+    const top = draftRows[0];
+    if (top?.id) {
+      router.push(`/dashboard/create?draft=${encodeURIComponent(top.id)}`);
+      return;
+    }
+    showToast({ type: "info", message: "No drafts yet. Start from Create listing." });
+  };
+
   return (
     <div className={styles.page}>
       <SiteNav active="dashboard" />
       <main className={styles.main}>
+        <DashboardShell roleKey={DASHBOARD_ROLE.agent} title="Agent Dashboard">
         <div className={styles.adminWrapper}>
         <Breadcrumbs />
-        <h1 className={styles.title}>Agent Dashboard</h1>
 
-        <div style={{ marginBottom: 16 }}>
-          <button className={styles.primaryButton} onClick={() => router.push("/dashboard/create")}>
-            + Create Listing
-          </button>
-        </div>
+        <AgentQuickActionBar
+          onCreate={() => router.push("/dashboard/create")}
+          onResumeDraft={handleResumeDraft}
+          draftCount={draftCount}
+          hasListings={listings.length > 0}
+        />
+
+        {draftRows.length > 0 ? (
+          <div className={styles.draftResumeStrip} aria-label="Draft workspaces">
+            <p className={styles.draftResumeTitle}>Resume a draft</p>
+            <div className={styles.draftResumeGrid}>
+              {draftRows.slice(0, 4).map((d) => {
+                const ts = d.updated_at || d.created_at;
+                const label = ts
+                  ? `Edited ${new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`
+                  : "Draft";
+                return (
+                  <div key={d.id} className={`${styles.card} ${styles.draftResumeCard}`}>
+                    <div>
+                      <h4 className={styles.draftResumeHeading}>{d.title || "Untitled draft"}</h4>
+                      <p className={styles.muted}>{label}</p>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.approveButton}
+                      onClick={() => router.push(`/dashboard/create?draft=${encodeURIComponent(d.id)}`)}
+                    >
+                      Continue
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         <div className={styles.adminTabs}>
-          <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("listings")}>
+          <button
+            type="button"
+            className={styles.dashboardLink}
+            onClick={() => {
+              setActiveTab("listings");
+              setVisibilityFilter("all");
+            }}
+          >
             Listings
+          </button>
+          <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("inquiries")}>
+            Inquiries {unreadInquiryCount > 0 ? `(${unreadInquiryCount})` : ""}
+          </button>
+          <button
+            type="button"
+            className={styles.dashboardLink}
+            onClick={() => {
+              setActiveTab("listings");
+              setVisibilityFilter("drafts");
+            }}
+          >
+            Drafts {draftCount > 0 ? `(${draftCount})` : ""}
           </button>
           <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("properties")}>
             Properties
@@ -185,10 +371,11 @@ export default function AgentDashboard() {
 
         {activeTab === "listings" ? (
           <>
-            <div className={styles.statusToggle} role="tablist" aria-label="Operator listing visibility filter">
+            <div className={styles.statusToggle} role="tablist" aria-label="Listing visibility filter">
               {[
                 { label: "All", value: "all" },
                 { label: "Active", value: "active" },
+                { label: "Drafts", value: "drafts" },
                 { label: "Rejected", value: "rejected" },
                 { label: "Archived", value: "archived" },
               ].map((option) => (
@@ -207,7 +394,13 @@ export default function AgentDashboard() {
               ))}
             </div>
 
-            <div className={styles.pendingGrid}>
+            <div className={styles.agentIntelLayout}>
+              <AgentActivityFeed
+                listings={listings}
+                inquiries={inquiries}
+                onOpenListing={(listingId) => router.push(`/listing/${listingId}`)}
+              />
+              <div className={styles.agentListingColumn}>
               {loading ? (
                 <div className={styles.pendingGrid}>
                   {Array.from({ length: 3 }).map((_, index) => (
@@ -216,8 +409,9 @@ export default function AgentDashboard() {
                 </div>
               ) : null}
               {!loading && filteredListings.length === 0 ? (
-                <p className={styles.muted}>No listings yet.</p>
+                <PremiumEmptyState compact {...listingEmptyProps} />
               ) : null}
+              <div className={styles.pendingGrid}>
               {filteredListings.map((l) => {
                 const lc = getLifecycleStatus(l);
                 const isArchived = lc === LISTING_LIFECYCLE.ARCHIVED;
@@ -244,6 +438,7 @@ export default function AgentDashboard() {
                       <p className={styles.archivedHint}>Not public — resubmit after edits for another review.</p>
                     ) : null}
                   </div>
+                  <ListingIntelStrip listing={l} />
                   {isArchived ? (
                     <>
                       <button
@@ -285,6 +480,26 @@ export default function AgentDashboard() {
                         {actionId === String(l.id) ? "Removing..." : "Archive Listing"}
                       </button>
                     </>
+                  ) : lc === LISTING_LIFECYCLE.DRAFT ? (
+                    <>
+                      <button
+                        className={styles.approveButton}
+                        type="button"
+                        onClick={() => router.push(`/dashboard/create?draft=${encodeURIComponent(l.id)}`)}
+                        style={{ marginTop: 8 }}
+                      >
+                        Continue editing
+                      </button>
+                      <button
+                        className={styles.deleteListingButton}
+                        type="button"
+                        onClick={() => archiveListing(l.id)}
+                        disabled={actionId === String(l.id)}
+                        style={{ marginTop: 8 }}
+                      >
+                        {actionId === String(l.id) ? "Removing..." : "Discard draft"}
+                      </button>
+                    </>
                   ) : (
                     <button
                       className={styles.deleteListingButton}
@@ -297,8 +512,25 @@ export default function AgentDashboard() {
                   )}
                 </div>
               )})}
+              </div>
+              </div>
             </div>
           </>
+        ) : null}
+        {activeTab === "inquiries" ? (
+          <section aria-label="Lead inbox">
+            <p className={styles.muted} style={{ marginBottom: 16, maxWidth: "62ch" }}>
+              Buyer messages from listing pages route here. Mark responded when you&apos;ve replied outside the app —
+              deeper CRM wiring can extend this layer later.
+            </p>
+            <AgentInquiryList
+              inquiries={inquiries}
+              listingsById={listingsById}
+              busyId={inquiryBusyId}
+              onMarkResponded={markInquiryResponded}
+              onOpenListing={(listingId) => router.push(`/listing/${listingId}`)}
+            />
+          </section>
         ) : null}
         <DeleteConfirmModal
           isOpen={Boolean(deleteTargetId)}
@@ -320,6 +552,7 @@ export default function AgentDashboard() {
 
         {activeTab === "vacancy" ? <VacancyPanel userId={user?.id} /> : null}
       </div>
+        </DashboardShell>
       </main>
     </div>
   );

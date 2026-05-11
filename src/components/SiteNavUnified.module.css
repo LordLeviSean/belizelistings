@@ -241,6 +241,32 @@
   }
 }
 
+/* Operational pulse — sea-glass mint; matches Favorites/Dashboard pill rhythm */
+.navPillNotifications {
+  background: rgba(238, 248, 244, 0.94);
+  border-color: rgba(154, 210, 196, 0.44);
+  color: rgba(38, 72, 68, 0.94);
+  box-shadow:
+    0 10px 24px rgba(10, 20, 28, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.48) inset;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 12px;
+}
+
+.navPillNotifications:hover {
+  border-color: rgba(130, 198, 182, 0.52);
+}
+
+.navPillNotificationsActive {
+  border-color: rgba(72, 150, 132, 0.48);
+  background: rgba(226, 242, 236, 0.98);
+  box-shadow:
+    0 12px 28px rgba(10, 20, 28, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
 .navPillDashboard {
   background: rgba(246, 239, 220, 0.9);
   border-color: rgba(210, 190, 148, 0.44);

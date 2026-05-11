@@ -16,6 +16,8 @@ export default function DashboardEntry() {
       router.replace("/admin");
     } else if (role === "agent") {
       router.replace("/dashboard/agent");
+    } else if (role === "broker" || role === "brokerage" || role === "property_manager") {
+      router.replace("/dashboard/broker");
     } else {
       router.replace("/dashboard/user");
     }

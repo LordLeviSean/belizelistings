@@ -13,9 +13,14 @@ import useSeaFlowMode from "../../hooks/useSeaFlowMode";
 import { ACTIVITY_SIGNAL_TYPES } from "../../constants/trustModel";
 import { clearAllFavoritesForListings } from "../../lib/favorites";
 import { isMissingColumnError } from "../../lib/supabaseCompat";
+import { sanitizeListingMutationPayload } from "../../lib/listingPayloadSanitize";
+import { LISTING_MUTATION_FLOW } from "../../lib/listingMutationDiagnostics";
 import { getOperationalLifecycleCountsFromDb } from "../../lib/listingOperationalStats";
 import AdminOperationalStats from "../../components/AdminOperationalStats";
+import { DashboardShell } from "../../components/dashboard";
+import { DASHBOARD_ROLE } from "../../constants/dashboardRoles";
 import styles from "../../styles/Dashboard.module.css";
+import PremiumEmptyState from "../../components/ui/PremiumEmptyState";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -140,19 +145,27 @@ export default function AdminPage() {
     if (bulkLoading) return;
     setBulkLoading(nextStatus);
     const pendingOr = "status.eq.pending,moderation_status.eq.pending_review,lifecycle_status.eq.pending";
-    let { data: updatedRows, error } = await supabase
-      .from("listings")
-      .update({
+    const bulkPayload = sanitizeListingMutationPayload(
+      {
         status: nextStatus,
         lifecycle_status: nextStatus,
         moderation_status: nextStatus === "approved" ? "approved" : nextStatus,
-      })
+      },
+      { mutationFlow: LISTING_MUTATION_FLOW.UNSPECIFIED, operation: "PATCH" }
+    );
+    let { data: updatedRows, error } = await supabase
+      .from("listings")
+      .update(bulkPayload)
       .or(pendingOr)
       .select("id");
     if (error && isMissingColumnError(error)) {
+      const minimalBulk = sanitizeListingMutationPayload(
+        { status: nextStatus },
+        { mutationFlow: LISTING_MUTATION_FLOW.UNSPECIFIED, operation: "PATCH" }
+      );
       ({ data: updatedRows, error } = await supabase
         .from("listings")
-        .update({ status: nextStatus })
+        .update(minimalBulk)
         .eq("status", "pending")
         .select("id"));
     }
@@ -187,9 +200,12 @@ export default function AdminPage() {
     <div className={styles.page}>
       <SiteNav active="dashboard" />
       <main className={styles.main}>
+        <DashboardShell
+          roleKey={DASHBOARD_ROLE.admin}
+          title="Admin Control Center"
+          subtitle={`Admin: ${adminUserId} · Role: ${adminRole}`}
+        >
         <div className={styles.adminWrapper}>
-          <h1 className={styles.title}>Admin Control Center</h1>
-          <p className={styles.muted}>Admin: {adminUserId} · Role: {adminRole}</p>
           <AdminOperationalStats
             total={totals.listings}
             pending={totals.pending}
@@ -337,7 +353,7 @@ export default function AdminPage() {
                     </p>
                   ))
                 ) : (
-                  <p className={styles.muted}>No activity yet</p>
+                  <PremiumEmptyState variant="activity" compact title="Operational activity is quiet" />
                 )}
               </div>
               <p className={styles.muted} style={{ marginTop: 8 }}>
@@ -347,6 +363,7 @@ export default function AdminPage() {
             </aside>
           </div>
         </div>
+        </DashboardShell>
       </main>
     </div>
   );

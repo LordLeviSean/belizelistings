@@ -20,6 +20,7 @@ import {
 } from "../utils/ownershipAttribution";
 import { OWNERSHIP_ACTIONS } from "../constants/ownershipModel";
 import styles from "../styles/Dashboard.module.css";
+import PremiumEmptyState from "./ui/PremiumEmptyState";
 
 function formatDistrict(district = "") {
   return getRegionLabel(district);
@@ -177,12 +178,16 @@ export default function PendingListingsPanel({ onAction }) {
   }
   if (!listings.length) {
     return (
-      <div className={styles.card}>
-        <p className={styles.muted}>No pending listings</p>
-        <button type="button" className={styles.primaryButton} onClick={() => router.push("/dashboard/create")}>
-          Create Listing
-        </button>
-      </div>
+      <PremiumEmptyState
+        variant="moderation"
+        title="Nothing waiting in the moderation queue"
+        description="When agents submit new inventory, submissions surface here for calm editorial review."
+        primary={{
+          label: "Create listing",
+          onClick: () => router.push("/dashboard/create"),
+          className: styles.primaryButton,
+        }}
+      />
     );
   }
 

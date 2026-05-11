@@ -1,12 +1,16 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Bath, BedDouble, ChevronLeft, ChevronRight, Heart, MapPin } from "lucide-react";
+import ListingMediaImage from "./listing/ListingMediaImage";
+import ShareListingIconButton from "./ShareListingIconButton";
 import homeStyles from "../styles/HomeMapFirst.module.css";
 import favoriteStyles from "../styles/FavoriteButton.module.css";
 import { BELIZE_MAP_REGION_CONFIG } from "../constants/belizeMapRegions";
 import { getRegionCaption, getRegionLabel, normalizeRegionSlug } from "../constants/geographyLayer";
 import { getListingRegionSlug } from "../utils/canonicalListing";
+import { normalizeListingImageEntry } from "../utils/listingImage";
+import { isLandInventoryListing } from "../utils/listingPresentation";
+import LandParcelGlyph from "./icons/LandParcelGlyph";
 
 function formatPrice(price, currency) {
   const numericPrice = Number(price);
@@ -46,7 +50,11 @@ function districtLabel(district = "") {
 export default function HomePropertyCard({
   listing,
   imageSizes = "(max-width: 760px) 100vw, (max-width: 980px) 50vw, 33vw",
+  imagePriority = false,
+  /** When true, renders as a static preview (no link to listing detail) — create-workspace parity */
+  disableNavigation = false,
   showFavoriteButton = false,
+  showShareButton = true,
   isFavorited = false,
   favoriteBusy = false,
   favoriteSurface = "default",
@@ -60,9 +68,9 @@ export default function HomePropertyCard({
   const listingImages = useMemo(
     () =>
       (listing?.images || [])
-        .map((item) => (typeof item === "string" ? item : item?.image_url))
+        .map((item) => normalizeListingImageEntry(item))
         .filter(Boolean)
-        .filter((img) => !String(img).toLowerCase().includes("map")),
+        .filter((url) => !String(url).toLowerCase().includes("map")),
     [listing?.images]
   );
 
@@ -99,12 +107,19 @@ export default function HomePropertyCard({
   const district = districtLabel(canonicalRegionSlug);
   const districtCaption = getRegionCaption(canonicalRegionSlug);
 
-  return (
-    <Link
-      href={`/listing/${listing.id}`}
-      className={homeStyles.propertyCard}
-      aria-label={`View ${listing?.title || "Belize property"}`}
-    >
+  const isLand = useMemo(() => isLandInventoryListing(listing), [listing]);
+
+  const bedsN = Number(listing?.beds);
+  const bathsN = Number(listing?.baths);
+  const showBeds = Number.isFinite(bedsN) && bedsN > 0;
+  const showBaths = Number.isFinite(bathsN) && bathsN > 0;
+
+  const outerClass = [homeStyles.propertyCard, isLand ? homeStyles.propertyCardLand : ""]
+    .filter(Boolean)
+    .join(" ");
+
+  const cardInner = (
+    <>
       <div
         className={homeStyles.propertyMedia}
         onTouchStart={(event) => {
@@ -117,7 +132,15 @@ export default function HomePropertyCard({
           shiftCarousel(deltaX < 0 ? 1 : -1);
         }}
       >
-        <Image src={imageUrl} alt={listing?.title || "Listing"} fill sizes={imageSizes} />
+        <ListingMediaImage
+          key={imageUrl}
+          src={imageUrl}
+          alt={listing?.title || "Listing"}
+          fill
+          sizes={imageSizes}
+          priority={imagePriority}
+          hoverZoom
+        />
 
         <span
           className={`${homeStyles.propertyBadge} ${
@@ -127,28 +150,37 @@ export default function HomePropertyCard({
           {status}
         </span>
 
-        {showFavoriteButton ? (
-          <span className={homeStyles.propertyFavoriteWrap}>
-            <button
-              type="button"
-              className={[
-                favoriteStyles.favoriteButton,
-                isFavorited ? favoriteStyles.favoriteButtonActive : "",
-                favoriteSurface === "saved" ? favoriteStyles.favoriteButtonWarm : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
-              aria-pressed={isFavorited}
-              disabled={favoriteBusy}
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                onFavoriteClick?.(listing.id);
-              }}
-            >
-              <Heart fill={isFavorited ? "currentColor" : "none"} />
-            </button>
+        {showFavoriteButton || showShareButton ? (
+          <span className={homeStyles.propertyActionsCluster}>
+            {showFavoriteButton ? (
+              <button
+                type="button"
+                className={[
+                  favoriteStyles.favoriteButton,
+                  isFavorited ? favoriteStyles.favoriteButtonActive : "",
+                  favoriteSurface === "saved" ? favoriteStyles.favoriteButtonWarm : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                aria-pressed={isFavorited}
+                disabled={favoriteBusy}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onFavoriteClick?.(listing.id);
+                }}
+              >
+                <Heart fill={isFavorited ? "currentColor" : "none"} />
+              </button>
+            ) : null}
+            {showShareButton ? (
+              <ShareListingIconButton
+                listingId={listing.id}
+                title={listing?.title}
+                surface={favoriteSurface === "saved" ? "saved" : "default"}
+              />
+            ) : null}
           </span>
         ) : null}
 
@@ -203,19 +235,59 @@ export default function HomePropertyCard({
         <p className={homeStyles.propertyPrice}>
           {formatPrice(listing?.price, listing?.currency || "BZD")}
         </p>
-        <p className={homeStyles.propertyMeta}>
-          <span>
-            <BedDouble /> {listing?.beds || 0} bd
-          </span>
-          <span>
-            <Bath /> {listing?.baths || 0} ba
-          </span>
-          <span>
-            <MapPin /> {district}
-          </span>
+        <p className={`${homeStyles.propertyMeta} ${isLand ? homeStyles.propertyMetaLand : ""}`}>
+          {isLand ? (
+            <span className={homeStyles.propertyMetaLandRow}>
+              <LandParcelGlyph className={homeStyles.propertyMetaLandGlyph} />
+              <span>Land</span>
+              <span className={homeStyles.propertyMetaLandSep} aria-hidden>
+                ·
+              </span>
+              <MapPin />
+              <span>{district}</span>
+            </span>
+          ) : (
+            <>
+              {showBeds ? (
+                <span>
+                  <BedDouble /> {bedsN} bd
+                </span>
+              ) : null}
+              {showBaths ? (
+                <span>
+                  <Bath /> {bathsN} ba
+                </span>
+              ) : null}
+              <span>
+                <MapPin /> {district}
+              </span>
+            </>
+          )}
         </p>
         {districtCaption ? <p className={homeStyles.propertyRegionCaption}>{districtCaption}</p> : null}
       </div>
+    </>
+  );
+
+  if (disableNavigation) {
+    return (
+      <div
+        className={outerClass}
+        role="group"
+        aria-label={`Preview: ${listing?.title || "Belize property"}`}
+      >
+        {cardInner}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/listing/${listing.id}`}
+      className={outerClass}
+      aria-label={`View ${listing?.title || "Belize property"}`}
+    >
+      {cardInner}
     </Link>
   );
 }

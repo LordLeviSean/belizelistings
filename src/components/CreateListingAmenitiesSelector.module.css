@@ -1,0 +1,85 @@
+/* Create Listing amenities — sea-glass chips aligned with workspace / filter DNA */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.group {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.groupLabel {
+  padding: 0;
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(72, 100, 104, 0.78);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  appearance: none;
+  margin: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  color: rgba(38, 72, 68, 0.92);
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(154, 202, 190, 0.42);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.88), rgba(236, 248, 244, 0.72));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    var(--elev-0, 0 1px 2px rgba(72, 120, 108, 0.06));
+  transition: var(--transition-hover-lift, transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease);
+}
+
+.chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(46, 139, 120, 0.38);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 8px 20px rgba(72, 128, 116, 0.1);
+}
+
+.chip:focus-visible {
+  outline: 2px solid rgba(46, 139, 120, 0.45);
+  outline-offset: 2px;
+}
+
+.chipOn {
+  border-color: rgba(32, 122, 108, 0.52);
+  background: linear-gradient(155deg, rgba(210, 242, 232, 0.95), rgba(184, 232, 218, 0.88));
+  color: rgba(18, 58, 52, 0.98);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    var(--elev-2, 0 10px 24px rgba(52, 102, 88, 0.12)),
+    0 0 0 1px rgba(46, 139, 120, 0.12);
+}
+
+.chipOn:hover {
+  border-color: rgba(28, 108, 96, 0.55);
+}
+
+@media (max-width: 520px) {
+  .chip {
+    padding: 10px 14px;
+    font-size: 0.8rem;
+  }
+}

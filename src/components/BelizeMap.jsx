@@ -280,6 +280,7 @@ const BelizeMap = ({
       }`}
     >
       <div className={styles.mapStage}>
+        <div className={styles.mapAmbientVeil} aria-hidden />
         <div
           ref={mapContainerRef}
           className={styles.mapSvg}

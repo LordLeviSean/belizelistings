@@ -38,7 +38,6 @@ export const MUTATION_ENRICHMENT_STRIP_ORDER = [
   "rented_at",
   "sold_at",
   "expired_at",
-  "property_id",
   "unit_id",
   "currency",
   "garage",

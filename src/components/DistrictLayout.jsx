@@ -1,4 +1,5 @@
 import styles from "../styles/District.module.css";
+import PremiumEmptyState from "./ui/PremiumEmptyState";
 
 export default function DistrictLayout({
   districtLabel,
@@ -163,13 +164,11 @@ export default function DistrictLayout({
       </section>
 
       {filteredCount === 0 ? (
-        <div className={styles.empty}>
-          <h3>No listings found in this district</h3>
-          <p>Try adjusting filters or explore nearby areas</p>
-          <button type="button" className={styles.emptyCta} onClick={onBrowseAll}>
-            Browse All Listings
-          </button>
-        </div>
+        <PremiumEmptyState
+          variant="district"
+          compact
+          primary={{ label: "Browse all listings", onClick: onBrowseAll }}
+        />
       ) : null}
 
       {renderListings()}

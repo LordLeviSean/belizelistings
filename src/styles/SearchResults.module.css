@@ -28,6 +28,10 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.searchEmpty {
+  grid-column: 1 / -1;
+}
+
 .skeleton {
   height: 110px;
   border-radius: 12px;

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Heart, Search } from "lucide-react";
 import useFavorites from "../hooks/useFavorites";
 import SiteNav from "../components/SiteNav";
 import BackButton from "../components/BackButton";
 import HomePropertyCard from "../components/HomePropertyCard";
 import { useToast } from "../components/ui/ToastProvider";
 import styles from "../styles/Favorites.module.css";
+import dashboardStyles from "../styles/Dashboard.module.css";
 
 export default function FavoritesPage() {
   const { favorites, removeFavorite, clearAllFavorites, isBusy, loading } = useFavorites();
@@ -76,13 +78,23 @@ export default function FavoritesPage() {
             ))}
           </div>
         ) : favoriteListings.length === 0 ? (
-          <div className={styles.empty}>
-            <h2 className={styles.emptyTitle}>You haven&apos;t saved any listings yet</h2>
-            <p className={styles.emptyText}>Save properties to view them here</p>
-            <Link href="/" className={styles.cta}>
-              Browse Listings
-            </Link>
-          </div>
+          <section className={styles.coastalEmpty} aria-label="No saved listings yet">
+            <div className={styles.coastalEmptyWaves} aria-hidden />
+            <div className={styles.coastalEmptyContent}>
+              <div className={styles.coastalEmptyIcon} aria-hidden>
+                <Heart strokeWidth={2} />
+              </div>
+              <h2 className={styles.coastalEmptyTitle}>Heart your listings to add them to Favorites!</h2>
+              <p className={styles.coastalEmptySub}>
+                Save places you love while you browse — they&apos;ll appear in this calm space.
+              </p>
+              <Link href="/" className={`${dashboardStyles.primaryButton} ${styles.coastalEmptyCta}`}>
+                <Search size={18} strokeWidth={2} aria-hidden />
+                Browse Belize listings
+              </Link>
+            </div>
+            <div className={styles.coastalEmptyAtmosphere} aria-hidden />
+          </section>
         ) : (
           <div className={styles.listingsGrid}>
             {favoriteListings.map((listing) => (
