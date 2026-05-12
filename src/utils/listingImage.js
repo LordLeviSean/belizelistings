@@ -3,10 +3,19 @@
  * resolve relative to the current page (e.g. `listings/x.png` on `/listing/5`
  * becomes `/listing/listings/x.png` and 404s).
  */
+/** Normalize `images[]` entry: string URL or `{ image_url }` object. */
+export function normalizeListingImageEntry(entry) {
+  if (entry == null) return "";
+  if (typeof entry === "string") return resolveListingImageUrl(entry);
+  return resolveListingImageUrl(entry?.image_url ?? entry?.url ?? "");
+}
+
 export function resolveListingImageUrl(url) {
   if (url == null) return "";
   const s = String(url).trim();
   if (s === "") return "";
+  /* Local preview URLs must pass through unchanged (browser-local blobs / data URIs). */
+  if (/^blob:/i.test(s) || /^data:/i.test(s)) return s;
   if (/^https?:\/\//i.test(s) || s.startsWith("//")) return s;
   const rooted = s.startsWith("/") ? s : `/${s}`;
 

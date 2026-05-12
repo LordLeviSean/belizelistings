@@ -1,10 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { ensureProfile } from "../lib/ensureProfile";
+import { resolveTierFromProfile } from "../constants/operationalModel";
+import { getTrustTierCapabilities, resolveProfileVerification } from "../constants/trustModel";
+import { formatWelcomeGreeting, resolveDashboardGreetingName } from "../lib/dashboardGreeting";
+
+/** Load profile without brittle column lists (missing columns must not wipe role). */
+async function fetchProfileRowForUser(supabaseClient, userId) {
+  const star = await supabaseClient.from("profiles").select("*").eq("id", userId).maybeSingle();
+  if (!star.error) return star.data ?? null;
+
+  const roleOnly = await supabaseClient.from("profiles").select("role").eq("id", userId).maybeSingle();
+  if (!roleOnly.error) {
+    if (star.error) {
+      console.warn("[useUserRole] profile select(*) failed; using role-only row", star.error);
+    }
+    return roleOnly.data ?? null;
+  }
+  console.warn("[useUserRole] profile load error", star.error || roleOnly.error);
+  return null;
+}
 
 export default function useUserRole() {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState("user");
+  const [tier, setTier] = useState("public");
+  const [verification, setVerification] = useState(resolveProfileVerification());
+  const [profileRow, setProfileRow] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,6 +37,9 @@ export default function useUserRole() {
         if (!cancelled) {
           setUser(null);
           setRole("user");
+          setProfileRow(null);
+          setTier("public");
+          setVerification(resolveProfileVerification());
           setLoading(false);
         }
         return;
@@ -26,14 +51,14 @@ export default function useUserRole() {
 
       await ensureProfile(sessionUser);
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", sessionUser.id)
-        .maybeSingle();
+      const profile = await fetchProfileRowForUser(supabase, sessionUser.id);
 
       if (!cancelled) {
-        setRole(profile?.role ?? "user");
+        const resolvedRole = profile?.role ?? "user";
+        setProfileRow(profile);
+        setRole(resolvedRole);
+        setTier(resolveTierFromProfile(profile));
+        setVerification(resolveProfileVerification(profile || {}));
         setLoading(false);
       }
     };
@@ -63,5 +88,34 @@ export default function useUserRole() {
     };
   }, []);
 
-  return { user, role, loading };
+  const greetingName = useMemo(() => {
+    if (!user?.id) return "";
+    return resolveDashboardGreetingName({
+      username: profileRow?.username,
+      email: profileRow?.email ?? user?.email,
+      full_name: profileRow?.full_name,
+    });
+  }, [profileRow?.email, profileRow?.full_name, profileRow?.username, user?.email, user?.id]);
+
+  const welcomePhrase = useMemo(
+    () =>
+      formatWelcomeGreeting({
+        username: profileRow?.username,
+        email: profileRow?.email ?? user?.email,
+        full_name: profileRow?.full_name,
+      }),
+    [profileRow?.email, profileRow?.full_name, profileRow?.username, user?.email, user?.id]
+  );
+
+  return {
+    user,
+    role,
+    tier,
+    verification,
+    profile: profileRow,
+    greetingName,
+    welcomePhrase,
+    trustCapabilities: getTrustTierCapabilities(tier),
+    loading,
+  };
 }

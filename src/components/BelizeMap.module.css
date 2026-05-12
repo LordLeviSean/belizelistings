@@ -49,6 +49,40 @@
   height: 98%;
 }
 
+/** Phase 6A — subconscious sea-glass pulse behind SVG (transform + opacity only). */
+.mapAmbientVeil {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.mapAmbientVeil::before {
+  content: "";
+  position: absolute;
+  inset: -14%;
+  background:
+    radial-gradient(ellipse 62% 54% at 44% 58%, rgba(92, 198, 186, 0.08), transparent 72%),
+    radial-gradient(ellipse 52% 46% at 74% 26%, rgba(130, 175, 220, 0.06), transparent 70%);
+  filter: blur(26px);
+  opacity: 0.85;
+  animation: mapStageAmbientPulse var(--ambient-cycle-c) var(--ambient-ease-drift) infinite alternate;
+  will-change: transform, opacity;
+}
+
+@keyframes mapStageAmbientPulse {
+  0% {
+    transform: translate3d(-0.12%, 0.06%, 0) scale(1);
+    opacity: 0.78;
+  }
+  100% {
+    transform: translate3d(0.1%, -0.08%, 0) scale(1.025);
+    opacity: 0.92;
+  }
+}
+
 .mapStage .mapSvg {
   transform: none;
   transition: none;
@@ -96,6 +130,11 @@
   z-index: 1;
   transform: translateY(3%);
   transition: transform 1.06s var(--map-ease);
+}
+
+.map.mapFitLayout .mapAmbientVeil {
+  border-radius: 22% 22% 36% 36%;
+  inset: 4% 2% -2% 2%;
 }
 
 .map.mapFitLayout .mapStage:has(.districtHover) .mapSvg {
@@ -260,9 +299,81 @@
 .mapDistrictGroup.districtActive {
   filter: brightness(1.065) saturate(1.04) drop-shadow(0 0 5px rgba(108, 196, 186, 0.2))
     drop-shadow(0 -0.5px 0 rgba(255, 255, 255, 0.085));
+  animation: districtActivePulse 3.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
 
 .mapDistrictGroup.districtActive.districtHover {
   filter: brightness(1.082) saturate(1.05) drop-shadow(0 0 6px rgba(108, 196, 186, 0.22))
     drop-shadow(0 -0.5px 0 rgba(255, 255, 255, 0.092));
+  animation: none;
+}
+
+@keyframes districtActivePulse {
+  0% {
+    filter: brightness(1.05) saturate(1.02)
+      drop-shadow(0 0 4px rgba(108, 196, 186, 0.18)) drop-shadow(
+        0 -0.5px 0 rgba(255, 255, 255, 0.07)
+      );
+  }
+  50% {
+    filter: brightness(1.075) saturate(1.04)
+      drop-shadow(0 0 6px rgba(108, 196, 186, 0.22)) drop-shadow(
+        0 -0.5px 0 rgba(255, 255, 255, 0.1)
+      );
+  }
+  100% {
+    filter: brightness(1.05) saturate(1.02)
+      drop-shadow(0 0 4px rgba(108, 196, 186, 0.18)) drop-shadow(
+        0 -0.5px 0 rgba(255, 255, 255, 0.07)
+      );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mapDistrictGroup.districtActive {
+    animation: none !important;
+  }
+
+  .mapAmbientVeil::before {
+    animation: none !important;
+    transform: none !important;
+    will-change: auto;
+  }
+}
+
+/* District hero map panel variant (light, integrated surface) */
+.mapDistrictHero {
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse 84% 62% at 18% 14%, rgba(66, 154, 164, 0.12), transparent 66%),
+    radial-gradient(ellipse 78% 58% at 84% 12%, rgba(130, 172, 230, 0.12), transparent 68%),
+    linear-gradient(180deg, rgba(242, 250, 252, 0.3), rgba(232, 244, 248, 0.18));
+  box-shadow:
+    inset 0 0 0 1px rgba(154, 210, 200, 0.22),
+    inset 0 -14px 26px rgba(14, 30, 40, 0.08),
+    0 24px 60px rgba(18, 36, 44, 0.1),
+    0 0 56px rgba(118, 202, 194, 0.14);
+}
+
+.mapDistrictHero .mapStage {
+  filter: saturate(1.02) contrast(1.01);
+}
+
+.mapDistrictHero .mapDistrictGroup.districtDimmed {
+  opacity: 0.46;
+  filter: saturate(0.74) brightness(0.76);
+}
+
+.mapDistrictHero .mapDistrictGroup.districtActive {
+  filter:
+    brightness(1.08)
+    saturate(1.06)
+    drop-shadow(0 0 7px rgba(108, 196, 186, 0.24))
+    drop-shadow(0 8px 14px rgba(68, 128, 162, 0.13));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mapDistrictHero .mapDistrictGroup.districtActive {
+    animation: none !important;
+  }
 }

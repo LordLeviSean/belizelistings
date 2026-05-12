@@ -1,66 +1,139 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
+import { clearAllFavoritesForListing } from "../lib/favorites";
 import { traceAction } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
+import { isMissingColumnError } from "../lib/supabaseCompat";
+import { sanitizeListingMutationPayload } from "../lib/listingPayloadSanitize";
+import { LISTING_MUTATION_FLOW, LISTING_MUTATION_OPERATION } from "../lib/listingMutationDiagnostics";
+import { getLifecycleLabel } from "../constants/operationalModel";
+import { getLifecycleStatus } from "../utils/canonicalListing";
+import { normalizeUsername, validateUsernameCandidate } from "../lib/usernameRules";
 import styles from "../styles/Dashboard.module.css";
+import mu from "./ManageUsersPanel.module.css";
+
+function listingOwnerProfileId(listing) {
+  return String(listing?.user_id || listing?.agent_id || "").trim();
+}
+
+async function loadListingsForProfileId(supabaseClient, profileId) {
+  const pid = String(profileId).trim();
+  const selectAttempts = [
+    "id, user_id, agent_id, status, lifecycle_status, moderation_status",
+    "id, user_id, status, lifecycle_status, moderation_status",
+    "id, user_id, agent_id, status",
+    "id, user_id, status",
+  ];
+  for (const columns of selectAttempts) {
+    const { data, error } = await supabaseClient
+      .from("listings")
+      .select(columns)
+      .or(`user_id.eq.${pid},agent_id.eq.${pid}`);
+    if (!error) return data || [];
+    if (!isMissingColumnError(error)) {
+      console.error("[manage-users-panel] listings query failed", error);
+      return [];
+    }
+  }
+  return [];
+}
 
 export default function ManageUsersPanel({ onAction }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [users, setUsers] = useState([]);
-  const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [listingsByUserId, setListingsByUserId] = useState({});
+  const [listingsLoadingId, setListingsLoadingId] = useState("");
   const [actionKey, setActionKey] = useState("");
   const [roleUpdatingId, setRoleUpdatingId] = useState("");
-  const [newUser, setNewUser] = useState({ email: "", password: "", role: "user" });
+  const [newUser, setNewUser] = useState({ email: "", username: "", password: "", role: "user" });
   const [creatingUser, setCreatingUser] = useState(false);
   const [createUserMessage, setCreateUserMessage] = useState("");
+  const [modalFieldError, setModalFieldError] = useState("");
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [roleUnlocked, setRoleUnlocked] = useState({});
+  const [listingsUnlocked, setListingsUnlocked] = useState({});
+  const listingsUnlockedRef = useRef({});
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    const [{ data: usersData }, { data: listingsData }] = await Promise.all([
-      supabase.from("profiles").select("*"),
-      supabase.from("listings").select("id, user_id, status"),
-    ]);
+  useEffect(() => {
+    listingsUnlockedRef.current = listingsUnlocked;
+  }, [listingsUnlocked]);
+
+  const loadUsers = useCallback(async () => {
+    setUsersLoading(true);
+    const { data: usersData, error: usersError } = await supabase.from("profiles").select("*");
+    if (usersError) {
+      console.error("[manage-users-panel] profiles load error", usersError);
+    }
     setUsers(usersData || []);
-    setListings(listingsData || []);
-    setLoading(false);
+    setUsersLoading(false);
+  }, []);
+
+  const fetchListingsForUser = useCallback(async (userId) => {
+    const id = String(userId);
+    setListingsLoadingId(id);
+    const rows = await loadListingsForProfileId(supabase, id);
+    setListingsByUserId((prev) => ({ ...prev, [id]: rows }));
+    setListingsLoadingId("");
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    void loadUsers();
+  }, [loadUsers]);
 
   useEffect(() => {
+    let debounceL;
+    let debounceP;
     const channel = supabase
-      .channel("admin-listings-users")
+      .channel("admin-listings-users-v2")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "listings" },
         () => {
-          loadData();
+          clearTimeout(debounceL);
+          debounceL = setTimeout(() => {
+            const unlocked = listingsUnlockedRef.current;
+            const ids = Object.keys(unlocked).filter((k) => unlocked[k]);
+            for (const uid of ids) {
+              void fetchListingsForUser(uid);
+            }
+          }, 420);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles" },
+        () => {
+          clearTimeout(debounceP);
+          debounceP = setTimeout(() => {
+            void loadUsers();
+          }, 420);
         }
       )
       .subscribe();
 
     return () => {
+      clearTimeout(debounceL);
+      clearTimeout(debounceP);
       supabase.removeChannel(channel);
     };
-  }, [loadData]);
+  }, [fetchListingsForUser, loadUsers]);
 
   const listingBuckets = useMemo(() => {
     const byUser = {};
-    for (const listing of listings) {
-      const key = String(listing.user_id || "");
-      if (!byUser[key]) byUser[key] = [];
-      byUser[key].push(listing);
+    for (const [uid, rows] of Object.entries(listingsByUserId)) {
+      byUser[uid] = rows || [];
     }
     return byUser;
-  }, [listings]);
+  }, [listingsByUserId]);
+
+  const isRoleUnlocked = (userId) => !!roleUnlocked[String(userId)];
+  const isListingsUnlocked = (userId) => !!listingsUnlocked[String(userId)];
 
   const updateRole = async (userId, newRole) => {
+    if (!isRoleUnlocked(userId)) return;
     setRoleUpdatingId(String(userId));
     traceAction({
       type: "admin_update_role",
@@ -77,19 +150,24 @@ export default function ManageUsersPanel({ onAction }) {
       setRoleUpdatingId("");
       return;
     }
-    await loadData();
+    await loadUsers();
     onAction?.("Updated user role");
     showToast({ type: "success", message: "Role updated" });
     setRoleUpdatingId("");
   };
 
-  const updateListingStatus = async (listingId, status) => {
+  const updateListingStatus = async (userId, listingId, status) => {
+    if (!isListingsUnlocked(userId)) return;
     setActionKey(`${listingId}:${status}`);
     traceAction({
       type: "admin_userpanel_update_listing_status",
       payload: { listingId, status },
     });
-    const { error } = await supabase.from("listings").update({ status }).eq("id", listingId);
+    const patch = sanitizeListingMutationPayload(
+      { status },
+      { mutationFlow: LISTING_MUTATION_FLOW.UNSPECIFIED, operation: LISTING_MUTATION_OPERATION.PATCH }
+    );
+    const { error } = await supabase.from("listings").update(patch).eq("id", listingId);
     traceAction({
       type: "admin_userpanel_update_listing_status_result",
       payload: { listingId, status },
@@ -100,13 +178,18 @@ export default function ManageUsersPanel({ onAction }) {
       setActionKey("");
       return;
     }
-    await loadData();
+    if (status === "approved") {
+      await clearAllFavoritesForListing(listingId);
+    }
+    await fetchListingsForUser(userId);
+    await loadUsers();
     onAction?.(`Updated listing to ${status}`);
     showToast({ type: "success", message: `Listing ${status}` });
     setActionKey("");
   };
 
-  const deleteListing = async (listingId) => {
+  const deleteListing = async (userId, listingId) => {
+    if (!isListingsUnlocked(userId)) return;
     setActionKey(`${listingId}:delete`);
     traceAction({
       type: "admin_userpanel_delete_listing",
@@ -124,14 +207,31 @@ export default function ManageUsersPanel({ onAction }) {
       setActionKey("");
       return;
     }
-    await loadData();
+    await fetchListingsForUser(userId);
+    await loadUsers();
     onAction?.("Deleted listing from user panel");
     showToast({ type: "info", message: "Listing deleted" });
     setActionKey("");
   };
 
   const createUser = async () => {
-    if (!newUser.email.trim() || !newUser.password.trim()) return;
+    setModalFieldError("");
+    if (!newUser.email.trim() || !newUser.password.trim()) {
+      setCreateUserMessage("Email and password are required.");
+      return false;
+    }
+    const uCheck = validateUsernameCandidate(newUser.username);
+    if (!uCheck.ok) {
+      setModalFieldError(uCheck.message);
+      return false;
+    }
+    const norm = uCheck.username;
+    const dupLocal = users.some((u) => normalizeUsername(u.username) === norm);
+    if (dupLocal) {
+      setModalFieldError("That username is already taken.");
+      return false;
+    }
+
     setCreatingUser(true);
     setCreateUserMessage("");
     try {
@@ -143,20 +243,24 @@ export default function ManageUsersPanel({ onAction }) {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify(newUser),
+        body: JSON.stringify({
+          email: newUser.email.trim(),
+          username: norm,
+          password: newUser.password,
+          role: newUser.role,
+        }),
       });
       const payload = await response.json();
       if (!response.ok) {
         setCreateUserMessage(payload?.error || "Unable to create user");
         return false;
-      } else {
-        setCreateUserMessage("User created successfully");
-        setNewUser({ email: "", password: "", role: "user" });
-        await loadData();
-        onAction?.("Created new user");
-        showToast({ type: "success", message: "User created" });
-        return true;
       }
+      setCreateUserMessage("User created successfully");
+      setNewUser({ email: "", username: "", password: "", role: "user" });
+      await loadUsers();
+      onAction?.("Created new user");
+      showToast({ type: "success", message: "User created" });
+      return true;
     } catch (error) {
       setCreateUserMessage(error.message || "Unable to create user");
       return false;
@@ -165,7 +269,29 @@ export default function ManageUsersPanel({ onAction }) {
     }
   };
 
-  if (loading) {
+  const openCreateModal = () => {
+    setModalFieldError("");
+    setCreateUserMessage("");
+    setShowCreateUserModal(true);
+  };
+
+  const unlockListings = (userId) => {
+    const id = String(userId);
+    setListingsUnlocked((prev) => ({ ...prev, [id]: true }));
+    void fetchListingsForUser(id);
+  };
+
+  const lockListings = (userId) => {
+    const id = String(userId);
+    setListingsUnlocked((prev) => ({ ...prev, [id]: false }));
+    setListingsByUserId((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  if (usersLoading && users.length === 0) {
     return (
       <div style={{ display: "grid", gap: 10 }}>
         {Array.from({ length: 3 }).map((_, index) => (
@@ -179,84 +305,177 @@ export default function ManageUsersPanel({ onAction }) {
     <div style={{ display: "grid", gap: 10 }}>
       <div className={styles.card}>
         <h3 className={styles.sectionTitle}>Create New User</h3>
-        <button type="button" className={styles.primaryButton} onClick={() => setShowCreateUserModal(true)}>
+        <button type="button" className={styles.primaryButton} onClick={openCreateModal}>
           + Create User
         </button>
         {createUserMessage ? <p className={styles.muted} style={{ marginTop: 8 }}>{createUserMessage}</p> : null}
       </div>
       {users.map((user) => {
-        const userListings = listingBuckets[String(user.id)] || [];
-        const approved = userListings.filter((l) => l.status === "approved").length;
-        const pending = userListings.filter((l) => l.status === "pending").length;
-        const rejected = userListings.filter((l) => l.status === "rejected").length;
-        const archived = userListings.filter((l) => l.status === "archived").length;
+        const uid = String(user.id);
+        const userListings = listingBuckets[uid] || [];
+        const approved = userListings.filter((l) => getLifecycleStatus(l) === "approved").length;
+        const pending = userListings.filter((l) => getLifecycleStatus(l) === "pending").length;
+        const rejected = userListings.filter((l) => getLifecycleStatus(l) === "rejected").length;
+        const archived = userListings.filter((l) => getLifecycleStatus(l) === "archived").length;
+        const roleOk = isRoleUnlocked(user.id);
+        const listOk = isListingsUnlocked(user.id);
+        const displayUsername = user.username ? String(user.username) : "—";
+
         return (
-          <div key={user.id} className={styles.card}>
-            <p><strong>{user.full_name || user.email || "User"}</strong></p>
-            <p className={styles.muted}>{user.email || "No email"}</p>
-            <p className={styles.muted}>
-              Total: {userListings.length} · Approved: {approved} · Pending: {pending} · Rejected: {rejected} · Archived: {archived}
-            </p>
-            <select
-              className={styles.select}
-              value={user.role || "user"}
-              disabled={roleUpdatingId === String(user.id)}
-              onChange={(e) => updateRole(user.id, e.target.value)}
-            >
-              <option value="admin">Admin</option>
-              <option value="agent">Agent</option>
-              <option value="user">User</option>
-            </select>
-            {roleUpdatingId === String(user.id) ? (
-              <p className={styles.muted} style={{ marginTop: 6 }}>Processing...</p>
-            ) : null}
-            {userListings.length > 0 ? (
-              <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
-                {userListings.map((listing) => (
-                  <div key={listing.id} className={styles.userListingRow}>
-                    <div>
-                      <p style={{ margin: 0, fontWeight: 600 }}>Listing {String(listing.id).slice(0, 8)}</p>
-                      <p className={styles.muted} style={{ margin: 0 }}>
-                        Status: <span className={`${styles.statusBadge} ${styles[`status${String(listing.status || "").charAt(0).toUpperCase()}${String(listing.status || "").slice(1)}`]}`}>{listing.status || "unknown"}</span>
-                      </p>
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button
-                        type="button"
-                        className={styles.approveButton}
-                        disabled={actionKey === `${listing.id}:approved` || actionKey === `${listing.id}:rejected` || actionKey === `${listing.id}:delete`}
-                        onClick={() => updateListingStatus(listing.id, "approved")}
-                      >
-                        {actionKey === `${listing.id}:approved` ? "Processing..." : "Approve"}
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.rejectButton}
-                        disabled={actionKey === `${listing.id}:approved` || actionKey === `${listing.id}:rejected` || actionKey === `${listing.id}:delete`}
-                        onClick={() => updateListingStatus(listing.id, "rejected")}
-                      >
-                        {actionKey === `${listing.id}:rejected` ? "Processing..." : "Reject"}
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.deleteListingButton}
-                        disabled={actionKey === `${listing.id}:approved` || actionKey === `${listing.id}:rejected` || actionKey === `${listing.id}:delete`}
-                        onClick={() => deleteListing(listing.id)}
-                      >
-                        {actionKey === `${listing.id}:delete` ? "Processing..." : "Delete"}
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.dashboardLink}
-                        onClick={() => router.push(`/listing/${listing.id}?admin=true`)}
-                      >
-                        View
-                      </button>
-                    </div>
-                  </div>
-                ))}
+          <div key={user.id} className={`${styles.card} ${mu.userCard}`}>
+            <div className={mu.userGrid}>
+              <div>
+                <span className={mu.th}>Username</span>
+                <p className={mu.cellMuted} style={{ margin: 0, fontWeight: 650 }}>{displayUsername}</p>
               </div>
-            ) : null}
+              <div>
+                <span className={mu.th}>Email</span>
+                <p className={mu.cellMuted} style={{ margin: 0 }}>{user.email || "—"}</p>
+              </div>
+              <div className={mu.roleCell}>
+                <span className={mu.th}>Role</span>
+                <div className={roleOk ? "" : mu.roleMuted}>
+                  <select
+                    className={styles.select}
+                    style={{ width: "100%", maxWidth: 200 }}
+                    value={user.role || "user"}
+                    disabled={!roleOk || roleUpdatingId === uid}
+                    onChange={(e) => updateRole(user.id, e.target.value)}
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="agent">Agent</option>
+                    <option value="user">User</option>
+                  </select>
+                </div>
+                {roleUpdatingId === uid ? (
+                  <p className={styles.muted} style={{ marginTop: 6 }}>Processing…</p>
+                ) : null}
+              </div>
+              <div>
+                <span className={mu.th}>Status</span>
+                <p className={mu.cellMuted} style={{ margin: 0 }}>Active</p>
+              </div>
+              <div className={mu.unlockCol}>
+                <span className={mu.th}>Role controls</span>
+                {roleOk ? (
+                  <>
+                    <p className={mu.warnStrip}>Unlocked — role changes apply immediately.</p>
+                    <button
+                      type="button"
+                      className={mu.relockBtn}
+                      onClick={() => setRoleUnlocked((p) => ({ ...p, [uid]: false }))}
+                    >
+                      Lock role controls
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className={mu.unlockBtn}
+                    onClick={() => setRoleUnlocked((p) => ({ ...p, [uid]: true }))}
+                  >
+                    Unlock role controls
+                  </button>
+                )}
+              </div>
+              <div className={mu.unlockCol}>
+                <span className={mu.th}>Listings</span>
+                {listOk ? (
+                  <>
+                    <p className={mu.warnStrip}>Unlocked — inventory loaded for this account.</p>
+                    <button type="button" className={mu.relockBtn} onClick={() => lockListings(user.id)}>
+                      Lock listings
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className={mu.unlockBtn} onClick={() => unlockListings(user.id)}>
+                    Unlock listings
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {listOk ? (
+              <div className={mu.listingsPanel}>
+                <div className={mu.accordionHead}>
+                  <p className={styles.muted} style={{ margin: 0 }}>
+                    {listingsLoadingId === uid
+                      ? "Loading listings…"
+                      : `Total: ${userListings.length} · Approved: ${approved} · Pending: ${pending} · Rejected: ${rejected} · Archived: ${archived}`}
+                  </p>
+                </div>
+                {userListings.length > 0 ? (
+                  <div className={mu.listingStack}>
+                    {userListings.map((listing) => (
+                      <div key={listing.id} className={styles.userListingRow}>
+                        <div>
+                          <p style={{ margin: 0, fontWeight: 600 }}>Listing {String(listing.id).slice(0, 8)}</p>
+                          <p className={styles.muted} style={{ margin: 0 }}>
+                            Status:{" "}
+                            <span
+                              className={`${styles.statusBadge} ${styles[`status${String(getLifecycleStatus(listing) || "draft").charAt(0).toUpperCase()}${String(getLifecycleStatus(listing) || "draft").slice(1)}`]}`}
+                            >
+                              {getLifecycleLabel(getLifecycleStatus(listing))}
+                            </span>
+                          </p>
+                        </div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            className={styles.approveButton}
+                            disabled={
+                              actionKey === `${listing.id}:approved` ||
+                              actionKey === `${listing.id}:rejected` ||
+                              actionKey === `${listing.id}:delete`
+                            }
+                            onClick={() => updateListingStatus(user.id, listing.id, "approved")}
+                          >
+                            {actionKey === `${listing.id}:approved` ? "Processing…" : "Approve"}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.rejectButton}
+                            disabled={
+                              actionKey === `${listing.id}:approved` ||
+                              actionKey === `${listing.id}:rejected` ||
+                              actionKey === `${listing.id}:delete`
+                            }
+                            onClick={() => updateListingStatus(user.id, listing.id, "rejected")}
+                          >
+                            {actionKey === `${listing.id}:rejected` ? "Processing…" : "Reject"}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.deleteListingButton}
+                            disabled={
+                              actionKey === `${listing.id}:approved` ||
+                              actionKey === `${listing.id}:rejected` ||
+                              actionKey === `${listing.id}:delete`
+                            }
+                            onClick={() => deleteListing(user.id, listing.id)}
+                          >
+                            {actionKey === `${listing.id}:delete` ? "Processing…" : "Delete"}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.dashboardLink}
+                            onClick={() => router.push(`/listing/${listing.id}?admin=true`)}
+                          >
+                            View
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : listingsLoadingId !== uid ? (
+                  <p className={mu.listingsSummary}>No listings for this profile in the linked owner columns.</p>
+                ) : null}
+              </div>
+            ) : (
+              <p className={mu.listingsSummary}>
+                Listings stay unloaded until you unlock — reduces load and accidental edits.
+              </p>
+            )}
           </div>
         );
       })}
@@ -268,9 +487,19 @@ export default function ManageUsersPanel({ onAction }) {
               <input
                 className={styles.input}
                 placeholder="Email"
+                type="email"
+                autoComplete="off"
                 value={newUser.email}
                 onChange={(event) => setNewUser((prev) => ({ ...prev, email: event.target.value }))}
               />
+              <input
+                className={styles.input}
+                placeholder="Username"
+                autoComplete="off"
+                value={newUser.username}
+                onChange={(event) => setNewUser((prev) => ({ ...prev, username: event.target.value }))}
+              />
+              {modalFieldError ? <p className={mu.fieldError}>{modalFieldError}</p> : null}
               <input
                 className={styles.input}
                 placeholder="Temporary password"
@@ -298,7 +527,7 @@ export default function ManageUsersPanel({ onAction }) {
                 }}
                 disabled={creatingUser}
               >
-                {creatingUser ? "Creating..." : "Create User"}
+                {creatingUser ? "Creating…" : "Create User"}
               </button>
               <button type="button" className={styles.rejectButton} onClick={() => setShowCreateUserModal(false)}>
                 Cancel

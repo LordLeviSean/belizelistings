@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { validateUsernameCandidate } from "../../../lib/usernameRules";
+import { isMissingColumnError } from "../../../lib/supabaseCompat";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -37,16 +39,40 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: "Admin access required" });
   }
 
-  const { email, password, role } = req.body || {};
+  const { error: usernameColumnProbe } = await adminClient.from("profiles").select("id, username").limit(1);
+  if (usernameColumnProbe && isMissingColumnError(usernameColumnProbe)) {
+    return res.status(503).json({
+      error:
+        "Database is missing profiles.username. Run supabase-migration-profiles-username.sql in the Supabase SQL editor, then retry.",
+    });
+  }
+
+  const { email, password, role, username: rawUsername } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required" });
+  }
+
+  const usernameCheck = validateUsernameCandidate(rawUsername);
+  if (!usernameCheck.ok) {
+    return res.status(400).json({ error: usernameCheck.message });
+  }
+  const username = usernameCheck.username;
+
+  const { data: taken } = await adminClient
+    .from("profiles")
+    .select("id")
+    .eq("username", username)
+    .maybeSingle();
+
+  if (taken?.id) {
+    return res.status(400).json({ error: "That username is already taken." });
   }
 
   const { data, error } = await adminClient.auth.admin.createUser({
     email: String(email).trim().toLowerCase(),
     password: String(password),
     email_confirm: true,
-    user_metadata: { role: role || "user" },
+    user_metadata: { role: role || "user", username },
   });
 
   if (error) {
@@ -55,11 +81,30 @@ export default async function handler(req, res) {
 
   const createdId = data?.user?.id;
   if (createdId) {
-    await adminClient.from("profiles").upsert({
+    const upsertPayload = {
       id: createdId,
       email: String(email).trim().toLowerCase(),
       role: role || "user",
-    });
+      username,
+    };
+    const { error: profileUpsertError } = await adminClient.from("profiles").upsert(upsertPayload);
+    if (profileUpsertError) {
+      if (isMissingColumnError(profileUpsertError)) {
+        return res.status(503).json({
+          error:
+            "Auth user was created but profiles.username is missing. Run supabase-migration-profiles-username.sql, then align the profile row manually if needed.",
+        });
+      }
+      const msg = String(profileUpsertError.message || "").toLowerCase();
+      const code = profileUpsertError.code;
+      const isDup = code === "23505" || msg.includes("duplicate") || msg.includes("unique");
+      if (isDup) {
+        await adminClient.auth.admin.deleteUser(createdId);
+        return res.status(400).json({ error: "That username is already taken." });
+      }
+      await adminClient.auth.admin.deleteUser(createdId);
+      return res.status(400).json({ error: profileUpsertError.message || "Unable to save profile" });
+    }
   }
 
   return res.status(200).json({ ok: true, id: createdId });

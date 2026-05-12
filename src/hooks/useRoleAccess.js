@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { PLATFORM_TIERS, resolveTierFromProfile } from "../constants/operationalModel";
+import { getTrustTierCapabilities, resolveProfileVerification } from "../constants/trustModel";
 
 export default function useRoleAccess(userId) {
   const [profile, setProfile] = useState(null);
@@ -34,11 +36,17 @@ export default function useRoleAccess(userId) {
     };
   }, [userId]);
 
-  const isAdmin = profile?.role === "admin";
-  const isAgent = profile?.role === "agent";
+  const tier = resolveTierFromProfile(profile);
+  const isAdmin = tier === PLATFORM_TIERS.ADMIN;
+  const isAgent = tier === PLATFORM_TIERS.AGENT_FREE || tier === PLATFORM_TIERS.AGENT_PRO;
+  const verification = resolveProfileVerification(profile || {});
+  const trustCapabilities = getTrustTierCapabilities(tier);
 
   return {
     profile,
+    tier,
+    verification,
+    trustCapabilities,
     roleLoading,
     isAdmin,
     isAgent,

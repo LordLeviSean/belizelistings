@@ -1,0 +1,73 @@
+.roleIcon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  opacity: 0.88;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  border: 1px solid rgba(154, 210, 200, 0.35);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.72) 0%, rgba(244, 252, 249, 0.52) 100%),
+    radial-gradient(ellipse 80% 120% at 12% 0%, rgba(137, 205, 189, 0.18), transparent 62%);
+  box-shadow: var(--elev-1), var(--glow-teal-ambient);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  color: rgba(38, 72, 68, 0.92);
+  animation: roleBadgeSettle var(--dur-5) var(--ease-default) both;
+}
+
+.toneAgent {
+  border-color: rgba(122, 198, 186, 0.42);
+  box-shadow: var(--elev-1), 0 0 24px rgba(122, 198, 186, 0.14);
+}
+
+.toneBroker {
+  border-color: rgba(120, 140, 175, 0.38);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.76) 0%, rgba(238, 242, 252, 0.55) 100%),
+    radial-gradient(ellipse 70% 100% at 88% 0%, rgba(159, 179, 217, 0.2), transparent 58%);
+  color: rgba(34, 52, 72, 0.92);
+}
+
+.toneOperator {
+  border-color: rgba(130, 175, 188, 0.4);
+  background:
+    linear-gradient(165deg, rgba(252, 254, 255, 0.74) 0%, rgba(236, 246, 250, 0.52) 100%),
+    radial-gradient(ellipse 80% 100% at 20% 0%, rgba(124, 190, 210, 0.14), transparent 60%);
+  color: rgba(32, 58, 68, 0.92);
+}
+
+.toneAdmin {
+  border-color: rgba(175, 155, 120, 0.35);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.78) 0%, rgba(250, 246, 238, 0.55) 100%),
+    radial-gradient(ellipse 70% 100% at 50% 0%, rgba(214, 190, 140, 0.16), transparent 55%);
+  color: rgba(52, 44, 32, 0.92);
+}
+
+@keyframes roleBadgeSettle {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge {
+    animation: none;
+  }
+}

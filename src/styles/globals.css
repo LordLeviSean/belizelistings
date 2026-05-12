@@ -1,45 +1,14 @@
-:root {
-  --background: #f3faf7;
-  --foreground: #35554d;
-  --bg-main: #eef8f4;
-  --bg-card: rgba(255, 255, 255, 0.68);
-  --bg-elevated: rgba(255, 255, 255, 0.82);
-  --border-subtle: rgba(147, 186, 176, 0.3);
-  --border-strong: rgba(137, 174, 166, 0.45);
-  --text-primary: #32534b;
-  --text-secondary: rgba(66, 98, 90, 0.75);
-  --text-tertiary: rgba(86, 118, 109, 0.58);
-  --accent: #6fb89f;
-  --accent-hover: #5fa58d;
-  --danger: #bc6f79;
-  --danger-hover: #ab616f;
-  --warning: #c2a06a;
-  --radius: 14px;
-  --section-spacing: 24px;
-  --card-padding: 16px;
-  --element-gap-sm: 8px;
-  --element-gap-md: 12px;
-  --element-gap-lg: 16px;
-  --motion-fast: 260ms;
-  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --glow-rgb: 127, 193, 181;
-  --glow-soft: 0 0 0 1px rgba(var(--glow-rgb), 0.18), 0 0 16px rgba(var(--glow-rgb), 0.14);
-  --glow-medium: 0 0 0 1px rgba(var(--glow-rgb), 0.24), 0 0 22px rgba(var(--glow-rgb), 0.18);
-  --glow-strong: 0 0 0 1px rgba(var(--glow-rgb), 0.3), 0 0 30px rgba(var(--glow-rgb), 0.24);
-}
+@import "./tokens.css";
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #f3faf7;
-    --foreground: #35554d;
-  }
-}
-
+/*
+ * Document scrolling stays `auto` so Next.js scroll restoration and router-driven
+ * jumps are stable (no console warning on `scroll-behavior: smooth` on <html>).
+ * For deliberate in-page motion, use `intentionalSmoothScroll` helpers instead.
+ */
 html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
-  scroll-behavior: smooth;
 }
 
 body {
@@ -80,12 +49,12 @@ a {
 
 button {
   transition:
-    background-color var(--motion-fast) var(--motion-ease),
-    border-color var(--motion-fast) var(--motion-ease),
-    color var(--motion-fast) var(--motion-ease),
-    opacity var(--motion-fast) var(--motion-ease),
-    box-shadow var(--motion-fast) var(--motion-ease),
-    filter var(--motion-fast) var(--motion-ease);
+    background-color var(--dur-2) var(--ease-out-soft),
+    border-color var(--dur-2) var(--ease-out-soft),
+    color var(--dur-2) var(--ease-out-soft),
+    opacity var(--dur-2) var(--ease-out-soft),
+    box-shadow var(--dur-2) var(--ease-out-soft),
+    filter var(--dur-2) var(--ease-out-soft);
 }
 
 /**
@@ -99,15 +68,23 @@ button:active {
   transform: scale(0.985);
 }
 
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
 .ui-card {
-  border-radius: 14px;
+  border-radius: var(--radius);
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.02);
-  transition: all 0.2s ease;
+  transition: var(--transition-surface), var(--transition-transform);
 }
 
 .ui-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(var(--hover-lift-sm));
   border-color: rgba(120, 178, 164, 0.34);
 }
 
@@ -148,22 +125,33 @@ button:active {
   margin-bottom: 6px;
 }
 
+/* Light-page greeting under main dashboard title (see dashboard/user). */
+.pageDashboardGreeting {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0 0 10px;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+
 .pageSubtitle {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-secondary);
+  line-height: 1.45;
+  max-width: 52ch;
 }
 
 /* DESIGN SYSTEM PRIMITIVES */
 .card {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
+  border-radius: var(--radius);
   backdrop-filter: blur(10px);
-  transition: all 0.2s ease;
+  transition: var(--transition-surface), var(--transition-transform);
 }
 
 .card:hover {
-  transform: translateY(-2px);
+  transform: translateY(var(--hover-lift-sm));
   border-color: rgba(120, 178, 164, 0.38);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
@@ -180,8 +168,9 @@ button:active {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
-  animation: skeletonShimmer 1.2s infinite;
+  background: var(--listing-media-shimmer);
+  animation: skeletonShimmer calc(var(--dur-5) * 1.25) var(--ease-in-out) infinite;
+  will-change: transform;
 }
 
 @keyframes skeletonShimmer {
@@ -197,12 +186,13 @@ button:active {
   padding: 10px 16px;
   border-radius: 10px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: var(--transition-hover-lift), filter var(--dur-2) var(--ease-out-soft);
+  box-shadow: var(--elev-1);
 }
 
 .btnPrimary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(128, 186, 172, 0.32);
+  transform: translateY(var(--hover-lift-sm));
+  box-shadow: var(--elev-2), var(--glow-teal-ambient);
 }
 
 .btnSecondary {
@@ -211,11 +201,12 @@ button:active {
   color: #3b5e56;
   padding: 10px 16px;
   border-radius: 10px;
-  transition: all 0.2s ease;
+  transition: var(--transition-surface), transform var(--dur-2) var(--ease-out-soft);
 }
 
 .btnSecondary:hover {
   background: rgba(255, 255, 255, 0.78);
+  transform: translateY(var(--hover-lift-xs));
 }
 
 .backButton {
@@ -260,11 +251,11 @@ button:active {
 }
 
 .interactive {
-  transition: all 240ms ease;
+  transition: var(--transition-surface), var(--transition-transform);
 }
 
 .interactive:hover {
-  transform: translateY(-1px);
+  transform: translateY(var(--hover-lift-xs));
 }
 
 @media (prefers-color-scheme: dark) {

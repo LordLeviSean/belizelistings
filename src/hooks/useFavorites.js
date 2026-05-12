@@ -23,22 +23,10 @@ export default function useFavorites() {
       return;
     }
 
-    const [{ data: idsData, error: idsError }, { data: listingData }] = await Promise.all([
-      supabase
-        .from("favorites")
-        .select("listing_id")
-        .eq("user_id", user.id),
-      getUserFavorites(),
-    ]);
-
-    if (!idsError && idsData) {
-      const ids = idsData.map((f) => normalizeId(f.listing_id)).filter(Boolean);
-      setFavoriteIdsState(ids);
-    } else {
-      setFavoriteIdsState([]);
-    }
-
-    setFavorites(listingData || []);
+    const { data: listingData } = await getUserFavorites();
+    const rows = listingData || [];
+    setFavorites(rows);
+    setFavoriteIdsState(rows.map((l) => normalizeId(l.id)).filter(Boolean));
   }, [user?.id, normalizeId]);
 
   useEffect(() => {
@@ -71,12 +59,31 @@ export default function useFavorites() {
         "postgres_changes",
         { event: "*", schema: "public", table: "favorites", filter: `user_id=eq.${user.id}` },
         () => {
-          loadFavorites();
+          void loadFavorites().catch(() => {});
         }
       )
       .subscribe();
 
     return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, loadFavorites]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let debounce;
+    const channel = supabase
+      .channel(`favorites-listing-lifecycle-${user.id}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "listings" }, () => {
+        clearTimeout(debounce);
+        debounce = setTimeout(() => {
+          void loadFavorites().catch(() => {});
+        }, 280);
+      })
+      .subscribe();
+
+    return () => {
+      clearTimeout(debounce);
       supabase.removeChannel(channel);
     };
   }, [user?.id, loadFavorites]);

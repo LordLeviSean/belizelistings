@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { filterPublicInventory } from "../utils/canonicalListing";
 
 export async function addFavorite(listingId) {
   const {
@@ -30,6 +31,28 @@ export async function addFavorite(listingId) {
   }
 
   return { data, error };
+}
+
+/** Delete every favorites row for a listing (all users). Use when a listing is published or sent back to review. */
+export async function clearAllFavoritesForListing(listingId) {
+  const normalized = String(listingId ?? "");
+  if (!normalized) return { error: null };
+  const { error } = await supabase.from("favorites").delete().eq("listing_id", normalized);
+  if (error) {
+    console.warn("[favorites] clearAllFavoritesForListing", normalized, error);
+  }
+  return { error };
+}
+
+/** Bulk variant for admin actions (e.g. bulk approve). */
+export async function clearAllFavoritesForListings(listingIds) {
+  const ids = [...new Set((listingIds || []).map((id) => String(id ?? "")).filter(Boolean))];
+  if (!ids.length) return { error: null };
+  const { error } = await supabase.from("favorites").delete().in("listing_id", ids);
+  if (error) {
+    console.warn("[favorites] clearAllFavoritesForListings", ids.length, error);
+  }
+  return { error };
 }
 
 export async function removeFavorite(listingId, { silent = false } = {}) {
@@ -76,16 +99,18 @@ export async function getUserFavorites() {
 
   if (error) return { data: [], error };
 
-  const listings = (data || [])
-    .map((row) => row.listing)
-    .filter(Boolean)
-    .map((listing) => ({
-      ...listing,
-      id: String(listing.id ?? ""),
-      images: (listing.listing_images || [])
-        .filter((img) => img?.image_url)
-        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
-    }));
+  const listings = filterPublicInventory(
+    (data || [])
+      .map((row) => row.listing)
+      .filter(Boolean)
+      .map((listing) => ({
+        ...listing,
+        id: String(listing.id ?? ""),
+        images: (listing.listing_images || [])
+          .filter((img) => img?.image_url)
+          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
+      }))
+  );
 
   return { data: listings, error: null };
 }

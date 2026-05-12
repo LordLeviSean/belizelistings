@@ -1,20 +1,22 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Heart, Search } from "lucide-react";
 import useFavorites from "../hooks/useFavorites";
 import SiteNav from "../components/SiteNav";
 import BackButton from "../components/BackButton";
-import Breadcrumbs from "../components/Breadcrumbs";
-import ListingCard from "../components/ListingCard";
+import HomePropertyCard from "../components/HomePropertyCard";
 import { useToast } from "../components/ui/ToastProvider";
 import styles from "../styles/Favorites.module.css";
+import dashboardStyles from "../styles/Dashboard.module.css";
 
 export default function FavoritesPage() {
   const { favorites, removeFavorite, clearAllFavorites, isBusy, loading } = useFavorites();
   const { showToast } = useToast();
   const [ready, setReady] = useState(false);
   const [clearing, setClearing] = useState(false);
-  const [removingIds, setRemovingIds] = useState([]);
   const [showClearModal, setShowClearModal] = useState(false);
+  const [carouselIndexById, setCarouselIndexById] = useState({});
+  const [removingIds, setRemovingIds] = useState([]);
 
   useEffect(() => {
     setReady(true);
@@ -38,12 +40,12 @@ export default function FavoritesPage() {
     }
   };
   const handleRemove = async (listingId) => {
-    if (isBusy(listingId)) return;
+    if (isBusy(listingId) || removingIds.includes(String(listingId))) return;
     setRemovingIds((prev) => [...prev, String(listingId)]);
-    await removeFavorite(listingId);
-    setTimeout(() => {
+    setTimeout(async () => {
+      await removeFavorite(listingId);
       setRemovingIds((prev) => prev.filter((id) => id !== String(listingId)));
-    }, 240);
+    }, 220);
   };
 
   return (
@@ -51,12 +53,11 @@ export default function FavoritesPage() {
       <SiteNav active="favorites" />
 
       <div className={styles.wrapper}>
-        <Breadcrumbs />
-        <BackButton label="Back to Browse" />
+        <BackButton label="Back" className={styles.backButton} />
         <div className={styles.header}>
           <div>
             <h1>Saved Listings</h1>
-            <p>{favoriteListings.length} saved properties</p>
+            <p>{favoriteListings.length} saved listings</p>
           </div>
           {!!favoriteListings.length && (
             <button
@@ -71,46 +72,61 @@ export default function FavoritesPage() {
         </div>
 
         {!ready || loading ? (
-          <div className={styles.list}>
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className={`${styles.cardRow} skeleton`} style={{ height: 112 }} />
+          <div className={styles.listingsGrid} aria-busy="true">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className={`${styles.gridItem} ${styles.cardSkeleton} skeleton`} />
             ))}
           </div>
         ) : favoriteListings.length === 0 ? (
-          <div className={styles.empty}>
-            <h2 className={styles.emptyTitle}>You haven&apos;t saved any listings yet</h2>
-            <p className={styles.emptyText}>Save properties to view them here</p>
-            <Link href="/" className={styles.cta}>
-              Browse Listings
-            </Link>
-          </div>
+          <section className={styles.coastalEmpty} aria-label="No saved listings yet">
+            <div className={styles.coastalEmptyWaves} aria-hidden />
+            <div className={styles.coastalEmptyContent}>
+              <div className={styles.coastalEmptyIcon} aria-hidden>
+                <Heart strokeWidth={2} />
+              </div>
+              <h2 className={styles.coastalEmptyTitle}>Heart your listings to add them to Favorites!</h2>
+              <p className={styles.coastalEmptySub}>
+                Save places you love while you browse — they&apos;ll appear in this calm space.
+              </p>
+              <Link href="/" className={`${dashboardStyles.primaryButton} ${styles.coastalEmptyCta}`}>
+                <Search size={18} strokeWidth={2} aria-hidden />
+                Browse Belize listings
+              </Link>
+            </div>
+            <div className={styles.coastalEmptyAtmosphere} aria-hidden />
+          </section>
         ) : (
-          <div className={styles.list}>
+          <div className={styles.listingsGrid}>
             {favoriteListings.map((listing) => (
-              <div key={listing.id} className={`${styles.cardRow} ${removingIds.includes(String(listing.id)) ? styles.cardRowRemoving : ""}`}>
-                <button
-                  type="button"
-                  className={styles.removeBtn}
-                  onClick={() => handleRemove(listing.id)}
-                  disabled={isBusy(listing.id)}
-                  aria-label={`Remove ${listing.title} from favorites`}
-                >
-                  {isBusy(listing.id) ? "Removing..." : "Remove"}
-                </button>
-                <span className={styles.savedBadge}>✓ SAVED</span>
-                <div className={styles.cardSlot}>
-                  <ListingCard
-                    listing={listing}
-                    showFavoriteButton={false}
-                    isFavorited
-                    favoriteBusy={isBusy(listing.id)}
-                    onToggleFavorite={removeFavorite}
-                  />
-                </div>
+              <div
+                key={listing.id}
+                className={`${styles.gridItem} ${
+                  removingIds.includes(String(listing.id)) ? styles.gridItemRemoving : ""
+                }`}
+              >
+                <HomePropertyCard
+                  listing={listing}
+                  showFavoriteButton
+                  isFavorited
+                  favoriteSurface="saved"
+                  favoriteBusy={isBusy(listing.id)}
+                  onFavoriteClick={handleRemove}
+                  imageSizes="(max-width: 760px) 100vw, (max-width: 980px) 50vw, 33vw"
+                  carouselIndex={Number(carouselIndexById[listing.id] || 0)}
+                  onCarouselIndexChange={(nextIndex) =>
+                    setCarouselIndexById((prev) => ({ ...prev, [listing.id]: nextIndex }))
+                  }
+                />
               </div>
             ))}
           </div>
         )}
+
+        {ready && !loading && favoriteListings.length > 0 ? (
+          <section className={styles.inventoryEndCap} aria-label="Inventory continuation">
+            <p>More verified inventory arriving soon.</p>
+          </section>
+        ) : null}
       </div>
       {showClearModal && (
         <div className={styles.modalOverlay}>

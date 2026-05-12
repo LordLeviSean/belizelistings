@@ -1,29 +1,42 @@
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import SiteNav from "../../components/SiteNav";
 import PendingListingsPanel from "../../components/PendingListingsPanel";
 import AllListingsPanel from "../../components/AllListingsPanel";
 import ManageUsersPanel from "../../components/ManageUsersPanel";
 import OperatorListingsPanel from "../../components/OperatorListingsPanel";
-import Breadcrumbs from "../../components/Breadcrumbs";
 import { supabase } from "../../lib/supabaseClient";
 import useUserRole from "../../hooks/useUserRole";
 import useLivePaletteMode from "../../hooks/useLivePaletteMode";
 import usePulseMode from "../../hooks/usePulseMode";
 import useSeaFlowMode from "../../hooks/useSeaFlowMode";
+import { ACTIVITY_SIGNAL_TYPES } from "../../constants/trustModel";
+import { clearAllFavoritesForListings } from "../../lib/favorites";
+import { isMissingColumnError } from "../../lib/supabaseCompat";
+import { sanitizeListingMutationPayload } from "../../lib/listingPayloadSanitize";
+import { LISTING_MUTATION_FLOW } from "../../lib/listingMutationDiagnostics";
+import { getOperationalLifecycleCountsFromDb } from "../../lib/listingOperationalStats";
+import AdminOperationalStats from "../../components/AdminOperationalStats";
+import { DashboardShell } from "../../components/dashboard";
+import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "../../constants/dashboardRoles";
 import styles from "../../styles/Dashboard.module.css";
+import PremiumEmptyState from "../../components/ui/PremiumEmptyState";
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user, role, loading: roleLoading } = useUserRole();
+  const { user, role, loading: roleLoading, welcomePhrase } = useUserRole();
   const [activeTab, setActiveTab] = useState("pending");
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [adminUserId, setAdminUserId] = useState("");
-  const [adminRole, setAdminRole] = useState("");
-  const [pendingCount, setPendingCount] = useState(0);
   const [lastAction, setLastAction] = useState("Live");
-  const [totals, setTotals] = useState({ listings: 0, users: 0, approved: 0 });
+  const [totals, setTotals] = useState({
+    listings: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    archived: 0,
+    users: 0,
+  });
   const [bulkLoading, setBulkLoading] = useState("");
   const [activity, setActivity] = useState([]);
   const [updatedAtLabel, setUpdatedAtLabel] = useState("moments ago");
@@ -31,30 +44,43 @@ export default function AdminPage() {
   const { enabled: pulseModeEnabled, setMode: setPulseMode } = usePulseMode();
   const { enabled: seaFlowModeEnabled, setMode: setSeaFlowMode } = useSeaFlowMode();
 
-  const refreshStats = async () => {
-    const [{ count: pending }, { count: approved }, { count: listings }, { count: users }] = await Promise.all([
-      supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "approved"),
-      supabase.from("listings").select("id", { count: "exact", head: true }),
+  const refreshStats = useCallback(async () => {
+    const [operational, { count: usersCount, error: usersError }] = await Promise.all([
+      getOperationalLifecycleCountsFromDb(supabase),
       supabase.from("profiles").select("id", { count: "exact", head: true }),
     ]);
-    setPendingCount(pending || 0);
-    setTotals({ listings: listings || 0, users: users || 0, approved: approved || 0 });
+
+    if (operational.error) {
+      console.warn("[admin] operational lifecycle tally failed", operational.error);
+    }
+    if (usersError) {
+      console.warn("[admin] users count query failed", usersError);
+    }
+
+    setTotals({
+      listings: operational.totalOperational,
+      pending: operational.pending,
+      approved: operational.approved,
+      rejected: operational.rejected,
+      archived: operational.archived,
+      users: usersCount ?? 0,
+    });
     setUpdatedAtLabel("moments ago");
-  };
+  }, []);
 
   useEffect(() => {
     const checkAdmin = async () => {
       if (roleLoading) return;
       if (!user) {
+        setCheckingAccess(false);
+        setIsAdmin(false);
         router.replace("/login");
         return;
       }
 
-      setAdminUserId(user.id);
-      setAdminRole(role);
-
       if (role !== "admin") {
+        setCheckingAccess(false);
+        setIsAdmin(false);
         router.replace("/dashboard");
         return;
       }
@@ -74,19 +100,84 @@ export default function AdminPage() {
     }
   }, [router.query.tab]);
 
-  const pushActivity = (message) => {
+  useEffect(() => {
+    if (!isAdmin) return;
+    let debounce;
+    const channel = supabase
+      .channel("admin-dashboard-listing-stats")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "listings" },
+        () => {
+          clearTimeout(debounce);
+          debounce = setTimeout(() => {
+            void refreshStats();
+          }, 320);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearTimeout(debounce);
+      supabase.removeChannel(channel);
+    };
+  }, [isAdmin, refreshStats]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    void refreshStats();
+  }, [activeTab, isAdmin, refreshStats]);
+
+  const pushActivity = (message, signal = null) => {
     const stamp = new Date().toLocaleTimeString();
-    setActivity((prev) => [`${stamp} - ${message}`, ...prev].slice(0, 8));
+    const event = {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      stamp,
+      message,
+      signal,
+    };
+    setActivity((prev) => [event, ...prev].slice(0, 8));
     setLastAction(message);
   };
 
   const handleBulkAction = async (nextStatus) => {
     if (bulkLoading) return;
     setBulkLoading(nextStatus);
-    const { error } = await supabase.from("listings").update({ status: nextStatus }).eq("status", "pending");
+    const pendingOr = "status.eq.pending,moderation_status.eq.pending_review,lifecycle_status.eq.pending";
+    const bulkPayload = sanitizeListingMutationPayload(
+      {
+        status: nextStatus,
+        lifecycle_status: nextStatus,
+        moderation_status: nextStatus === "approved" ? "approved" : nextStatus,
+      },
+      { mutationFlow: LISTING_MUTATION_FLOW.UNSPECIFIED, operation: "PATCH" }
+    );
+    let { data: updatedRows, error } = await supabase
+      .from("listings")
+      .update(bulkPayload)
+      .or(pendingOr)
+      .select("id");
+    if (error && isMissingColumnError(error)) {
+      const minimalBulk = sanitizeListingMutationPayload(
+        { status: nextStatus },
+        { mutationFlow: LISTING_MUTATION_FLOW.UNSPECIFIED, operation: "PATCH" }
+      );
+      ({ data: updatedRows, error } = await supabase
+        .from("listings")
+        .update(minimalBulk)
+        .eq("status", "pending")
+        .select("id"));
+    }
+    if (!error && nextStatus === "approved" && updatedRows?.length) {
+      const ids = updatedRows.map((row) => row.id).filter(Boolean);
+      await clearAllFavoritesForListings(ids);
+    }
     if (!error) {
       await refreshStats();
-      pushActivity(`Bulk ${nextStatus} applied`);
+      pushActivity(
+        `Bulk ${nextStatus} applied`,
+        nextStatus === "approved" ? ACTIVITY_SIGNAL_TYPES.NEWLY_APPROVED : null
+      );
     }
     setBulkLoading("");
   };
@@ -108,23 +199,51 @@ export default function AdminPage() {
     <div className={styles.page}>
       <SiteNav active="dashboard" />
       <main className={styles.main}>
+        <DashboardShell
+          roleKey={DASHBOARD_ROLE.admin}
+          title="Admin Control Center"
+          subtitle={`${welcomePhrase} · ${DASHBOARD_ROLE_META[DASHBOARD_ROLE.admin].defaultSubtitle}`}
+        >
         <div className={styles.adminWrapper}>
-          <Breadcrumbs />
-          <h1 className={styles.title}>Admin Control Center</h1>
-          <p className={styles.muted}>Admin: {adminUserId} · Role: {adminRole}</p>
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}><p className={styles.statLabel}>Total Listings</p><p className={styles.statValue}>{totals.listings}</p></div>
-            <div className={styles.statCard}><p className={styles.statLabel}>Pending</p><p className={styles.statValue}>{pendingCount}</p></div>
-            <div className={styles.statCard}><p className={styles.statLabel}>Approved</p><p className={styles.statValue}>{totals.approved}</p></div>
-            <div className={styles.statCard}><p className={styles.statLabel}>Users</p><p className={styles.statValue}>{totals.users}</p></div>
-          </div>
+          <AdminOperationalStats
+            total={totals.listings}
+            pending={totals.pending}
+            approved={totals.approved}
+            rejected={totals.rejected}
+            archived={totals.archived}
+            users={totals.users}
+          />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, marginTop: 18 }}>
             <section>
               <div className={styles.adminTabs}>
-                <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("pending")}>Pending</button>
-                <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("listings")}>Listings</button>
-                <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("users")}>Users</button>
-                <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("operator")}>Operator</button>
+                <button
+                  type="button"
+                  className={`${styles.dashboardLink} ${activeTab === "pending" ? styles.dashboardLinkActive : ""}`}
+                  onClick={() => setActiveTab("pending")}
+                >
+                  Pending
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.dashboardLink} ${activeTab === "listings" ? styles.dashboardLinkActive : ""}`}
+                  onClick={() => setActiveTab("listings")}
+                >
+                  Listings
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.dashboardLink} ${activeTab === "users" ? styles.dashboardLinkActive : ""}`}
+                  onClick={() => setActiveTab("users")}
+                >
+                  Users
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.dashboardLink} ${activeTab === "operator" ? styles.dashboardLinkActive : ""}`}
+                  onClick={() => setActiveTab("operator")}
+                >
+                  Operator
+                </button>
               </div>
               {activeTab === "pending" && (
                 <PendingListingsPanel
@@ -226,7 +345,15 @@ export default function AdminPage() {
               </div>
               <h4 style={{ marginTop: 16, marginBottom: 8 }}>Recent Activity</h4>
               <div style={{ display: "grid", gap: 6 }}>
-                {activity.length ? activity.map((item) => <p key={item} className={styles.muted}>{item}</p>) : <p className={styles.muted}>No activity yet</p>}
+                {activity.length ? (
+                  activity.map((item) => (
+                    <p key={item.id} className={styles.muted}>
+                      {item.stamp} - {item.message}
+                    </p>
+                  ))
+                ) : (
+                  <PremiumEmptyState variant="activity" compact title="Operational activity is quiet" />
+                )}
               </div>
               <p className={styles.muted} style={{ marginTop: 8 }}>
                 <span className={styles.liveDot} /> Updated {updatedAtLabel}
@@ -235,6 +362,7 @@ export default function AdminPage() {
             </aside>
           </div>
         </div>
+        </DashboardShell>
       </main>
     </div>
   );

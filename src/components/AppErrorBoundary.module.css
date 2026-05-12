@@ -1,0 +1,54 @@
+.shell {
+  min-height: 60vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background: var(--bg-main);
+}
+
+.card {
+  max-width: 460px;
+  padding: 28px 24px;
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--elev-2);
+}
+
+.title {
+  margin: 0 0 12px;
+  font-size: 1.25rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.body {
+  margin: 0 0 20px;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.reload {
+  appearance: none;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: rgba(12, 36, 34, 0.92);
+  background: linear-gradient(135deg, rgba(110, 210, 196, 1), rgba(62, 158, 148, 1));
+  box-shadow: var(--elev-1);
+  transition: var(--transition-hover-lift);
+}
+
+.reload:hover {
+  transform: translateY(var(--hover-lift-sm));
+}
+
+.reload:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}

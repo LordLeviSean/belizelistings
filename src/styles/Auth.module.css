@@ -96,6 +96,46 @@
   box-shadow: var(--glow-soft);
 }
 
+.usernameBlock {
+  display: grid;
+  gap: 0;
+}
+
+.usernameFeedback {
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 6px 2px 0;
+  font-size: 13px;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  color: rgba(90, 118, 112, 0.78);
+  transition:
+    color 0.22s ease,
+    opacity 0.22s ease;
+}
+
+.usernameFeedback[data-tone="checking"] {
+  color: rgba(95, 120, 128, 0.82);
+  font-style: italic;
+}
+
+.usernameFeedback[data-tone="available"] {
+  color: rgba(52, 124, 102, 0.92);
+}
+
+.usernameFeedback[data-tone="taken"] {
+  color: rgba(145, 108, 72, 0.95);
+}
+
+.usernameFeedback[data-tone="error"] {
+  color: rgba(95, 118, 128, 0.88);
+}
+
+.usernameFeedback[data-tone="invalid"],
+.usernameFeedback[data-tone="short"] {
+  color: rgba(118, 98, 82, 0.92);
+}
+
 .primaryBtn,
 .secondaryBtn {
   border-radius: 10px;
@@ -123,6 +163,19 @@
 
 .primaryBtnSignup:hover {
   background: linear-gradient(180deg, rgba(109, 164, 214, 0.3), rgba(var(--glow-rgb), 0.22));
+}
+
+/* Sign-in: stronger lagoon once user has started typing a password */
+.primaryBtnSignInLit:not(:disabled) {
+  background: linear-gradient(180deg, rgba(var(--glow-rgb), 0.46), rgba(var(--glow-rgb), 0.3));
+  border-color: rgba(var(--glow-rgb), 0.72);
+  color: #f9fffc;
+  box-shadow: var(--glow-medium);
+}
+
+.primaryBtnSignInLit:not(:disabled):hover {
+  background: linear-gradient(180deg, rgba(var(--glow-rgb), 0.54), rgba(var(--glow-rgb), 0.36));
+  border-color: rgba(var(--glow-rgb), 0.82);
 }
 
 .primaryBtn:disabled,

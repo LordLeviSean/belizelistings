@@ -1,0 +1,93 @@
+.shell {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 0 28px;
+}
+
+.identity {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border-radius: calc(var(--radius) + 4px);
+  border: 1px solid rgba(154, 210, 200, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(248, 253, 251, 0.42)),
+    radial-gradient(ellipse 60% 80% at 10% 0%, rgba(137, 205, 189, 0.12), transparent 70%);
+  box-shadow: var(--elev-1);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  transition: box-shadow var(--dur-4) var(--ease-default), border-color var(--dur-3) var(--ease-out-soft);
+}
+
+.shell[data-dashboard-role="agent"] .identity {
+  border-color: rgba(154, 210, 200, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(248, 253, 251, 0.46)),
+    radial-gradient(ellipse 58% 72% at 12% 0%, rgba(137, 205, 189, 0.18), transparent 72%);
+  box-shadow: var(--elev-2), 0 0 40px rgba(122, 198, 186, 0.07);
+}
+
+.shell[data-dashboard-role="broker"] .identity {
+  border-color: rgba(120, 140, 168, 0.26);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(244, 246, 252, 0.44)),
+    radial-gradient(ellipse 52% 70% at 8% 0%, rgba(120, 138, 178, 0.14), transparent 72%);
+  box-shadow: var(--elev-2), inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
+.shell[data-dashboard-role="operator"] .identity {
+  border-color: rgba(154, 200, 190, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.54), rgba(246, 252, 249, 0.4)),
+    radial-gradient(ellipse 56% 74% at 10% 0%, rgba(110, 178, 168, 0.12), transparent 74%);
+}
+
+.shell[data-dashboard-role="admin"] .identity {
+  border-color: rgba(130, 168, 188, 0.32);
+  background:
+    linear-gradient(180deg, rgba(252, 253, 255, 0.62), rgba(238, 244, 248, 0.48)),
+    radial-gradient(ellipse 50% 68% at 14% 0%, rgba(100, 140, 168, 0.14), transparent 72%),
+    radial-gradient(ellipse 40% 50% at 88% 8%, rgba(137, 205, 189, 0.08), transparent 70%);
+  box-shadow: var(--elev-2), 0 0 0 1px rgba(255, 255, 255, 0.28) inset;
+}
+
+.identityForeground {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px 20px;
+  width: 100%;
+}
+
+.headline {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-family: "DM Serif Display", "Georgia", "Times New Roman", serif;
+  font-weight: 400;
+  font-size: clamp(1.65rem, 2.4vw, 2.1rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: rgba(28, 64, 72, 0.96);
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  max-width: 52ch;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(72, 102, 93, 0.78);
+  line-height: 1.45;
+}
+
+.body {
+  min-width: 0;
+}

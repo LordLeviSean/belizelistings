@@ -46,7 +46,7 @@
     radial-gradient(circle at 68% 20%, rgba(152, 186, 240, 0.24), transparent 40%),
     radial-gradient(circle at 78% 76%, rgba(255, 186, 152, 0.2), transparent 42%);
   filter: blur(28px);
-  animation: atmosphereDrift 56s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate;
+  animation: atmosphereDrift var(--ambient-cycle-a) var(--ambient-ease-drift) infinite alternate;
 }
 
 .page::after {
@@ -56,7 +56,7 @@
     radial-gradient(rgba(118, 188, 176, 0.12) 0.5px, transparent 0.5px),
     radial-gradient(ellipse 58% 70% at 48% 52%, rgba(58, 170, 196, 0.12), transparent 74%);
   background-size: auto, 3px 3px, auto;
-  animation: grainDrift 72s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+  animation: grainDrift var(--ambient-cycle-b) var(--ambient-ease-drift) infinite;
 }
 
 .pageMain {
@@ -96,7 +96,7 @@
     radial-gradient(ellipse 42% 32% at 88% 12%, rgba(198, 200, 250, 0.16), transparent 72%);
   filter: blur(40px);
   opacity: 0.72;
-  animation: heroAtmosphereGlow 64s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate;
+  animation: heroAtmosphereGlow var(--ambient-cycle-c) var(--ambient-ease-drift) infinite alternate;
 }
 
 .heroSection::after {
@@ -405,7 +405,7 @@
   inset: 0;
   background: radial-gradient(ellipse 130% 60% at 40% -10%, rgba(255, 255, 255, 0.12), transparent 55%);
   opacity: 0.46;
-  animation: mapWaterGlint 92s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate;
+  animation: mapWaterGlint var(--ambient-cycle-d) var(--ambient-ease-drift) infinite alternate;
   pointer-events: none;
 }
 
@@ -433,9 +433,9 @@
   filter: blur(68px);
   will-change: transform, filter;
   animation:
-    seaFlowDriftA 74s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate,
-    seaFlowPastelCycle 118s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate,
-    mapShimmerDrift 96s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate;
+    seaFlowDriftA 74s var(--ambient-ease-drift) infinite alternate,
+    seaFlowPastelCycle var(--ambient-cycle-e) var(--ambient-ease-drift) infinite alternate,
+    mapShimmerDrift 96s var(--ambient-ease-drift) infinite alternate;
 }
 
 .mapPaneSeaFlowLayers::after {
@@ -460,9 +460,9 @@
   mix-blend-mode: normal;
   will-change: transform, filter;
   animation:
-    seaFlowDriftB 92s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate,
-    seaFlowSurge 84s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate,
-    mapShimmerDriftAlt 110s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite alternate;
+    seaFlowDriftB var(--ambient-cycle-d) var(--ambient-ease-drift) infinite alternate,
+    seaFlowSurge 84s var(--ambient-ease-drift) infinite alternate,
+    mapShimmerDriftAlt 110s var(--ambient-ease-drift) infinite alternate;
 }
 
 .mapPaneMapWrap {
@@ -503,20 +503,6 @@
   padding: 8px 0 10px;
   margin-top: 4px;
   margin-bottom: 0;
-}
-
-.featuredSection::before {
-  content: "";
-  position: absolute;
-  inset: -8% -4% -4%;
-  pointer-events: none;
-  border-radius: calc(var(--ui-radius) + 6px);
-  background:
-    radial-gradient(ellipse 66% 58% at 14% 32%, rgba(248, 224, 250, 0.1), transparent 74%),
-    radial-gradient(ellipse 72% 60% at 86% 18%, rgba(222, 236, 255, 0.12), transparent 72%);
-  filter: blur(40px);
-  opacity: 0.5;
-  z-index: -1;
 }
 
 .sectionTitleRow {
@@ -829,17 +815,37 @@
     0 1px 0 rgba(255, 255, 255, 0.48);
 }
 
+/* Land inventory — subtle sand/lagoon wash, same footprint as residential cards */
+.propertyCardLand {
+  background:
+    radial-gradient(circle at 22% 0%, rgba(214, 190, 140, 0.14), transparent 42%),
+    radial-gradient(circle at 88% 12%, rgba(137, 205, 189, 0.12), transparent 48%),
+    radial-gradient(circle at 18% -8%, rgba(255, 236, 250, 0.18), transparent 46%),
+    rgba(255, 255, 255, 0.86);
+  border-color: rgba(255, 255, 255, 0.48);
+}
+
 .propertyMedia {
   position: relative;
   height: 142px;
   overflow: hidden;
+  /* Gesture-first carousel: horizontal swipe / drag; no arrow chrome */
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  /* Desktop next-zone top: clears FAB column + small dead band (see .cardGalleryNavHitNext) */
+  --card-gallery-hit-next-top: clamp(86px, 24.5%, 100px);
 }
 
-.propertyMedia .propertyFavoriteWrap {
+.propertyMedia .propertyActionsCluster {
   position: absolute;
   top: 9px;
   right: 9px;
-  z-index: 2;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
   line-height: 0;
 }
 
@@ -847,11 +853,6 @@
   object-fit: cover;
   object-position: center 42%;
   filter: saturate(1.04) brightness(1.015) contrast(1.04);
-  transition: transform 720ms var(--ui-ease), filter 720ms var(--ui-ease);
-}
-
-.propertyCard:hover .propertyMedia :global(img) {
-  transform: scale(1.04);
 }
 
 .propertyMedia::after {
@@ -876,13 +877,21 @@
   position: absolute;
   top: 9px;
   left: 9px;
-  z-index: 2;
+  z-index: 3;
   font-size: 11px;
   letter-spacing: 0.06em;
   border-radius: 999px;
+  padding: 6px 11px;
+}
+
+.propertyBadgeSale {
   background: rgba(239, 234, 186, 0.92);
   color: rgba(102, 93, 52, 0.9);
-  padding: 6px 11px;
+}
+
+.propertyBadgeRent {
+  background: rgba(202, 232, 223, 0.92);
+  color: rgba(54, 98, 88, 0.92);
 }
 
 .carouselDots {
@@ -890,21 +899,20 @@
   left: 50%;
   transform: translateX(-50%);
   bottom: 7px;
-  z-index: 2;
+  z-index: 3;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  pointer-events: none;
 }
 
 .carouselDot {
+  display: inline-block;
   width: 4px;
   height: 4px;
-  border: 0;
-  padding: 0;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.58);
   box-shadow: 0 0 0 1px rgba(58, 89, 97, 0.16);
-  cursor: pointer;
   transition:
     transform 460ms var(--ui-ease),
     background 460ms var(--ui-ease),
@@ -916,54 +924,87 @@
   box-shadow: 0 0 0 1px rgba(58, 89, 97, 0.22), 0 0 12px rgba(255, 255, 255, 0.4);
 }
 
-.propertyArrowBtn {
+/*
+ * Desktop / fine pointer: compact editorial prev-next hit bands (no chrome, no cursor affordance).
+ * Coarse touch: bands stay inert — swipe on the media surface only (@media pointer: coarse).
+ * z-index: 2 keeps hits above .propertyMedia::after (1); FAB / badge / dots stay at 3+.
+ *
+ * Geometry: asymmetric bands, generous center for “open listing”, soft inner edge via clip-path.
+ */
+.cardGalleryNavHitPrev,
+.cardGalleryNavHitNext {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
   z-index: 2;
-  width: 22px;
-  height: 22px;
+  margin: 0;
+  padding: 0;
   border: 0;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: rgba(52, 81, 88, 0.82);
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  opacity: 0;
-  pointer-events: auto;
-  transition:
-    opacity 520ms var(--ui-ease),
-    transform 520ms var(--ui-ease);
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  box-shadow: none;
+  opacity: 1;
+  cursor: default;
+  pointer-events: none;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.propertyArrowBtn :global(svg) {
-  width: 13px;
-  height: 13px;
-  stroke-width: 2.1;
+.cardGalleryNavHitPrev:hover,
+.cardGalleryNavHitPrev:focus,
+.cardGalleryNavHitNext:hover,
+.cardGalleryNavHitNext:focus {
+  background: transparent;
+  opacity: 1;
+  box-shadow: none;
+  outline: none;
 }
 
-.propertyCard:hover .propertyArrowBtn {
-  opacity: 0.42;
+.cardGalleryNavHitPrev:active,
+.cardGalleryNavHitNext:active {
+  transform: none;
 }
 
-.propertyArrowBtn:hover {
-  opacity: 0.55;
-  transform: translateY(-50%) translateY(-0.5px);
-  background: rgba(255, 255, 255, 0.58);
+/* `?debugCardHits=1` on single-image cards — layout probe only, no clicks */
+.cardGalleryNavHitGhost {
+  pointer-events: none !important;
 }
 
-.propertyArrowLeft {
-  left: 8px;
+/* Previous: left-middle band; clears badge; center biased slightly above image midpoint */
+.cardGalleryNavHitPrev {
+  left: 3px;
+  width: clamp(30%, 36%, 220px);
+  height: 56%;
+  /* Vertical center ~46% (slightly above 50%); top ≥ ~42px clears FOR SALE / FOR RENT pill */
+  top: max(42px, calc(46% - 28%));
+  /* Taper toward listing center — fewer accidental advances when aiming for the link */
+  clip-path: polygon(0 2%, 100% 5%, 90% 98%, 0 98%);
 }
 
+/* Next: narrower, starts below FAB stack, sits a touch lower than prev; center biased slightly below midpoint */
+.cardGalleryNavHitNext {
+  right: 3px;
+  width: clamp(26%, 32%, 200px);
+  top: calc(var(--card-gallery-hit-next-top) + 5px);
+  height: min(64%, calc(100% - var(--card-gallery-hit-next-top) - 17px));
+  clip-path: polygon(12% 3%, 100% 0, 100% 100%, 12% 97%);
+}
+
+@media (pointer: fine) {
+  .cardGalleryNavHitPrev:not(.cardGalleryNavHitGhost),
+  .cardGalleryNavHitNext:not(.cardGalleryNavHitGhost) {
+    pointer-events: auto;
+  }
+}
+
+/* Legacy arrow class names — keep inert if referenced anywhere */
+.propertyArrowBtn,
+.propertyArrowLeft,
 .propertyArrowRight {
-  right: 8px;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .propertyBody {
@@ -999,6 +1040,44 @@
   height: 12px;
   stroke-width: 2;
   vertical-align: text-bottom;
+}
+
+.propertyMetaLand {
+  color: rgba(58, 90, 96, 0.8);
+}
+
+.propertyMetaLandRow {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.propertyMetaLandGlyph {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  opacity: 0.88;
+}
+
+.propertyMetaLandSep {
+  opacity: 0.45;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .propertyCardLand {
+    transition: none;
+  }
+}
+
+.propertyRegionCaption {
+  margin: 7px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-weight: 620;
+  color: rgba(94, 124, 130, 0.68);
 }
 
 @keyframes heroAtmosphereGlow {
@@ -1169,10 +1248,6 @@
   .propertyMedia {
     height: 170px;
   }
-
-  .propertyArrowBtn {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1209,7 +1284,4 @@
     transform: none;
   }
 
-  .propertyCard:hover .propertyArrowBtn {
-    opacity: 0;
-  }
 }

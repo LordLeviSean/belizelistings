@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { Heart } from "lucide-react";
+import ListingMediaImage from "./listing/ListingMediaImage";
+import ShareListingIconButton from "./ShareListingIconButton";
 import styles from "./ListingCard.module.css";
 import favoriteStyles from "../styles/FavoriteButton.module.css";
+import { getRegionCaption, getRegionLabel } from "../constants/geographyLayer";
+import { getListingRegionSlug } from "../utils/canonicalListing";
+import { normalizeListingImageEntry } from "../utils/listingImage";
+import { isLandInventoryListing } from "../utils/listingPresentation";
+import LandParcelGlyph from "./icons/LandParcelGlyph";
 
 function districtLabel(district = "") {
-  return String(district)
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  return getRegionLabel(district);
 }
 
 function formatPrice(price, currency) {
@@ -19,7 +23,9 @@ function formatPrice(price, currency) {
 export default function ListingCard({
   listing,
   showFavoriteButton = false,
+  showShareButton = true,
   isFavorited = false,
+  favoriteSurface = "default",
   onToggleFavorite,
   favoriteBusy = false,
 }) {
@@ -29,45 +35,84 @@ export default function ListingCard({
     preferredImage && !String(preferredImage).toLowerCase().includes("map")
       ? preferredImage
       : "/placeholder.jpg";
-  const isLand = listing?.beds === 0 && listing?.baths === 0 && listing?.garage === 0;
+  const isLand = isLandInventoryListing(listing);
+  const regionSlug = getListingRegionSlug(listing) || "unknown";
+  const regionLabel = districtLabel(regionSlug);
+  const regionCaption = getRegionCaption(regionSlug);
 
   return (
     <div>
       <Link
         href={`/listing/${listing.id}`}
-        className={styles.card}
+        className={`listingCard ${styles.card} ${isLand ? styles.cardLand : ""}`}
         aria-label={`View ${listing.title || "listing"}`}
       >
         <div className={`${styles.inner} safeFlexRow`}>
-          <div className={styles.thumb} aria-hidden="true">
-            <img src={imageUrl} alt="" loading="lazy" />
+          <div className={`${styles.thumb} listingCardThumbHover`} aria-hidden="true">
+            <ListingMediaImage
+              src={imageUrl}
+              alt=""
+              fill
+              sizes="(max-width: 640px) 28vw, 112px"
+              quality={82}
+              hoverZoom
+            />
           </div>
           <div className={`${styles.info} safeFlexCol`}>
             <div className={styles.titleRow}>
               <h3 className={styles.title}>{listing.title || "Untitled listing"}</h3>
-              {showFavoriteButton ? (
-                <button
-                  type="button"
-                  aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
-                  aria-pressed={isFavorited}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onToggleFavorite?.(listing.id);
-                  }}
-                  disabled={favoriteBusy}
-                  className={`${favoriteStyles.favoriteButton} ${isFavorited ? favoriteStyles.favoriteButtonActive : ""}`}
-                >
-                  <Heart fill={isFavorited ? "currentColor" : "none"} />
-                </button>
+              {showFavoriteButton || showShareButton ? (
+                <div className={styles.cardActions}>
+                  {showFavoriteButton ? (
+                    <button
+                      type="button"
+                      aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                      aria-pressed={isFavorited}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onToggleFavorite?.(listing.id);
+                      }}
+                      disabled={favoriteBusy}
+                      className={[
+                        favoriteStyles.favoriteButton,
+                        isFavorited ? favoriteStyles.favoriteButtonActive : "",
+                        favoriteSurface === "saved" ? favoriteStyles.favoriteButtonWarm : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      <Heart fill={isFavorited ? "currentColor" : "none"} />
+                    </button>
+                  ) : null}
+                  {showShareButton ? (
+                    <ShareListingIconButton
+                      listingId={listing.id}
+                      title={listing.title}
+                      surface={favoriteSurface === "saved" ? "saved" : "default"}
+                    />
+                  ) : null}
+                </div>
               ) : null}
             </div>
             <p className={styles.price}>{formatPrice(listing.price, listing.currency)}</p>
-            <p className={styles.meta}>
-              {isLand ? "Land Property" : `${listing.beds} bd · ${listing.baths} ba`}
-              {" · "}
-              {districtLabel(listing.district || "Unknown")}
+            <p className={`${styles.meta} ${isLand ? styles.metaLand : ""}`}>
+              {isLand ? (
+                <span className={styles.metaLandRow}>
+                  <LandParcelGlyph className={styles.metaGlyph} />
+                  <span>Land</span>
+                  <span className={styles.metaSep} aria-hidden>
+                    ·
+                  </span>
+                  <span>{regionLabel}</span>
+                </span>
+              ) : (
+                <>
+                  {listing.beds} bd · {listing.baths} ba · {regionLabel}
+                </>
+              )}
             </p>
+            {regionCaption ? <p className={styles.regionCaption}>{regionCaption}</p> : null}
           </div>
         </div>
       </Link>

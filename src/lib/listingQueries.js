@@ -1,10 +1,13 @@
 import { supabase } from "./supabaseClient";
+import { getModerationStatus } from "../constants/operationalModel";
+import { isMissingColumnError, isMissingRelationshipError } from "./supabaseCompat";
+import { filterPublicInventory, isPubliclyVisibleListing } from "../utils/canonicalListing";
 
 /**
  * Listing fetch patterns (RLS also applies):
- * - PUBLIC (browse + listing detail): only approved listings.
- * - AGENT dashboard: `.eq("user_id", user.id)` with no status filter.
- * - ADMIN: pending queue `.eq("status", "pending")`, or no status filter for full list.
+ * - PUBLIC (browse + listing detail): published listings.
+ * - AGENT dashboard: `.eq("user_id", user.id)` with lifecycle visibility filters.
+ * - ADMIN: pending-review queue, or no status filter for full moderation list.
  */
 
 function devWarnEmptyImages(listingCount, imageRowCount) {
@@ -26,28 +29,45 @@ function devWarnEmptyImages(listingCount, imageRowCount) {
  * Approved listings plus related listing_images rows.
  */
 export async function fetchApprovedListingsWithImages() {
-  const query = supabase
-    .from("listings")
-    .select(`
+  const selectWithImages = `
       *,
       listing_images (*)
-    `)
-    .eq("status", "approved");
+    `;
 
-  const { data, error } = await query;
+  const approvedOrDual = `status.eq.${getModerationStatus("approved")},moderation_status.eq.approved`;
+
+  let query = supabase.from("listings").select(selectWithImages).or(approvedOrDual);
+
+  let { data, error } = await query;
+  if (error && isMissingColumnError(error)) {
+    ({ data, error } = await supabase
+      .from("listings")
+      .select(selectWithImages)
+      .eq("status", getModerationStatus("approved")));
+  }
+  if (error && isMissingRelationshipError(error)) {
+    ({ data, error } = await supabase.from("listings").select("*").or(approvedOrDual));
+  }
+  if (error && isMissingColumnError(error)) {
+    ({ data, error } = await supabase
+      .from("listings")
+      .select("*")
+      .eq("status", getModerationStatus("approved")));
+  }
 
   if (error) {
     console.error("[BelizeListings] listings fetch:", error.message, error);
     return { data: [], error };
   }
 
-  const normalized = (data || [])
-    .map((listing) => ({
+  const normalized = filterPublicInventory(
+    (data || []).map((listing) => ({
       ...listing,
       images: (listing.listing_images || [])
         .filter((img) => img?.image_url)
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
-    }));
+    }))
+  );
   const imageRowCount = normalized.reduce((sum, listing) => sum + (listing.images?.length || 0), 0);
   devWarnEmptyImages(normalized.length, imageRowCount);
 
@@ -67,10 +87,40 @@ export async function fetchListingByIdWithImages(id, isAdmin = false) {
     .eq("id", id);
 
   if (!isAdmin) {
-    query = query.eq("status", "approved");
+    query = query.or(`status.eq.${getModerationStatus("approved")},moderation_status.eq.approved`);
   }
 
-  const { data: listing, error } = await query.maybeSingle();
+  let { data: listing, error } = await query.maybeSingle();
+  if (error && !isAdmin && isMissingColumnError(error)) {
+    const fallbackQuery = supabase
+      .from("listings")
+      .select(`
+        *,
+        listing_images (
+          image_url,
+          position
+        )
+      `)
+      .eq("id", id)
+      .eq("status", getModerationStatus("approved"));
+    ({ data: listing, error } = await fallbackQuery.maybeSingle());
+  }
+  if (error && !isAdmin && isMissingRelationshipError(error)) {
+    const fallbackQuery = supabase
+      .from("listings")
+      .select("*")
+      .eq("id", id)
+      .or(`status.eq.${getModerationStatus("approved")},moderation_status.eq.approved`);
+    ({ data: listing, error } = await fallbackQuery.maybeSingle());
+  }
+  if (error && !isAdmin && isMissingColumnError(error)) {
+    const fallbackQuery = supabase
+      .from("listings")
+      .select("*")
+      .eq("id", id)
+      .eq("status", getModerationStatus("approved"));
+    ({ data: listing, error } = await fallbackQuery.maybeSingle());
+  }
 
   if (error) {
     console.error("[BelizeListings] listing fetch:", error.message, error);
@@ -78,6 +128,10 @@ export async function fetchListingByIdWithImages(id, isAdmin = false) {
   }
 
   if (!listing) {
+    return { data: null, error: null };
+  }
+
+  if (!isAdmin && !isPubliclyVisibleListing(listing)) {
     return { data: null, error: null };
   }
 

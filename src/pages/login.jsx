@@ -1,9 +1,14 @@
-import { useState, useLayoutEffect } from "react";
+import { useState, useLayoutEffect, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
+import { ensureProfile } from "../lib/ensureProfile";
+import { lookupUsernameAvailability } from "../lib/usernameAvailability";
 import SiteNav from "../components/SiteNav";
+import { validateSignupUsername } from "../lib/usernameRules";
 import styles from "../styles/Auth.module.css";
+
+const USERNAME_TAKEN_MSG = "Username already taken, try a new username";
 
 function getPasswordRequirements(password) {
   return {
@@ -31,6 +36,9 @@ function evaluatePasswordStrength(password) {
 
 export default function Login() {
   const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [usernameAvail, setUsernameAvail] = useState("empty");
+  const [usernameHint, setUsernameHint] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,6 +55,68 @@ export default function Login() {
       mode === "signup";
     if (wantSignup) setIsSignup(true);
   }, [router.isReady, router.query.signup, router.query.mode]);
+
+  useEffect(() => {
+    if (!isSignup) {
+      setUsernameAvail("empty");
+      setUsernameHint("");
+      return undefined;
+    }
+
+    if (!username.trim()) {
+      setUsernameAvail("empty");
+      setUsernameHint("");
+      return undefined;
+    }
+
+    const v = validateSignupUsername(username);
+    if (!v.ok && v.code === "short") {
+      setUsernameAvail("short");
+      setUsernameHint(v.message || "");
+      return undefined;
+    }
+    if (!v.ok) {
+      setUsernameAvail("invalid");
+      setUsernameHint(v.message || "");
+      return undefined;
+    }
+
+    setUsernameAvail("scanning");
+    setUsernameHint("");
+    let cancelled = false;
+    const ac = new AbortController();
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const result = await lookupUsernameAvailability(v.username, ac.signal);
+          if (cancelled) return;
+          if (result.status === "available") {
+            setUsernameAvail("available");
+            setUsernameHint("Available");
+          } else if (result.status === "taken") {
+            setUsernameAvail("taken");
+            setUsernameHint(USERNAME_TAKEN_MSG);
+          } else {
+            setUsernameAvail("error");
+            setUsernameHint(result.message || "Could not verify username. Try again.");
+          }
+        } catch (e) {
+          if (e?.name === "AbortError" || cancelled) return;
+          if (!cancelled) {
+            setUsernameAvail("error");
+            setUsernameHint("Could not verify username. Try again.");
+          }
+        }
+      })();
+    }, 440);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      ac.abort();
+    };
+  }, [username, isSignup]);
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -57,6 +127,9 @@ export default function Login() {
     setIsSignup((v) => !v);
     setMessage("");
     setMessageType("");
+    setUsername("");
+    setUsernameAvail("empty");
+    setUsernameHint("");
   };
 
   const handleSubmit = async () => {
@@ -64,6 +137,44 @@ export default function Login() {
 
     setMessage("");
     setMessageType("");
+
+    let signupUsername = null;
+    if (isSignup) {
+      const uv = validateSignupUsername(username);
+      if (!uv.ok) {
+        setMessage(uv.message || "Please enter a valid username.");
+        setMessageType("error");
+        return;
+      }
+      signupUsername = uv.username;
+
+      if (usernameAvail === "checking") {
+        setMessage("Please wait for the username check to finish.");
+        setMessageType("error");
+        return;
+      }
+      if (usernameAvail !== "available") {
+        setMessage(
+          usernameAvail === "taken" ? USERNAME_TAKEN_MSG : "Choose an available username before continuing."
+        );
+        setMessageType("error");
+        return;
+      }
+
+      const dupCheck = await lookupUsernameAvailability(signupUsername);
+      if (dupCheck.status === "taken") {
+        setUsernameAvail("taken");
+        setUsernameHint(USERNAME_TAKEN_MSG);
+        setMessage(USERNAME_TAKEN_MSG);
+        setMessageType("error");
+        return;
+      }
+      if (dupCheck.status !== "available") {
+        setMessage(dupCheck.message || "Unable to verify username. Try again.");
+        setMessageType("error");
+        return;
+      }
+    }
 
     if (!email.trim()) {
       setMessage("Email is required");
@@ -86,15 +197,21 @@ export default function Login() {
     setSubmitting(true);
 
     if (isSignup) {
-      const { error } = await supabase.auth.signUp({
-        email,
+      const { data: signData, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
+        options: {
+          data: { username: signupUsername },
+        },
       });
 
       if (error) {
         setMessage(error.message);
         setMessageType("error");
       } else {
+        if (signData?.user) {
+          await ensureProfile(signData.user);
+        }
         setMessage("Account created. Check your email.");
         setMessageType("success");
       }
@@ -121,6 +238,13 @@ export default function Login() {
     passwordStrength === "strong" ? "#22c55e" : passwordStrength === "medium" ? "#facc15" : "#ef4444";
   const strengthWidth = passwordStrength === "strong" ? "100%" : passwordStrength === "medium" ? "66%" : "33%";
   const confirmMismatch = isSignup && confirmPassword.length > 0 && password !== confirmPassword;
+  const signInPasswordStarted = !isSignup && password.length > 0;
+
+  const onPasswordKeyDown = (e) => {
+    if (e.key !== "Enter" || isSignup) return;
+    e.preventDefault();
+    if (!submitting) void handleSubmit();
+  };
 
   return (
     <div className={`${styles.page} ${isSignup ? styles.pageSignup : ""}`}>
@@ -138,10 +262,32 @@ export default function Login() {
             ) : null}
           </div>
 
+          {isSignup ? (
+            <div className={styles.usernameBlock}>
+              <input
+                className={styles.input}
+                placeholder="Username"
+                value={username}
+                autoComplete="username"
+                onChange={(e) => setUsername(e.target.value)}
+              />
+              <p
+                className={styles.usernameFeedback}
+                data-tone={
+                  usernameAvail === "empty" || usernameAvail === "scanning" ? undefined : usernameAvail
+                }
+              >
+                {usernameHint}
+              </p>
+            </div>
+          ) : null}
+
           <input
             className={styles.input}
+            type="email"
             placeholder="Email"
             value={email}
+            autoComplete={isSignup ? "email" : "email"}
             onChange={(e) => setEmail(e.target.value)}
           />
           <input
@@ -150,6 +296,7 @@ export default function Login() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={onPasswordKeyDown}
             autoComplete={isSignup ? "new-password" : "current-password"}
           />
           <button
@@ -226,7 +373,7 @@ export default function Login() {
 
           <button
             type="button"
-            className={`${styles.primaryBtn} ${isSignup ? styles.primaryBtnSignup : ""}`}
+            className={`${styles.primaryBtn} ${isSignup ? styles.primaryBtnSignup : ""} ${signInPasswordStarted ? styles.primaryBtnSignInLit : ""}`}
             onClick={handleSubmit}
             disabled={submitting}
           >

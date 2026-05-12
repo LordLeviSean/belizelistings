@@ -7,42 +7,31 @@ import {
   useRef,
 } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/router";
 import {
-  Bath,
-  BedDouble,
-  ChevronLeft,
-  ChevronRight,
-  Heart,
   House,
   Search,
   SlidersHorizontal,
   Tag,
   TrendingUp,
-  MapPin,
 } from "lucide-react";
 import BelizeMap from "../components/BelizeMap";
 import AmbientPalmBackdrop from "../components/AmbientPalmBackdrop";
 import SiteNav from "../components/SiteNav";
 import HomeAdvancedFiltersModal from "../components/HomeAdvancedFiltersModal";
+import HomePropertyCard from "../components/HomePropertyCard";
 import useFavorites from "../hooks/useFavorites";
 import { BELIZE_MAP_REGION_CONFIG, BELIZE_MAP_REGION_ORDER } from "../constants/belizeMapRegions";
+import { getRegionLabel } from "../constants/geographyLayer";
 import { fetchApprovedListingsWithImages } from "../lib/listingQueries";
 import { filterListings } from "../utils/filterListings";
+import { getLifecycleStatus, getListingRegionSlug } from "../utils/canonicalListing";
 import useSeaFlowMode from "../hooks/useSeaFlowMode";
 import { useFavoriteSignupPrompt } from "../components/FavoriteSignupPromptProvider";
 
 import styles from "../styles/HomeMapFirst.module.css";
-import favoriteStyles from "../styles/FavoriteButton.module.css";
 
 const FEATURED_COUNT = 12;
-
-function formatPrice(price, currency) {
-  const numericPrice = Number(price);
-  if (!Number.isFinite(numericPrice)) return "Price on request";
-  return `${numericPrice.toLocaleString()} ${currency || ""}`.trim();
-}
 
 function getListingMarketSignals(listing) {
   return [
@@ -71,8 +60,8 @@ function detectListingBadge(listing) {
 /** Live filter for Recent only — mirrors search semantics without routing. */
 function listingMatchesHaystack(listing, qNorm) {
   if (!qNorm) return true;
-  const district = BELIZE_MAP_REGION_CONFIG[listing?.district]?.label || listing?.district || "";
-  const haystack = `${listing?.title || ""} ${district} ${listing?.property_type || ""} ${listing?.status || ""} ${listing?.price || ""}`;
+  const district = getRegionLabel(getListingRegionSlug(listing));
+  const haystack = `${listing?.title || ""} ${district} ${listing?.property_type || ""} ${getLifecycleStatus(listing)} ${listing?.price || ""}`;
   return haystack.toLowerCase().includes(qNorm);
 }
 
@@ -123,10 +112,10 @@ export default function HomePage() {
   const districtListingCounts = useMemo(() => {
     const counts = {};
     for (const id of BELIZE_MAP_REGION_ORDER) {
-      const label = BELIZE_MAP_REGION_CONFIG[id]?.label;
-      if (!label) continue;
+      const slug = BELIZE_MAP_REGION_CONFIG[id]?.slug;
+      if (!slug) continue;
       counts[id] = filterListings(listingsData, {
-        district: label,
+        district: slug,
         status: "all",
       }).length;
     }
@@ -134,7 +123,7 @@ export default function HomePage() {
   }, [listingsData]);
 
   const activeListings = useMemo(
-    () => listingsData.filter((listing) => listing?.status !== "sold"),
+    () => listingsData.filter((listing) => getLifecycleStatus(listing) !== "sold"),
     [listingsData]
   );
 
@@ -184,15 +173,6 @@ export default function HomePage() {
     return [...featuredListings, ...featuredListings];
   }, [featuredListings]);
 
-  const shiftCarousel = useCallback((listingId, totalImages, direction) => {
-    if (!listingId || totalImages <= 1) return;
-    setCarouselIndexById((prev) => {
-      const current = Number(prev[listingId] || 0);
-      const next = (current + direction + totalImages) % totalImages;
-      return { ...prev, [listingId]: next };
-    });
-  }, []);
-
   const handleSearchSubmit = useCallback(
     async (event) => {
       event.preventDefault();
@@ -235,111 +215,25 @@ export default function HomePage() {
 
   const renderListingCard = useCallback(
     (listing, imageSizes) => {
-      const listingImages = (listing?.images || [])
-        .map((item) => (typeof item === "string" ? item : item?.image_url))
-        .filter(Boolean)
-        .filter((img) => !String(img).toLowerCase().includes("map"));
-      const imageCount = listingImages.length;
-      const activeIndex = imageCount ? Number(carouselIndexById[listing.id] || 0) % imageCount : 0;
-      const imageUrl = imageCount ? listingImages[activeIndex] : "/placeholder.jpg";
-      const district =
-        BELIZE_MAP_REGION_CONFIG[listing?.district]?.label || listing?.district || "Belize";
-      const status = detectListingBadge(listing);
-      const favorited = isFavorite(listing.id);
-      const favoriteBusy = isBusy(listing.id);
-
       return (
-        <Link href={`/listing/${listing.id}`} className={styles.propertyCard}>
-          <div className={styles.propertyMedia}>
-            <Image
-              src={imageUrl}
-              alt={listing?.title || "Listing"}
-              fill
-              sizes={imageSizes}
-            />
-            <span className={styles.propertyBadge}>{status}</span>
-            <span className={styles.propertyFavoriteWrap}>
-              <button
-                type="button"
-                className={`${favoriteStyles.favoriteButton} ${
-                  favorited ? favoriteStyles.favoriteButtonActive : ""
-                }`}
-                aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
-                aria-pressed={favorited}
-                disabled={favoriteBusy}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  if (!isAuthenticated) {
-                    openFavoriteSignupPrompt();
-                    return;
-                  }
-                  void toggleFavorite(listing.id);
-                }}
-              >
-                <Heart fill={favorited ? "currentColor" : "none"} />
-              </button>
-            </span>
-            {imageCount > 1 ? (
-              <>
-                <button
-                  type="button"
-                  className={`${styles.propertyArrowBtn} ${styles.propertyArrowLeft}`}
-                  aria-label="Show previous image"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    shiftCarousel(listing.id, imageCount, -1);
-                  }}
-                >
-                  <ChevronLeft />
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.propertyArrowBtn} ${styles.propertyArrowRight}`}
-                  aria-label="Show next image"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    shiftCarousel(listing.id, imageCount, 1);
-                  }}
-                >
-                  <ChevronRight />
-                </button>
-              </>
-            ) : null}
-            {imageCount > 1 ? (
-              <div className={styles.carouselDots} aria-hidden="true">
-                {listingImages.map((_, dotIndex) => (
-                  <button
-                    type="button"
-                    key={`${listing.id}-dot-${dotIndex}`}
-                    className={`${styles.carouselDot} ${
-                      dotIndex === activeIndex ? styles.carouselDotActive : ""
-                    }`}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      setCarouselIndexById((prev) => ({ ...prev, [listing.id]: dotIndex }));
-                    }}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </div>
-          <div className={styles.propertyBody}>
-            <h4>{listing?.title || "Belize Property"}</h4>
-            <p className={styles.propertyPrice}>{formatPrice(listing?.price, listing?.currency || "BZD")}</p>
-            <p className={styles.propertyMeta}>
-              <span>
-                <BedDouble /> {listing?.beds || 0} bd
-              </span>
-              <span>
-                <Bath /> {listing?.baths || 0} ba
-              </span>
-              <span>
-                <MapPin /> {district}
-              </span>
-            </p>
-          </div>
-        </Link>
+        <HomePropertyCard
+          listing={listing}
+          imageSizes={imageSizes}
+          showFavoriteButton
+          isFavorited={isFavorite(listing.id)}
+          favoriteBusy={isBusy(listing.id)}
+          onFavoriteClick={(listingId) => {
+            if (!isAuthenticated) {
+              openFavoriteSignupPrompt();
+              return;
+            }
+            void toggleFavorite(listingId);
+          }}
+          carouselIndex={Number(carouselIndexById[listing.id] || 0)}
+          onCarouselIndexChange={(nextIndex) =>
+            setCarouselIndexById((prev) => ({ ...prev, [listing.id]: nextIndex }))
+          }
+        />
       );
     },
     [
@@ -348,7 +242,6 @@ export default function HomePage() {
       isBusy,
       isFavorite,
       openFavoriteSignupPrompt,
-      shiftCarousel,
       toggleFavorite,
     ]
   );
@@ -384,8 +277,8 @@ export default function HomePage() {
                 onChange={(event) => setSearchTerm(event.target.value)}
                 className={styles.searchInput}
                 type="search"
-                placeholder="Narrows Recently added · Enter opens dedicated search…"
-                aria-label="Filter recently added listings; Enter runs full search"
+                placeholder="Explore Belize by district, property type, or lifestyle…"
+                aria-label="Search listings; Enter opens full results"
                 enterKeyHint="search"
               />
               <button
@@ -437,7 +330,10 @@ export default function HomePage() {
                 <div className={styles.mapPaneSeaFlowLayers} aria-hidden />
               ) : null}
               <div className={styles.mapPaneMapWrap}>
-                <BelizeMap districtListingCounts={districtListingCounts} />
+                <BelizeMap
+                  districtListingCounts={districtListingCounts}
+                  onDistrictClick={(slug) => router.push(`/listings/district/${slug}`)}
+                />
               </div>
             </section>
           </div>
@@ -456,7 +352,7 @@ export default function HomePage() {
           >
             <div className={styles.sectionTitleRow}>
               <h2 className={styles.sectionTitle}>Featured listings</h2>
-              <p className={styles.sectionSubtitle}>Curated band · twelve newest arrivals, ambient drift</p>
+              <p className={styles.sectionSubtitle}>Fresh arrivals across the map</p>
             </div>
             <div className={styles.featuredCarouselViewport} ref={featuredScrollRef}>
               <div className={styles.featuredCarouselTrack}>
