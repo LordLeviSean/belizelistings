@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import SiteNav from "@/components/SiteNav";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { DashboardShell } from "@/components/dashboard";
-import { DASHBOARD_ROLE } from "@/constants/dashboardRoles";
+import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "@/constants/dashboardRoles";
 import useUserRole from "@/hooks/useUserRole";
 import { fetchBrokerTeamAgentIds } from "@/lib/brokerTeamScope";
 import {
@@ -22,7 +22,7 @@ import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 
 export default function BrokerDashboard() {
   const router = useRouter();
-  const { user, role, loading: roleLoading } = useUserRole();
+  const { user, role, loading: roleLoading, welcomePhrase } = useUserRole();
   const [teamListings, setTeamListings] = useState([]);
   const [brokerageId, setBrokerageId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -115,7 +115,11 @@ export default function BrokerDashboard() {
     <div className={styles.page}>
       <SiteNav active="dashboard" />
       <main className={styles.main}>
-        <DashboardShell roleKey={DASHBOARD_ROLE.broker} title="Brokerage Operations">
+        <DashboardShell
+          roleKey={DASHBOARD_ROLE.broker}
+          title="Brokerage Operations"
+          subtitle={`${welcomePhrase} · ${DASHBOARD_ROLE_META[DASHBOARD_ROLE.broker].defaultSubtitle}`}
+        >
           <div className={styles.adminWrapper}>
             <Breadcrumbs />
 

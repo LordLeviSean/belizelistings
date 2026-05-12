@@ -16,6 +16,8 @@ export default function ListingMediaImage({
   height,
   sizes,
   priority = false,
+  /** Next/Image 1–100; higher = sharper (larger transfer). Default tuned for listing surfaces. */
+  quality = 80,
   mode = "cover",
   className = "",
   imageClassName = "",
@@ -65,6 +67,7 @@ export default function ListingMediaImage({
           alt={alt}
           fill
           sizes={sizes}
+          quality={quality}
           priority={priority}
           loading={priority ? "eager" : "lazy"}
           placeholder="blur"
@@ -93,6 +96,7 @@ export default function ListingMediaImage({
         width={width ?? 1}
         height={height ?? 1}
         sizes={sizes}
+        quality={quality}
         priority={priority}
         loading={priority ? "eager" : "lazy"}
         placeholder="blur"

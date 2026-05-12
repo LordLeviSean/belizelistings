@@ -18,18 +18,16 @@ import { LISTING_MUTATION_FLOW } from "../../lib/listingMutationDiagnostics";
 import { getOperationalLifecycleCountsFromDb } from "../../lib/listingOperationalStats";
 import AdminOperationalStats from "../../components/AdminOperationalStats";
 import { DashboardShell } from "../../components/dashboard";
-import { DASHBOARD_ROLE } from "../../constants/dashboardRoles";
+import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "../../constants/dashboardRoles";
 import styles from "../../styles/Dashboard.module.css";
 import PremiumEmptyState from "../../components/ui/PremiumEmptyState";
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user, role, loading: roleLoading } = useUserRole();
+  const { user, role, loading: roleLoading, welcomePhrase } = useUserRole();
   const [activeTab, setActiveTab] = useState("pending");
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [adminUserId, setAdminUserId] = useState("");
-  const [adminRole, setAdminRole] = useState("");
   const [lastAction, setLastAction] = useState("Live");
   const [totals, setTotals] = useState({
     listings: 0,
@@ -74,14 +72,15 @@ export default function AdminPage() {
     const checkAdmin = async () => {
       if (roleLoading) return;
       if (!user) {
+        setCheckingAccess(false);
+        setIsAdmin(false);
         router.replace("/login");
         return;
       }
 
-      setAdminUserId(user.id);
-      setAdminRole(role);
-
       if (role !== "admin") {
+        setCheckingAccess(false);
+        setIsAdmin(false);
         router.replace("/dashboard");
         return;
       }
@@ -203,7 +202,7 @@ export default function AdminPage() {
         <DashboardShell
           roleKey={DASHBOARD_ROLE.admin}
           title="Admin Control Center"
-          subtitle={`Admin: ${adminUserId} · Role: ${adminRole}`}
+          subtitle={`${welcomePhrase} · ${DASHBOARD_ROLE_META[DASHBOARD_ROLE.admin].defaultSubtitle}`}
         >
         <div className={styles.adminWrapper}>
           <AdminOperationalStats

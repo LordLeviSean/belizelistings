@@ -22,7 +22,8 @@ export default function ListingImage({ src, alt = "", mode = "cover", className 
         alt={alt}
         fill
         mode={mode}
-        sizes="(max-width: 1100px) 92vw, 640px"
+        sizes="(max-width: 1100px) 92vw, min(720px, 55vw)"
+        quality={84}
         hoverZoom={false}
       />
     </div>

@@ -49,7 +49,14 @@ export default function ListingCard({
       >
         <div className={`${styles.inner} safeFlexRow`}>
           <div className={`${styles.thumb} listingCardThumbHover`} aria-hidden="true">
-            <ListingMediaImage src={imageUrl} alt="" fill sizes="78px" hoverZoom />
+            <ListingMediaImage
+              src={imageUrl}
+              alt=""
+              fill
+              sizes="(max-width: 640px) 28vw, 112px"
+              quality={82}
+              hoverZoom
+            />
           </div>
           <div className={`${styles.info} safeFlexCol`}>
             <div className={styles.titleRow}>

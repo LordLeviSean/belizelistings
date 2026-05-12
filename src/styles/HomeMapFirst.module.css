@@ -829,13 +829,19 @@
   position: relative;
   height: 142px;
   overflow: hidden;
+  /* Gesture-first carousel: horizontal swipe / drag; no arrow chrome */
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  /* Desktop next-zone top: clears FAB column + small dead band (see .cardGalleryNavHitNext) */
+  --card-gallery-hit-next-top: clamp(86px, 24.5%, 100px);
 }
 
 .propertyMedia .propertyActionsCluster {
   position: absolute;
   top: 9px;
   right: 9px;
-  z-index: 2;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -871,7 +877,7 @@
   position: absolute;
   top: 9px;
   left: 9px;
-  z-index: 2;
+  z-index: 3;
   font-size: 11px;
   letter-spacing: 0.06em;
   border-radius: 999px;
@@ -893,21 +899,20 @@
   left: 50%;
   transform: translateX(-50%);
   bottom: 7px;
-  z-index: 2;
+  z-index: 3;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  pointer-events: none;
 }
 
 .carouselDot {
+  display: inline-block;
   width: 4px;
   height: 4px;
-  border: 0;
-  padding: 0;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.58);
   box-shadow: 0 0 0 1px rgba(58, 89, 97, 0.16);
-  cursor: pointer;
   transition:
     transform 460ms var(--ui-ease),
     background 460ms var(--ui-ease),
@@ -919,54 +924,87 @@
   box-shadow: 0 0 0 1px rgba(58, 89, 97, 0.22), 0 0 12px rgba(255, 255, 255, 0.4);
 }
 
-.propertyArrowBtn {
+/*
+ * Desktop / fine pointer: compact editorial prev-next hit bands (no chrome, no cursor affordance).
+ * Coarse touch: bands stay inert — swipe on the media surface only (@media pointer: coarse).
+ * z-index: 2 keeps hits above .propertyMedia::after (1); FAB / badge / dots stay at 3+.
+ *
+ * Geometry: asymmetric bands, generous center for “open listing”, soft inner edge via clip-path.
+ */
+.cardGalleryNavHitPrev,
+.cardGalleryNavHitNext {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
   z-index: 2;
-  width: 22px;
-  height: 22px;
+  margin: 0;
+  padding: 0;
   border: 0;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.42);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: rgba(52, 81, 88, 0.82);
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  opacity: 0;
-  pointer-events: auto;
-  transition:
-    opacity 520ms var(--ui-ease),
-    transform 520ms var(--ui-ease);
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  box-shadow: none;
+  opacity: 1;
+  cursor: default;
+  pointer-events: none;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.propertyArrowBtn :global(svg) {
-  width: 13px;
-  height: 13px;
-  stroke-width: 2.1;
+.cardGalleryNavHitPrev:hover,
+.cardGalleryNavHitPrev:focus,
+.cardGalleryNavHitNext:hover,
+.cardGalleryNavHitNext:focus {
+  background: transparent;
+  opacity: 1;
+  box-shadow: none;
+  outline: none;
 }
 
-.propertyCard:hover .propertyArrowBtn {
-  opacity: 0.42;
+.cardGalleryNavHitPrev:active,
+.cardGalleryNavHitNext:active {
+  transform: none;
 }
 
-.propertyArrowBtn:hover {
-  opacity: 0.55;
-  transform: translateY(-50%) translateY(-0.5px);
-  background: rgba(255, 255, 255, 0.58);
+/* `?debugCardHits=1` on single-image cards — layout probe only, no clicks */
+.cardGalleryNavHitGhost {
+  pointer-events: none !important;
 }
 
-.propertyArrowLeft {
-  left: 8px;
+/* Previous: left-middle band; clears badge; center biased slightly above image midpoint */
+.cardGalleryNavHitPrev {
+  left: 3px;
+  width: clamp(30%, 36%, 220px);
+  height: 56%;
+  /* Vertical center ~46% (slightly above 50%); top ≥ ~42px clears FOR SALE / FOR RENT pill */
+  top: max(42px, calc(46% - 28%));
+  /* Taper toward listing center — fewer accidental advances when aiming for the link */
+  clip-path: polygon(0 2%, 100% 5%, 90% 98%, 0 98%);
 }
 
+/* Next: narrower, starts below FAB stack, sits a touch lower than prev; center biased slightly below midpoint */
+.cardGalleryNavHitNext {
+  right: 3px;
+  width: clamp(26%, 32%, 200px);
+  top: calc(var(--card-gallery-hit-next-top) + 5px);
+  height: min(64%, calc(100% - var(--card-gallery-hit-next-top) - 17px));
+  clip-path: polygon(12% 3%, 100% 0, 100% 100%, 12% 97%);
+}
+
+@media (pointer: fine) {
+  .cardGalleryNavHitPrev:not(.cardGalleryNavHitGhost),
+  .cardGalleryNavHitNext:not(.cardGalleryNavHitGhost) {
+    pointer-events: auto;
+  }
+}
+
+/* Legacy arrow class names — keep inert if referenced anywhere */
+.propertyArrowBtn,
+.propertyArrowLeft,
 .propertyArrowRight {
-  right: 8px;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .propertyBody {
@@ -1210,10 +1248,6 @@
   .propertyMedia {
     height: 170px;
   }
-
-  .propertyArrowBtn {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1250,7 +1284,4 @@
     transform: none;
   }
 
-  .propertyCard:hover .propertyArrowBtn {
-    opacity: 0;
-  }
 }

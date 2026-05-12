@@ -91,11 +91,12 @@
   pointer-events: none;
   z-index: 0;
   border-radius: inherit;
+  /* Centered washes only — avoid a top-left column that reads as a clipped panel behind transparent section chrome */
   background:
-    radial-gradient(ellipse 72% 48% at 12% 0%, var(--ambient-mint), transparent 62%),
-    radial-gradient(ellipse 58% 40% at 92% 8%, var(--ambient-lagoon), transparent 58%),
-    radial-gradient(ellipse 50% 36% at 50% 100%, var(--ambient-sand), transparent 55%);
-  opacity: 0.5;
+    radial-gradient(ellipse 78% 52% at 50% 0%, var(--ambient-mint), transparent 58%),
+    radial-gradient(ellipse 56% 44% at 92% 12%, var(--ambient-lagoon), transparent 56%),
+    radial-gradient(ellipse 52% 38% at 50% 100%, var(--ambient-sand), transparent 55%);
+  opacity: 0.34;
 }
 
 .workspaceActiveCard > * {
@@ -459,12 +460,17 @@
 }
 
 .sectionLabel {
+  position: relative;
+  z-index: 2;
   margin: 0 0 10px;
   font-size: 0.72rem;
   font-weight: 650;
   text-transform: uppercase;
   letter-spacing: 0.14em;
   color: var(--text-secondary);
+  /* Opaque strip so ambient card wash never reads as “ghost UI” over headings */
+  padding: 2px 0 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 255, 255, 0.82) 70%, rgba(255, 255, 255, 0) 100%);
 }
 
 .fieldGrid {
@@ -572,15 +578,28 @@
   box-shadow: 0 0 0 3px rgba(95, 168, 154, 0.18);
 }
 
-.mediaFilePick {
-  margin-top: 14px;
-}
+/* Single file input lives inside the drop label — no second browse control */
 
 /* --- Media --- */
 
+/* Off-canvas — never paint a clipped rect inside the drop label (avoids left-edge artifacts) */
+.mediaPickInput {
+  position: fixed;
+  top: 0;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .dropZone {
   position: relative;
-  border: 1px dashed var(--border-strong);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
   padding: 24px 20px;
   text-align: center;
@@ -592,8 +611,7 @@
 
 .dropZone:hover,
 .dropZoneDrag {
-  border-color: rgba(46, 139, 120, 0.45);
-  border-style: solid;
+  border-color: rgba(46, 139, 120, 0.38);
   background: linear-gradient(165deg, rgba(255, 255, 255, 0.96), rgba(236, 248, 244, 0.92));
   box-shadow: var(--elev-1);
 }
@@ -683,6 +701,125 @@
   cursor: default;
 }
 
+/* —— Media studio upload progress (draft save / Continue) —— */
+
+.mediaUploadOverlayRoot {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  pointer-events: auto;
+  animation: mediaUploadOverlayIn 420ms var(--ease-out-soft) both;
+}
+
+.mediaUploadOverlayBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(243, 250, 247, 0.38);
+  backdrop-filter: blur(14px) saturate(1.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+}
+
+.mediaUploadOverlayBackdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 36%, rgba(137, 205, 189, 0.16), transparent 64%),
+    radial-gradient(ellipse 48% 42% at 14% 82%, rgba(159, 179, 217, 0.1), transparent 58%);
+  opacity: 0.9;
+}
+
+.mediaUploadOverlayPanel {
+  position: relative;
+  z-index: 1;
+  width: min(400px, 100%);
+  padding: 28px 26px 26px;
+  border-radius: calc(var(--radius) + 4px);
+  border: 1px solid rgba(154, 210, 200, 0.28);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.94), rgba(240, 250, 246, 0.88));
+  box-shadow:
+    0 22px 48px rgba(18, 40, 44, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.55) inset;
+  backdrop-filter: blur(18px) saturate(1.06);
+  -webkit-backdrop-filter: blur(18px) saturate(1.06);
+  text-align: center;
+}
+
+.mediaUploadTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.mediaUploadSub {
+  margin: 10px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.mediaUploadTertiary {
+  margin: 14px 0 0;
+  min-height: 1.35em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(72, 118, 108, 0.72);
+}
+
+.mediaUploadShimmerBar {
+  margin-top: 20px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(154, 210, 200, 0.22);
+  overflow: hidden;
+}
+
+.mediaUploadShimmerFill {
+  height: 100%;
+  width: 42%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgba(137, 205, 189, 0.15),
+    rgba(137, 205, 189, 0.55),
+    rgba(159, 179, 217, 0.45),
+    rgba(137, 205, 189, 0.15)
+  );
+  animation: mediaUploadShimmer 1.45s ease-in-out infinite;
+}
+
+@keyframes mediaUploadOverlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mediaUploadShimmer {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(320%);
+    opacity: 0.65;
+  }
+}
+
 /* Preview panes */
 .previewGrid {
   display: grid;
@@ -731,6 +868,22 @@
   letter-spacing: 0.12em;
   color: var(--text-secondary);
   margin: 0 0 12px;
+}
+
+.previewFabHint {
+  margin: -6px 0 12px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  opacity: 0.92;
+}
+
+.previewFabHintCode {
+  font-size: 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  opacity: 0.88;
 }
 
 /* Same `sizes` + width band as homepage featured rail cards */
@@ -1130,6 +1283,17 @@
 
   .submissionProgressFill {
     background-position: 50% 50%;
+  }
+
+  .mediaUploadOverlayRoot {
+    animation: none;
+  }
+
+  .mediaUploadShimmerFill {
+    animation: none;
+    transform: none;
+    width: 100%;
+    opacity: 0.35;
   }
 
   .mediaBtn,

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Bath, BedDouble, ChevronLeft, ChevronRight, Heart, MapPin } from "lucide-react";
+import { useRouter } from "next/router";
+import { Bath, BedDouble, Heart, MapPin } from "lucide-react";
 import ListingMediaImage from "./listing/ListingMediaImage";
 import ShareListingIconButton from "./ShareListingIconButton";
 import homeStyles from "../styles/HomeMapFirst.module.css";
@@ -11,6 +12,16 @@ import { getListingRegionSlug } from "../utils/canonicalListing";
 import { normalizeListingImageEntry } from "../utils/listingImage";
 import { isLandInventoryListing } from "../utils/listingPresentation";
 import LandParcelGlyph from "./icons/LandParcelGlyph";
+
+/**
+ * Optional `?debugCardHits=1`: mounts prev/next hit-zone buttons on single-image cards too
+ * (ghost / non-interactive) for layout inspection in DevTools.
+ */
+
+/** Horizontal distance (px) to count as a gallery swipe vs. a tap-through to the listing. */
+const SWIPE_MIN_PX = 44;
+/** Ignore swipes that are mostly vertical (scrolling the page). */
+const SWIPE_MAX_VERTICAL_PX = 72;
 
 function formatPrice(price, currency) {
   const numericPrice = Number(price);
@@ -49,9 +60,9 @@ function districtLabel(district = "") {
 
 export default function HomePropertyCard({
   listing,
-  imageSizes = "(max-width: 760px) 100vw, (max-width: 980px) 50vw, 33vw",
+  imageSizes = "(max-width: 520px) 100vw, (max-width: 760px) 50vw, (max-width: 980px) 42vw, 400px",
   imagePriority = false,
-  /** When true, renders as a static preview (no link to listing detail) — create-workspace parity */
+  /** When true, no link to listing detail — Create preview & other static surfaces (`docs/BELIZELISTINGS_LISTING_CARD_DNA.md`). */
   disableNavigation = false,
   showFavoriteButton = false,
   showShareButton = true,
@@ -63,7 +74,10 @@ export default function HomePropertyCard({
   onCarouselIndexChange,
 }) {
   const [localCarouselIndex, setLocalCarouselIndex] = useState(0);
+  const consumeNextLinkClick = useRef(false);
+  const swipePointerDown = useRef(false);
   const swipeStartX = useRef(0);
+  const swipeStartY = useRef(0);
 
   const listingImages = useMemo(
     () =>
@@ -75,6 +89,15 @@ export default function HomePropertyCard({
   );
 
   const imageCount = listingImages.length;
+
+  const router = useRouter();
+  const debugCardHits =
+    router.isReady &&
+    (router.query.debugCardHits === "1" ||
+      String(router.query.debugCardHits || "").toLowerCase() === "true");
+  const showGalleryNavZones = imageCount > 1 || debugCardHits;
+  const ghostGalleryNavZones = debugCardHits && imageCount <= 1;
+
   const activeIndex = imageCount
     ? Number((typeof carouselIndex === "number" ? carouselIndex : localCarouselIndex) || 0) % imageCount
     : 0;
@@ -100,6 +123,60 @@ export default function HomePropertyCard({
     [activeIndex, imageCount, setActiveIndex]
   );
 
+  const onMediaPointerDown = useCallback(
+    (event) => {
+      if (imageCount <= 1) return;
+      const t = event.target;
+      if (t instanceof Element && t.closest("button")) return;
+      swipePointerDown.current = true;
+      swipeStartX.current = event.clientX;
+      swipeStartY.current = event.clientY;
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        /* ignore */
+      }
+    },
+    [imageCount]
+  );
+
+  const onMediaPointerUp = useCallback(
+    (event) => {
+      if (!swipePointerDown.current || imageCount <= 1) {
+        swipePointerDown.current = false;
+        return;
+      }
+      swipePointerDown.current = false;
+      try {
+        if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+      } catch {
+        /* ignore */
+      }
+
+      const dx = event.clientX - swipeStartX.current;
+      const dy = event.clientY - swipeStartY.current;
+      if (Math.abs(dy) > SWIPE_MAX_VERTICAL_PX) return;
+      if (Math.abs(dx) < SWIPE_MIN_PX) return;
+
+      consumeNextLinkClick.current = true;
+      shiftCarousel(dx < 0 ? 1 : -1);
+    },
+    [imageCount, shiftCarousel]
+  );
+
+  const onMediaPointerCancel = useCallback(() => {
+    swipePointerDown.current = false;
+  }, []);
+
+  const onLinkClickCapture = useCallback((event) => {
+    if (!consumeNextLinkClick.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    consumeNextLinkClick.current = false;
+  }, []);
+
   const imageUrl = imageCount ? listingImages[activeIndex] : "/placeholder.jpg";
   const status = detectListingBadge(listing);
   const isRentBadge = status === "FOR RENT";
@@ -122,15 +199,15 @@ export default function HomePropertyCard({
     <>
       <div
         className={homeStyles.propertyMedia}
-        onTouchStart={(event) => {
-          swipeStartX.current = event.changedTouches?.[0]?.clientX || 0;
-        }}
-        onTouchEnd={(event) => {
-          const endX = event.changedTouches?.[0]?.clientX || 0;
-          const deltaX = endX - swipeStartX.current;
-          if (Math.abs(deltaX) < 32) return;
-          shiftCarousel(deltaX < 0 ? 1 : -1);
-        }}
+        role={imageCount > 1 ? "group" : undefined}
+        aria-label={
+          imageCount > 1
+            ? `Photos for ${listing?.title || "listing"}, ${activeIndex + 1} of ${imageCount}. Swipe sideways on touch. On desktop, narrow bands on the left and right of the photo change images; the center opens the listing.`
+            : undefined
+        }
+        onPointerDown={onMediaPointerDown}
+        onPointerUp={onMediaPointerUp}
+        onPointerCancel={onMediaPointerCancel}
       >
         <ListingMediaImage
           key={imageUrl}
@@ -140,7 +217,45 @@ export default function HomePropertyCard({
           sizes={imageSizes}
           priority={imagePriority}
           hoverZoom
+          quality={82}
         />
+
+        {showGalleryNavZones ? (
+          <>
+            <button
+              type="button"
+              className={[
+                homeStyles.cardGalleryNavHitPrev,
+                ghostGalleryNavZones ? homeStyles.cardGalleryNavHitGhost : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              tabIndex={-1}
+              aria-label="Previous photo"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                shiftCarousel(-1);
+              }}
+            />
+            <button
+              type="button"
+              className={[
+                homeStyles.cardGalleryNavHitNext,
+                ghostGalleryNavZones ? homeStyles.cardGalleryNavHitGhost : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              tabIndex={-1}
+              aria-label="Next photo"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                shiftCarousel(1);
+              }}
+            />
+          </>
+        ) : null}
 
         <span
           className={`${homeStyles.propertyBadge} ${
@@ -185,45 +300,13 @@ export default function HomePropertyCard({
         ) : null}
 
         {imageCount > 1 ? (
-          <>
-            <button
-              type="button"
-              className={`${homeStyles.propertyArrowBtn} ${homeStyles.propertyArrowLeft}`}
-              aria-label="Show previous image"
-              onClick={(event) => {
-                event.preventDefault();
-                shiftCarousel(-1);
-              }}
-            >
-              <ChevronLeft />
-            </button>
-            <button
-              type="button"
-              className={`${homeStyles.propertyArrowBtn} ${homeStyles.propertyArrowRight}`}
-              aria-label="Show next image"
-              onClick={(event) => {
-                event.preventDefault();
-                shiftCarousel(1);
-              }}
-            >
-              <ChevronRight />
-            </button>
-          </>
-        ) : null}
-
-        {imageCount > 1 ? (
           <div className={homeStyles.carouselDots} aria-hidden="true">
             {listingImages.map((_, dotIndex) => (
-              <button
-                type="button"
+              <span
                 key={`${listing.id}-dot-${dotIndex}`}
                 className={`${homeStyles.carouselDot} ${
                   dotIndex === activeIndex ? homeStyles.carouselDotActive : ""
                 }`}
-                onClick={(event) => {
-                  event.preventDefault();
-                  setActiveIndex(dotIndex);
-                }}
               />
             ))}
           </div>
@@ -286,9 +369,9 @@ export default function HomePropertyCard({
       href={`/listing/${listing.id}`}
       className={outerClass}
       aria-label={`View ${listing?.title || "Belize property"}`}
+      onClickCapture={onLinkClickCapture}
     >
       {cardInner}
     </Link>
   );
 }
-

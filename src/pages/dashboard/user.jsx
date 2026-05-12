@@ -6,7 +6,7 @@ import useUserRole from "@/hooks/useUserRole";
 
 export default function UserDashboard() {
   const router = useRouter();
-  const { user, role, loading } = useUserRole();
+  const { user, role, loading, welcomePhrase } = useUserRole();
 
   useEffect(() => {
     if (loading) return;
@@ -27,6 +27,7 @@ export default function UserDashboard() {
       <div className="pageContent">
         <Breadcrumbs />
         <h1 className="pageTitle">Dashboard</h1>
+        <p className="pageDashboardGreeting">{welcomePhrase}</p>
         <p className="pageSubtitle">Browse and save listings.</p>
       </div>
     </div>

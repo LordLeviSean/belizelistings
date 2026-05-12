@@ -35,8 +35,10 @@ export function mapListingRowToCreateForm(listing = {}) {
     property_type: PROPERTY_TYPES.includes(pt) ? pt : "",
     district: districtLabel,
     listing_type: listing.listing_type === "rent" ? "rent" : "sale",
-    beds: listing.beds != null ? String(listing.beds) : "",
-    baths: listing.baths != null ? String(listing.baths) : "",
+    beds:
+      listing.beds != null && Number(listing.beds) > 0 ? String(listing.beds) : "",
+    baths:
+      listing.baths != null && Number(listing.baths) > 0 ? String(listing.baths) : "",
     description: String(listing.description || ""),
     amenities,
     legacyFeaturesTail,
@@ -47,7 +49,14 @@ export function mapListingRowToCreateForm(listing = {}) {
   };
 }
 
-export function createSyntheticListingForPreview(form, remoteImages, pendingLocalUrls) {
+/**
+ * Build a listing-shaped object for `HomePropertyCard` preview (Create workspace).
+ * @param {{}} form
+ * @param {Array} remoteImages
+ * @param {string[]} pendingLocalUrls
+ * @param {string} [persistedListingId] — draft row id after first save; omit or empty uses placeholder `preview` until FABs can target a real listing.
+ */
+export function createSyntheticListingForPreview(form, remoteImages, pendingLocalUrls, persistedListingId) {
   const remoteRows = remoteImages || [];
   const remoteUrls = remoteRows.map((x) => x.image_url || x.url).filter(Boolean);
   const pending = (pendingLocalUrls || []).filter(Boolean);
@@ -72,8 +81,10 @@ export function createSyntheticListingForPreview(form, remoteImages, pendingLoca
   const bedsPreview = land ? null : Number(form.beds) || 0;
   const bathsPreview = land ? null : Number(form.baths) || 0;
 
+  const previewId = String(persistedListingId || "").trim() || "preview";
+
   return {
-    id: "preview",
+    id: previewId,
     title: form.title?.trim() || "Listing title",
     price: Number(form.price) || 0,
     currency: "BZD",

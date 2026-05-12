@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createDebugger } from "@/lib/debug";
 import SiteNav from "../../components/SiteNav";
 import BackButton from "../../components/BackButton";
@@ -41,6 +41,8 @@ import {
 } from "../../utils/createListingForm";
 import { evaluateListingIntel } from "../../utils/listingIntel";
 import { isLandInventoryListing } from "../../utils/listingPresentation";
+import useFavorites from "../../hooks/useFavorites";
+import { useFavoriteSignupPrompt } from "../../components/FavoriteSignupPromptProvider";
 import CreateListingAmenitiesSelector from "../../components/CreateListingAmenitiesSelector";
 import styles from "../../styles/Dashboard.module.css";
 import cw from "../../styles/CreateWorkspace.module.css";
@@ -136,6 +138,8 @@ export default function DashboardCreatePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { roleLoading, canCreateListings, tier, isAdmin } = useRoleAccess(user?.id);
+  const { isFavorite, toggleFavorite, isBusy, isAuthenticated } = useFavorites();
+  const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
   const [form, setForm] = useState(() => ({ ...CREATE_FORM_INITIAL }));
   const [workspaceStage, setWorkspaceStage] = useState(1);
   const [draftListingId, setDraftListingId] = useState("");
@@ -170,6 +174,14 @@ export default function DashboardCreatePage() {
   const [showCompletionCard, setShowCompletionCard] = useState(false);
   const [overlayExiting, setOverlayExiting] = useState(false);
   const [dropActive, setDropActive] = useState(false);
+  const [previewCarouselIndex, setPreviewCarouselIndex] = useState(0);
+  const mediaPickId = useId();
+  const [mediaStudioBusy, setMediaStudioBusy] = useState({
+    active: false,
+    phase: "idle",
+    done: 0,
+    total: 0,
+  });
 
   const targetProgressRef = useRef(0);
   const visualProgressRef = useRef(0);
@@ -211,6 +223,17 @@ export default function DashboardCreatePage() {
   const setField = (field) => (event) => {
     setErrors((current) => ({ ...current, [field]: "" }));
     setForm((current) => ({ ...current, [field]: event.target.value }));
+    setDirty(true);
+  };
+
+  /** Beds/baths: empty and "0" both show placeholder; no leading zeros. */
+  const setRoomCountField = (field) => (event) => {
+    const raw = String(event.target.value ?? "");
+    const digits = raw.replace(/[^\d]/g, "");
+    let next = digits.replace(/^0+/, "");
+    if (next === "0") next = "";
+    setErrors((current) => ({ ...current, [field]: "" }));
+    setForm((current) => ({ ...current, [field]: next }));
     setDirty(true);
   };
 
@@ -308,7 +331,8 @@ export default function DashboardCreatePage() {
         .select("*")
         .eq("listing_id", listingId)
         .order("position", { ascending: true });
-      setRemoteImages((data || []).filter(Boolean));
+      const rows = (data || []).filter(Boolean).map((row) => ({ ...row }));
+      setRemoteImages(rows);
     },
     []
   );
@@ -385,19 +409,50 @@ export default function DashboardCreatePage() {
       if (pendingUploads.length > 0 && activeId) {
         const filesOnly = pendingUploads.map((p) => p.file);
         const startPos = remoteImages.length;
-        await uploadListingImageFiles(supabase, {
-          listingId: activeId,
-          userId: user.id,
-          files: filesOnly,
-          startPosition: startPos,
+        const totalFiles = filesOnly.length;
+        setMediaStudioBusy({ active: true, phase: "optimizing", done: 0, total: totalFiles });
+        await new Promise((r) => {
+          requestAnimationFrame(() => r());
         });
-        setPendingUploads((prev) => {
-          prev.forEach((p) => {
-            if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+        try {
+          setMediaStudioBusy((s) => ({ ...s, phase: "uploading", done: 0, total: totalFiles }));
+          const { failures } = await uploadListingImageFiles(supabase, {
+            listingId: activeId,
+            userId: user.id,
+            files: filesOnly,
+            startPosition: startPos,
+            onProgress: (done, total) => {
+              setMediaStudioBusy((prev) => ({
+                ...prev,
+                active: true,
+                phase: "uploading",
+                done,
+                total,
+              }));
+            },
           });
-          return [];
-        });
-        await refetchRemoteImages(activeId);
+          const allFailed = failures.length > 0 && failures.length >= totalFiles;
+          if (failures.length) {
+            showToast({
+              type: "info",
+              message: allFailed
+                ? "No images uploaded — check your connection and try Save draft again."
+                : `${failures.length} of ${totalFiles} image(s) did not upload — you can retry with Save draft.`,
+            });
+          }
+          if (!allFailed) {
+            setMediaStudioBusy((s) => ({ ...s, phase: "syncing", done: totalFiles, total: totalFiles }));
+            await refetchRemoteImages(activeId);
+            setPendingUploads((prev) => {
+              prev.forEach((p) => {
+                if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+              });
+              return [];
+            });
+          }
+        } finally {
+          setMediaStudioBusy({ active: false, phase: "idle", done: 0, total: 0 });
+        }
       }
 
       try {
@@ -444,6 +499,7 @@ export default function DashboardCreatePage() {
     router,
     remoteImages.length,
     refetchRemoteImages,
+    showToast,
   ]);
 
   useEffect(() => {
@@ -1055,15 +1111,25 @@ export default function DashboardCreatePage() {
 
   const showOverlay = loadingCreate || showCompletionCard;
 
+  const persistedPreviewListingId = String(draftListingId || "").trim();
+
   const syntheticListing = useMemo(
     () =>
       createSyntheticListingForPreview(
         form,
         remoteImages,
-        pendingUploads.map((p) => p.previewUrl).filter(Boolean)
+        pendingUploads.map((p) => p.previewUrl).filter(Boolean),
+        persistedPreviewListingId || undefined
       ),
-    [form, remoteImages, pendingUploads]
+    [form, remoteImages, pendingUploads, persistedPreviewListingId]
   );
+
+  const previewImageCount = Array.isArray(syntheticListing?.images) ? syntheticListing.images.length : 0;
+  const previewFabReady = Boolean(persistedPreviewListingId);
+
+  useEffect(() => {
+    setPreviewCarouselIndex(0);
+  }, [previewImageCount, persistedPreviewListingId]);
 
   const intel = useMemo(() => evaluateListingIntel(syntheticListing), [syntheticListing]);
 
@@ -1323,7 +1389,7 @@ export default function DashboardCreatePage() {
                         className={cw.input}
                         placeholder="Beds"
                         value={form.beds}
-                        onChange={setField("beds")}
+                        onChange={setRoomCountField("beds")}
                         inputMode="numeric"
                         autoComplete="off"
                       />
@@ -1331,7 +1397,7 @@ export default function DashboardCreatePage() {
                         className={cw.input}
                         placeholder="Baths"
                         value={form.baths}
-                        onChange={setField("baths")}
+                        onChange={setRoomCountField("baths")}
                         inputMode="numeric"
                         autoComplete="off"
                       />
@@ -1384,6 +1450,7 @@ export default function DashboardCreatePage() {
                   Media studio
                 </h2>
                 <label
+                  htmlFor={mediaPickId}
                   className={`${cw.dropZone} ${dropActive ? cw.dropZoneDrag : ""}`}
                   onDragEnter={(e) => {
                     e.preventDefault();
@@ -1400,10 +1467,11 @@ export default function DashboardCreatePage() {
                   }}
                 >
                   <input
+                    id={mediaPickId}
                     type="file"
                     multiple
                     accept="image/*"
-                    style={{ display: "none" }}
+                    className={cw.mediaPickInput}
                     onChange={(event) => mergeFilesIntoPending(event.target.files)}
                   />
                   <p className={cw.dropHint}>Drop photos here, or tap to browse</p>
@@ -1451,14 +1519,6 @@ export default function DashboardCreatePage() {
                     </div>
                   ))}
                 </div>
-
-                <input
-                  className={cw.mediaFilePick}
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(event) => mergeFilesIntoPending(event.target.files)}
-                />
               </section>
             ) : null}
 
@@ -1469,15 +1529,32 @@ export default function DashboardCreatePage() {
                 </h2>
                 <div className={cw.previewGrid}>
                   <div className={cw.previewPane}>
-                    <p className={cw.previewPaneTitle}>Homepage card (live)</p>
+                    <p className={cw.previewPaneTitle}>Listing preview (production card)</p>
+                    {!previewFabReady ? (
+                      <p className={cw.previewFabHint}>
+                        Save a draft once to enable favorite and share on this preview — same chrome as live listings
+                        (see <code className={cw.previewFabHintCode}>docs/BELIZELISTINGS_LISTING_CARD_DNA.md</code>).
+                      </p>
+                    ) : null}
                     <div className={cw.previewCardShell}>
                       <HomePropertyCard
                         listing={syntheticListing}
-                        imageSizes="(max-width: 760px) 100vw, 33vw"
                         imagePriority={false}
                         disableNavigation
-                        showFavoriteButton={false}
-                        showShareButton={false}
+                        showFavoriteButton={previewFabReady}
+                        showShareButton={previewFabReady}
+                        isFavorited={previewFabReady ? isFavorite(syntheticListing.id) : false}
+                        favoriteBusy={previewFabReady ? isBusy(syntheticListing.id) : false}
+                        onFavoriteClick={(listingId) => {
+                          if (!previewFabReady) return;
+                          if (!isAuthenticated) {
+                            openFavoriteSignupPrompt();
+                            return;
+                          }
+                          void toggleFavorite(listingId);
+                        }}
+                        carouselIndex={previewCarouselIndex}
+                        onCarouselIndexChange={setPreviewCarouselIndex}
                       />
                     </div>
                   </div>
@@ -1522,7 +1599,7 @@ export default function DashboardCreatePage() {
                     type="button"
                     className={cw.footerBack}
                     onClick={() => void handleBack()}
-                    disabled={saveUi === "saving" || hydratingDraft}
+                    disabled={saveUi === "saving" || hydratingDraft || mediaStudioBusy.active}
                   >
                     Back
                   </button>
@@ -1535,7 +1612,7 @@ export default function DashboardCreatePage() {
                   type="button"
                   className={cw.saveDraftBtn}
                   onClick={() => void handleSaveDraft()}
-                  disabled={saveUi === "saving" || hydratingDraft}
+                  disabled={saveUi === "saving" || hydratingDraft || mediaStudioBusy.active}
                 >
                   Save draft
                 </button>
@@ -1544,7 +1621,7 @@ export default function DashboardCreatePage() {
                     type="button"
                     className={`${styles.primaryButton} ${cw.footerPrimaryCta}`}
                     onClick={() => void handleContinue()}
-                    disabled={saveUi === "saving" || hydratingDraft}
+                    disabled={saveUi === "saving" || hydratingDraft || mediaStudioBusy.active}
                   >
                     Continue
                   </button>
@@ -1562,6 +1639,43 @@ export default function DashboardCreatePage() {
             </div>
             </div>
           </form>
+
+          {mediaStudioBusy.active ? (
+            <div
+              className={cw.mediaUploadOverlayRoot}
+              role="alertdialog"
+              aria-modal="true"
+              aria-live="polite"
+              aria-busy="true"
+              aria-labelledby="create-media-upload-title"
+            >
+              <div className={cw.mediaUploadOverlayBackdrop} aria-hidden />
+              <div className={cw.mediaUploadOverlayPanel}>
+                <p id="create-media-upload-title" className={cw.mediaUploadTitle}>
+                  Uploading photos…
+                </p>
+                <p className={cw.mediaUploadSub}>
+                  {mediaStudioBusy.phase === "syncing"
+                    ? "Please wait while your media studio syncs."
+                    : "Your inventory gallery is being prepared with care."}
+                </p>
+                <p className={cw.mediaUploadTertiary}>
+                  {mediaStudioBusy.phase === "optimizing"
+                    ? "Optimizing images"
+                    : mediaStudioBusy.phase === "uploading" && mediaStudioBusy.total > 0
+                      ? mediaStudioBusy.done === 0
+                        ? "Preparing uploads…"
+                        : `Uploading ${mediaStudioBusy.done} of ${mediaStudioBusy.total}`
+                      : mediaStudioBusy.phase === "syncing"
+                        ? "Preparing gallery"
+                        : ""}
+                </p>
+                <div className={cw.mediaUploadShimmerBar} aria-hidden>
+                  <div className={cw.mediaUploadShimmerFill} />
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           {isDebug && (
             <div

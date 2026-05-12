@@ -8,11 +8,20 @@ export function safeFileSlug(name = "") {
 
 /**
  * Upload local files to listing-images bucket and insert listing_images rows.
- * @returns {{ failures: string[] }}
+ * @param {{ onProgress?: (done: number, total: number) => void }} [opts]
+ * @returns {{ failures: string[], insertedRows: Array<Record<string, unknown>> }}
  */
-export async function uploadListingImageFiles(supabase, { listingId, userId, files, startPosition = 0 }) {
+export async function uploadListingImageFiles(
+  supabase,
+  { listingId, userId, files, startPosition = 0, onProgress } = {}
+) {
   const failures = [];
+  const insertedRows = [];
   const list = files.filter(Boolean);
+  const total = list.length;
+  if (typeof onProgress === "function" && total > 0) {
+    onProgress(0, total);
+  }
   for (let i = 0; i < list.length; i++) {
     const file = list[i];
     try {
@@ -27,12 +36,20 @@ export async function uploadListingImageFiles(supabase, { listingId, userId, fil
       const { data: publicUrlData } = supabase.storage.from("listing-images").getPublicUrl(filePath);
       const publicUrl = publicUrlData?.publicUrl;
       if (publicUrl) {
-        const { error: imageError } = await supabase.from("listing_images").insert({
-          listing_id: listingId,
-          image_url: publicUrl,
-          position: startPosition + i,
-        });
+        const { data: row, error: imageError } = await supabase
+          .from("listing_images")
+          .insert({
+            listing_id: listingId,
+            image_url: publicUrl,
+            position: startPosition + i,
+          })
+          .select("*")
+          .single();
         if (imageError) throw imageError;
+        if (row) insertedRows.push(row);
+      }
+      if (typeof onProgress === "function") {
+        onProgress(i + 1, total);
       }
     } catch (e) {
       failures.push(file?.name || `image-${i + 1}`);
@@ -41,7 +58,7 @@ export async function uploadListingImageFiles(supabase, { listingId, userId, fil
       }
     }
   }
-  return { failures };
+  return { failures, insertedRows };
 }
 
 export async function persistListingImageOrder(supabase, orderedRows) {

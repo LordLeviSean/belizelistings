@@ -348,7 +348,8 @@ export default function ListingPage() {
                 alt="Listing"
                 fill
                 mode="contain"
-                sizes="(max-width: 900px) 92vw, 48vw"
+                sizes="(max-width: 520px) 100vw, (max-width: 1100px) 92vw, min(960px, 52vw)"
+                quality={90}
                 priority={index === 0}
                 hoverZoom={false}
               />
@@ -366,7 +367,14 @@ export default function ListingPage() {
                 onMouseEnter={() => setIndex(i)}
                 aria-label={`Show photo ${i + 1} in gallery`}
               >
-                <ListingMediaImage src={img.image_url} alt="" fill sizes="72px" hoverZoom={false} />
+                <ListingMediaImage
+                  src={img.image_url}
+                  alt=""
+                  fill
+                  sizes="(max-width: 900px) 18vw, 120px"
+                  quality={78}
+                  hoverZoom={false}
+                />
               </button>
             ))}
           </div>
@@ -566,7 +574,14 @@ export default function ListingPage() {
                   onClick={() => setIndex(i)}
                   aria-label={`Photo ${i + 1}`}
                 >
-                  <ListingMediaImage src={img.image_url} alt="" fill sizes="56px" hoverZoom={false} />
+                  <ListingMediaImage
+                    src={img.image_url}
+                    alt=""
+                    fill
+                    sizes="(max-width: 900px) 14vw, 96px"
+                    quality={78}
+                    hoverZoom={false}
+                  />
                 </button>
               ))}
             </div>

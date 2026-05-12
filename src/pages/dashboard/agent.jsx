@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import SiteNav from "@/components/SiteNav";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { DashboardShell } from "@/components/dashboard";
-import { DASHBOARD_ROLE } from "@/constants/dashboardRoles";
+import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "@/constants/dashboardRoles";
 import {
   AgentActivityFeed,
   AgentQuickActionBar,
@@ -297,7 +297,11 @@ export default function AgentDashboard() {
     <div className={styles.page}>
       <SiteNav active="dashboard" />
       <main className={styles.main}>
-        <DashboardShell roleKey={DASHBOARD_ROLE.agent} title="Agent Dashboard">
+        <DashboardShell
+          roleKey={DASHBOARD_ROLE.agent}
+          title="Agent Dashboard"
+          subtitle={`${welcomePhrase} · ${DASHBOARD_ROLE_META[DASHBOARD_ROLE.agent].defaultSubtitle}`}
+        >
         <div className={styles.adminWrapper}>
         <Breadcrumbs />
 

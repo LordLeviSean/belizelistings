@@ -1,0 +1,142 @@
+.userCard {
+  display: grid;
+  gap: 14px;
+}
+
+.userGrid {
+  display: grid;
+  gap: 12px 18px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) minmax(0, 0.75fr) minmax(0, 0.55fr) auto auto;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .userGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .userGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.th {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(72, 102, 93, 0.72);
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.cellMuted {
+  margin: 0;
+  color: rgba(52, 78, 72, 0.78);
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+
+.roleCell {
+  min-width: 0;
+}
+
+.unlockCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.unlockBtn {
+  appearance: none;
+  border: 1px solid rgba(122, 168, 158, 0.45);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(244, 252, 249, 0.35));
+  color: rgba(28, 64, 72, 0.92);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.unlockBtn:hover {
+  border-color: rgba(90, 150, 138, 0.55);
+  box-shadow: 0 2px 12px rgba(110, 168, 150, 0.12);
+}
+
+.relockBtn {
+  appearance: none;
+  border: 1px solid rgba(154, 170, 182, 0.4);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(244, 248, 250, 0.32));
+  color: rgba(28, 64, 72, 0.88);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.relockBtn:hover {
+  border-color: rgba(120, 140, 158, 0.5);
+  box-shadow: 0 2px 10px rgba(110, 140, 160, 0.1);
+}
+
+.warnStrip {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: rgba(72, 58, 42, 0.88);
+  background: linear-gradient(90deg, rgba(214, 188, 120, 0.18), rgba(214, 188, 120, 0.06));
+  border: 1px solid rgba(200, 170, 110, 0.28);
+}
+
+.roleMuted {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.listingsPanel {
+  border-radius: 12px;
+  border: 1px solid rgba(154, 210, 200, 0.22);
+  background: rgba(255, 255, 255, 0.35);
+  padding: 12px 14px;
+}
+
+.listingsSummary {
+  margin: 0;
+  font-size: 0.82rem;
+  color: rgba(72, 102, 93, 0.78);
+}
+
+.accordionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.listingStack {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.fieldError {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: rgba(150, 72, 72, 0.9);
+}

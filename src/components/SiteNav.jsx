@@ -32,6 +32,14 @@ export default function SiteNav({ active = "auto" }) {
     if (route === "/favorites") return "favorites";
     if (route === "/dashboard/agent" || route === "/agents") return "agents";
     if (route.startsWith("/dashboard") || route.startsWith("/admin")) return "dashboard";
+    if (
+      route === "/" ||
+      route === "/search" ||
+      route.startsWith("/listing/") ||
+      route.startsWith("/listings/district/")
+    ) {
+      return "browse";
+    }
     return null;
   })();
   const resolvedActive = active === "auto" ? routeActive : active;
@@ -48,7 +56,12 @@ export default function SiteNav({ active = "auto" }) {
       resolvedActive === "dashboard" ||
       resolvedActive === "agents");
   const favoritesFilled = favoritesNavActive || favoritesIdleHomeChrome;
-  const dashboardFilled = isHomepage || isFavoritesPage || resolvedActive === "dashboard";
+  /** Filled sparkles on homepage, favorites, dashboard, and all `browse` shells (district, search, listing). */
+  const dashboardFilled =
+    isHomepage ||
+    isFavoritesPage ||
+    resolvedActive === "dashboard" ||
+    resolvedActive === "browse";
 
   const handleDashboard = () => {
     if (loading) return;
@@ -126,7 +139,9 @@ export default function SiteNav({ active = "auto" }) {
             <span className={styles.navLinkInner}>
               <Sparkles
                 className={`${styles.navIcon} ${styles.navIconDashboard} ${
-                  isHomepage || isFavoritesPage ? styles.navIconDashboardHome : ""
+                  isHomepage || isFavoritesPage || resolvedActive === "browse"
+                    ? styles.navIconDashboardHome
+                    : ""
                 } ${
                   resolvedActive === "dashboard" ? styles.navIconDashboardActive : ""
                 } ${resolvedActive === "dashboard" && role === "admin" ? styles.navIconDashboardPower : ""

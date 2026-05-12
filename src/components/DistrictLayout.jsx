@@ -166,7 +166,6 @@ export default function DistrictLayout({
       {filteredCount === 0 ? (
         <PremiumEmptyState
           variant="district"
-          compact
           primary={{ label: "Browse all listings", onClick: onBrowseAll }}
         />
       ) : null}

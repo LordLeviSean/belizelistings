@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { fetchApprovedListingsWithImages } from "../../../lib/listingQueries";
 import { filterListings } from "../../../utils/filterListings";
 import useScrollMemory from "../../../hooks/useScrollMemory";
+import AmbientPalmBackdrop from "../../../components/AmbientPalmBackdrop";
 import BackButton from "../../../components/BackButton";
 import DistrictLayout from "../../../components/DistrictLayout";
 import useFavorites from "../../../hooks/useFavorites";
@@ -20,7 +21,7 @@ import { getListingRegionSlug } from "../../../utils/canonicalListing";
 import { isLandInventoryListing } from "../../../utils/listingPresentation";
 import { listingAmenitiesSearchHaystack } from "../../../constants/listingAmenities";
 import styles from "../../../styles/District.module.css";
-import ambientOceanStyles from "../../../styles/ambientOcean.module.css";
+import homeShellStyles from "../../../styles/HomeMapFirst.module.css";
 
 const formatDistrict = (district) => getRegionLabel(district);
 
@@ -228,8 +229,8 @@ export default function DistrictListings() {
   if (!router.isReady || !district) return null;
 
   return (
-    <div className={styles.page}>
-      <div className={ambientOceanStyles.ambientFieldViewport} aria-hidden />
+    <div className={`${homeShellStyles.page} home-map-page-root`}>
+      <AmbientPalmBackdrop />
       <SiteNav active="browse" />
       <div className={styles.wrapper}>
         <BackButton label="Back" className={styles.backButton} />

@@ -23,6 +23,7 @@
 - **No hardcoded colors** unless explicitly approved for a scoped exception.
 - **Preserve globally:** navbar behavior, pill/button language, card spacing rhythm.
 - **No visual drift** between dashboard, home, listing detail, and admin — one product.
+- **Listing Card DNA** — all listing cards (browse, create preview, and extensions) follow the protected layer in **[`docs/BELIZELISTINGS_LISTING_CARD_DNA.md`](./BELIZELISTINGS_LISTING_CARD_DNA.md)** (editorial, image-first, sea-glass, hidden desktop gallery hits, swipe on touch). Create Listing preview must use the **canonical `HomePropertyCard`**; no parallel mock cards or forked preview systems.
 - **No MUI-looking controls**; **no default browser styling** for interactive UI.
 - **No sharp-corner UI** unless a deliberate, documented exception.
 - **Maintain BelizeListings glass language** — frosted layers, calm borders, consistent depth.
@@ -57,6 +58,7 @@
 - **Avoid full-page scrolling on desktop** in the create workspace where the layout is designed as a contained stage.
 - **Operational states** (loading, success, errors, queues) must feel **calm and premium** — no alarmist or stock patterns.
 - **All modals** must match BelizeListings DNA (tokens, glass, typography, spacing).
+- **Listing card media** — full rules, hierarchy, FABs, land, motion, and Create preview governance: **[`docs/BELIZELISTINGS_LISTING_CARD_DNA.md`](./BELIZELISTINGS_LISTING_CARD_DNA.md)**. **Summary:** no visible carousel arrows on cards; coarse pointer = swipe only; fine pointer = transparent hit zones with center “open listing” and FABs dominant; dots are non-interactive; **listing detail** may keep its own immersive gallery where separately designed.
 
 ---
 

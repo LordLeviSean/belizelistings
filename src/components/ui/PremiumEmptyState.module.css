@@ -1,28 +1,33 @@
+/* BelizeListings empty states — unified sea-glass / editorial DNA (dashboard, admin, district, search) */
+
 .wrap {
   position: relative;
   overflow: hidden;
-  border-radius: 22px;
-  padding: clamp(22px, 4vw, 34px);
+  border-radius: calc(var(--radius, 14px) + 8px);
+  padding: clamp(28px, 4.5vw, 44px) clamp(24px, 4vw, 38px) clamp(30px, 5vw, 48px);
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(245, 252, 249, 0.82) 48%, rgba(238, 246, 252, 0.88) 100%);
-  border: 1px solid rgba(110, 185, 178, 0.26);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(250, 252, 253, 0.78) 42%, rgba(241, 249, 246, 0.92) 100%),
+    linear-gradient(135deg, rgba(232, 244, 248, 0.32) 0%, transparent 55%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.94) 0%, rgba(244, 250, 247, 0.86) 100%);
+  border: 1px solid rgba(154, 198, 190, 0.22);
   box-shadow:
-    0 18px 44px rgba(28, 62, 58, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    0 22px 52px rgba(22, 48, 52, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.78) inset,
+    inset 0 -12px 28px rgba(255, 255, 255, 0.22);
   isolation: isolate;
 }
 
 .compact {
-  padding: 18px 20px;
-  border-radius: 18px;
+  padding: 22px 24px 26px;
+  border-radius: 20px;
 }
 
 .compact .title {
-  font-size: 1.05rem;
+  font-size: 1.08rem;
 }
 
 .compact .desc {
-  font-size: 0.88rem;
+  font-size: 0.9rem;
 }
 
 .glow {
@@ -31,59 +36,45 @@
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 42% 38% at 18% 22%, rgba(110, 210, 196, 0.18), transparent 62%),
-    radial-gradient(ellipse 36% 34% at 82% 18%, rgba(170, 190, 232, 0.14), transparent 58%),
-    radial-gradient(ellipse 48% 42% at 48% 88%, rgba(232, 204, 156, 0.08), transparent 64%);
-  opacity: 0.85;
-  animation: emptyGlow 14s ease-in-out infinite alternate;
+    radial-gradient(ellipse 42% 38% at 18% 22%, rgba(110, 210, 196, 0.14), transparent 62%),
+    radial-gradient(ellipse 36% 34% at 82% 18%, rgba(170, 190, 232, 0.12), transparent 58%),
+    radial-gradient(ellipse 48% 42% at 48% 88%, rgba(232, 204, 156, 0.07), transparent 64%);
+  opacity: 0.55;
+  animation: emptyGlowSoft 18s ease-in-out infinite alternate;
 }
 
-@keyframes emptyGlow {
+@keyframes emptyGlowSoft {
   from {
-    opacity: 0.72;
+    opacity: 0.48;
     transform: translate3d(0, 0, 0) scale(1);
   }
   to {
-    opacity: 0.95;
-    transform: translate3d(2%, -1%, 0) scale(1.02);
+    opacity: 0.62;
+    transform: translate3d(1%, -0.5%, 0) scale(1.01);
   }
 }
 
 .inner {
   position: relative;
   z-index: 1;
-  max-width: 52ch;
-}
-
-.accent {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  margin-bottom: 12px;
-  border-radius: 12px;
-  font-size: 1rem;
-  line-height: 1;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(72, 140, 128, 0.18);
-  box-shadow: 0 8px 22px rgba(36, 72, 64, 0.06);
+  max-width: 50ch;
 }
 
 .title {
-  margin: 0 0 10px;
+  margin: 0 0 14px;
   font-family: "DM Serif Display", "Georgia", serif;
-  font-size: clamp(1.15rem, 2.4vw, 1.45rem);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: rgba(22, 52, 56, 0.96);
+  font-size: clamp(1.18rem, 2.4vw, 1.48rem);
+  font-weight: 500;
+  letter-spacing: -0.018em;
+  line-height: 1.2;
+  color: rgba(24, 52, 58, 0.96);
 }
 
 .desc {
-  margin: 0 0 18px;
-  font-size: 0.94rem;
-  line-height: 1.62;
-  color: rgba(38, 72, 68, 0.9);
+  margin: 0 0 24px;
+  font-size: 0.95rem;
+  line-height: 1.68;
+  color: rgba(48, 78, 74, 0.78);
 }
 
 .actions {
@@ -97,23 +88,43 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 20px;
-  border-radius: 14px;
-  border: none;
+  padding: 13px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 178, 164, 0.35);
   cursor: pointer;
-  font-size: 0.92rem;
-  font-weight: 650;
-  color: rgba(10, 36, 34, 0.94);
-  background: linear-gradient(135deg, rgba(110, 210, 196, 1), rgba(56, 158, 148, 1));
-  box-shadow: 0 12px 28px rgba(40, 100, 92, 0.18);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(18, 46, 44, 0.92);
+  background: linear-gradient(
+    155deg,
+    rgba(214, 236, 232, 0.98) 0%,
+    rgba(168, 214, 204, 0.92) 38%,
+    rgba(138, 188, 178, 0.88) 100%
+  );
+  box-shadow:
+    0 10px 26px rgba(36, 88, 80, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.45) inset,
+    inset 0 -6px 14px rgba(255, 255, 255, 0.25);
+  text-decoration: none;
   transition:
     transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.22s ease;
+    box-shadow 0.22s ease,
+    background 0.22s ease;
 }
 
 .primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 16px 34px rgba(40, 100, 92, 0.22);
+  background: linear-gradient(
+    155deg,
+    rgba(224, 242, 238, 1) 0%,
+    rgba(178, 220, 210, 0.95) 42%,
+    rgba(148, 198, 186, 0.92) 100%
+  );
+  box-shadow:
+    0 14px 34px rgba(32, 92, 82, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.52) inset,
+    inset 0 -6px 16px rgba(255, 255, 255, 0.32);
 }
 
 .secondary {
@@ -121,13 +132,14 @@
   align-items: center;
   justify-content: center;
   padding: 11px 18px;
-  border-radius: 14px;
+  border-radius: 999px;
   cursor: pointer;
   font-size: 0.88rem;
   font-weight: 600;
-  color: rgba(36, 82, 74, 0.9);
-  background: rgba(255, 255, 255, 0.65);
-  border: 1px solid rgba(72, 140, 128, 0.28);
+  color: rgba(36, 82, 74, 0.88);
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(154, 198, 190, 0.24);
+  text-decoration: none;
   transition:
     border-color 0.22s ease,
     background 0.22s ease,
@@ -135,6 +147,19 @@
 }
 
 .secondary:hover {
-  border-color: rgba(52, 130, 118, 0.45);
+  border-color: rgba(120, 178, 164, 0.38);
+  background: rgba(255, 255, 255, 0.72);
   transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow {
+    animation: none;
+    opacity: 0.52;
+  }
+
+  .primary,
+  .secondary {
+    transition: none;
+  }
 }

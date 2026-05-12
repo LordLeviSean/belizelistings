@@ -1,5 +1,11 @@
 import { OWNERSHIP_ACTIONS, OWNERSHIP_KEYS } from "../constants/ownershipModel";
-import { getArchiveStatus, getModerationStatus, getRepublishStatus } from "../constants/operationalModel";
+import {
+  getArchiveStatus,
+  getModerationStatus,
+  getRepublishStatus,
+  LISTING_LIFECYCLE,
+} from "../constants/operationalModel";
+import { getLifecycleStatus } from "./canonicalListing";
 import { MUTATION_ENRICHMENT_STRIP_ORDER } from "../lib/canonicalMutationStrips";
 import { logRawSupabaseError, logSupabaseMutationResult } from "../lib/supabaseRawError";
 import {
@@ -378,16 +384,14 @@ export async function applyListingLifecycleAction(supabase, { listingId, action,
 
 function rowIsArchivedForPermanentDelete(row) {
   if (!row) return false;
-  const lc = String(row.lifecycle_status ?? "").trim().toLowerCase();
-  const st = String(row.status ?? "").trim().toLowerCase();
-  if (lc) return lc === "archived";
-  return st === "archived";
+  // Match browse/dashboard: any authoritative archived signal wins over stale lifecycle_status.
+  return getLifecycleStatus(row) === LISTING_LIFECYCLE.ARCHIVED;
 }
 
 async function loadListingRowForPermanentDelete(supabase, listingId) {
   let res = await supabase
     .from("listings")
-    .select("id,status,lifecycle_status")
+    .select("id,status,lifecycle_status,moderation_status")
     .eq("id", listingId)
     .maybeSingle();
   if (res.error && isMissingColumnError(res.error)) {
