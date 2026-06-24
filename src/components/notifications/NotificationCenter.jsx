@@ -34,13 +34,14 @@ function formatWhen(iso) {
 const PENDING_OR =
   "status.eq.pending,moderation_status.eq.pending_review,lifecycle_status.eq.pending,lifecycle_status.eq.submitted";
 
-export default function NotificationCenter() {
+export default function NotificationCenter({ layout = "nav", onNavigate } = {}) {
   const router = useRouter();
   const { user, role, loading } = useUserRole();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [items, setItems] = useState([]);
   const rootRef = useRef(null);
+  const isDrawer = layout === "drawer";
 
   const load = useCallback(async () => {
     if (!user?.id || loading) return;
@@ -349,22 +350,27 @@ export default function NotificationCenter() {
 
   useEffect(() => {
     const onEsc = (e) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape" || !open) return;
+      e.stopPropagation();
+      setOpen(false);
     };
-    if (open) window.addEventListener("keydown", onEsc);
-    return () => window.removeEventListener("keydown", onEsc);
+    if (open) window.addEventListener("keydown", onEsc, true);
+    return () => window.removeEventListener("keydown", onEsc, true);
   }, [open]);
 
   if (!user || loading) return null;
 
   const unreadCount = items.filter((x) => x.unread).length;
   const badgeText = unreadCount > 99 ? "99+" : String(unreadCount);
+  const triggerClass = isDrawer
+    ? `${nav.navLink} ${nav.navBtn} ${nav.drawerNavLink} ${nav.navPillNotifications}`
+    : `${nav.navLink} ${nav.navPillNotifications}`;
 
   return (
-    <div className={styles.root} ref={rootRef}>
+    <div className={`${styles.root}${isDrawer ? ` ${styles.rootDrawer}` : ""}`} ref={rootRef}>
       <button
         type="button"
-        className={`${nav.navLink} ${nav.navPillNotifications} ${
+        className={`${triggerClass} ${
           open ? `${nav.navLinkActive} ${nav.navPillNotificationsActive}` : ""
         }`}
         aria-expanded={open}
@@ -389,10 +395,10 @@ export default function NotificationCenter() {
 
       {open ? (
         <div
-          className={styles.panel}
+          className={`${styles.panel}${isDrawer ? ` ${styles.panelDrawer}` : ""}`}
           role="dialog"
           aria-label="Operational updates"
-          aria-modal="false"
+          aria-modal={isDrawer ? "false" : "false"}
         >
           <div className={styles.panelInner}>
             <header className={styles.panelHead}>
@@ -419,6 +425,7 @@ export default function NotificationCenter() {
                         className={`${styles.row} ${item.unread ? styles.rowUnread : ""}`}
                         onClick={() => {
                           setOpen(false);
+                          onNavigate?.();
                           if (item.href.startsWith("/dashboard") || item.href.startsWith("/admin")) {
                             router.prefetch(item.href);
                           }

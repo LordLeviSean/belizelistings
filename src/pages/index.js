@@ -28,6 +28,7 @@ import { filterListings } from "../utils/filterListings";
 import { getLifecycleStatus, getListingRegionSlug } from "../utils/canonicalListing";
 import useSeaFlowMode from "../hooks/useSeaFlowMode";
 import useSeaFlowIntensity from "../hooks/useSeaFlowIntensity";
+import { seaFlowIntensityStyle } from "../utils/seaFlowIntensity";
 import { useFavoriteSignupPrompt } from "../components/FavoriteSignupPromptProvider";
 
 import styles from "../styles/HomeMapFirst.module.css";
@@ -271,7 +272,7 @@ export default function HomePage() {
         <section className={styles.heroSection}>
           <div
             className={styles.heroCanvas}
-            style={{ "--sea-flow-intensity": seaFlowIntensity }}
+            style={seaFlowIntensityStyle(seaFlowIntensity)}
             data-sea-flow={seaFlowModeEnabled ? "on" : "off"}
           >
             <div className={styles.heroCanvasAtmosphere} aria-hidden>

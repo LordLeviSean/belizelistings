@@ -6,6 +6,23 @@
   align-items: center;
 }
 
+.rootDrawer {
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.panelDrawer {
+  position: relative;
+  top: auto;
+  right: auto;
+  left: auto;
+  width: 100%;
+  max-height: min(52dvh, 360px);
+  margin-top: 8px;
+  z-index: 1;
+}
+
 .unreadBadge {
   margin-left: 1px;
   min-width: 16px;

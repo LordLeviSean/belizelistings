@@ -43,3 +43,25 @@ export function writeSeaFlowIntensity(intensity) {
     })
   );
 }
+
+/** Nearest slider stop (0, 0.25, …) for admin + QA consistency */
+export function snapSeaFlowIntensity(intensity) {
+  const t = clampSeaFlowIntensity(intensity);
+  const pct = Math.round(t * 100);
+  let best = SEA_FLOW_INTENSITY_STOPS[0];
+  let bestDelta = Math.abs(Math.round(best * 100) - pct);
+  for (const stop of SEA_FLOW_INTENSITY_STOPS) {
+    const delta = Math.abs(Math.round(stop * 100) - pct);
+    if (delta < bestDelta) {
+      best = stop;
+      bestDelta = delta;
+    }
+  }
+  return best;
+}
+
+/** CSS custom property payload for hero canvas (--sea-flow-intensity is primary driver) */
+export function seaFlowIntensityStyle(intensity) {
+  const t = snapSeaFlowIntensity(intensity);
+  return { "--sea-flow-intensity": t };
+}

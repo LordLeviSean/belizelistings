@@ -39,9 +39,19 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const { openLoginIfNeeded, logoutToHome } = useAuthGate();
   const [authLayoutReady, setAuthLayoutReady] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobileNav, setIsMobileNav] = useState(false);
   const mobileDrawerRef = useRef(null);
   const accountMenuBtnRef = useRef(null);
   const wasMobileMenuOpenRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const mq = window.matchMedia("(max-width: 800px)");
+    const sync = () => setIsMobileNav(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     setAuthLayoutReady(true);
@@ -51,8 +61,11 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     setMobileMenuOpen(false);
   }, []);
 
+  const hasMobileDrawer = authLayoutReady && !loading && Boolean(user);
+  const drawerOpen = mobileMenuOpen && hasMobileDrawer;
+
   useEffect(() => {
-    if (!mobileMenuOpen) return undefined;
+    if (!drawerOpen) return undefined;
     const prevOverflow = document.body.style.overflow;
     const prevPaddingRight = document.body.style.paddingRight;
     const gap = window.innerWidth - document.documentElement.clientWidth;
@@ -62,41 +75,50 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
       document.body.style.overflow = prevOverflow;
       document.body.style.paddingRight = prevPaddingRight;
     };
-  }, [mobileMenuOpen]);
+  }, [drawerOpen]);
 
   useEffect(() => {
-    if (!mobileMenuOpen) return undefined;
+    if (!drawerOpen) return undefined;
     const onKey = (e) => {
       if (e.key === "Escape") closeMobileMenu();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [mobileMenuOpen, closeMobileMenu]);
+  }, [drawerOpen, closeMobileMenu]);
 
   useEffect(() => {
-    if (!mobileMenuOpen || !mobileDrawerRef.current) return undefined;
+    if (!drawerOpen || !mobileDrawerRef.current) return undefined;
     const drawer = mobileDrawerRef.current;
-    const focusables = Array.from(drawer.querySelectorAll(FOCUSABLE));
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    first?.focus();
+    let removeKeydown = () => {};
 
-    const onKeyDown = (e) => {
-      if (e.key !== "Tab" || focusables.length === 0) return;
-      if (e.shiftKey) {
-        if (document.activeElement === first) {
+    const raf = window.requestAnimationFrame(() => {
+      const focusables = Array.from(drawer.querySelectorAll(FOCUSABLE));
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      first?.focus({ preventScroll: true });
+
+      const onKeyDown = (e) => {
+        if (e.key !== "Tab" || focusables.length === 0) return;
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last?.focus();
+          }
+        } else if (document.activeElement === last) {
           e.preventDefault();
-          last?.focus();
+          first?.focus();
         }
-      } else if (document.activeElement === last) {
-        e.preventDefault();
-        first?.focus();
-      }
-    };
+      };
 
-    drawer.addEventListener("keydown", onKeyDown);
-    return () => drawer.removeEventListener("keydown", onKeyDown);
-  }, [mobileMenuOpen]);
+      drawer.addEventListener("keydown", onKeyDown);
+      removeKeydown = () => drawer.removeEventListener("keydown", onKeyDown);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      removeKeydown();
+    };
+  }, [drawerOpen]);
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -204,6 +226,10 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     void router.push("/");
   };
 
+  const toggleAccountMenu = useCallback(() => {
+    setMobileMenuOpen((open) => !open);
+  }, []);
+
   if (variant === "userDashboard") {
     return (
       <header className={`${styles.navbar} ${styles.navbarUserDashboard}`}>
@@ -227,12 +253,6 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     authLayoutReady && !loading && !user;
   const signedInNavCluster =
     authLayoutReady && !loading && user;
-
-  const hasMobileDrawer = authLayoutReady && !loading && Boolean(user);
-
-  useEffect(() => {
-    if (!hasMobileDrawer) closeMobileMenu();
-  }, [hasMobileDrawer, closeMobileMenu]);
 
   const navContextClasses = (variant) => {
     const isDrawer = variant === "drawer";
@@ -325,19 +345,16 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const renderNotificationCenter = (variant) => {
     if (!user) return null;
     const { isDrawer } = navContextClasses(variant);
+    if (!isDrawer && isMobileNav) return null;
     if (isDrawer) {
       return (
         <div className={styles.drawerNotificationWrap}>
-          <NotificationCenter />
+          <NotificationCenter layout="drawer" onNavigate={closeMobileMenu} />
         </div>
       );
     }
     return <NotificationCenter />;
   };
-
-  const toggleAccountMenu = useCallback(() => {
-    setMobileMenuOpen((open) => !open);
-  }, []);
 
   const renderAuthSlot = (variant, { mode = "default" } = {}) => {
     const { onNavigate, linkBase, btnBase } = navContextClasses(variant);
@@ -478,7 +495,7 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
         {renderPrimaryNavActions("mobileBar")}
       </nav>
 
-      {mobileMenuOpen && hasMobileDrawer ? (
+      {drawerOpen ? (
         <>
           <div
             className={styles.mobileDrawerBackdrop}
