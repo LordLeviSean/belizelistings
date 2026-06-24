@@ -8,11 +8,9 @@ import {
   Loader2,
   LogIn,
   LogOut,
-  Menu,
   Sparkles,
   UserCircle,
   UsersRound,
-  X,
 } from "lucide-react";
 import useUserRole from "../hooks/useUserRole";
 import { useAuthGate } from "./auth/AuthGateProvider";
@@ -42,7 +40,7 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const [authLayoutReady, setAuthLayoutReady] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileDrawerRef = useRef(null);
-  const mobileMenuBtnRef = useRef(null);
+  const accountMenuBtnRef = useRef(null);
   const wasMobileMenuOpenRef = useRef(false);
 
   useEffect(() => {
@@ -106,7 +104,7 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
       return undefined;
     }
     if (wasMobileMenuOpenRef.current) {
-      mobileMenuBtnRef.current?.focus();
+      accountMenuBtnRef.current?.focus();
       wasMobileMenuOpenRef.current = false;
     }
     return undefined;
@@ -337,8 +335,13 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     return <NotificationCenter />;
   };
 
+  const toggleAccountMenu = useCallback(() => {
+    setMobileMenuOpen((open) => !open);
+  }, []);
+
   const renderAuthSlot = (variant, { mode = "default" } = {}) => {
     const { onNavigate, linkBase, btnBase } = navContextClasses(variant);
+    const isMobileAccountTrigger = mode === "account" && variant === "mobileBar" && user;
 
     if (!authLayoutReady) {
       return (
@@ -358,9 +361,13 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
       if (mode === "account") {
         return (
           <button
+            ref={isMobileAccountTrigger ? accountMenuBtnRef : undefined}
             type="button"
-            onClick={handleDashboard}
-            className={linkBase}
+            onClick={isMobileAccountTrigger ? toggleAccountMenu : handleDashboard}
+            className={`${linkBase}${mobileMenuOpen && isMobileAccountTrigger ? ` ${styles.navLinkActive}` : ""}`}
+            aria-expanded={isMobileAccountTrigger ? mobileMenuOpen : undefined}
+            aria-controls={isMobileAccountTrigger ? "site-nav-mobile-drawer" : undefined}
+            aria-haspopup={isMobileAccountTrigger ? "dialog" : undefined}
           >
             <span className={styles.navLinkInner}>
               <UserCircle className={styles.navIcon} strokeWidth={1.85} aria-hidden />
@@ -470,24 +477,6 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
       >
         {renderPrimaryNavActions("mobileBar")}
       </nav>
-
-      {hasMobileDrawer ? (
-        <button
-          ref={mobileMenuBtnRef}
-          type="button"
-          className={styles.mobileMenuBtn}
-          aria-expanded={mobileMenuOpen}
-          aria-controls="site-nav-mobile-drawer"
-          aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-          onClick={() => setMobileMenuOpen((open) => !open)}
-        >
-          {mobileMenuOpen ? (
-            <X className={styles.mobileMenuIcon} strokeWidth={2} aria-hidden />
-          ) : (
-            <Menu className={styles.mobileMenuIcon} strokeWidth={2} aria-hidden />
-          )}
-        </button>
-      ) : null}
 
       {mobileMenuOpen && hasMobileDrawer ? (
         <>

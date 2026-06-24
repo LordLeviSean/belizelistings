@@ -806,7 +806,7 @@
     flex: 1 1 auto;
     min-width: 0;
     justify-content: flex-end;
-    margin-left: 6px;
+    margin-left: 4px;
     flex-wrap: nowrap;
     position: relative;
     z-index: 2;
@@ -814,27 +814,31 @@
   }
 
   .navbar {
-    padding: 0 8px;
-    gap: 4px;
+    padding: 0 10px 0 12px;
+    gap: 6px;
     overflow: visible;
   }
 
   .brandWordmark {
-    font-size: calc(0.76rem + 8px);
+    font-size: calc(0.74rem + 7px);
+    overflow: visible;
   }
 
   .brand {
-    flex: 0 1 auto;
-    flex-shrink: 1;
-    min-width: 0;
-    max-width: 38%;
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    min-width: min-content;
+    max-width: none;
+    overflow: visible;
+    padding-left: 1px;
+    margin-right: 2px;
   }
 
   .navLinksMobilePrimary .navLink,
   .navLinksMobilePrimary .navBtn {
-    padding: 4px 6px;
-    font-size: 0.62rem;
-    letter-spacing: 0.008em;
+    padding: 4px 5px;
+    font-size: 0.6rem;
+    letter-spacing: 0.006em;
     flex-shrink: 0;
     white-space: nowrap;
   }
@@ -854,20 +858,9 @@
   }
 
   .navLinksMobilePrimary .navAuthSkeleton {
-    min-width: 3.5rem;
+    min-width: 3.25rem;
     min-height: 24px;
-    padding: 4px 6px;
-  }
-
-  .mobileMenuBtn {
-    display: inline-flex;
-    width: 32px;
-    height: 32px;
-  }
-
-  .mobileMenuIcon {
-    width: 15px;
-    height: 15px;
+    padding: 4px 5px;
   }
 }
 
@@ -884,27 +877,23 @@
 /* Keep sticky nav at token height — avoid wrap-driven double chrome on narrow phones */
 @media (max-width: 420px) {
   .brandWordmark {
-    font-size: calc(0.68rem + 7px);
+    font-size: calc(0.64rem + 5px);
   }
 
   .navbar {
-    padding: 0 6px;
-    gap: 2px;
-  }
-
-  .brand {
-    max-width: 34%;
+    padding: 0 8px 0 10px;
+    gap: 4px;
   }
 
   .navLinksMobilePrimary {
     gap: 1px;
-    margin-left: 4px;
+    margin-left: 3px;
   }
 
   .navLinksMobilePrimary .navLink,
   .navLinksMobilePrimary .navBtn {
-    padding: 3px 5px;
-    font-size: 0.58rem;
+    padding: 3px 4px;
+    font-size: 0.56rem;
   }
 
   .navLinksMobilePrimary .navIcon {
@@ -914,11 +903,6 @@
 
   .navLinksMobilePrimary .navLinkInner {
     gap: 2px;
-  }
-
-  .mobileMenuBtn {
-    width: 30px;
-    height: 30px;
   }
 }
 

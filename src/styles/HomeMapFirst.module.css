@@ -1241,13 +1241,34 @@
 
   .statGrid {
     margin-top: 4px;
-    margin-bottom: 0;
+    margin-bottom: 10px;
     gap: 6px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .statGrid::after {
+    content: "";
+    position: absolute;
+    left: -4%;
+    right: -4%;
+    bottom: -14px;
+    height: 18px;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgba(248, 252, 253, 0) 0%,
+      rgba(236, 246, 248, 0.55) 100%
+    );
+    z-index: -1;
   }
 
   .heroRight {
-    margin-top: -2px;
-    padding-top: 0;
+    margin-top: 0;
+    padding-top: 8px;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
   }
 
   .mapPane {
@@ -1255,6 +1276,21 @@
     height: clamp(280px, 42vh, 340px);
     max-height: none;
     margin-top: 0;
+    overflow: hidden;
+  }
+
+  .mapPaneMapWrap {
+    overflow: hidden;
+    align-items: flex-end;
+  }
+
+  .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg) {
+    transform: translateY(0);
+  }
+
+  .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg svg) {
+    transform: scale(1.06, 1.1) translate(0, 0);
+    transform-origin: center bottom;
   }
 }
 
