@@ -75,7 +75,6 @@ export default function ResetPassword() {
       setMessage(error.message);
       setMessageType("error");
     } else {
-      console.log("PASSWORD UPDATED");
       setMessage("Password updated successfully. Redirecting to login...");
       setMessageType("success");
       setTimeout(async () => {

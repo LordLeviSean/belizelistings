@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { validateSignupUsername } from "../../../lib/usernameRules";
+import { PROFILE_ID_ONLY_SELECT } from "../../../lib/profileSelectContract";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -35,13 +36,17 @@ export default async function handler(req, res) {
 
   const admin = createClient(url, serviceRole);
   let taken = false;
-  const row = await admin.from("profiles").select("id").eq("username", format.username).maybeSingle();
+  const row = await admin
+    .from("profiles")
+    .select(PROFILE_ID_ONLY_SELECT)
+    .eq("username", format.username)
+    .maybeSingle();
   if (!row.error) {
     taken = Boolean(row.data?.id);
   } else {
     const counted = await admin
       .from("profiles")
-      .select("id", { count: "exact", head: true })
+      .select(PROFILE_ID_ONLY_SELECT, { count: "exact", head: true })
       .eq("username", format.username);
     if (counted.error) {
       console.warn("[check-username] query error", row.error, counted.error);

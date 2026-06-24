@@ -1,12 +1,133 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/router";
+import { useShallow } from "zustand/react/shallow";
 import SiteNav from "@/components/SiteNav";
-import Breadcrumbs from "@/components/Breadcrumbs";
+import { DashboardShell } from "@/components/dashboard";
+import UserDashboardAccountTier from "@/components/user/UserDashboardAccountTier";
+import UserDashboardMetrics from "@/components/user/UserDashboardMetrics";
+import UserMyListingsPanel from "@/components/user/UserMyListingsPanel";
+import UserPendingListingsPanel from "@/components/user/UserPendingListingsPanel";
+import UserArchivedListingsPanel from "@/components/user/UserArchivedListingsPanel";
+import { isProfileHydratedForUser } from "@/lib/profileSessionCache";
 import useUserRole from "@/hooks/useUserRole";
+import { formatUserDashboardSubtitle } from "@/lib/dashboardGreeting";
+import useUserDashboardStore from "@/stores/useUserDashboardStore";
+import { DASHBOARD_ROLE } from "@/constants/dashboardRoles";
+import {
+  USER_DASHBOARD_COPY,
+  USER_DASHBOARD_PLACEHOLDERS,
+  USER_DASHBOARD_FINITE_CAP_THRESHOLD,
+  USER_DASHBOARD_TAB_IDS,
+  USER_DASHBOARD_TABS,
+  formatListingRemainingLabel,
+  formatTryCreateRemainderChip,
+} from "@/constants/dashboardUserConfig";
+import styles from "@/styles/Dashboard.module.css";
+import loadingStyles from "@/styles/UserDashboard.module.css";
+
+const USER_TAB_SET = new Set(Object.values(USER_DASHBOARD_TAB_IDS));
+
+function normalizeUserDashboardTab(raw) {
+  const s = String(Array.isArray(raw) ? raw[0] : raw || "")
+    .trim()
+    .toLowerCase();
+  return USER_TAB_SET.has(s) ? s : USER_DASHBOARD_TAB_IDS.OVERVIEW;
+}
 
 export default function UserDashboard() {
   const router = useRouter();
-  const { user, role, loading, welcomePhrase } = useUserRole();
+  const { user, role, loading, profile, tier } = useUserRole();
+  const userIdRef = useRef(null);
+  const roleRef = useRef(role);
+  const loadingRef = useRef(loading);
+  const dashboardPathRef = useRef(null);
+
+  userIdRef.current = user?.id ?? null;
+  roleRef.current = role;
+  loadingRef.current = loading;
+
+  const {
+    activeListings,
+    pendingListings,
+    archivedListings,
+    draftListings,
+    favoritesCount,
+    inquiriesCount,
+    favoritesUnavailable,
+    inquiriesUnavailable,
+    remainingListings,
+  } = useUserDashboardStore(
+    useShallow((s) => ({
+      activeListings: s.activeListings,
+      pendingListings: s.pendingListings,
+      archivedListings: s.archivedListings,
+      draftListings: s.draftListings,
+      favoritesCount: s.favoritesCount,
+      inquiriesCount: s.inquiriesCount,
+      favoritesUnavailable: s.favoritesUnavailable,
+      inquiriesUnavailable: s.inquiriesUnavailable,
+      remainingListings: s.remainingListings,
+    }))
+  );
+
+  const listingCap = useUserDashboardStore((s) => s.listingCap);
+
+  const subtitle = useMemo(
+    () => formatUserDashboardSubtitle({ username: profile?.username }),
+    [profile?.username]
+  );
+
+  const activeTab = useMemo(() => normalizeUserDashboardTab(router.query.tab), [router.query.tab]);
+
+  const profileHydrated = Boolean(user?.id && isProfileHydratedForUser(user.id));
+  const showHydratingShell = loading && profileHydrated && role === "user";
+
+  const selectTab = useCallback(
+    (tab) => {
+      if (normalizeUserDashboardTab(router.query.tab) === tab) return;
+      router.replace(
+        { pathname: "/dashboard/user", query: { ...router.query, tab } },
+        undefined,
+        { shallow: true }
+      );
+    },
+    [router]
+  );
+
+  useEffect(() => {
+    if (loading || !user?.id || role !== "user") return;
+    useUserDashboardStore.getState().setTier(tier);
+  }, [loading, user?.id, role, tier]);
+
+  const storeSessionRef = useRef(null);
+
+  // Init when auth+role are ready. Do not destroy on brief `loading` flicker (profile re-hydrate)
+  // — that caused store teardown on tab-adjacent auth noise. Teardown only on logout/wrong role
+  // or leaving this page (see unmount effect below). Shallow `?tab=` changes: 0 profile fetches.
+  useLayoutEffect(() => {
+    const uid = user?.id;
+    if (!uid || role !== "user") {
+      if (storeSessionRef.current) {
+        useUserDashboardStore.getState().destroy();
+        storeSessionRef.current = null;
+      }
+      return;
+    }
+    if (loading && !isProfileHydratedForUser(uid)) return;
+    if (storeSessionRef.current === uid) return;
+    storeSessionRef.current = uid;
+    useUserDashboardStore.getState().init(uid, role);
+  }, [loading, user?.id, role]);
+
+  useEffect(() => {
+    return () => {
+      if (storeSessionRef.current) {
+        useUserDashboardStore.getState().destroy();
+        storeSessionRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -19,17 +140,210 @@ export default function UserDashboard() {
     }
   }, [loading, user, role, router]);
 
-  if (loading) return null;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    dashboardPathRef.current = router.pathname;
+    const onRouteDone = (url) => {
+      try {
+        const path = String(url || "").split("?")[0];
+        const prevPath = dashboardPathRef.current;
+        dashboardPathRef.current = path;
+        if (path !== "/dashboard/user") return;
+        if (prevPath === "/dashboard/user") return;
+        if (roleRef.current !== "user" || !userIdRef.current || loadingRef.current) return;
+        // Same contract as overview tab: metrics-only (see store `flushRefresh`).
+        useUserDashboardStore.getState().flushRefresh();
+      } catch {
+        /* ignore */
+      }
+    };
+    router.events.on("routeChangeComplete", onRouteDone);
+    return () => {
+      router.events.off("routeChangeComplete", onRouteDone);
+    };
+  }, [router.events, router.pathname]);
+
+  if (loading && !showHydratingShell) {
+    return (
+      <div className={`${styles.page} ${styles.userDashboardPage}`}>
+        <SiteNav active="dashboard" />
+        <main className={styles.main}>
+          <div
+            className={loadingStyles.loadingMain}
+            aria-busy="true"
+            aria-label="Loading dashboard"
+          />
+        </main>
+      </div>
+    );
+  }
+
+  if (!user || role !== "user") {
+    return null;
+  }
+
+  const finiteCap = listingCap < USER_DASHBOARD_FINITE_CAP_THRESHOLD;
+  const createDisabled = finiteCap && remainingListings === 0;
+  const limitExhausted = finiteCap && remainingListings === 0;
+  const remainderChip = formatTryCreateRemainderChip(remainingListings, listingCap);
 
   return (
-    <div className="page">
+    <div className={`${styles.page} ${styles.userDashboardPage}`}>
       <SiteNav active="dashboard" />
-      <div className="pageContent">
-        <Breadcrumbs />
-        <h1 className="pageTitle">Dashboard</h1>
-        <p className="pageDashboardGreeting">{welcomePhrase}</p>
-        <p className="pageSubtitle">Browse and save listings.</p>
-      </div>
+      <main className={styles.main}>
+        <div className={styles.userDashboardSurface}>
+          <div className={styles.userAtmosphereLayer} aria-hidden>
+            <div className={styles.userAtmosphereDepth} />
+            <div className={styles.userAtmosphereVeil} />
+          </div>
+
+          <div className={styles.userDashboardAboveArt}>
+            <DashboardShell
+              roleKey={DASHBOARD_ROLE.user}
+              title={USER_DASHBOARD_COPY.shellTitle}
+              subtitle={subtitle}
+            >
+              <div className={styles.adminWrapper}>
+                <div className={styles.statusToggle} role="tablist" aria-label="Dashboard sections">
+                  {USER_DASHBOARD_TABS.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeTab === tab.id}
+                      className={`${styles.toggleButton} ${
+                        activeTab === tab.id ? styles.toggleButtonActive : ""
+                      }`}
+                      onClick={() => selectTab(tab.id)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {activeTab === USER_DASHBOARD_TAB_IDS.OVERVIEW ? (
+                  <>
+                    {showHydratingShell ? (
+                      <div
+                        className={loadingStyles.hydratingMetrics}
+                        aria-busy="true"
+                        aria-label="Refreshing dashboard"
+                      >
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <div
+                            key={i}
+                            className={`skeleton ${loadingStyles.hydratingMetricCard}`}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <UserDashboardMetrics
+                        activeListings={activeListings}
+                        pendingListings={pendingListings}
+                        archivedListings={archivedListings}
+                        draftListings={draftListings}
+                        favoritesCount={favoritesCount}
+                        inquiriesCount={inquiriesCount}
+                        favoritesUnavailable={favoritesUnavailable}
+                        inquiriesUnavailable={inquiriesUnavailable}
+                        listingRemainingLabel={formatListingRemainingLabel(remainingListings)}
+                        limitExhausted={limitExhausted}
+                        onNavigateTab={selectTab}
+                      />
+                    )}
+
+                    {showHydratingShell ? (
+                      <div
+                        className={`skeleton ${loadingStyles.hydratingPanel}`}
+                        aria-hidden
+                      />
+                    ) : (
+                      <UserDashboardAccountTier
+                        role={role}
+                        tier={tier}
+                        listingCap={listingCap}
+                        activeListings={activeListings}
+                        remainingListings={remainingListings}
+                        userId={user.id}
+                        username={profile?.username}
+                        email={profile?.email ?? user?.email}
+                      />
+                    )}
+
+                    {!showHydratingShell ? (
+                    <section className={styles.userActionPanel} aria-label="Quick actions">
+                      <h2 className={styles.userActionHeadline}>{USER_DASHBOARD_COPY.actionHeadline}</h2>
+                      <p className={styles.userActionSubtext}>{USER_DASHBOARD_COPY.actionSubtext}</p>
+
+                      <div className={styles.userTryRow}>
+                        <span>{USER_DASHBOARD_COPY.tryCreateLead}</span>
+                        {remainderChip ? (
+                          <span className={styles.userTryRemainder}>{remainderChip}</span>
+                        ) : null}
+                      </div>
+
+                      <div className={styles.userCtaRow}>
+                        {createDisabled ? (
+                          <button
+                            type="button"
+                            className={`${styles.primaryButton} ${styles.userPrimaryDisabled}`}
+                            disabled
+                            aria-disabled="true"
+                          >
+                            {USER_DASHBOARD_COPY.primaryCta}
+                          </button>
+                        ) : (
+                          <Link className={styles.primaryButton} href="/dashboard/create">
+                            {USER_DASHBOARD_COPY.primaryCta}
+                          </Link>
+                        )}
+                        <Link className={styles.userCtaSecondary} href="/favorites">
+                          {USER_DASHBOARD_COPY.secondaryCta}
+                        </Link>
+                      </div>
+
+                      <div className={styles.userPlaceholderGrid}>
+                        {USER_DASHBOARD_PLACEHOLDERS.map((row) => (
+                          <div key={row.key} className={styles.userPlaceholderCard}>
+                            <h3 className={styles.userPlaceholderTitle}>{row.title}</h3>
+                            <p className={styles.userPlaceholderHint}>{row.hint}</p>
+                            <p className={styles.userPlaceholderBadge}>
+                              {USER_DASHBOARD_COPY.placeholderComingSoon}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                    ) : null}
+                  </>
+                ) : null}
+
+                {activeTab === USER_DASHBOARD_TAB_IDS.MY_LISTINGS && user?.id ? (
+                  <UserMyListingsPanel userId={user.id} tier={tier} />
+                ) : null}
+
+                {activeTab === USER_DASHBOARD_TAB_IDS.PENDING ? <UserPendingListingsPanel /> : null}
+
+                {activeTab === USER_DASHBOARD_TAB_IDS.ARCHIVED && user?.id ? (
+                  <UserArchivedListingsPanel userId={user.id} tier={tier} />
+                ) : null}
+
+                {activeTab === USER_DASHBOARD_TAB_IDS.SAVED_FAVORITES ? (
+                  <section className={styles.userActionPanel} aria-label="Saved favorites">
+                    <h2 className={styles.userActionHeadline}>Saved favorites</h2>
+                    <p className={styles.userActionSubtext} style={{ marginBottom: 16 }}>
+                      Your shortlist lives on a dedicated page so it stays easy to browse and compare.
+                    </p>
+                    <Link className={styles.primaryButton} href="/favorites">
+                      Open saved favorites
+                    </Link>
+                  </section>
+                ) : null}
+              </div>
+            </DashboardShell>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

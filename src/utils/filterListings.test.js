@@ -40,6 +40,16 @@ describe("filterListings", () => {
 
   test("filters by status (non-all)", () => {
     expect(filterListings(sample, { status: "rent" }).map((l) => l.id)).toEqual([2, 3]);
+    expect(filterListings(sample, { status: "for-sale" }).map((l) => l.id)).toEqual([1]);
+  });
+
+  test("matches sale listings when filter uses for-sale and row stores sale", () => {
+    const rows = [
+      { id: "s1", district: "belize", listing_type: "sale", price: 100, beds: 2, baths: 1 },
+      { id: "r1", district: "belize", listing_type: "rent", price: 500, beds: 2, baths: 1 },
+    ];
+    expect(filterListings(rows, { status: "for-sale" }).map((l) => l.id)).toEqual(["s1"]);
+    expect(filterListings(rows, { status: "rent" }).map((l) => l.id)).toEqual(["r1"]);
   });
 
   test("filters by min/max price using minPrice/maxPrice", () => {

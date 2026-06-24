@@ -1,0 +1,89 @@
+.page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 58% 46% at 6% 10%, rgba(108, 186, 168, 0.2), transparent 72%),
+    radial-gradient(ellipse 50% 42% at 96% 4%, rgba(152, 178, 198, 0.14), transparent 68%),
+    linear-gradient(168deg, #dceeea 0%, #dce8f0 52%, #e8f2ee 100%);
+}
+
+.main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 20px 56px;
+}
+
+.hero {
+  margin-bottom: 28px;
+  padding: 24px 22px;
+  border-radius: calc(var(--radius) + 2px);
+  border: 1px solid var(--border-subtle);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.92), rgba(245, 252, 249, 0.78));
+  box-shadow: var(--elev-1);
+}
+
+.kicker {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(48, 78, 72, 0.62);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.titleRow h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 600;
+  color: rgba(28, 52, 48, 0.94);
+}
+
+.username {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: rgba(48, 72, 68, 0.68);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin: 0;
+  color: rgba(48, 72, 68, 0.78);
+  font-size: 0.92rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.empty {
+  padding: 32px 24px;
+  border-radius: calc(var(--radius) + 2px);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.82);
+  text-align: center;
+  color: rgba(48, 72, 68, 0.78);
+}
+
+.loading {
+  min-height: 240px;
+  border-radius: 18px;
+  background: rgba(224, 240, 234, 0.48);
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: 20px 16px 48px;
+  }
+}

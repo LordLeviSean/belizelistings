@@ -1,11 +1,13 @@
 import { getListingOwnershipSnapshot } from "../utils/ownershipAttribution";
 import { getRelativeTimeLabel } from "../utils/trustSignals";
+import { formatProfileDisplayLabel } from "../lib/profileDisplayName";
 import styles from "./ListingOwnershipMeta.module.css";
 
 function resolveActorName(id, ownerMap = {}) {
   const key = String(id || "").trim();
   if (!key) return "";
-  return ownerMap[key] || `User ${key.slice(0, 8)}`;
+  if (ownerMap[key]) return ownerMap[key];
+  return formatProfileDisplayLabel({ id: key });
 }
 
 export default function ListingOwnershipMeta({ listing, ownerMap }) {

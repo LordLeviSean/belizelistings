@@ -1,11 +1,9 @@
 import { useEffect } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { getCachedApprovedListings } from "../lib/approvedListingsCache";
 import { filterListings } from "../utils/filterListings";
 import { filtersToFilterListingsInput } from "../utils/savedSearchUtils";
 import { incrementNavAlertBadge } from "../utils/navBadge";
 import { getSavedSearches } from "./useSavedSearches";
-import { isMissingColumnError } from "../lib/supabaseCompat";
-import { filterPublicInventory } from "../utils/canonicalListing";
 
 const LAST_SEEN_KEY = "belize_alert_last_seen";
 const ALERTS_LOG_KEY = "belize_alerts_log";
@@ -99,24 +97,12 @@ export function runAlertScan(listingsData) {
   }
 }
 
-/** Run alert engine once on client after mount (listings are static for now). */
+/** Run alert engine once on client after mount (shares homepage listings cache). */
 export default function useAlerts() {
   useEffect(() => {
     const fetchListings = async () => {
-      let { data, error } = await supabase
-        .from("listings")
-        .select("*")
-        .or("status.eq.approved,moderation_status.eq.approved,lifecycle_status.eq.approved");
-      if (error && isMissingColumnError(error)) {
-        ({ data, error } = await supabase
-          .from("listings")
-          .select("*")
-          .or("status.eq.approved,moderation_status.eq.approved"));
-      }
-      if (error && isMissingColumnError(error)) {
-        ({ data, error } = await supabase.from("listings").select("*").eq("status", "approved"));
-      }
-      if (!error) runAlertScan(filterPublicInventory(data || []));
+      const { data, error } = await getCachedApprovedListings();
+      if (!error) runAlertScan(data || []);
     };
     queueMicrotask(fetchListings);
   }, []);

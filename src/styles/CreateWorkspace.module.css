@@ -439,6 +439,35 @@
   cursor: not-allowed;
 }
 
+.saveAndExitBtn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(147, 186, 176, 0.28);
+  background: rgba(255, 255, 255, 0.38);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-surface), transform var(--dur-2) var(--ease-default);
+}
+
+.saveAndExitBtn:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: rgba(122, 188, 176, 0.42);
+  background: rgba(255, 255, 255, 0.62);
+  transform: translateY(var(--hover-lift-xs));
+}
+
+.saveAndExitBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* --- Sections — Dashboard `.card` DNA + subtle environmental wash --- */
 
 .glassSection {
@@ -531,6 +560,35 @@
   font-size: 0.82rem;
   line-height: 1.5;
   color: var(--text-secondary);
+}
+
+.legacyDraftRefreshBanner {
+  margin: 0 0 16px;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(230, 195, 128, 0.45);
+  background: linear-gradient(135deg, rgba(255, 248, 236, 0.88), rgba(255, 238, 220, 0.55));
+  box-shadow: var(--elev-1);
+}
+
+.legacyDraftRefreshTitle {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 620;
+  color: rgba(88, 62, 32, 0.94);
+}
+
+.legacyDraftRefreshBody {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: rgba(92, 72, 48, 0.88);
+}
+
+.legacyDraftRefreshActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .legacyFeaturesEm {
@@ -968,6 +1026,7 @@
   }
 
   .footerActions .saveDraftBtn,
+  .footerActions .saveAndExitBtn,
   .footerPrimaryCta {
     flex: 1 1 auto;
     justify-content: center;
@@ -1301,12 +1360,14 @@
   .savePill,
   .backButton,
   .footerBack,
-  .saveDraftBtn {
+  .saveDraftBtn,
+  .saveAndExitBtn {
     transition: none;
   }
 
   .footerBack:hover:not(:disabled),
   .saveDraftBtn:hover:not(:disabled),
+  .saveAndExitBtn:hover:not(:disabled),
   .backButton:hover {
     transform: none;
   }

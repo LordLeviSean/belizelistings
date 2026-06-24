@@ -15,14 +15,14 @@ export default function Footer() {
 
 const styles = {
   footer: {
-    marginTop: "4px",
-    padding: "11px 12px 14px",
+    marginTop: "0",
+    padding: "9px 12px 11px",
     borderTop: "1px solid rgba(255,255,255,0.06)",
     background:
-      "linear-gradient(180deg, rgba(255,251,245,0.12) 0%, rgba(232,245,242,0.18) 42%, rgba(230,241,251,0.14) 100%)",
+      "linear-gradient(180deg, rgba(255,251,245,0.14) 0%, rgba(232,245,242,0.2) 44%, rgba(230,241,251,0.16) 100%)",
     backdropFilter: "blur(9px)",
     WebkitBackdropFilter: "blur(9px)",
-    boxShadow: "0 -16px 32px rgba(110, 154, 148, 0.05)",
+    boxShadow: "0 -16px 32px rgba(110, 154, 148, 0.07)",
   },
   inner: {
     textAlign: "center",

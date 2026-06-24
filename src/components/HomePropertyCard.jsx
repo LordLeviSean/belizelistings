@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { Bath, BedDouble, Heart, MapPin } from "lucide-react";
+import { IMAGE_QUALITY_CARD } from "@/constants/imageQuality";
 import ListingMediaImage from "./listing/ListingMediaImage";
 import ShareListingIconButton from "./ShareListingIconButton";
 import homeStyles from "../styles/HomeMapFirst.module.css";
@@ -217,7 +218,7 @@ export default function HomePropertyCard({
           sizes={imageSizes}
           priority={imagePriority}
           hoverZoom
-          quality={82}
+          quality={IMAGE_QUALITY_CARD}
         />
 
         {showGalleryNavZones ? (

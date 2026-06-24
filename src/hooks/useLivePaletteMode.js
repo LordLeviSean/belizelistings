@@ -7,9 +7,12 @@ import {
 } from "../utils/livePaletteMode";
 
 export default function useLivePaletteMode() {
-  const [enabled, setEnabled] = useState(() => readLivePaletteMode());
+  /** false on SSR and first client paint — sync from storage after mount (hydration-safe). */
+  const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
+    setEnabled(readLivePaletteMode());
+
     const onStorage = (event) => {
       if (event.key && event.key !== LIVE_PALETTE_MODE_KEY) return;
       setEnabled(readLivePaletteMode());

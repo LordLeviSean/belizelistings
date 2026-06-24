@@ -1,0 +1,49 @@
+/* Loading shell for `/dashboard/user` while `useUserRole` resolves */
+
+.loadingMain {
+  min-height: 42vh;
+  border-radius: 18px;
+  background: linear-gradient(
+    110deg,
+    rgba(228, 244, 238, 0.42) 0%,
+    rgba(204, 228, 218, 0.58) 45%,
+    rgba(232, 246, 242, 0.38) 90%
+  );
+  background-size: 200% 100%;
+  animation: userDashShimmer 1.4s var(--ease-default, ease-in-out) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingMain {
+    animation: none;
+    background: rgba(224, 240, 234, 0.48);
+  }
+}
+
+@keyframes userDashShimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* Soft shell while profile re-hydrates with cached session (no full-page blank) */
+.hydratingMetrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.hydratingMetricCard {
+  min-height: 5.5rem;
+  border-radius: 14px;
+}
+
+.hydratingPanel {
+  min-height: 12rem;
+  border-radius: 18px;
+  margin-top: 0.5rem;
+}

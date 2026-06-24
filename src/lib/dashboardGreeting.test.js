@@ -1,4 +1,9 @@
-import { formatWelcomeGreeting, resolveDashboardGreetingName } from "./dashboardGreeting";
+import {
+  formatUserDashboardGreeting,
+  formatUserDashboardSubtitle,
+  formatWelcomeGreeting,
+  resolveDashboardGreetingName,
+} from "./dashboardGreeting";
 
 describe("resolveDashboardGreetingName", () => {
   it("prefers username", () => {
@@ -30,6 +35,44 @@ describe("formatWelcomeGreeting", () => {
   });
 
   it("generic when no name", () => {
-    expect(formatWelcomeGreeting({})).toBe("Welcome!");
+    expect(formatWelcomeGreeting({})).toBe("Welcome back");
+  });
+});
+
+describe("formatUserDashboardGreeting", () => {
+  it("uses username only", () => {
+    expect(formatUserDashboardGreeting({ username: "coral_reef" })).toBe("Welcome, coral_reef!");
+  });
+
+  it("ignores email and full_name", () => {
+    expect(
+      formatUserDashboardGreeting({
+        username: "",
+        email: "secret@example.com",
+        full_name: "Secret Name",
+      })
+    ).toBe("Welcome back!");
+  });
+
+  it("fallback when missing username", () => {
+    expect(formatUserDashboardGreeting({})).toBe("Welcome back!");
+  });
+});
+
+describe("formatUserDashboardSubtitle", () => {
+  it("combines username welcome with editorial tail", () => {
+    expect(formatUserDashboardSubtitle({ username: "reef_runner" })).toBe(
+      "Welcome, reef_runner! Explore Belize, save favorites, and manage your listings."
+    );
+  });
+
+  it("uses welcome back clause without email", () => {
+    expect(
+      formatUserDashboardSubtitle({
+        username: "",
+        email: "x@y.com",
+        full_name: "X",
+      })
+    ).toBe("Welcome back! Explore Belize, save favorites, and manage your listings.");
   });
 });

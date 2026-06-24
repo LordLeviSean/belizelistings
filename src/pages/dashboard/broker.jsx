@@ -17,6 +17,7 @@ import { LISTING_HEALTH_TIER } from "@/constants/operationalIntel";
 import { evaluateListingIntel } from "@/utils/listingIntel";
 import { LISTING_LIFECYCLE } from "@/constants/operationalModel";
 import { getLifecycleStatus } from "@/utils/canonicalListing";
+import { fetchListingsForDashboardByUserIds } from "@/lib/listingQueries";
 import styles from "@/styles/Dashboard.module.css";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 
@@ -37,17 +38,8 @@ export default function BrokerDashboard() {
       return;
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("brokerage_id, brokerage")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    const bid =
-      profile?.brokerage_id ||
-      profile?.brokerage?.id ||
-      profile?.brokerage?.brokerage_id ||
-      "";
+    // Brokerage scope columns are not on public.profiles in current migrations — useUserRole hydrate only.
+    const bid = "";
 
     setBrokerageId(bid || "");
 
@@ -60,12 +52,7 @@ export default function BrokerDashboard() {
       return;
     }
 
-    const { data } = await supabase
-      .from("listings")
-      .select("*, listing_images(image_url,position)")
-      .in("user_id", scopeIds)
-      .order("updated_at", { ascending: false })
-      .limit(400);
+    const { data } = await fetchListingsForDashboardByUserIds(supabase, scopeIds);
 
     setTeamListings(data || []);
     setLoading(false);

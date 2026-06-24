@@ -78,9 +78,12 @@ export function logRawSupabaseError(tag, error, extra = {}) {
     errorRef: error,
   };
 
-  console.error(`[supabase-raw-error:${tag}]`, payload);
+  const useWarn = extra.logLevel === "warn" || extra.consoleLevel === "warn";
+  const label = useWarn ? `[supabase-raw-warn:${tag}]` : `[supabase-raw-error:${tag}]`;
+  const logFn = useWarn && typeof console !== "undefined" && console.warn ? console.warn : console.error;
+  logFn(label, payload);
 
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && !useWarn) {
     window.__BL_LAST_RAW_SUPABASE_ERROR = payload;
   }
 

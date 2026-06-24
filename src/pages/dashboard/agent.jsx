@@ -1,198 +1,172 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/router";
-import { supabase } from "@/lib/supabaseClient";
+import { useShallow } from "zustand/react/shallow";
 import SiteNav from "@/components/SiteNav";
-import Breadcrumbs from "@/components/Breadcrumbs";
 import { DashboardShell } from "@/components/dashboard";
-import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "@/constants/dashboardRoles";
-import {
-  AgentActivityFeed,
-  AgentQuickActionBar,
-  ListingIntelStrip,
-} from "@/components/operational";
-import DeleteConfirmModal from "@/components/DeleteConfirmModal";
-import PropertiesPanel from "@/components/PropertiesPanel";
-import VacancyPanel from "@/components/VacancyPanel";
-import useUserRole from "@/hooks/useUserRole";
-import { useToast } from "@/components/ui/ToastProvider";
-import {
-  AGENT_FREE_ACTIVE_LISTING_CAP,
-  getArchiveStatus,
-  LISTING_LIFECYCLE,
-  PLATFORM_TIERS,
-} from "@/constants/operationalModel";
-import { getUserActiveListingCount } from "@/lib/listingPersistence";
-import {
-  applyListingLifecycleAction,
-  permanentlyDeleteArchivedListing,
-} from "@/utils/ownershipAttribution";
-import { OWNERSHIP_ACTIONS } from "@/constants/ownershipModel";
-import { getLifecycleStatus } from "@/utils/canonicalListing";
-import { INQUIRY_STATUS } from "@/constants/inquiryModel";
-import { fetchInquiriesForAgent, updateInquiryStatus } from "@/lib/listingInquiries";
+import AgentDashboardMetrics from "@/components/agent/AgentDashboardMetrics";
+import AgentBenefitsPanel from "@/components/agent/AgentBenefitsPanel";
+import AgentInventoryPanel from "@/components/agent/AgentInventoryPanel";
+import { AgentActivityFeed } from "@/components/operational";
 import AgentInquiryList from "@/components/inquiry/AgentInquiryList";
-import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
+import useUserRole from "@/hooks/useUserRole";
+import { isProfileHydratedForUser } from "@/lib/profileSessionCache";
+import { formatWelcomeGreeting } from "@/lib/dashboardGreeting";
+import useAgentDashboardStore from "@/stores/useAgentDashboardStore";
+import { DASHBOARD_ROLE } from "@/constants/dashboardRoles";
+import {
+  AGENT_DASHBOARD_COPY,
+  AGENT_DASHBOARD_TAB_IDS,
+  AGENT_DASHBOARD_TABS,
+  AGENT_INVENTORY_FILTERS,
+  formatListingRemainingLabel,
+  USER_DASHBOARD_FINITE_CAP_THRESHOLD,
+} from "@/constants/dashboardAgentConfig";
+import { INQUIRY_STATUS } from "@/constants/inquiryModel";
+import { supabase } from "@/lib/supabaseClient";
+import { updateInquiryStatus } from "@/lib/listingInquiries";
+import { useToast } from "@/components/ui/ToastProvider";
 import styles from "@/styles/Dashboard.module.css";
+import loadingStyles from "@/styles/UserDashboard.module.css";
+
+const AGENT_TAB_SET = new Set(Object.values(AGENT_DASHBOARD_TAB_IDS));
+
+function normalizeAgentDashboardTab(raw) {
+  const s = String(Array.isArray(raw) ? raw[0] : raw || "")
+    .trim()
+    .toLowerCase();
+  return AGENT_TAB_SET.has(s) ? s : AGENT_DASHBOARD_TAB_IDS.OVERVIEW;
+}
 
 export default function AgentDashboard() {
   const router = useRouter();
-  const { user, role, loading: roleLoading, tier } = useUserRole();
+  const { user, role, loading, profile, tier, welcomePhrase } = useUserRole();
   const { showToast } = useToast();
-  const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [actionId, setActionId] = useState("");
-  const [deleteTargetId, setDeleteTargetId] = useState("");
-  const [activeTab, setActiveTab] = useState("listings");
-  const [visibilityFilter, setVisibilityFilter] = useState("all");
-  const [inquiries, setInquiries] = useState([]);
   const [inquiryBusyId, setInquiryBusyId] = useState("");
+  const [lifecycleFilter, setLifecycleFilter] = useState(AGENT_INVENTORY_FILTERS.ALL);
+  const storeSessionRef = useRef(null);
+  const dashboardPathRef = useRef(null);
 
-  const loadListings = useCallback(async () => {
+  const {
+    activeListings,
+    pendingListings,
+    archivedListings,
+    draftListings,
+    rejectedListings,
+    inquiriesCount,
+    inquiriesRows,
+    unreadInquiryCount,
+    remainingListings,
+    myListingsRows,
+  } = useAgentDashboardStore(
+    useShallow((s) => ({
+      activeListings: s.activeListings,
+      pendingListings: s.pendingListings,
+      archivedListings: s.archivedListings,
+      draftListings: s.draftListings,
+      rejectedListings: s.rejectedListings,
+      inquiriesCount: s.inquiriesCount,
+      inquiriesRows: s.inquiriesRows,
+      unreadInquiryCount: s.unreadInquiryCount,
+      remainingListings: s.remainingListings,
+      myListingsRows: s.myListingsRows,
+    }))
+  );
+
+  const listingCap = useAgentDashboardStore((s) => s.listingCap);
+  const inquiriesUnavailable = useAgentDashboardStore((s) => s.inquiriesUnavailable);
+  const metricsLoading = useAgentDashboardStore((s) => s.metricsLoading);
+  const myListingsInitialFetchDone = useAgentDashboardStore((s) => s.myListingsInitialFetchDone);
+
+  const activeTab = useMemo(() => normalizeAgentDashboardTab(router.query.tab), [router.query.tab]);
+
+  const profileHydrated = Boolean(user?.id && isProfileHydratedForUser(user.id));
+  const showHydratingShell = loading && profileHydrated && role === "agent";
+
+  const subtitle = useMemo(() => {
+    const greet = welcomePhrase || formatWelcomeGreeting(profile);
+    return `${greet} · ${AGENT_DASHBOARD_COPY.shellSubtitle}`;
+  }, [welcomePhrase, profile]);
+
+  const selectTab = useCallback(
+    (tab) => {
+      if (normalizeAgentDashboardTab(router.query.tab) === tab) return;
+      router.replace(
+        { pathname: "/dashboard/agent", query: { ...router.query, tab } },
+        undefined,
+        { shallow: true }
+      );
+    },
+    [router]
+  );
+
+  useEffect(() => {
+    if (loading || !user?.id || role !== "agent") return;
+    useAgentDashboardStore.getState().setTier(tier);
+  }, [loading, user?.id, role, tier]);
+
+  useLayoutEffect(() => {
+    const uid = user?.id;
+    if (!uid || role !== "agent") {
+      if (storeSessionRef.current) {
+        useAgentDashboardStore.getState().destroy();
+        storeSessionRef.current = null;
+      }
+      return;
+    }
+    if (loading && !isProfileHydratedForUser(uid)) return;
+    if (storeSessionRef.current === uid) return;
+    storeSessionRef.current = uid;
+    useAgentDashboardStore.getState().init(uid, role);
+  }, [loading, user?.id, role]);
+
+  useEffect(() => {
+    return () => {
+      if (storeSessionRef.current) {
+        useAgentDashboardStore.getState().destroy();
+        storeSessionRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
     if (!user) {
       router.replace("/login");
       return;
     }
-
     if (role !== "agent") {
       router.replace("/dashboard");
-      return;
     }
-
-    const { data } = await supabase
-      .from("listings")
-      .select("*, listing_images(image_url,position)")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    setListings(data || []);
-    setLoading(false);
-  }, [router, role, user]);
-
-  const loadInquiries = useCallback(async () => {
-    if (!user?.id || role !== "agent") return;
-    const { data, error } = await fetchInquiriesForAgent(supabase, user.id, { limit: 100 });
-    if (!error) setInquiries(data || []);
-  }, [user?.id, role]);
+  }, [loading, user, role, router]);
 
   useEffect(() => {
-    if (roleLoading) return;
-    void loadListings();
-  }, [roleLoading, loadListings]);
-
-  useEffect(() => {
-    if (roleLoading) return;
-    void loadInquiries();
-  }, [roleLoading, loadInquiries]);
-
-  useEffect(() => {
-    if (!user?.id || role !== "agent") return;
-    const channel = supabase
-      .channel(`agent-listings-${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "listings", filter: `user_id=eq.${user.id}` },
-        () => {
-          void loadListings();
-        }
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [user?.id, role, loadListings]);
-
-  useEffect(() => {
-    if (!user?.id || role !== "agent") return;
-    const channel = supabase
-      .channel(`agent-inquiries-${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "listing_inquiries",
-          filter: `agent_user_id=eq.${user.id}`,
-        },
-        () => {
-          void loadInquiries();
-        }
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [user?.id, role, loadInquiries]);
-
-  const archiveListing = async (listingId) => {
-    const confirmSeenKey = "operator_archive_confirm_seen_v1";
-    if (typeof window !== "undefined" && !window.localStorage.getItem(confirmSeenKey)) {
-      const confirmed = window.confirm("Remove from public? You can re-publish anytime.");
-      if (!confirmed) return;
-      window.localStorage.setItem(confirmSeenKey, "true");
-    }
-
-    setActionId(String(listingId));
-    const { error } = await applyListingLifecycleAction(supabase, {
-      listingId,
-      action: OWNERSHIP_ACTIONS.ARCHIVE,
-      extraUpdates: {
-        status: getArchiveStatus(),
-      },
-    });
-    if (error) {
-      setActionId("");
-      showToast({ type: "error", message: error?.message || "Unable to archive listing" });
-      return;
-    }
-    await loadListings();
-    showToast({ type: "info", message: "Listing archived" });
-    setActionId("");
-  };
-
-  const republishListing = async (listingId) => {
-    setActionId(String(listingId));
-    if (tier === PLATFORM_TIERS.AGENT_FREE && user?.id) {
-      const activeCount = await getUserActiveListingCount(supabase, user.id);
-      if (activeCount >= AGENT_FREE_ACTIVE_LISTING_CAP) {
-        showToast({
-          type: "error",
-          message: `Free Agent limit reached (${AGENT_FREE_ACTIVE_LISTING_CAP} active listings). Archive another listing before restoring.`,
-        });
-        setActionId("");
-        return;
+    if (typeof window === "undefined") return;
+    dashboardPathRef.current = router.pathname;
+    const onRouteDone = (url) => {
+      try {
+        const path = String(url || "").split("?")[0];
+        const prevPath = dashboardPathRef.current;
+        dashboardPathRef.current = path;
+        if (path !== "/dashboard/agent") return;
+        if (prevPath === "/dashboard/agent") return;
+        if (role !== "agent" || !user?.id || loading) return;
+        useAgentDashboardStore.getState().flushRefresh();
+      } catch {
+        /* ignore */
       }
-    }
-    const { error } = await applyListingLifecycleAction(supabase, {
-      listingId,
-      action: OWNERSHIP_ACTIONS.REPUBLISH,
-      extraUpdates: {},
-    });
-    if (error) {
-      setActionId("");
-      showToast({ type: "error", message: error?.message || "Unable to restore listing" });
-      return;
-    }
-    await loadListings();
-    showToast({ type: "success", message: "Listing moved to Pending Review" });
-    setActionId("");
-  };
+    };
+    router.events.on("routeChangeComplete", onRouteDone);
+    return () => router.events.off("routeChangeComplete", onRouteDone);
+  }, [router.events, router.pathname, role, user?.id, loading]);
 
-  const resubmitForReviewListing = async (listingId) => {
-    setActionId(String(listingId));
-    const { error } = await applyListingLifecycleAction(supabase, {
-      listingId,
-      action: OWNERSHIP_ACTIONS.RESUBMIT,
-      extraUpdates: {},
-    });
-    if (error) {
-      setActionId("");
-      showToast({ type: "error", message: error?.message || "Unable to resubmit listing" });
-      return;
+  const listingsById = useMemo(() => {
+    const m = {};
+    for (const row of myListingsRows) {
+      if (row?.id != null) m[row.id] = row;
     }
-    await loadListings();
-    showToast({ type: "success", message: "Listing moved to Pending Review" });
-    setActionId("");
-  };
+    return m;
+  }, [myListingsRows]);
 
   const markInquiryResponded = async (inquiryId) => {
     if (!user?.id) return;
@@ -215,348 +189,150 @@ export default function AgentDashboard() {
       }
       return;
     }
-    await loadInquiries();
+    useAgentDashboardStore.getState().invalidate({ listings: false });
     showToast({ type: "success", message: "Marked as responded" });
   };
 
-  const permanentlyDeleteListing = async () => {
-    if (!deleteTargetId) return;
-    setActionId(`delete:${deleteTargetId}`);
-    const { error } = await permanentlyDeleteArchivedListing(supabase, {
-      listingId: deleteTargetId,
-      statusHint: "archived",
-    });
-    if (error) {
-      showToast({ type: "error", message: error.message || "Unable to permanently delete listing" });
-      setActionId("");
-      return;
-    }
-    await loadListings();
-    showToast({ type: "info", message: "Listing permanently deleted" });
-    setDeleteTargetId("");
-    setActionId("");
-  };
+  if (loading && !showHydratingShell) {
+    return (
+      <div className={`${styles.page} ${styles.userDashboardPage}`}>
+        <SiteNav active="dashboard" />
+        <main className={styles.main}>
+          <div className={loadingStyles.loadingMain} aria-busy="true" aria-label="Loading dashboard" />
+        </main>
+      </div>
+    );
+  }
 
-  const draftRows = useMemo(() => {
-    return listings
-      .filter((l) => getLifecycleStatus(l) === LISTING_LIFECYCLE.DRAFT)
-      .slice()
-      .sort((a, b) => {
-        const tb = new Date(b.updated_at || b.created_at || 0).getTime();
-        const ta = new Date(a.updated_at || a.created_at || 0).getTime();
-        return tb - ta;
-      });
-  }, [listings]);
+  if (!user || role !== "agent") {
+    return null;
+  }
 
-  const draftCount = draftRows.length;
-
-  const listingsById = useMemo(() => {
-    const m = {};
-    for (const row of listings) {
-      if (row?.id != null) m[row.id] = row;
-    }
-    return m;
-  }, [listings]);
-
-  const unreadInquiryCount = useMemo(
-    () =>
-      inquiries.filter((q) => !q.read_at && q.status === INQUIRY_STATUS.NEW).length,
-    [inquiries]
-  );
-
-  const filteredListings = listings.filter((listing) => {
-    const lifecycle = getLifecycleStatus(listing);
-    if (visibilityFilter === "drafts") return lifecycle === LISTING_LIFECYCLE.DRAFT;
-    if (visibilityFilter === "archived") return lifecycle === LISTING_LIFECYCLE.ARCHIVED;
-    if (visibilityFilter === "rejected") return lifecycle === LISTING_LIFECYCLE.REJECTED;
-    if (visibilityFilter === "active") return lifecycle !== LISTING_LIFECYCLE.ARCHIVED;
-    return true;
-  });
-
-  const listingEmptyProps =
-    visibilityFilter === "drafts"
-      ? { variant: "drafts", primary: { label: "Create listing", href: "/dashboard/create" } }
-      : visibilityFilter === "archived"
-        ? { variant: "archived" }
-        : visibilityFilter === "rejected"
-          ? { variant: "rejected", primary: { label: "Create listing", href: "/dashboard/create" } }
-          : visibilityFilter === "active"
-            ? { variant: "active", primary: { label: "Create listing", href: "/dashboard/create" } }
-            : { variant: "listings", primary: { label: "Create listing", href: "/dashboard/create" } };
-
-  const handleResumeDraft = () => {
-    const top = draftRows[0];
-    if (top?.id) {
-      router.push(`/dashboard/create?draft=${encodeURIComponent(top.id)}`);
-      return;
-    }
-    showToast({ type: "info", message: "No drafts yet. Start from Create listing." });
-  };
+  const finiteCap = listingCap < USER_DASHBOARD_FINITE_CAP_THRESHOLD;
+  const limitExhausted = finiteCap && remainingListings === 0;
+  const createDisabled = limitExhausted;
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${styles.userDashboardPage}`}>
       <SiteNav active="dashboard" />
       <main className={styles.main}>
-        <DashboardShell
-          roleKey={DASHBOARD_ROLE.agent}
-          title="Agent Dashboard"
-          subtitle={`${welcomePhrase} · ${DASHBOARD_ROLE_META[DASHBOARD_ROLE.agent].defaultSubtitle}`}
-        >
-        <div className={styles.adminWrapper}>
-        <Breadcrumbs />
-
-        <AgentQuickActionBar
-          onCreate={() => router.push("/dashboard/create")}
-          onResumeDraft={handleResumeDraft}
-          draftCount={draftCount}
-          hasListings={listings.length > 0}
-        />
-
-        {draftRows.length > 0 ? (
-          <div className={styles.draftResumeStrip} aria-label="Draft workspaces">
-            <p className={styles.draftResumeTitle}>Resume a draft</p>
-            <div className={styles.draftResumeGrid}>
-              {draftRows.slice(0, 4).map((d) => {
-                const ts = d.updated_at || d.created_at;
-                const label = ts
-                  ? `Edited ${new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`
-                  : "Draft";
-                return (
-                  <div key={d.id} className={`${styles.card} ${styles.draftResumeCard}`}>
-                    <div>
-                      <h4 className={styles.draftResumeHeading}>{d.title || "Untitled draft"}</h4>
-                      <p className={styles.muted}>{label}</p>
-                    </div>
-                    <button
-                      type="button"
-                      className={styles.approveButton}
-                      onClick={() => router.push(`/dashboard/create?draft=${encodeURIComponent(d.id)}`)}
-                    >
-                      Continue
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+        <div className={styles.userDashboardSurface}>
+          <div className={styles.userAtmosphereLayer} aria-hidden>
+            <div className={styles.userAtmosphereDepth} />
+            <div className={styles.userAtmosphereVeil} />
           </div>
-        ) : null}
 
-        <div className={styles.adminTabs}>
-          <button
-            type="button"
-            className={styles.dashboardLink}
-            onClick={() => {
-              setActiveTab("listings");
-              setVisibilityFilter("all");
-            }}
-          >
-            Listings
-          </button>
-          <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("inquiries")}>
-            Inquiries {unreadInquiryCount > 0 ? `(${unreadInquiryCount})` : ""}
-          </button>
-          <button
-            type="button"
-            className={styles.dashboardLink}
-            onClick={() => {
-              setActiveTab("listings");
-              setVisibilityFilter("drafts");
-            }}
-          >
-            Drafts {draftCount > 0 ? `(${draftCount})` : ""}
-          </button>
-          <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("properties")}>
-            Properties
-          </button>
-          <button type="button" className={styles.dashboardLink} onClick={() => setActiveTab("vacancy")}>
-            Vacancy
-          </button>
-        </div>
+          <div className={styles.userDashboardAboveArt}>
+            <DashboardShell roleKey={DASHBOARD_ROLE.agent} title={AGENT_DASHBOARD_COPY.shellTitle} subtitle={subtitle}>
+              <div className={styles.adminWrapper}>
+                {showHydratingShell || (metricsLoading && !myListingsInitialFetchDone) ? (
+                  <div className={loadingStyles.hydratingMetrics} aria-busy="true">
+                    {Array.from({ length: 6 }, (_, i) => (
+                      <div key={i} className={`skeleton ${loadingStyles.hydratingMetricCard}`} />
+                    ))}
+                  </div>
+                ) : (
+                  <AgentDashboardMetrics
+                    activeListings={activeListings}
+                    pendingListings={pendingListings}
+                    rejectedListings={rejectedListings}
+                    archivedListings={archivedListings}
+                    draftListings={draftListings}
+                    inquiriesCount={inquiriesCount}
+                    inquiriesUnavailable={inquiriesUnavailable}
+                    listingRemainingLabel={formatListingRemainingLabel(remainingListings)}
+                    limitExhausted={limitExhausted}
+                    onNavigateTab={selectTab}
+                  />
+                )}
 
-        {activeTab === "listings" ? (
-          <>
-            <div className={styles.statusToggle} role="tablist" aria-label="Listing visibility filter">
-              {[
-                { label: "All", value: "all" },
-                { label: "Active", value: "active" },
-                { label: "Drafts", value: "drafts" },
-                { label: "Rejected", value: "rejected" },
-                { label: "Archived", value: "archived" },
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="tab"
-                  aria-selected={visibilityFilter === option.value}
-                  className={`${styles.toggleButton} ${
-                    visibilityFilter === option.value ? styles.toggleButtonActive : ""
-                  }`}
-                  onClick={() => setVisibilityFilter(option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-
-            <div className={styles.agentIntelLayout}>
-              <AgentActivityFeed
-                listings={listings}
-                inquiries={inquiries}
-                onOpenListing={(listingId) => router.push(`/listing/${listingId}`)}
-              />
-              <div className={styles.agentListingColumn}>
-              {loading ? (
-                <div className={styles.pendingGrid}>
-                  {Array.from({ length: 3 }).map((_, index) => (
-                    <div key={index} className={`${styles.card} skeleton`} style={{ minHeight: 110 }} />
+                <div className={styles.statusToggle} role="tablist" aria-label="Dashboard sections">
+                  {AGENT_DASHBOARD_TABS.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeTab === tab.id}
+                      className={`${styles.toggleButton} ${
+                        activeTab === tab.id ? styles.toggleButtonActive : ""
+                      }`}
+                      onClick={() => selectTab(tab.id)}
+                    >
+                      {tab.label}
+                      {tab.id === AGENT_DASHBOARD_TAB_IDS.INQUIRIES && unreadInquiryCount > 0
+                        ? ` (${unreadInquiryCount})`
+                        : ""}
+                    </button>
                   ))}
                 </div>
-              ) : null}
-              {!loading && filteredListings.length === 0 ? (
-                <PremiumEmptyState compact {...listingEmptyProps} />
-              ) : null}
-              <div className={styles.pendingGrid}>
-              {filteredListings.map((l) => {
-                const lc = getLifecycleStatus(l);
-                const isArchived = lc === LISTING_LIFECYCLE.ARCHIVED;
-                const isRejected = lc === LISTING_LIFECYCLE.REJECTED;
-                const lcKey = lc || "draft";
-                const badgeClass = `${lcKey.charAt(0).toUpperCase()}${lcKey.slice(1)}`;
-                return (
-                <div
-                  key={l.id}
-                  className={`${styles.card} ${isArchived ? styles.archivedCard : ""} ${isRejected ? styles.rejectedTone : ""} ${
-                    actionId === String(l.id) ? styles.cardActionBusy : ""
-                  }`}
-                >
-                  <h3 style={{ margin: 0 }}>{l.title}</h3>
-                  <p className={styles.muted}>{Number(l.price || 0).toLocaleString()} BZD</p>
-                  <div>
-                    <span className={`${styles.statusBadge} ${styles[`status${badgeClass}`]}`}>
-                      {isArchived ? "Archived (Not Public)" : lc || "draft"}
-                    </span>
-                    {isArchived ? (
-                      <p className={styles.archivedHint}>Hidden from public listings</p>
-                    ) : null}
-                    {isRejected ? (
-                      <p className={styles.archivedHint}>Not public — resubmit after edits for another review.</p>
-                    ) : null}
-                  </div>
-                  <ListingIntelStrip listing={l} />
-                  {isArchived ? (
-                    <>
-                      <button
-                        className={styles.approveButton}
-                        type="button"
-                        onClick={() => republishListing(l.id)}
-                        disabled={actionId === String(l.id) || actionId === `delete:${l.id}`}
-                      >
-                        {actionId === String(l.id) ? "Publishing..." : "Re-publish Listing"}
-                      </button>
-                      <button
-                        className={`${styles.rejectButton} ${styles.quickDangerMuted}`}
-                        type="button"
-                        onClick={() => setDeleteTargetId(String(l.id))}
-                        disabled={actionId === String(l.id) || actionId === `delete:${l.id}`}
-                        style={{ marginTop: 8 }}
-                      >
-                        Permanently Delete
-                      </button>
-                    </>
-                  ) : isRejected ? (
-                    <>
-                      <button
-                        className={styles.approveButton}
-                        type="button"
-                        onClick={() => resubmitForReviewListing(l.id)}
-                        disabled={actionId === String(l.id)}
-                        style={{ marginTop: 8 }}
-                      >
-                        {actionId === String(l.id) ? "Submitting..." : "Resubmit for Review"}
-                      </button>
-                      <button
-                        className={styles.deleteListingButton}
-                        type="button"
-                        onClick={() => archiveListing(l.id)}
-                        disabled={actionId === String(l.id)}
-                        style={{ marginTop: 8 }}
-                      >
-                        {actionId === String(l.id) ? "Removing..." : "Archive Listing"}
-                      </button>
-                    </>
-                  ) : lc === LISTING_LIFECYCLE.DRAFT ? (
-                    <>
-                      <button
-                        className={styles.approveButton}
-                        type="button"
-                        onClick={() => router.push(`/dashboard/create?draft=${encodeURIComponent(l.id)}`)}
-                        style={{ marginTop: 8 }}
-                      >
-                        Continue editing
-                      </button>
-                      <button
-                        className={styles.deleteListingButton}
-                        type="button"
-                        onClick={() => archiveListing(l.id)}
-                        disabled={actionId === String(l.id)}
-                        style={{ marginTop: 8 }}
-                      >
-                        {actionId === String(l.id) ? "Removing..." : "Discard draft"}
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className={styles.deleteListingButton}
-                      type="button"
-                      onClick={() => archiveListing(l.id)}
-                      disabled={actionId === String(l.id)}
-                    >
-                      {actionId === String(l.id) ? "Removing..." : "Remove Listing"}
-                    </button>
-                  )}
-                </div>
-              )})}
-              </div>
-              </div>
-            </div>
-          </>
-        ) : null}
-        {activeTab === "inquiries" ? (
-          <section aria-label="Lead inbox">
-            <p className={styles.muted} style={{ marginBottom: 16, maxWidth: "62ch" }}>
-              Buyer messages from listing pages route here. Mark responded when you&apos;ve replied outside the app —
-              deeper CRM wiring can extend this layer later.
-            </p>
-            <AgentInquiryList
-              inquiries={inquiries}
-              listingsById={listingsById}
-              busyId={inquiryBusyId}
-              onMarkResponded={markInquiryResponded}
-              onOpenListing={(listingId) => router.push(`/listing/${listingId}`)}
-            />
-          </section>
-        ) : null}
-        <DeleteConfirmModal
-          isOpen={Boolean(deleteTargetId)}
-          onClose={() => setDeleteTargetId("")}
-          onConfirm={permanentlyDeleteListing}
-          loading={actionId === `delete:${deleteTargetId}` && Boolean(deleteTargetId)}
-          mode="delete"
-          title="Permanent Deletion"
-          description={
-            <>
-              This permanently removes the listing and associated operational history. This action
-              cannot be undone. Type <strong>delete</strong> to continue.
-            </>
-          }
-          confirmLabel="Permanently Delete"
-        />
 
-        {activeTab === "properties" ? <PropertiesPanel userId={user?.id} /> : null}
+                {activeTab === AGENT_DASHBOARD_TAB_IDS.OVERVIEW ? (
+                  <>
+                    {!showHydratingShell ? (
+                      <div className={styles.agentIntelLayout}>
+                        <AgentActivityFeed
+                          listings={myListingsRows}
+                          inquiries={inquiriesRows}
+                          onOpenListing={(listingId) => router.push(`/listing/${listingId}`)}
+                        />
+                        <div className={styles.agentListingColumn}>
+                          <AgentBenefitsPanel username={profile?.username} />
+                        </div>
+                      </div>
+                    ) : null}
 
-        {activeTab === "vacancy" ? <VacancyPanel userId={user?.id} /> : null}
-      </div>
-        </DashboardShell>
+                    {!showHydratingShell ? (
+                      <section className={styles.userActionPanel} aria-label="Quick actions">
+                        <h2 className={styles.userActionHeadline}>{AGENT_DASHBOARD_COPY.actionHeadline}</h2>
+                        <p className={styles.userActionSubtext}>{AGENT_DASHBOARD_COPY.actionSubtext}</p>
+                        <div className={styles.userCtaRow}>
+                          {createDisabled ? (
+                            <button
+                              type="button"
+                              className={`${styles.primaryButton} ${styles.userPrimaryDisabled}`}
+                              disabled
+                            >
+                              {AGENT_DASHBOARD_COPY.primaryCta}
+                            </button>
+                          ) : (
+                            <Link className={styles.primaryButton} href="/dashboard/create">
+                              {AGENT_DASHBOARD_COPY.primaryCta}
+                            </Link>
+                          )}
+                        </div>
+                      </section>
+                    ) : null}
+                  </>
+                ) : null}
+
+                {activeTab === AGENT_DASHBOARD_TAB_IDS.LISTINGS && user?.id ? (
+                  <AgentInventoryPanel
+                    userId={user.id}
+                    tier={tier}
+                    lifecycleFilter={lifecycleFilter}
+                    onLifecycleFilterChange={setLifecycleFilter}
+                  />
+                ) : null}
+
+                {activeTab === AGENT_DASHBOARD_TAB_IDS.INQUIRIES ? (
+                  <section aria-label="Lead inbox">
+                    <p className={styles.muted} style={{ marginBottom: 16, maxWidth: "62ch" }}>
+                      Buyer messages from listing pages route here. Mark responded when you&apos;ve
+                      replied outside the app.
+                    </p>
+                    <AgentInquiryList
+                      inquiries={inquiriesRows}
+                      listingsById={listingsById}
+                      busyId={inquiryBusyId}
+                      onMarkResponded={markInquiryResponded}
+                      onOpenListing={(listingId) => router.push(`/listing/${listingId}`)}
+                    />
+                  </section>
+                ) : null}
+              </div>
+            </DashboardShell>
+          </div>
+        </div>
       </main>
     </div>
   );

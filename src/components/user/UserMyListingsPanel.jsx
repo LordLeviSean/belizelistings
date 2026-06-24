@@ -1,0 +1,359 @@
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { useShallow } from "zustand/react/shallow";
+import { supabase } from "@/lib/supabaseClient";
+import { discardDraftListing } from "@/lib/listingPersistence";
+import { isLegacyGenerationDraft } from "@/lib/legacyDraftCompat";
+import DiscardDraftModal from "@/components/listing/DiscardDraftModal";
+import UserListingRowIntel from "@/components/user/UserListingRowIntel";
+import useUserDashboardStore from "@/stores/useUserDashboardStore";
+import { useToast } from "@/components/ui/ToastProvider";
+import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
+import ListingMediaImage from "@/components/listing/ListingMediaImage";
+import { IMAGE_QUALITY_THUMB, IMAGE_SIZES_DASHBOARD_THUMB } from "@/constants/imageQuality";
+import {
+  getArchiveStatus,
+  LISTING_LIFECYCLE,
+  PLATFORM_TIERS,
+  getLifecycleLabel,
+} from "@/constants/operationalModel";
+import { OWNERSHIP_ACTIONS } from "@/constants/ownershipModel";
+import { getRegionLabel, normalizeRegionSlug } from "@/constants/geographyLayer";
+import { applyListingLifecycleAction } from "@/utils/ownershipAttribution";
+import {
+  buildModerationArchivePatch,
+} from "@/lib/listingWriteContract";
+import { getLifecycleStatus } from "@/utils/canonicalListing";
+import {
+  MY_LISTINGS_SORT_KEYS,
+  MY_LISTINGS_STATUS_FILTERS,
+  filterMyListingsPanelRows,
+  filterMyListingsPanelRowsBySearch,
+  filterMyListingsPanelRowsByStatus,
+  sortMyListingsPanelRows,
+} from "@/lib/userDashboardListingTruth";
+import styles from "@/styles/Dashboard.module.css";
+
+function coverUrl(listing) {
+  const imgs = Array.isArray(listing?.listing_images) ? listing.listing_images : [];
+  const sorted = [...imgs].filter(Boolean).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  const first = sorted[0];
+  return first?.image_url || "";
+}
+
+function UserMyListingsPanel({ userId, tier }) {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const [actionId, setActionId] = useState("");
+  const [discardTargetId, setDiscardTargetId] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState(MY_LISTINGS_STATUS_FILTERS.ALL);
+  const [sortKey, setSortKey] = useState(MY_LISTINGS_SORT_KEYS.NEWEST);
+
+  const { listings, loading, invalidate, patchMyListingRow, removeMyListingRow, myListingsInitialFetchDone } =
+    useUserDashboardStore(
+    useShallow((s) => ({
+      listings: s.myListingsRows,
+      loading: s.listingsLoading,
+      invalidate: s.invalidate,
+      patchMyListingRow: s.patchMyListingRow,
+      removeMyListingRow: s.removeMyListingRow,
+      myListingsInitialFetchDone: s.myListingsInitialFetchDone,
+    }))
+  );
+  const listingsErrorMessage = useUserDashboardStore((s) => s.listingsErrorMessage);
+
+  const prevErrRef = useRef(null);
+  useEffect(() => {
+    if (!listingsErrorMessage) {
+      prevErrRef.current = null;
+      return;
+    }
+    if (listingsErrorMessage === prevErrRef.current) return;
+    prevErrRef.current = listingsErrorMessage;
+    showToast({ type: "error", message: listingsErrorMessage });
+  }, [listingsErrorMessage, showToast]);
+
+  const panelListings = useMemo(() => {
+    const base = filterMyListingsPanelRows(listings);
+    const searched = filterMyListingsPanelRowsBySearch(base, searchQuery);
+    const filtered = filterMyListingsPanelRowsByStatus(searched, statusFilter);
+    return sortMyListingsPanelRows(filtered, sortKey);
+  }, [listings, searchQuery, statusFilter, sortKey]);
+
+  const mayShowEmptyListings =
+    myListingsInitialFetchDone && !loading && !listingsErrorMessage && panelListings.length === 0;
+  const mayShowListingsError =
+    myListingsInitialFetchDone && !loading && Boolean(listingsErrorMessage);
+  const showListingsSkeleton =
+    loading || (!myListingsInitialFetchDone && !listingsErrorMessage && listings.length === 0);
+
+  const archiveListing = async (listingId) => {
+    const confirmSeenKey = "user_listing_archive_confirm_seen_v1";
+    if (typeof window !== "undefined" && !window.localStorage.getItem(confirmSeenKey)) {
+      const confirmed = window.confirm("Remove from public? You can re-submit after edits if needed.");
+      if (!confirmed) return;
+      window.localStorage.setItem(confirmSeenKey, "true");
+    }
+
+    setActionId(String(listingId));
+    patchMyListingRow(listingId, buildModerationArchivePatch());
+    const { error } = await applyListingLifecycleAction(supabase, {
+      listingId,
+      action: OWNERSHIP_ACTIONS.ARCHIVE,
+      extraUpdates: {
+        status: getArchiveStatus(),
+      },
+    });
+    if (error) {
+      setActionId("");
+      invalidate();
+      showToast({ type: "error", message: error?.message || "Unable to archive listing" });
+      return;
+    }
+    invalidate();
+    showToast({ type: "info", message: "Listing archived" });
+    setActionId("");
+  };
+
+  const confirmDiscardDraft = async () => {
+    const listingId = discardTargetId;
+    if (!listingId || !userId) return;
+    setActionId(listingId);
+    const { error } = await discardDraftListing(supabase, { listingId, userId });
+    if (error) {
+      setActionId("");
+      showToast({ type: "error", message: error?.message || "Unable to discard draft" });
+      return;
+    }
+    setDiscardTargetId("");
+    removeMyListingRow(listingId);
+    invalidate();
+    showToast({ type: "info", message: "Draft discarded" });
+    setActionId("");
+  };
+
+  const resubmitViaEditor = (listingId) => {
+    router.push(
+      `/dashboard/create?draft=${encodeURIComponent(listingId)}&resubmit=1`
+    );
+  };
+
+  const editListingHref = (listingId) =>
+    `/dashboard/create?draft=${encodeURIComponent(listingId)}`;
+
+  const emptyProps = useMemo(
+    () => ({
+      variant: "listings",
+      primary: { label: "Create listing", href: "/dashboard/create" },
+    }),
+    []
+  );
+
+  return (
+    <section aria-label="My listings">
+      <p className={styles.muted} style={{ marginBottom: 16, maxWidth: "62ch" }}>
+        Published homes and drafts live here. Pending review and archived inventory have their own
+        tabs — use filters below to focus your workspace.
+      </p>
+
+      <div className={styles.userListingToolbar}>
+        <label className={styles.userListingSearchWrap}>
+          <input
+            type="search"
+            className={styles.userListingSearch}
+            placeholder="Search title or district"
+            aria-label="Search listings"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </label>
+        <select
+          className={styles.userListingSelect}
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label="Filter by status"
+        >
+          <option value={MY_LISTINGS_STATUS_FILTERS.ALL}>All statuses</option>
+          <option value={MY_LISTINGS_STATUS_FILTERS.PUBLISHED}>Published</option>
+          <option value={MY_LISTINGS_STATUS_FILTERS.DRAFT}>Draft</option>
+          <option value={MY_LISTINGS_STATUS_FILTERS.REJECTED}>Rejected</option>
+        </select>
+        <select
+          className={styles.userListingSelect}
+          value={sortKey}
+          onChange={(e) => setSortKey(e.target.value)}
+          aria-label="Sort listings"
+        >
+          <option value={MY_LISTINGS_SORT_KEYS.NEWEST}>Newest</option>
+          <option value={MY_LISTINGS_SORT_KEYS.OLDEST}>Oldest</option>
+          <option value={MY_LISTINGS_SORT_KEYS.PRICE_DESC}>Price (high to low)</option>
+          <option value={MY_LISTINGS_SORT_KEYS.PRICE_ASC}>Price (low to high)</option>
+          <option value={MY_LISTINGS_SORT_KEYS.DISTRICT}>District</option>
+        </select>
+      </div>
+
+      {showListingsSkeleton ? (
+        <div className={styles.pendingGrid}>
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className={`${styles.card} skeleton`} style={{ minHeight: 140 }} />
+          ))}
+        </div>
+      ) : null}
+
+      {mayShowEmptyListings ? <PremiumEmptyState compact {...emptyProps} /> : null}
+
+      {mayShowListingsError ? (
+        <PremiumEmptyState
+          compact
+          variant="generic"
+          title="We could not load your listings"
+          description="Check your connection and try again. If this continues, refresh the page or contact support."
+          primary={{
+            label: "Try again",
+            onClick: () => invalidate(),
+          }}
+        />
+      ) : null}
+
+      <div className={styles.pendingGrid}>
+        {!showListingsSkeleton &&
+          !mayShowListingsError &&
+          panelListings.map((l) => {
+            const lc = getLifecycleStatus(l);
+            const isRejected = lc === LISTING_LIFECYCLE.REJECTED;
+            const isDraft = lc === LISTING_LIFECYCLE.DRAFT;
+            const isPublished = lc === LISTING_LIFECYCLE.PUBLISHED;
+            const isLegacyDraft = isDraft && isLegacyGenerationDraft(l);
+            const lcKey = lc || "draft";
+            const badgeClass = isLegacyDraft
+              ? "LegacyDraft"
+              : `${lcKey.charAt(0).toUpperCase()}${lcKey.slice(1)}`;
+            const thumb = coverUrl(l);
+            const districtLabel = getRegionLabel(normalizeRegionSlug(l.district || ""));
+            const created = l.created_at ? new Date(l.created_at).toLocaleDateString() : "—";
+
+            return (
+              <div
+                key={l.id}
+                className={`${styles.card} ${isRejected ? styles.rejectedTone : ""} ${
+                  actionId === String(l.id) ? styles.cardActionBusy : ""
+                }`}
+              >
+                <div className={styles.userListingCardTop}>
+                  <div className={styles.userListingThumb}>
+                    {thumb ? (
+                      <ListingMediaImage
+                        src={thumb}
+                        alt=""
+                        fill
+                        sizes={IMAGE_SIZES_DASHBOARD_THUMB}
+                        quality={IMAGE_QUALITY_THUMB}
+                        hoverZoom={false}
+                      />
+                    ) : (
+                      <span className={styles.userListingThumbPlaceholder}>No photo</span>
+                    )}
+                  </div>
+                  <div className={styles.userListingCardBody}>
+                    <h3 style={{ margin: "0 0 4px" }}>{l.title || "Untitled"}</h3>
+                    <p className={styles.muted} style={{ margin: "0 0 6px" }}>
+                      {districtLabel || "Belize"} · {Number(l.price || 0).toLocaleString()} BZD
+                    </p>
+                    <p className={styles.muted} style={{ margin: "0 0 8px", fontSize: "0.85rem" }}>
+                      Created {created}
+                    </p>
+                    <div>
+                      <span className={`${styles.statusBadge} ${styles[`status${badgeClass}`]}`}>
+                        {isLegacyDraft ? "Legacy Draft" : getLifecycleLabel(lc)}
+                      </span>
+                    </div>
+                    {!isDraft ? (
+                      <div style={{ marginTop: 10 }}>
+                        {isRejected ? (
+                          <p className={styles.pendingSubtle}>Edit if needed, then resubmit for review.</p>
+                        ) : null}
+                        <UserListingRowIntel listing={l} />
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className={styles.userListingActions}>
+                    {!isDraft ? (
+                      <Link className={styles.approveButton} href={`/listing/${l.id}`}>
+                        View
+                      </Link>
+                    ) : null}
+                    {isDraft ? (
+                      <>
+                        <button
+                          type="button"
+                          className={styles.approveButton}
+                          onClick={() =>
+                            router.push(`/dashboard/create?draft=${encodeURIComponent(l.id)}`)
+                          }
+                        >
+                          Continue editing
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.deleteListingButton}
+                          onClick={() => setDiscardTargetId(String(l.id))}
+                          disabled={actionId === String(l.id)}
+                        >
+                          Discard draft
+                        </button>
+                      </>
+                    ) : null}
+                    {!isDraft && isPublished ? (
+                      <button
+                        type="button"
+                        className={styles.deleteListingButton}
+                        onClick={() => archiveListing(l.id)}
+                        disabled={actionId === String(l.id)}
+                      >
+                        {actionId === String(l.id) ? "Archiving…" : "Archive"}
+                      </button>
+                    ) : null}
+                    {isRejected ? (
+                      <>
+                        <Link className={styles.approveButton} href={editListingHref(l.id)}>
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          className={styles.approveButton}
+                          onClick={() => resubmitViaEditor(l.id)}
+                        >
+                          Resubmit
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.deleteListingButton}
+                          onClick={() => archiveListing(l.id)}
+                          disabled={actionId === String(l.id)}
+                        >
+                          {actionId === String(l.id) ? "Archiving…" : "Archive"}
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+      </div>
+      <DiscardDraftModal
+        open={Boolean(discardTargetId)}
+        discarding={Boolean(discardTargetId && actionId === discardTargetId)}
+        onClose={() => {
+          if (actionId === discardTargetId) return;
+          setDiscardTargetId("");
+        }}
+        onDiscard={confirmDiscardDraft}
+      />
+    </section>
+  );
+}
+
+export default memo(UserMyListingsPanel);

@@ -7,9 +7,12 @@ import {
 } from "../utils/seaFlowMode";
 
 export default function useSeaFlowMode() {
-  const [enabled, setEnabled] = useState(() => readSeaFlowMode());
+  /** false on SSR and first client paint — sync from storage after mount (hydration-safe). */
+  const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
+    setEnabled(readSeaFlowMode());
+
     const onStorage = (event) => {
       if (event.key && event.key !== SEA_FLOW_MODE_KEY) return;
       setEnabled(readSeaFlowMode());

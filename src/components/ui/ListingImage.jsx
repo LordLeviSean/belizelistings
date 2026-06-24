@@ -1,4 +1,5 @@
 import ListingMediaImage from "@/components/listing/ListingMediaImage";
+import { IMAGE_QUALITY_EDITORIAL } from "@/constants/imageQuality";
 
 /**
  * Bounded flex/gallery image — delegates to canonical {@link ListingMediaImage} (`fill`).
@@ -23,7 +24,7 @@ export default function ListingImage({ src, alt = "", mode = "cover", className 
         fill
         mode={mode}
         sizes="(max-width: 1100px) 92vw, min(720px, 55vw)"
-        quality={84}
+        quality={IMAGE_QUALITY_EDITORIAL}
         hoverZoom={false}
       />
     </div>

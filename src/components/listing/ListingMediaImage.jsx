@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { IMAGE_QUALITY_CARD } from "@/constants/imageQuality";
 import { resolveListingImageUrl } from "@/utils/listingImage";
 import { LISTING_MEDIA_BLUR_DATA_URL } from "@/utils/listingMediaBlur";
 import styles from "./ListingMediaImage.module.css";
@@ -16,8 +17,8 @@ export default function ListingMediaImage({
   height,
   sizes,
   priority = false,
-  /** Next/Image 1–100; higher = sharper (larger transfer). Default tuned for listing surfaces. */
-  quality = 80,
+  /** Next/Image 1–100; must be in `next.config.js` `images.qualities`. Default: browse/card tier. */
+  quality = IMAGE_QUALITY_CARD,
   mode = "cover",
   className = "",
   imageClassName = "",
@@ -26,7 +27,15 @@ export default function ListingMediaImage({
   onLoad: onLoadProp,
 }) {
   const resolved = resolveListingImageUrl(src || "") || "/placeholder.jpg";
+  const isLocalPreview = /^blob:/i.test(resolved) || /^data:/i.test(resolved);
   const [loaded, setLoaded] = useState(false);
+  const [optimizerFallback, setOptimizerFallback] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+    setOptimizerFallback(false);
+  }, [resolved]);
+
   const handleLoad = useCallback(
     (event) => {
       setLoaded(true);
@@ -58,23 +67,35 @@ export default function ListingMediaImage({
     <span className={styles.shimmer} aria-hidden />
   );
 
+  const handleError = useCallback(() => {
+    if (!isLocalPreview && !optimizerFallback) {
+      setOptimizerFallback(true);
+    }
+  }, [isLocalPreview, optimizerFallback]);
+
+  const imageCommonProps = {
+    src: resolved,
+    alt,
+    sizes,
+    quality,
+    priority,
+    loading: priority ? "eager" : "lazy",
+    unoptimized: isLocalPreview || optimizerFallback,
+    placeholder: isLocalPreview || optimizerFallback ? undefined : "blur",
+    blurDataURL: isLocalPreview || optimizerFallback ? undefined : LISTING_MEDIA_BLUR_DATA_URL,
+    onLoad: handleLoad,
+    onError: handleError,
+  };
+
   if (fill) {
     return (
       <span className={wrapClass}>
         {shimmer}
         <Image
-          src={resolved}
-          alt={alt}
+          {...imageCommonProps}
           fill
-          sizes={sizes}
-          quality={quality}
-          priority={priority}
-          loading={priority ? "eager" : "lazy"}
-          placeholder="blur"
-          blurDataURL={LISTING_MEDIA_BLUR_DATA_URL}
           className={`${styles.image} ${styles.imageFill} ${imageClassName}`}
           style={inlineImgStyle}
-          onLoad={handleLoad}
         />
       </span>
     );
@@ -91,19 +112,11 @@ export default function ListingMediaImage({
     >
       {shimmer}
       <Image
-        src={resolved}
-        alt={alt}
+        {...imageCommonProps}
         width={width ?? 1}
         height={height ?? 1}
-        sizes={sizes}
-        quality={quality}
-        priority={priority}
-        loading={priority ? "eager" : "lazy"}
-        placeholder="blur"
-        blurDataURL={LISTING_MEDIA_BLUR_DATA_URL}
         className={`${styles.image} ${imageClassName}`}
         style={{ ...inlineImgStyle, width: "100%", height: "100%" }}
-        onLoad={handleLoad}
       />
     </span>
   );

@@ -1,3 +1,10 @@
+import {
+  AGENT_ACTIVE_LISTING_CAP,
+  PUBLIC_USER_ACTIVE_LISTING_CAP,
+  BROKERAGE_ACTIVE_LISTING_CAP,
+  resolveTierActiveListingCap,
+} from "./listingTierCaps";
+
 export const LISTING_LIFECYCLE = Object.freeze({
   DRAFT: "draft",
   PENDING_REVIEW: "pending",
@@ -28,6 +35,7 @@ const LIFECYCLE_ALIASES = new Map([
   ["pending-review", LISTING_LIFECYCLE.PENDING_REVIEW],
   ["pending_review", LISTING_LIFECYCLE.PENDING_REVIEW],
   ["pending", LISTING_LIFECYCLE.PENDING_REVIEW],
+  ["submitted", LISTING_LIFECYCLE.PENDING_REVIEW],
   ["verify", LISTING_LIFECYCLE.VERIFIED],
   ["verified", LISTING_LIFECYCLE.VERIFIED],
   ["rent", LISTING_LIFECYCLE.RENTED],
@@ -83,8 +91,20 @@ export const PLATFORM_TIERS = Object.freeze({
   ADMIN: "admin",
 });
 
-/** Non-archived listings allowed simultaneously for AGENT_FREE tier. */
-export const AGENT_FREE_ACTIVE_LISTING_CAP = 5;
+/** @deprecated use `PUBLIC_USER_ACTIVE_LISTING_CAP` — re-export for existing imports */
+export const PUBLIC_ACTIVE_LISTING_CAP = PUBLIC_USER_ACTIVE_LISTING_CAP;
+
+/** @deprecated use `AGENT_ACTIVE_LISTING_CAP` — re-export for existing imports */
+export const AGENT_FREE_ACTIVE_LISTING_CAP = AGENT_ACTIVE_LISTING_CAP;
+
+/**
+ * Simultaneous active listing cap for quota-capped tiers.
+ * @param {string} tier from `resolveTierFromProfile`
+ * @returns {number|null} cap when tier is quota-capped; null when unlimited (admin)
+ */
+export function resolveActiveListingCapForTier(tier) {
+  return resolveTierActiveListingCap(tier);
+}
 
 export function resolveTierFromProfile(profile) {
   const role = String(profile?.role || "").toLowerCase();

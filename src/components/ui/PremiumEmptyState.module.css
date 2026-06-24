@@ -40,7 +40,7 @@
     radial-gradient(ellipse 36% 34% at 82% 18%, rgba(170, 190, 232, 0.12), transparent 58%),
     radial-gradient(ellipse 48% 42% at 48% 88%, rgba(232, 204, 156, 0.07), transparent 64%);
   opacity: 0.55;
-  animation: emptyGlowSoft 18s ease-in-out infinite alternate;
+  animation: emptyGlowSoft 22s var(--ease-in-out) infinite alternate;
 }
 
 @keyframes emptyGlowSoft {
@@ -61,20 +61,20 @@
 }
 
 .title {
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   font-family: "DM Serif Display", "Georgia", serif;
   font-size: clamp(1.18rem, 2.4vw, 1.48rem);
   font-weight: 500;
   letter-spacing: -0.018em;
-  line-height: 1.2;
-  color: rgba(24, 52, 58, 0.96);
+  line-height: 1.22;
+  color: rgba(24, 52, 58, 0.9);
 }
 
 .desc {
-  margin: 0 0 24px;
+  margin: 0 0 22px;
   font-size: 0.95rem;
-  line-height: 1.68;
-  color: rgba(48, 78, 74, 0.78);
+  line-height: 1.72;
+  color: rgba(48, 78, 74, 0.72);
 }
 
 .actions {
@@ -108,9 +108,9 @@
     inset 0 -6px 14px rgba(255, 255, 255, 0.25);
   text-decoration: none;
   transition:
-    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.22s ease,
-    background 0.22s ease;
+    transform var(--dur-2) var(--ease-out-soft),
+    box-shadow var(--dur-2) var(--ease-default),
+    background var(--dur-2) var(--ease-out-soft);
 }
 
 .primary:hover {
@@ -141,9 +141,9 @@
   border: 1px solid rgba(154, 198, 190, 0.24);
   text-decoration: none;
   transition:
-    border-color 0.22s ease,
-    background 0.22s ease,
-    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+    border-color var(--dur-2) var(--ease-out-soft),
+    background var(--dur-2) var(--ease-out-soft),
+    transform var(--dur-2) var(--ease-out-soft);
 }
 
 .secondary:hover {

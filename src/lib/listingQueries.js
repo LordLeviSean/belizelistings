@@ -1,7 +1,200 @@
 import { supabase } from "./supabaseClient";
 import { getModerationStatus } from "../constants/operationalModel";
-import { isMissingColumnError, isMissingRelationshipError } from "./supabaseCompat";
+import {
+  isMissingColumnError,
+  isMissingRelationshipError,
+} from "./supabaseCompat";
 import { filterPublicInventory, isPubliclyVisibleListing } from "../utils/canonicalListing";
+import { mapListingWithImages } from "../utils/listingImage";
+import { normalizeUserDashboardListingRows } from "./userDashboardListingTruth";
+import {
+  LISTING_CREATE_WORKSPACE_SELECT_TIERS,
+  LISTING_CREATE_WORKSPACE_TIER_CACHE_KEY,
+  LISTING_OWNER_DASHBOARD_COLUMNS,
+  LISTING_OWNER_DASHBOARD_COLUMNS_WITH_INTEL,
+  LISTING_OWNER_DASHBOARD_IMAGES_EMBED,
+  buildOwnerDashboardListingsSelect,
+  executeListingDashboardSelectQuery,
+} from "./listingDashboardSelectContract";
+
+export {
+  LISTING_OWNER_DASHBOARD_COLUMNS,
+  LISTING_OWNER_DASHBOARD_COLUMNS_WITH_INTEL,
+  LISTING_OWNER_DASHBOARD_IMAGES_EMBED,
+  buildOwnerDashboardListingsSelect,
+} from "./listingDashboardSelectContract";
+
+/**
+ * Per-owner listings for user dashboards (My Listings). Tiered contract fallbacks;
+ * embed failures degrade to empty `listing_images` — never hard-fail the dashboard.
+ */
+export async function fetchUserOwnedListingsForDashboard(supabaseClient, userId) {
+  if (!supabaseClient || !userId) {
+    return { data: [], error: null, terminal: false };
+  }
+
+  const { data, error, terminal } = await executeListingDashboardSelectQuery(
+    supabaseClient,
+    (select) =>
+      supabaseClient
+        .from("listings")
+        .select(select)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+  );
+
+  if (error) {
+    if (terminal) {
+      console.error("[user-my-listings] terminal query failure", error);
+    } else {
+      console.error("[user-my-listings] load", error);
+    }
+    return { data: [], error, terminal };
+  }
+
+  let normalized = normalizeUserDashboardListingRows(data);
+  const missingImageIds = normalized
+    .filter((row) => !(row?.listing_images || []).length)
+    .map((row) => row.id)
+    .filter(Boolean);
+  if (missingImageIds.length > 0) {
+    const { data: imageRows, error: imageError } = await supabaseClient
+      .from("listing_images")
+      .select("id,image_url,position,listing_id")
+      .in("listing_id", missingImageIds)
+      .order("position", { ascending: true });
+    if (!imageError && (imageRows || []).length > 0) {
+      const byListingId = {};
+      for (const img of imageRows) {
+        const lid = String(img.listing_id);
+        if (!byListingId[lid]) byListingId[lid] = [];
+        byListingId[lid].push(img);
+      }
+      normalized = normalized.map((row) => {
+        const extra = byListingId[String(row.id)];
+        return extra?.length ? { ...row, listing_images: extra } : row;
+      });
+    }
+  }
+
+  return { data: normalized, error: null, terminal: false };
+}
+
+/**
+ * Team-scope listings for broker dashboards (same contract as user owner fetch).
+ * @param {import("@supabase/supabase-js").SupabaseClient} supabaseClient
+ * @param {string[]} userIds
+ */
+export async function fetchListingsForDashboardByUserIds(supabaseClient, userIds) {
+  const scopeIds = [...new Set((userIds || []).map(String).filter(Boolean))];
+  if (!supabaseClient || scopeIds.length === 0) {
+    return { data: [], error: null, terminal: false };
+  }
+
+  const { data, error, terminal } = await executeListingDashboardSelectQuery(
+    supabaseClient,
+    (select) =>
+      supabaseClient
+        .from("listings")
+        .select(select)
+        .in("user_id", scopeIds)
+        .order("updated_at", { ascending: false })
+        .limit(400)
+  );
+
+  if (error) {
+    return { data: [], error, terminal };
+  }
+  return { data: normalizeUserDashboardListingRows(data), error: null, terminal: false };
+}
+
+/**
+ * Single listing row for post-create staging (same shape as {@link fetchUserOwnedListingsForDashboard}).
+ */
+export async function fetchListingRowForUserDashboard(supabaseClient, listingId) {
+  if (!supabaseClient || !listingId) return { data: null, error: null, terminal: false };
+
+  const { data, error, terminal } = await executeListingDashboardSelectQuery(
+    supabaseClient,
+    (select) =>
+      supabaseClient.from("listings").select(select).eq("id", listingId).maybeSingle()
+  );
+
+  if (error) {
+    return { data: null, error, terminal };
+  }
+  let row = data[0] ?? null;
+  if (row) {
+    const embedded = Array.isArray(row.listing_images) ? row.listing_images.filter(Boolean) : [];
+    if (embedded.length === 0) {
+      const { data: imageRows, error: imageError } = await fetchListingImageRowsForListing(
+        supabaseClient,
+        listingId
+      );
+      if (!imageError && imageRows.length > 0) {
+        row = { ...row, listing_images: imageRows };
+      }
+    }
+  }
+  return {
+    data: row ? normalizeUserDashboardListingRows([row])[0] : null,
+    error: null,
+    terminal: false,
+  };
+}
+
+/**
+ * Direct listing_images fetch when embed tier degraded or cache omitted rows.
+ */
+export async function fetchListingImageRowsForListing(supabaseClient, listingId) {
+  if (!supabaseClient || !listingId) return { data: [], error: null };
+  const { data, error } = await supabaseClient
+    .from("listing_images")
+    .select("id,image_url,position")
+    .eq("listing_id", listingId)
+    .order("position", { ascending: true });
+  if (error) return { data: [], error };
+  return { data: (data || []).filter(Boolean), error: null };
+}
+
+/**
+ * Draft row hydrate for create workspace (explicit columns + image embed fallbacks).
+ */
+export async function fetchListingDraftForCreateWorkspace(supabaseClient, listingId) {
+  if (!supabaseClient || !listingId) return { data: null, error: null, terminal: false };
+
+  const { data, error, terminal } = await executeListingDashboardSelectQuery(
+    supabaseClient,
+    (select) =>
+      supabaseClient.from("listings").select(select).eq("id", listingId).maybeSingle(),
+    { tiers: LISTING_CREATE_WORKSPACE_SELECT_TIERS, tierCacheKey: LISTING_CREATE_WORKSPACE_TIER_CACHE_KEY }
+  );
+
+  if (error) {
+    return { data: null, error, terminal };
+  }
+  let row = data[0] ?? null;
+  if (!row) {
+    return { data: null, error: null, terminal: false };
+  }
+
+  const embedded = Array.isArray(row.listing_images) ? row.listing_images.filter(Boolean) : [];
+  if (embedded.length === 0) {
+    const { data: imageRows, error: imageError } = await fetchListingImageRowsForListing(
+      supabaseClient,
+      listingId
+    );
+    if (!imageError && imageRows.length > 0) {
+      row = { ...row, listing_images: imageRows };
+    }
+  }
+
+  return {
+    data: normalizeUserDashboardListingRows([row])[0],
+    error: null,
+    terminal: false,
+  };
+}
 
 /**
  * Listing fetch patterns (RLS also applies):
@@ -61,12 +254,7 @@ export async function fetchApprovedListingsWithImages() {
   }
 
   const normalized = filterPublicInventory(
-    (data || []).map((listing) => ({
-      ...listing,
-      images: (listing.listing_images || [])
-        .filter((img) => img?.image_url)
-        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
-    }))
+    (data || []).map((listing) => mapListingWithImages(listing))
   );
   const imageRowCount = normalized.reduce((sum, listing) => sum + (listing.images?.length || 0), 0);
   devWarnEmptyImages(normalized.length, imageRowCount);
@@ -74,17 +262,18 @@ export async function fetchApprovedListingsWithImages() {
   return { data: normalized, error: null };
 }
 
-export async function fetchListingByIdWithImages(id, isAdmin = false) {
-  let query = supabase
-    .from("listings")
-    .select(`
+export async function fetchListingByIdWithImages(id, isAdmin = false, options = {}) {
+  const ownerUserId = options?.ownerUserId ? String(options.ownerUserId) : "";
+  const listingSelect = `
       *,
       listing_images (
+        id,
         image_url,
         position
       )
-    `)
-    .eq("id", id);
+    `;
+
+  let query = supabase.from("listings").select(listingSelect).eq("id", id);
 
   if (!isAdmin) {
     query = query.or(`status.eq.${getModerationStatus("approved")},moderation_status.eq.approved`);
@@ -94,13 +283,7 @@ export async function fetchListingByIdWithImages(id, isAdmin = false) {
   if (error && !isAdmin && isMissingColumnError(error)) {
     const fallbackQuery = supabase
       .from("listings")
-      .select(`
-        *,
-        listing_images (
-          image_url,
-          position
-        )
-      `)
+      .select(listingSelect)
       .eq("id", id)
       .eq("status", getModerationStatus("approved"));
     ({ data: listing, error } = await fallbackQuery.maybeSingle());
@@ -122,6 +305,25 @@ export async function fetchListingByIdWithImages(id, isAdmin = false) {
     ({ data: listing, error } = await fallbackQuery.maybeSingle());
   }
 
+  if (!listing && ownerUserId) {
+    const ownerQuery = supabase
+      .from("listings")
+      .select(listingSelect)
+      .eq("id", id)
+      .eq("user_id", ownerUserId);
+    let ownerResult = await ownerQuery.maybeSingle();
+    if (ownerResult.error && isMissingRelationshipError(ownerResult.error)) {
+      ownerResult = await supabase
+        .from("listings")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", ownerUserId)
+        .maybeSingle();
+    }
+    listing = ownerResult.data ?? null;
+    error = ownerResult.error ?? null;
+  }
+
   if (error) {
     console.error("[BelizeListings] listing fetch:", error.message, error);
     return { data: null, error };
@@ -132,13 +334,25 @@ export async function fetchListingByIdWithImages(id, isAdmin = false) {
   }
 
   if (!isAdmin && !isPubliclyVisibleListing(listing)) {
-    return { data: null, error: null };
+    const isOwner =
+      ownerUserId && String(listing.user_id || "") === ownerUserId;
+    if (!isOwner) {
+      return { data: null, error: null };
+    }
   }
 
-  listing.images = (listing.listing_images || [])
-    .filter((img) => img?.image_url)
-    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-  if (typeof window !== "undefined" && process.env.NODE_ENV === "development" && (listing.listing_images || []).length === 0) {
+  let imageRows = Array.isArray(listing.listing_images) ? listing.listing_images : [];
+  if (imageRows.length === 0) {
+    const { data: fetchedImages } = await fetchListingImageRowsForListing(supabase, id);
+    if (fetchedImages.length > 0) {
+      imageRows = fetchedImages;
+      listing = { ...listing, listing_images: fetchedImages };
+    }
+  }
+
+  listing = mapListingWithImages({ ...listing, listing_images: imageRows });
+
+  if (typeof window !== "undefined" && process.env.NODE_ENV === "development" && imageRows.length === 0) {
     console.warn(
       `[BelizeListings] No listing_images rows for listing id=${listing.id}. Add rows in Supabase or check RLS.`
     );
@@ -147,5 +361,9 @@ export async function fetchListingByIdWithImages(id, isAdmin = false) {
   return {
     data: listing,
     error: null,
+    ownerPreview:
+      Boolean(ownerUserId) &&
+      String(listing.user_id || "") === ownerUserId &&
+      !isPubliclyVisibleListing(listing),
   };
 }

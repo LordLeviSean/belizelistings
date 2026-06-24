@@ -1,13 +1,12 @@
-export function safeFileSlug(name = "") {
-  return String(name || "image")
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+import {
+  buildListingUploadStoragePath,
+  optimizeListingUploadFile,
+} from "./optimizeListingUploadFile";
+export { safeFileSlug } from "./listingUploadSlug";
 
 /**
  * Upload local files to listing-images bucket and insert listing_images rows.
+ * Images are resized (max 1920px longest side) and encoded as WebP before upload.
  * @param {{ onProgress?: (done: number, total: number) => void }} [opts]
  * @returns {{ failures: string[], insertedRows: Array<Record<string, unknown>> }}
  */
@@ -25,11 +24,11 @@ export async function uploadListingImageFiles(
   for (let i = 0; i < list.length; i++) {
     const file = list[i];
     try {
-      const fileName = safeFileSlug(file.name);
-      const filePath = `${userId}/${Date.now()}-${startPosition + i}-${fileName}`;
-      const { error: uploadError } = await supabase.storage.from("listing-images").upload(filePath, file, {
+      const { file: optimized } = await optimizeListingUploadFile(file);
+      const filePath = buildListingUploadStoragePath(userId, startPosition + i, file.name);
+      const { error: uploadError } = await supabase.storage.from("listing-images").upload(filePath, optimized, {
         upsert: false,
-        contentType: file.type || undefined,
+        contentType: "image/webp",
       });
       if (uploadError) throw uploadError;
 
@@ -73,4 +72,29 @@ export async function persistListingImageOrder(supabase, orderedRows) {
 
 export async function deleteListingImageRow(supabase, imageRowId) {
   return supabase.from("listing_images").delete().eq("id", imageRowId);
+}
+
+/**
+ * Optimize and upload a single listing image during submit flows (with progress hooks).
+ */
+export async function uploadOptimizedListingImage(supabase, { userId, listingId, file, position }) {
+  const { file: optimized } = await optimizeListingUploadFile(file);
+  const filePath = buildListingUploadStoragePath(userId, position, file.name);
+  const { error: uploadError } = await supabase.storage.from("listing-images").upload(filePath, optimized, {
+    upsert: false,
+    contentType: "image/webp",
+  });
+  if (uploadError) throw uploadError;
+
+  const { data: publicUrlData } = supabase.storage.from("listing-images").getPublicUrl(filePath);
+  const publicUrl = publicUrlData?.publicUrl || null;
+  if (publicUrl) {
+    const { error: imageError } = await supabase.from("listing_images").insert({
+      listing_id: listingId,
+      image_url: publicUrl,
+      position,
+    });
+    if (imageError) throw imageError;
+  }
+  return { publicUrl };
 }

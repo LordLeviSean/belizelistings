@@ -13,10 +13,18 @@ import useSeaFlowMode from "../../hooks/useSeaFlowMode";
 import { ACTIVITY_SIGNAL_TYPES } from "../../constants/trustModel";
 import { clearAllFavoritesForListings } from "../../lib/favorites";
 import { isMissingColumnError } from "../../lib/supabaseCompat";
+import { fetchProfileCount } from "../../lib/profileSelectContract";
 import { sanitizeListingMutationPayload } from "../../lib/listingPayloadSanitize";
 import { LISTING_MUTATION_FLOW } from "../../lib/listingMutationDiagnostics";
+import {
+  buildModerationApprovePatch,
+  buildModerationRejectPatch,
+  MODERATION_APPROVE_STATUS_TIERS,
+  MODERATION_REJECT_STATUS_TIERS,
+} from "../../lib/listingWriteContract";
 import { getOperationalLifecycleCountsFromDb } from "../../lib/listingOperationalStats";
 import AdminOperationalStats from "../../components/AdminOperationalStats";
+import AgentUpgradeRequestsPanel from "../../components/admin/AgentUpgradeRequestsPanel";
 import { DashboardShell } from "../../components/dashboard";
 import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "../../constants/dashboardRoles";
 import styles from "../../styles/Dashboard.module.css";
@@ -40,6 +48,10 @@ export default function AdminPage() {
   const [bulkLoading, setBulkLoading] = useState("");
   const [activity, setActivity] = useState([]);
   const [updatedAtLabel, setUpdatedAtLabel] = useState("moments ago");
+  /** Bumped on profiles realtime (and shared with panels for owner/user lists). */
+  const [profilesRevision, setProfilesRevision] = useState(0);
+  const [upgradeRequestsRevision, setUpgradeRequestsRevision] = useState(0);
+  const [listingsRevision, setListingsRevision] = useState(0);
   const { enabled: livePaletteModeEnabled, setMode: setLivePaletteMode } = useLivePaletteMode();
   const { enabled: pulseModeEnabled, setMode: setPulseMode } = usePulseMode();
   const { enabled: seaFlowModeEnabled, setMode: setSeaFlowMode } = useSeaFlowMode();
@@ -47,7 +59,7 @@ export default function AdminPage() {
   const refreshStats = useCallback(async () => {
     const [operational, { count: usersCount, error: usersError }] = await Promise.all([
       getOperationalLifecycleCountsFromDb(supabase),
-      supabase.from("profiles").select("id", { count: "exact", head: true }),
+      fetchProfileCount(supabase),
     ]);
 
     if (operational.error) {
@@ -55,6 +67,15 @@ export default function AdminPage() {
     }
     if (usersError) {
       console.warn("[admin] users count query failed", usersError);
+    }
+    if (
+      process.env.NODE_ENV === "development" &&
+      !usersError &&
+      usersCount === 1
+    ) {
+      console.info(
+        "[admin] Profiles count is 1 via client; if the DB has more users, apply supabase/migrations/20260512190000_profiles_admin_rls_fix.sql (or 20260512180000_profiles_admin_rls.sql) via supabase db push or SQL editor."
+      );
     }
 
     setTotals({
@@ -95,7 +116,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const tab = typeof router.query.tab === "string" ? router.query.tab : "";
-    if (tab === "pending" || tab === "listings" || tab === "users" || tab === "operator") {
+    if (tab === "pending" || tab === "listings" || tab === "users" || tab === "operator" || tab === "upgrades") {
       setActiveTab(tab);
     }
   }, [router.query.tab]);
@@ -103,16 +124,37 @@ export default function AdminPage() {
   useEffect(() => {
     if (!isAdmin) return;
     let debounce;
+    const schedule = (fromProfiles) => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        void refreshStats();
+        if (fromProfiles) {
+          setProfilesRevision((r) => r + 1);
+        }
+      }, 320);
+    };
     const channel = supabase
-      .channel("admin-dashboard-listing-stats")
+      .channel("admin-dashboard-operational")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "listings" },
         () => {
-          clearTimeout(debounce);
-          debounce = setTimeout(() => {
-            void refreshStats();
-          }, 320);
+          schedule(false);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles" },
+        () => {
+          schedule(true);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "agent_upgrade_requests" },
+        () => {
+          schedule(true);
+          setUpgradeRequestsRevision((r) => r + 1);
         }
       )
       .subscribe();
@@ -143,13 +185,10 @@ export default function AdminPage() {
   const handleBulkAction = async (nextStatus) => {
     if (bulkLoading) return;
     setBulkLoading(nextStatus);
-    const pendingOr = "status.eq.pending,moderation_status.eq.pending_review,lifecycle_status.eq.pending";
+    const pendingOr =
+      "status.eq.pending,moderation_status.eq.pending_review,lifecycle_status.eq.pending,lifecycle_status.eq.submitted";
     const bulkPayload = sanitizeListingMutationPayload(
-      {
-        status: nextStatus,
-        lifecycle_status: nextStatus,
-        moderation_status: nextStatus === "approved" ? "approved" : nextStatus,
-      },
+      nextStatus === "approved" ? buildModerationApprovePatch() : buildModerationRejectPatch(),
       { mutationFlow: LISTING_MUTATION_FLOW.UNSPECIFIED, operation: "PATCH" }
     );
     let { data: updatedRows, error } = await supabase
@@ -159,7 +198,9 @@ export default function AdminPage() {
       .select("id");
     if (error && isMissingColumnError(error)) {
       const minimalBulk = sanitizeListingMutationPayload(
-        { status: nextStatus },
+        nextStatus === "approved"
+          ? { ...MODERATION_APPROVE_STATUS_TIERS[1] }
+          : { ...MODERATION_REJECT_STATUS_TIERS[1] },
         { mutationFlow: LISTING_MUTATION_FLOW.UNSPECIFIED, operation: "PATCH" }
       );
       ({ data: updatedRows, error } = await supabase
@@ -173,6 +214,7 @@ export default function AdminPage() {
       await clearAllFavoritesForListings(ids);
     }
     if (!error) {
+      setListingsRevision((r) => r + 1);
       await refreshStats();
       pushActivity(
         `Bulk ${nextStatus} applied`,
@@ -244,25 +286,38 @@ export default function AdminPage() {
                 >
                   Operator
                 </button>
+                <button
+                  type="button"
+                  className={`${styles.dashboardLink} ${activeTab === "upgrades" ? styles.dashboardLinkActive : ""}`}
+                  onClick={() => setActiveTab("upgrades")}
+                >
+                  Upgrades
+                </button>
               </div>
               {activeTab === "pending" && (
                 <PendingListingsPanel
+                  profilesRevision={profilesRevision}
                   onAction={async (message) => {
                     pushActivity(message);
+                    setListingsRevision((r) => r + 1);
                     await refreshStats();
                   }}
                 />
               )}
               {activeTab === "listings" && (
                 <AllListingsPanel
+                  profilesRevision={profilesRevision}
+                  listingsRevision={listingsRevision}
                   onAction={async (message) => {
                     pushActivity(message);
+                    setListingsRevision((r) => r + 1);
                     await refreshStats();
                   }}
                 />
               )}
               {activeTab === "users" && (
                 <ManageUsersPanel
+                  profilesRevision={profilesRevision}
                   onAction={async (message) => {
                     pushActivity(message);
                     await refreshStats();
@@ -271,8 +326,21 @@ export default function AdminPage() {
               )}
               {activeTab === "operator" && (
                 <OperatorListingsPanel
+                  profilesRevision={profilesRevision}
                   onAction={async (message) => {
                     pushActivity(message);
+                    setListingsRevision((r) => r + 1);
+                    await refreshStats();
+                  }}
+                />
+              )}
+              {activeTab === "upgrades" && (
+                <AgentUpgradeRequestsPanel
+                  requestsRevision={upgradeRequestsRevision}
+                  onAction={async (message) => {
+                    pushActivity(message);
+                    setProfilesRevision((r) => r + 1);
+                    setUpgradeRequestsRevision((r) => r + 1);
                     await refreshStats();
                   }}
                 />

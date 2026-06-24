@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { PULSE_MODE_EVENT, PULSE_MODE_KEY, readPulseMode, writePulseMode } from "../utils/pulseMode";
 
 export default function usePulseMode() {
-  const [enabled, setEnabled] = useState(() => readPulseMode());
+  /** false on SSR and first client paint — sync from storage after mount (hydration-safe). */
+  const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
+    setEnabled(readPulseMode());
+
     const onStorage = (event) => {
       if (event.key && event.key !== PULSE_MODE_KEY) return;
       setEnabled(readPulseMode());

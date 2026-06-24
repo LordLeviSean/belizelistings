@@ -1,6 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import { validateUsernameCandidate } from "../../../lib/usernameRules";
 import { isMissingColumnError } from "../../../lib/supabaseCompat";
+import {
+  fetchProfileRowWithTiers,
+  PROFILE_ID_ONLY_SELECT,
+  PROFILE_ID_USERNAME_PROBE_SELECT,
+  PROFILE_ROLE_ONLY_SELECT,
+} from "../../../lib/profileSelectContract";
+import { logSupabaseMutationResult } from "../../../lib/supabaseRawError";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -29,17 +36,18 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { data: profile } = await adminClient
-    .from("profiles")
-    .select("role")
-    .eq("id", currentUser.id)
-    .maybeSingle();
+  const { data: profile } = await fetchProfileRowWithTiers(adminClient, currentUser.id, [
+    PROFILE_ROLE_ONLY_SELECT,
+  ]);
 
   if (profile?.role !== "admin") {
     return res.status(403).json({ error: "Admin access required" });
   }
 
-  const { error: usernameColumnProbe } = await adminClient.from("profiles").select("id, username").limit(1);
+  const { error: usernameColumnProbe } = await adminClient
+    .from("profiles")
+    .select(PROFILE_ID_USERNAME_PROBE_SELECT)
+    .limit(1);
   if (usernameColumnProbe && isMissingColumnError(usernameColumnProbe)) {
     return res.status(503).json({
       error:
@@ -60,7 +68,7 @@ export default async function handler(req, res) {
 
   const { data: taken } = await adminClient
     .from("profiles")
-    .select("id")
+    .select(PROFILE_ID_ONLY_SELECT)
     .eq("username", username)
     .maybeSingle();
 
@@ -87,8 +95,12 @@ export default async function handler(req, res) {
       role: role || "user",
       username,
     };
-    const { error: profileUpsertError } = await adminClient.from("profiles").upsert(upsertPayload);
+    const profileUpsertResult = await adminClient.from("profiles").upsert(upsertPayload);
+    const { error: profileUpsertError } = profileUpsertResult;
     if (profileUpsertError) {
+      logSupabaseMutationResult("admin-create-user:profiles-upsert", profileUpsertResult, {
+        payloadKeys: Object.keys(upsertPayload),
+      });
       if (isMissingColumnError(profileUpsertError)) {
         return res.status(503).json({
           error:

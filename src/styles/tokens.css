@@ -119,6 +119,18 @@
   --ambient-cycle-d: 92s;
   --ambient-cycle-e: 118s;
   --ambient-ease-drift: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* Sticky site nav — heights match SiteNavUnified; use for layout offsets (listing shell, filter bar, auth) */
+  --site-nav-height: 58px;
+  --site-nav-inline-pad: 12px;
+  --site-nav-chrome-gap: 8px;
+  --site-nav-offset: calc(var(--site-nav-height) + var(--site-nav-chrome-gap));
+}
+
+@media (min-width: 801px) {
+  :root {
+    --site-nav-height: 56px;
+  }
 }
 
 @media (prefers-color-scheme: dark) {

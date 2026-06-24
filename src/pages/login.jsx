@@ -1,10 +1,13 @@
 import { useState, useLayoutEffect, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import { Loader2 } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 import { ensureProfile } from "../lib/ensureProfile";
 import { lookupUsernameAvailability } from "../lib/usernameAvailability";
 import SiteNav from "../components/SiteNav";
+import useUserRole from "../hooks/useUserRole";
+import { useAuthGate } from "../components/auth/AuthGateProvider";
 import { validateSignupUsername } from "../lib/usernameRules";
 import styles from "../styles/Auth.module.css";
 
@@ -36,6 +39,8 @@ function evaluatePasswordStrength(password) {
 
 export default function Login() {
   const router = useRouter();
+  const { user: sessionUser, loading: authLoading } = useUserRole();
+  const { presentAlreadySignedInModal } = useAuthGate();
   const [username, setUsername] = useState("");
   const [usernameAvail, setUsernameAvail] = useState("empty");
   const [usernameHint, setUsernameHint] = useState("");
@@ -55,6 +60,18 @@ export default function Login() {
       mode === "signup";
     if (wantSignup) setIsSignup(true);
   }, [router.isReady, router.query.signup, router.query.mode]);
+
+  useEffect(() => {
+    if (!router.isReady || authLoading) return;
+    if (!sessionUser) return;
+    const q = router.query;
+    const wantSignup =
+      q.signup === "1" ||
+      q.signup === "true" ||
+      String(q.signup || "").toLowerCase() === "yes" ||
+      q.mode === "signup";
+    presentAlreadySignedInModal({ signup: wantSignup });
+  }, [router.isReady, router.query, authLoading, sessionUser, presentAlreadySignedInModal]);
 
   useEffect(() => {
     if (!isSignup) {
@@ -122,6 +139,28 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
+  const [signupSuccessOpen, setSignupSuccessOpen] = useState(false);
+  const [signupSuccessEmail, setSignupSuccessEmail] = useState("");
+  /** "full" = client confirmed profiles row; "email" = verify-email flow (no JWT yet; DB trigger owns insert). */
+  const [signupSuccessMode, setSignupSuccessMode] = useState("full");
+  const [signupRecoveryUser, setSignupRecoveryUser] = useState(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [signupModalNotice, setSignupModalNotice] = useState("");
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return undefined;
+    const t = setInterval(() => setResendCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [resendCooldown]);
+
+  useEffect(() => {
+    if (!signupSuccessOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [signupSuccessOpen]);
 
   const toggleMode = () => {
     setIsSignup((v) => !v);
@@ -130,10 +169,77 @@ export default function Login() {
     setUsername("");
     setUsernameAvail("empty");
     setUsernameHint("");
+    setSignupSuccessOpen(false);
+    setSignupSuccessEmail("");
+    setSignupSuccessMode("full");
+    setSignupRecoveryUser(null);
+    setSignupModalNotice("");
+    setResendCooldown(0);
+  };
+
+  const closeSuccessModalToSignIn = () => {
+    setSignupSuccessOpen(false);
+    setSignupSuccessEmail("");
+    setSignupSuccessMode("full");
+    setSignupRecoveryUser(null);
+    setSignupModalNotice("");
+    setResendCooldown(0);
+    setUsername("");
+    setUsernameAvail("empty");
+    setUsernameHint("");
+    setPassword("");
+    setConfirmPassword("");
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    setIsSignup(false);
+  };
+
+  const handleProfileSetupRetry = async () => {
+    if (submitting || !signupRecoveryUser?.id) return;
+    setSubmitting(true);
+    setMessage("");
+    setMessageType("");
+    const prof = await ensureProfile(signupRecoveryUser, { flow: "signup-retry", force: true });
+    setSubmitting(false);
+    if (prof.ok && prof.profile?.id) {
+      setSignupRecoveryUser(null);
+      setSignupSuccessEmail(email.trim());
+      setSignupSuccessMode("full");
+      setSignupModalNotice("");
+      setSignupSuccessOpen(true);
+    } else if (prof.deferredWithoutSession) {
+      setSignupRecoveryUser(null);
+      setSignupSuccessEmail(email.trim());
+      setSignupSuccessMode("email");
+      setSignupModalNotice("");
+      setSignupSuccessOpen(true);
+    } else {
+      setMessage(
+        "We still could not confirm your profile. Try again, or verify your email and sign in — we will repair your profile automatically."
+      );
+      setMessageType("error");
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (resendCooldown > 0 || !signupSuccessEmail.trim()) return;
+    setSignupModalNotice("");
+    setResendCooldown(50);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: signupSuccessEmail.trim(),
+    });
+    if (error) {
+      setSignupModalNotice(error.message);
+      setResendCooldown(0);
+    } else {
+      setSignupModalNotice("Verification email sent again.");
+    }
   };
 
   const handleSubmit = async () => {
-    if (submitting) return;
+    if (submitting || signupSuccessOpen) return;
+    if (!authLoading && sessionUser) return;
 
     setMessage("");
     setMessageType("");
@@ -148,7 +254,7 @@ export default function Login() {
       }
       signupUsername = uv.username;
 
-      if (usernameAvail === "checking") {
+      if (usernameAvail === "scanning") {
         setMessage("Please wait for the username check to finish.");
         setMessageType("error");
         return;
@@ -209,11 +315,51 @@ export default function Login() {
         setMessage(error.message);
         setMessageType("error");
       } else {
-        if (signData?.user) {
-          await ensureProfile(signData.user);
+        const createdUser = signData?.user ?? null;
+        const hasSession = Boolean(signData?.session);
+        let prof = {
+          ok: false,
+          profile: null,
+          deferredWithoutSession: false,
+          clientVerified: false,
+        };
+        if (createdUser) {
+          prof = await ensureProfile(createdUser, {
+            flow: "signup",
+            force: true,
+            signUpSummary: {
+              hasSession,
+              userId: createdUser.id,
+              identities: Array.isArray(createdUser.identities) ? createdUser.identities.length : 0,
+            },
+          });
         }
-        setMessage("Account created. Check your email.");
-        setMessageType("success");
+
+        if (!createdUser) {
+          setSignupSuccessEmail(email.trim());
+          setSignupSuccessMode("email");
+          setSignupModalNotice("");
+          setSignupRecoveryUser(null);
+          setSignupSuccessOpen(true);
+        } else if (hasSession && !prof.ok) {
+          setSignupRecoveryUser(createdUser);
+          setMessage(
+            "Your account was created but we could not confirm your profile in the app. Use “Retry profile setup”, or sign out and sign in after verifying your email."
+          );
+          setMessageType("error");
+        } else if (hasSession && prof.ok) {
+          setSignupRecoveryUser(null);
+          setSignupSuccessEmail(email.trim());
+          setSignupSuccessMode("full");
+          setSignupModalNotice("");
+          setSignupSuccessOpen(true);
+        } else {
+          setSignupRecoveryUser(null);
+          setSignupSuccessEmail(email.trim());
+          setSignupSuccessMode("email");
+          setSignupModalNotice("");
+          setSignupSuccessOpen(true);
+        }
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({
@@ -240,18 +386,49 @@ export default function Login() {
   const confirmMismatch = isSignup && confirmPassword.length > 0 && password !== confirmPassword;
   const signInPasswordStarted = !isSignup && password.length > 0;
 
+  const accountLocked = !authLoading && Boolean(sessionUser);
+  const formHidden = signupSuccessOpen || accountLocked;
+  const formDisabled = submitting || signupSuccessOpen || accountLocked;
+
   const onPasswordKeyDown = (e) => {
+    if (signupSuccessOpen || accountLocked) return;
     if (e.key !== "Enter" || isSignup) return;
     e.preventDefault();
     if (!submitting) void handleSubmit();
   };
+
+  const mailtoHref = signupSuccessEmail.trim() ? `mailto:${signupSuccessEmail.trim()}` : "mailto:";
+
+  if (authLoading) {
+    return (
+      <div className={`${styles.page} ${isSignup ? styles.pageSignup : ""}`}>
+        <SiteNav />
+        <main className={styles.main}>
+          <div className={styles.authStage}>
+            <section
+              className={`${styles.card} ${isSignup ? styles.cardSignup : ""} ${styles.sessionShell}`}
+              aria-busy="true"
+              aria-label="Checking session"
+            >
+              <Loader2 className={styles.sessionLoader} strokeWidth={2} aria-hidden />
+              <p className={styles.sessionShellNote}>Checking session…</p>
+            </section>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className={`${styles.page} ${isSignup ? styles.pageSignup : ""}`}>
       <SiteNav />
 
       <main className={styles.main}>
-        <section className={`${styles.card} ${isSignup ? styles.cardSignup : ""}`}>
+        <div className={styles.authStage}>
+          <section
+            className={`${styles.card} ${isSignup ? styles.cardSignup : ""} ${formHidden ? styles.cardLocked : ""}`}
+            aria-hidden={formHidden}
+          >
           <div className={styles.cardHeader}>
             {isSignup ? <span className={styles.modePill}>New account</span> : null}
             <h1 className={`${styles.title} ${isSignup ? styles.titleSignup : ""}`}>
@@ -269,6 +446,7 @@ export default function Login() {
                 placeholder="Username"
                 value={username}
                 autoComplete="username"
+                disabled={formDisabled}
                 onChange={(e) => setUsername(e.target.value)}
               />
               <p
@@ -288,6 +466,7 @@ export default function Login() {
             placeholder="Email"
             value={email}
             autoComplete={isSignup ? "email" : "email"}
+            disabled={formDisabled}
             onChange={(e) => setEmail(e.target.value)}
           />
           <input
@@ -295,6 +474,7 @@ export default function Login() {
             type={showPassword ? "text" : "password"}
             placeholder="Password"
             value={password}
+            disabled={formDisabled}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={onPasswordKeyDown}
             autoComplete={isSignup ? "new-password" : "current-password"}
@@ -302,6 +482,7 @@ export default function Login() {
           <button
             type="button"
             className={styles.secondaryBtn}
+            disabled={formDisabled}
             onClick={() => setShowPassword((v) => !v)}
             style={{ marginTop: "-0.35rem" }}
           >
@@ -356,12 +537,14 @@ export default function Login() {
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm password"
                 value={confirmPassword}
+                disabled={formDisabled}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 autoComplete="new-password"
               />
               <button
                 type="button"
                 className={styles.secondaryBtn}
+                disabled={formDisabled}
                 onClick={() => setShowConfirmPassword((v) => !v)}
                 style={{ marginTop: "-0.35rem" }}
               >
@@ -375,12 +558,12 @@ export default function Login() {
             type="button"
             className={`${styles.primaryBtn} ${isSignup ? styles.primaryBtnSignup : ""} ${signInPasswordStarted ? styles.primaryBtnSignInLit : ""}`}
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={formDisabled}
           >
             {submitting ? (isSignup ? "Creating account..." : "Signing in...") : isSignup ? "Create Account" : "Sign In"}
           </button>
 
-          <button type="button" className={styles.secondaryBtn} onClick={toggleMode}>
+          <button type="button" className={styles.secondaryBtn} disabled={formDisabled} onClick={toggleMode}>
             {isSignup ? "Already have an account? Sign in" : "Don't have an account? Create one"}
           </button>
           {!isSignup ? (
@@ -389,10 +572,71 @@ export default function Login() {
             </Link>
           ) : null}
 
-          {message ? (
-            <p className={messageType === "error" ? styles.messageError : styles.messageSuccess}>{message}</p>
+          {message && messageType === "error" ? (
+            <div>
+              <p className={styles.messageError}>{message}</p>
+              {signupRecoveryUser?.id ? (
+                <button
+                  type="button"
+                  className={styles.secondaryBtn}
+                  disabled={submitting}
+                  onClick={() => void handleProfileSetupRetry()}
+                  style={{ marginTop: "0.75rem" }}
+                >
+                  {submitting ? "Retrying…" : "Retry profile setup"}
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </section>
+
+          {signupSuccessOpen ? (
+            <>
+              <div className={styles.successBackdrop} aria-hidden />
+              <div
+                className={styles.successModal}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="signup-success-title"
+              >
+                <h2 id="signup-success-title" className={styles.successModalTitle}>
+                  {signupSuccessMode === "full" ? "Account created" : "Check your email"}
+                </h2>
+                <p className={styles.successModalBody}>
+                  {signupSuccessMode === "full"
+                    ? "Your profile is ready. We sent a verification link to your email."
+                    : "We sent a verification link to your email."}
+                  <br />
+                  Please verify your account before signing in.
+                </p>
+                <p className={styles.successModalFine}>
+                  Check spam or promotions if you don&apos;t see it.
+                </p>
+                <div className={styles.successModalActions}>
+                  <a className={styles.successPrimaryLink} href={mailtoHref}>
+                    Open Email
+                  </a>
+                  <button type="button" className={styles.successSecondaryBtn} onClick={closeSuccessModalToSignIn}>
+                    Back to Sign In
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.successTertiaryBtn}
+                    onClick={() => void handleResendVerification()}
+                    disabled={resendCooldown > 0}
+                  >
+                    {resendCooldown > 0 ? `Resend Email (${resendCooldown}s)` : "Resend Email"}
+                  </button>
+                </div>
+                {signupModalNotice ? (
+                  <p className={styles.successModalFine} style={{ marginTop: 12, marginBottom: 0 }}>
+                    {signupModalNotice}
+                  </p>
+                ) : null}
+              </div>
+            </>
+          ) : null}
+        </div>
       </main>
     </div>
   );

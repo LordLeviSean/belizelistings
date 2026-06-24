@@ -15,8 +15,13 @@ import {
   getRegionLabel,
   normalizeRegionSlug,
 } from "../../constants/geographyLayer";
-import { AGENT_FREE_ACTIVE_LISTING_CAP, LISTING_LIFECYCLE, PLATFORM_TIERS } from "../../constants/operationalModel";
-import { uploadListingImageFiles, persistListingImageOrder, safeFileSlug } from "../../lib/createListingUploads";
+import {
+  LISTING_LIFECYCLE,
+  PLATFORM_TIERS,
+  resolveActiveListingCapForTier,
+} from "../../constants/operationalModel";
+import { uploadListingImageFiles, persistListingImageOrder, uploadOptimizedListingImage } from "../../lib/createListingUploads";
+import { LISTING_MODERATION_TOAST } from "../../constants/listingModerationNotifications";
 import {
   LISTING_MUTATION_FLOW,
   LISTING_MUTATION_OPERATION,
@@ -30,9 +35,24 @@ import {
   buildDraftAutosavePayload,
   buildDraftListingPayload,
   getUserActiveListingCount,
+  resolveListingDistrictSlug,
   safeInsertListing,
   submitDraftListingForReview,
+  validateListingDraftContract,
 } from "../../lib/listingPersistence";
+import {
+  executeListingUpdate,
+  withListingPersistLock,
+} from "../../lib/listingWriteContract";
+import { assessLegacyDraftForWorkspace } from "../../lib/legacyDraftCompat";
+import {
+  fetchListingDraftForCreateWorkspace,
+  fetchListingRowForUserDashboard,
+} from "@/lib/listingQueries";
+import useUserDashboardStore from "@/stores/useUserDashboardStore";
+import { isCreateWorkspaceEditableListing } from "@/lib/userDashboardListingTruth";
+import { emitUserDashboardMetricsInvalidationAfterNavigation } from "@/lib/userDashboardMetricsBus";
+import { resolveCreateWorkspaceDashboardHref } from "@/lib/createWorkspaceDashboardRoutes";
 import { getLifecycleStatus } from "../../utils/canonicalListing";
 import {
   CREATE_FORM_INITIAL,
@@ -134,18 +154,42 @@ function optionalSquareFeet(form) {
   return Number.isNaN(n) ? null : n;
 }
 
+/** Stage-gate for Continue — blocks only on invalid required fields, not sync retries. */
+function validateWorkspaceStageForContinue(stage, form) {
+  const nextErrors = {};
+  if (stage === 1) {
+    if (!String(form.title || "").trim()) nextErrors.title = "Add a title to continue.";
+    if (!String(form.property_type || "").trim()) {
+      nextErrors.property_type = "Select a property type.";
+    }
+    if (!resolveListingDistrictSlug(form)) nextErrors.district = "Select a region.";
+    const price = Number(form.price);
+    if (form.price !== "" && form.price != null && (Number.isNaN(price) || price < 0)) {
+      nextErrors.price = "Enter a valid price.";
+    }
+  }
+  return { ok: Object.keys(nextErrors).length === 0, errors: nextErrors };
+}
+
 export default function DashboardCreatePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const { roleLoading, canCreateListings, tier, isAdmin } = useRoleAccess(user?.id);
+  const { roleLoading, canCreateListings, tier, isAdmin, isRegularUser, role } = useRoleAccess(user?.id);
+  const listingQuotaApplies = useMemo(
+    () => tier === PLATFORM_TIERS.AGENT_FREE || tier === PLATFORM_TIERS.PUBLIC,
+    [tier]
+  );
+  const activeListingCap = useMemo(() => resolveActiveListingCapForTier(tier), [tier]);
   const { isFavorite, toggleFavorite, isBusy, isAuthenticated } = useFavorites();
   const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
   const [form, setForm] = useState(() => ({ ...CREATE_FORM_INITIAL }));
   const [workspaceStage, setWorkspaceStage] = useState(1);
   const [draftListingId, setDraftListingId] = useState("");
+  const [editSourceLifecycle, setEditSourceLifecycle] = useState("");
   const [remoteImages, setRemoteImages] = useState([]);
   const [pendingUploads, setPendingUploads] = useState([]);
   const [hydratingDraft, setHydratingDraft] = useState(false);
+  const [legacyDraftBlocked, setLegacyDraftBlocked] = useState(false);
   const [saveUi, setSaveUi] = useState("idle");
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [dirty, setDirty] = useState(false);
@@ -190,6 +234,9 @@ export default function DashboardCreatePage() {
   const allowNextNavRef = useRef(false);
   /** Suppresses route-leave confirm while attaching `?draft=` after first insert. */
   const draftUrlSyncRef = useRef(false);
+  /** Skip draft hydrate GET when Continue/Save draft just inserted this id. */
+  const skipDraftHydrateForIdRef = useRef(null);
+  const legacyNormalizeAttemptedRef = useRef(false);
   const saveInFlight = useRef(false);
   /** Prevents double-submit while autosave + auth + network run (state alone can lag one frame). */
   const submitInFlight = useRef(false);
@@ -242,6 +289,12 @@ export default function DashboardCreatePage() {
     return q ? String(Array.isArray(q) ? q[0] : q) : "";
   }, [router.query?.draft]);
 
+  const queryResubmit = useMemo(() => {
+    const q = router.query?.resubmit;
+    const v = Array.isArray(q) ? q[0] : q;
+    return v === "1" || v === "true";
+  }, [router.query?.resubmit]);
+
   useEffect(() => {
     if (!router.isReady || prefillAppliedRef.current) return;
     const prefillPrice = String(qv(router.query.price) || "");
@@ -285,15 +338,25 @@ export default function DashboardCreatePage() {
   }, [form.property_type, form.listing_type, form.market_type, form.category]);
 
   useEffect(() => {
-    if (!router.isReady || !queryDraftId || !user?.id) return undefined;
+    if (!router.isReady || !queryDraftId || !user?.id) {
+      setLegacyDraftBlocked(false);
+      setEditSourceLifecycle("");
+      legacyNormalizeAttemptedRef.current = false;
+      return undefined;
+    }
+    if (skipDraftHydrateForIdRef.current === queryDraftId) {
+      skipDraftHydrateForIdRef.current = null;
+      setDraftListingId(queryDraftId);
+      setHydratingDraft(false);
+      setLegacyDraftBlocked(false);
+      return undefined;
+    }
     let cancelled = false;
     setHydratingDraft(true);
+    setLegacyDraftBlocked(false);
+    legacyNormalizeAttemptedRef.current = false;
     (async () => {
-      const { data, error } = await supabase
-        .from("listings")
-        .select("*, listing_images(*)")
-        .eq("id", queryDraftId)
-        .maybeSingle();
+      const { data, error } = await fetchListingDraftForCreateWorkspace(supabase, queryDraftId);
       if (cancelled) return;
       if (error || !data) {
         setHydratingDraft(false);
@@ -305,24 +368,75 @@ export default function DashboardCreatePage() {
         showToast({ type: "error", message: "This draft belongs to another account." });
         return;
       }
-      if (getLifecycleStatus(data) !== LISTING_LIFECYCLE.DRAFT) {
+      if (!isCreateWorkspaceEditableListing(data)) {
         setHydratingDraft(false);
-        showToast({ type: "info", message: "This listing is no longer a draft — open it from your dashboard." });
+        showToast({
+          type: "info",
+          message: "This listing cannot be edited here — open it from your dashboard.",
+        });
         return;
       }
-      setForm(mapListingRowToCreateForm(data));
-      setDraftListingId(String(data.id));
-      const imgs = (data.listing_images || [])
+
+      const assessment = assessLegacyDraftForWorkspace(data);
+      let hydratedRow = assessment.mergedRow;
+
+      if (assessment.rowPatch && !legacyNormalizeAttemptedRef.current) {
+        legacyNormalizeAttemptedRef.current = true;
+        const patchPayload = sanitizeListingMutationPayload(assessment.rowPatch, {
+          mutationFlow: LISTING_MUTATION_FLOW.DRAFT_AUTOSAVE,
+          operation: LISTING_MUTATION_OPERATION.PATCH,
+        });
+        const { error: patchErr } = await supabase
+          .from("listings")
+          .update(patchPayload)
+          .eq("id", queryDraftId)
+          .eq("user_id", user.id);
+        if (patchErr) {
+          console.warn("[create-workspace] legacy draft normalize skipped", patchErr?.message ?? patchErr);
+        } else {
+          hydratedRow = { ...data, ...assessment.rowPatch };
+        }
+      }
+
+      setForm(mapListingRowToCreateForm(hydratedRow));
+      setDraftListingId(String(hydratedRow.id));
+      const hydratedLifecycle = getLifecycleStatus(hydratedRow);
+      setEditSourceLifecycle(
+        hydratedLifecycle === LISTING_LIFECYCLE.ARCHIVED ? LISTING_LIFECYCLE.ARCHIVED : ""
+      );
+      const imgs = (hydratedRow.listing_images || data.listing_images || [])
         .filter(Boolean)
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-      setRemoteImages(imgs);
+      if (imgs.length > 0 && imgs.every((img) => img?.id)) {
+        setRemoteImages(imgs);
+      } else {
+        const { data: imageRows } = await supabase
+          .from("listing_images")
+          .select("*")
+          .eq("listing_id", queryDraftId)
+          .order("position", { ascending: true });
+        setRemoteImages((imageRows || []).filter(Boolean).map((row) => ({ ...row })));
+      }
       setDirty(false);
+      setLegacyDraftBlocked(assessment.needsRefresh);
+      if (hydratedLifecycle === LISTING_LIFECYCLE.REJECTED && queryResubmit) {
+        setWorkspaceStage(4);
+        showToast({
+          type: "info",
+          message: "Review your listing, then submit for review when ready.",
+        });
+      }
       setHydratingDraft(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [router.isReady, queryDraftId, user?.id, showToast]);
+  }, [router.isReady, queryDraftId, queryResubmit, user?.id, showToast]);
+
+  useEffect(() => {
+    if (!legacyDraftBlocked) return;
+    if (resolveListingDistrictSlug(form)) setLegacyDraftBlocked(false);
+  }, [legacyDraftBlocked, form]);
 
   const refetchRemoteImages = useCallback(
     async (listingId) => {
@@ -339,16 +453,33 @@ export default function DashboardCreatePage() {
 
   const runAutosave = useCallback(async (opts = {}) => {
     const mutationFlow = opts.mutationFlow ?? LISTING_MUTATION_FLOW.DRAFT_AUTOSAVE;
+    if (legacyDraftBlocked) {
+      return {
+        success: false,
+        skipped: false,
+        legacyBlocked: true,
+        listingId: draftListingId || null,
+      };
+    }
     if (!user?.id || !canCreateListings) {
       return { success: true, skipped: true, listingId: draftListingId || null };
-    }
-    if (saveInFlight.current) {
-      return { success: false, skipped: false, listingId: draftListingId || null };
     }
     if (!formHasMeaningfulContent(form, pendingUploads.length) && !draftListingId) {
       return { success: true, skipped: true, listingId: null };
     }
 
+    const contract = validateListingDraftContract({ form, authUserId: user.id });
+    if (!contract.ok) {
+      return {
+        success: false,
+        skipped: false,
+        validationFailed: true,
+        errors: contract.errors,
+        listingId: draftListingId || null,
+      };
+    }
+
+    return withListingPersistLock(draftListingId, async () => {
     saveInFlight.current = true;
     setSaveUi("saving");
     let activeId = draftListingId;
@@ -363,6 +494,7 @@ export default function DashboardCreatePage() {
         const insertResult = await safeInsertListing(supabase, payload, { mutationFlow });
         if (insertResult.error || !insertResult.data?.id) throw insertResult.error || new Error("Draft save failed");
         activeId = String(insertResult.data.id);
+        skipDraftHydrateForIdRef.current = activeId;
         setDraftListingId(activeId);
         draftUrlSyncRef.current = true;
         try {
@@ -380,35 +512,42 @@ export default function DashboardCreatePage() {
             form,
             authUserId: user.id,
             linkedUnitId,
+            sourceLifecycle: editSourceLifecycle,
           }),
           {
             mutationFlow,
             operation: LISTING_MUTATION_OPERATION.PATCH,
           }
         );
-        const { error: upErr } = await supabase
-          .from("listings")
-          .update(payload)
-          .eq("id", activeId)
-          .eq("user_id", user.id);
-        if (upErr) {
+        const patchResult = await executeListingUpdate(supabase, activeId, payload, {
+          mutationFlow,
+          eqFilters: { user_id: user.id },
+        });
+        if (patchResult.error) {
           logListingMutationFailureGrouped({
             operation: LISTING_MUTATION_OPERATION.PATCH,
             mutationFlow,
-            stage: "draft-autosave-patch",
-            attempt: 1,
-            retryMax: 1,
-            strippedKeys: [],
-            payload,
-            error: upErr,
+            stage: patchResult.meta?.stage || "draft-autosave-patch",
+            attempt: patchResult.meta?.attempts ?? 1,
+            retryMax: 2,
+            strippedKeys: patchResult.meta?.strippedKeys || [],
+            payload: patchResult.appliedPayload,
+            error: patchResult.error,
           });
-          throw upErr;
+          throw patchResult.error;
         }
       }
 
       if (pendingUploads.length > 0 && activeId) {
         const filesOnly = pendingUploads.map((p) => p.file);
-        const startPos = remoteImages.length;
+        let startPos = remoteImages.length;
+        if (startPos === 0) {
+          const { count } = await supabase
+            .from("listing_images")
+            .select("id", { count: "exact", head: true })
+            .eq("listing_id", activeId);
+          startPos = Number(count || 0);
+        }
         const totalFiles = filesOnly.length;
         setMediaStudioBusy({ active: true, phase: "optimizing", done: 0, total: totalFiles });
         await new Promise((r) => {
@@ -416,7 +555,7 @@ export default function DashboardCreatePage() {
         });
         try {
           setMediaStudioBusy((s) => ({ ...s, phase: "uploading", done: 0, total: totalFiles }));
-          const { failures } = await uploadListingImageFiles(supabase, {
+          const { failures, insertedRows } = await uploadListingImageFiles(supabase, {
             listingId: activeId,
             userId: user.id,
             files: filesOnly,
@@ -442,6 +581,19 @@ export default function DashboardCreatePage() {
           }
           if (!allFailed) {
             setMediaStudioBusy((s) => ({ ...s, phase: "syncing", done: totalFiles, total: totalFiles }));
+            if (insertedRows?.length) {
+              setRemoteImages((prev) => {
+                const seen = new Set(prev.map((row) => String(row.id || row.image_url || "")));
+                const merged = [...prev];
+                for (const row of insertedRows) {
+                  const key = String(row.id || row.image_url || "");
+                  if (!key || seen.has(key)) continue;
+                  seen.add(key);
+                  merged.push(row);
+                }
+                return merged.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+              });
+            }
             await refetchRemoteImages(activeId);
             setPendingUploads((prev) => {
               prev.forEach((p) => {
@@ -489,17 +641,20 @@ export default function DashboardCreatePage() {
     } finally {
       saveInFlight.current = false;
     }
+    });
   }, [
     user?.id,
     canCreateListings,
     form,
     pendingUploads,
     draftListingId,
+    editSourceLifecycle,
     linkedUnitId,
     router,
     remoteImages.length,
     refetchRemoteImages,
     showToast,
+    legacyDraftBlocked,
   ]);
 
   useEffect(() => {
@@ -527,15 +682,32 @@ export default function DashboardCreatePage() {
   }, [router]);
 
   const handleSaveDraft = useCallback(async () => {
-    if (!canCreateListings || hydratingDraft) return;
+    if (!canCreateListings || hydratingDraft || legacyDraftBlocked) return;
     const result = await runAutosave({ mutationFlow: LISTING_MUTATION_FLOW.DRAFT_AUTOSAVE });
+    if (result.legacyBlocked) {
+      showToast({
+        type: "info",
+        message: "Select a region on this legacy draft before saving, or discard it from My Listings.",
+      });
+      return;
+    }
+    if (result.validationFailed) {
+      setErrors((prev) => ({ ...prev, ...(result.errors || {}) }));
+      showToast({
+        type: "info",
+        message: "Select a region and property type to save your draft.",
+      });
+      return;
+    }
     if (!result.success) {
       const t = Date.now();
       if (t - saveFailureToastAtRef.current > 4000) {
         saveFailureToastAtRef.current = t;
         showToast({
           type: "error",
-          message: "Unable to save changes right now. You can keep editing — try Save draft again shortly.",
+          message: result.inFlight
+            ? "Still saving — wait a moment, then try again."
+            : "Unable to save changes right now. You can keep editing — try Save draft again shortly.",
         });
       }
       return;
@@ -548,34 +720,129 @@ export default function DashboardCreatePage() {
     } else {
       showToast({ type: "success", message: "Draft saved" });
     }
-  }, [canCreateListings, hydratingDraft, runAutosave, showToast]);
+  }, [canCreateListings, hydratingDraft, legacyDraftBlocked, runAutosave, showToast]);
 
-  const handleContinue = useCallback(async () => {
-    if (hydratingDraft || workspaceStage >= 5) return;
-    const result = await runAutosave({ mutationFlow: LISTING_MUTATION_FLOW.CONTINUE });
+  const handleSaveAndExit = useCallback(async () => {
+    if (!canCreateListings || hydratingDraft || legacyDraftBlocked) return;
+    const result = await runAutosave({ mutationFlow: LISTING_MUTATION_FLOW.DRAFT_AUTOSAVE });
+    if (result.legacyBlocked) {
+      showToast({
+        type: "info",
+        message: "Select a region on this legacy draft before saving, or discard it from My Listings.",
+      });
+      return;
+    }
+    if (result.validationFailed) {
+      setErrors((prev) => ({ ...prev, ...(result.errors || {}) }));
+      showToast({
+        type: "info",
+        message: "Select a region and property type to save your draft.",
+      });
+      return;
+    }
     if (!result.success) {
       const t = Date.now();
       if (t - saveFailureToastAtRef.current > 4000) {
         saveFailureToastAtRef.current = t;
         showToast({
           type: "error",
-          message: "Draft not synced — stay on this step, then try Save draft.",
+          message: result.inFlight
+            ? "Still saving — wait a moment, then try again."
+            : "Unable to save changes right now. Try Save & exit again shortly.",
         });
       }
       return;
     }
+    if (result.skipped) {
+      showToast({
+        type: "info",
+        message: "Add a title, price, or region to create a draft on the server.",
+      });
+      return;
+    }
+    showToast({ type: "success", message: "Draft saved" });
+    allowNextNavRef.current = true;
+    const href = resolveCreateWorkspaceDashboardHref({ isAdmin, isRegularUser, role });
+    await router.push(href);
+    if (user?.id && isRegularUser) {
+      emitUserDashboardMetricsInvalidationAfterNavigation(user.id);
+    }
+  }, [
+    canCreateListings,
+    hydratingDraft,
+    legacyDraftBlocked,
+    runAutosave,
+    showToast,
+    router,
+    isAdmin,
+    isRegularUser,
+    role,
+    user?.id,
+  ]);
+
+  const handleContinue = useCallback(async () => {
+    if (hydratingDraft || legacyDraftBlocked || workspaceStage >= 5) return;
+
+    const stageGate = validateWorkspaceStageForContinue(workspaceStage, form);
+    if (!stageGate.ok) {
+      setErrors((prev) => ({ ...prev, ...stageGate.errors }));
+      showToast({
+        type: "info",
+        message: "Complete the highlighted fields to continue.",
+      });
+      return;
+    }
+
+    const needsServerSync =
+      dirty || pendingUploads.length > 0 || !draftListingId;
+    if (!needsServerSync && draftListingId) {
+      setErrors({});
+      setWorkspaceStage((s) => Math.min(5, s + 1));
+      return;
+    }
+
+    const result = await runAutosave({ mutationFlow: LISTING_MUTATION_FLOW.CONTINUE });
+    if (result.legacyBlocked) {
+      showToast({
+        type: "info",
+        message: "This legacy draft needs a region before you can continue.",
+      });
+      return;
+    }
+    if (result.validationFailed) {
+      setErrors((prev) => ({ ...prev, ...(result.errors || {}) }));
+      showToast({
+        type: "info",
+        message: "Select a region and property type before syncing your draft.",
+      });
+      return;
+    }
+    if (!result.success) {
+      const t = Date.now();
+      if (t - saveFailureToastAtRef.current > 4000) {
+        saveFailureToastAtRef.current = t;
+        showToast({
+          type: "error",
+          message: result.inFlight
+            ? "Still saving — wait a moment, then try Continue again."
+            : "Could not sync your draft. Check your connection, then try Save draft.",
+        });
+      }
+      return;
+    }
+    setErrors({});
     setWorkspaceStage((s) => Math.min(5, s + 1));
-  }, [hydratingDraft, workspaceStage, runAutosave, showToast]);
+  }, [hydratingDraft, legacyDraftBlocked, workspaceStage, form, dirty, draftListingId, pendingUploads.length, runAutosave, showToast]);
 
   const handleBack = useCallback(async () => {
-    if (hydratingDraft || workspaceStage <= 1) return;
+    if (hydratingDraft || legacyDraftBlocked || workspaceStage <= 1) return;
     const result = await runAutosave({ mutationFlow: LISTING_MUTATION_FLOW.DRAFT_AUTOSAVE });
     if (!result.success) {
       showToast({ type: "error", message: "Could not save — stay on this step until the draft saves." });
       return;
     }
     setWorkspaceStage((s) => Math.max(1, s - 1));
-  }, [hydratingDraft, workspaceStage, runAutosave, showToast]);
+  }, [hydratingDraft, legacyDraftBlocked, workspaceStage, runAutosave, showToast]);
 
   useEffect(() => {
     const overlayActive = loadingCreate || showCompletionCard;
@@ -699,6 +966,12 @@ export default function DashboardCreatePage() {
       const [it] = next.splice(from, 1);
       next.splice(to, 0, it);
       setRemoteImages(next);
+      const rowsWithIds = next.filter((row) => row?.id);
+      if (rowsWithIds.length !== next.length) {
+        if (draftListingId) await refetchRemoteImages(draftListingId);
+        showToast({ type: "info", message: "Syncing image order… try again in a moment." });
+        return;
+      }
       const { error } = await persistListingImageOrder(supabase, next);
       if (error) {
         showToast({ type: "error", message: "Could not reorder images" });
@@ -712,7 +985,7 @@ export default function DashboardCreatePage() {
 
   const validateSubmit = useCallback(() => {
     const title = form.title.trim();
-    const district = normalizeRegionSlug(form.district);
+    const district = resolveListingDistrictSlug(form);
     const property_type = form.property_type.trim().toLowerCase();
     const price = Number(form.price);
     const beds = Number(form.beds || 0);
@@ -734,17 +1007,33 @@ export default function DashboardCreatePage() {
     };
   }, [form]);
 
-  const finishSubmissionOverlay = useCallback(async () => {
-    await new Promise((r) => setTimeout(r, 2000));
-    setOverlayExiting(true);
-    await new Promise((r) => setTimeout(r, 480));
-    allowNextNavRef.current = true;
-    router.push(isAdmin ? "/admin?tab=pending" : "/dashboard/agent");
-  }, [router, isAdmin]);
+  const finishSubmissionOverlay = useCallback(
+    async (postSubmit) => {
+      await new Promise((r) => setTimeout(r, 2000));
+      setOverlayExiting(true);
+      await new Promise((r) => setTimeout(r, 480));
+      const listingId = postSubmit?.listingId ? String(postSubmit.listingId) : "";
+      const submitUserId = postSubmit?.authUserId ? String(postSubmit.authUserId) : "";
+      if (listingId && submitUserId && isRegularUser) {
+        const { data: row } = await fetchListingRowForUserDashboard(supabase, listingId);
+        if (row) useUserDashboardStore.getState().stagePostCreateMyListingRow(submitUserId, row);
+      }
+      allowNextNavRef.current = true;
+      const href = resolveCreateWorkspaceDashboardHref(
+        { isAdmin, isRegularUser, role },
+        { afterSubmit: true }
+      );
+      await router.push(href);
+      if (submitUserId && isRegularUser) {
+        emitUserDashboardMetricsInvalidationAfterNavigation(submitUserId);
+      }
+    },
+    [router, isAdmin, isRegularUser, role, supabase]
+  );
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (loadingCreate || hydratingDraft || submitInFlight.current) return;
+    if (loadingCreate || hydratingDraft || legacyDraftBlocked || submitInFlight.current) return;
     const v = validateSubmit();
     setErrors(v.errors);
     if (!v.ok) {
@@ -798,10 +1087,45 @@ export default function DashboardCreatePage() {
 
       setProgressTarget(14);
 
+      // Quota applies to net-new inventory only; draft → pending reuses the existing draft row.
+      if (!effectiveDraftId) {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const accessToken = sessionData?.session?.access_token;
+          if (accessToken) {
+            const capRes = await fetch("/api/listings/enforce-active-cap", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({}),
+            });
+            if (capRes.status === 429 || capRes.status === 403) {
+              const body = await capRes.json().catch(() => ({}));
+              throw new Error(
+                body?.message ||
+                  (capRes.status === 403
+                    ? "You cannot create another listing on this account."
+                    : `Active listing limit reached (${activeListingCap ?? "your tier limit"}).`)
+              );
+            }
+            if (!capRes.ok) {
+              throw new Error("Could not verify listing quota. Try again in a moment.");
+            }
+          }
+        } catch (quotaErr) {
+          if (quotaErr?.message) throw quotaErr;
+          console.warn("[create-listing] quota check request failed", quotaErr);
+        }
+      }
+
       const activeCount = await getUserActiveListingCount(supabase, authUser.id);
-      if (tier === PLATFORM_TIERS.AGENT_FREE && activeCount >= AGENT_FREE_ACTIVE_LISTING_CAP) {
+      if (listingQuotaApplies && activeListingCap != null && activeCount >= activeListingCap) {
         throw new Error(
-          `Free Agent tier limit reached (${AGENT_FREE_ACTIVE_LISTING_CAP} active listings).`
+          effectiveDraftId
+            ? `Active listing limit reached (${activeListingCap}). Archive a listing before submitting this draft.`
+            : `Active listing limit reached (${activeListingCap}). Archive a listing or upgrade to continue.`
         );
       }
 
@@ -881,26 +1205,12 @@ export default function DashboardCreatePage() {
           const base = 50;
           setProgressTarget(base + ((i + 0.35) / Math.max(nFiles, 1)) * span);
           try {
-            const fileName = safeFileSlug(file.name);
-            const filePath = `${authUser.id}/${Date.now()}-${i}-${fileName}`;
-            const { error: uploadError } = await supabase.storage
-              .from("listing-images")
-              .upload(filePath, file, {
-                upsert: false,
-                contentType: file.type || undefined,
-              });
-            if (uploadError) throw uploadError;
-            setProgressTarget(base + ((i + 0.72) / Math.max(nFiles, 1)) * span);
-            const { data: publicUrlData } = supabase.storage.from("listing-images").getPublicUrl(filePath);
-            const publicUrl = publicUrlData?.publicUrl;
-            if (publicUrl) {
-              const { error: imageError } = await supabase.from("listing_images").insert({
-                listing_id: effectiveDraftId,
-                image_url: publicUrl,
-                position: imagePositionStart + i,
-              });
-              if (imageError) throw imageError;
-            }
+            await uploadOptimizedListingImage(supabase, {
+              userId: authUser.id,
+              listingId: effectiveDraftId,
+              file,
+              position: imagePositionStart + i,
+            });
             setProgressTarget(base + ((i + 1) / Math.max(nFiles, 1)) * span);
           } catch (uploadErr) {
             uploadFailures.push(file?.name || `image-${i + 1}`);
@@ -925,14 +1235,14 @@ export default function DashboardCreatePage() {
         createSucceeded = true;
         setLoadingCreate(false);
         setSuccess(true);
-        showToast({ type: "success", message: "Listing submitted for approval" });
+        showToast({ type: "success", message: LISTING_MODERATION_TOAST.SUBMITTED });
         try {
           localStorage.removeItem(`bl_ws_${authUser.id}_${effectiveDraftId}`);
           localStorage.removeItem(`bl_ws_fb_${authUser.id}`);
         } catch {
           /* ignore */
         }
-        await finishSubmissionOverlay();
+        await finishSubmissionOverlay({ listingId: effectiveDraftId, authUserId: authUser.id });
         return;
       }
 
@@ -1005,34 +1315,17 @@ export default function DashboardCreatePage() {
       for (let i = 0; i < uploadCombinedFiles.length; i++) {
         const file = uploadCombinedFiles[i];
         if (!file) continue;
-        const fileName = safeFileSlug(file.name);
-        const filePath = `${authUser.id}/${Date.now()}-${i}-${fileName}`;
         const span = 28;
         const base = 54;
         setProgressTarget(base + ((i + 0.35) / Math.max(nFiles, 1)) * span);
 
         try {
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from("listing-images")
-            .upload(filePath, file, {
-              upsert: false,
-              contentType: file.type || undefined,
-            });
-          traceLog("UPLOAD RESULT:", uploadData);
-          if (uploadError) throw uploadError;
-
-          setProgressTarget(base + ((i + 0.72) / Math.max(nFiles, 1)) * span);
-
-          const { data: publicUrlData } = supabase.storage.from("listing-images").getPublicUrl(filePath);
-          const publicUrl = publicUrlData?.publicUrl;
-          if (publicUrl) {
-            const { error: imageError } = await supabase.from("listing_images").insert({
-              listing_id: listingId,
-              image_url: publicUrl,
-              position: i,
-            });
-            if (imageError) throw imageError;
-          }
+          await uploadOptimizedListingImage(supabase, {
+            userId: authUser.id,
+            listingId,
+            file,
+            position: i,
+          });
           setProgressTarget(base + ((i + 1) / Math.max(nFiles, 1)) * span);
         } catch (uploadErr) {
           console.error("[create-listing] image upload failed", uploadErr);
@@ -1063,14 +1356,14 @@ export default function DashboardCreatePage() {
       createSucceeded = true;
       setSuccess(true);
       setLoadingCreate(false);
-      showToast({ type: "success", message: "Listing submitted for approval" });
+      showToast({ type: "success", message: LISTING_MODERATION_TOAST.SUBMITTED });
       try {
         localStorage.removeItem(`bl_ws_fb_${authUser.id}`);
       } catch {
         /* ignore */
       }
 
-      await finishSubmissionOverlay();
+      await finishSubmissionOverlay({ listingId, authUserId: authUser.id });
     } catch (createError) {
       console.error("CREATE ERROR:", createError);
       setFeedback(createError?.message || "Failed to create listing");
@@ -1221,6 +1514,28 @@ export default function DashboardCreatePage() {
             </div>
           </div>
 
+          {legacyDraftBlocked ? (
+            <div className={cw.legacyDraftRefreshBanner} role="status">
+              <p className={cw.legacyDraftRefreshTitle}>Legacy draft needs refresh</p>
+              <p className={cw.legacyDraftRefreshBody}>
+                This draft was saved before region and lifecycle fields were required. Choose a region
+                below to continue, or discard it from My Listings and start a new draft.
+              </p>
+              <div className={cw.legacyDraftRefreshActions}>
+                <button
+                  type="button"
+                  className={styles.approveButton}
+                  onClick={() => {
+                    allowNextNavRef.current = true;
+                    router.push("/dashboard/user?tab=my-listings");
+                  }}
+                >
+                  Back to My Listings
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           {success && !showOverlay ? (
             <div className={styles.successBanner}>
               <span className={styles.successIcon}>✓</span> Listing Submitted Successfully
@@ -1276,6 +1591,12 @@ export default function DashboardCreatePage() {
                 <div className={cw.submissionPctLabel}>{Math.round(clamp(smoothProgress, 0, 100))}%</div>
               </div>
             </div>
+          ) : null}
+
+          {queryResubmit && draftListingId && !hydratingDraft ? (
+            <p className={styles.pendingSubtle} style={{ marginBottom: 14, maxWidth: "62ch" }}>
+              Corrections needed — review your listing, then submit for review when ready.
+            </p>
           ) : null}
 
           <ol className={cw.stageNav} aria-label="Create listing progress">
@@ -1615,6 +1936,14 @@ export default function DashboardCreatePage() {
                   disabled={saveUi === "saving" || hydratingDraft || mediaStudioBusy.active}
                 >
                   Save draft
+                </button>
+                <button
+                  type="button"
+                  className={cw.saveAndExitBtn}
+                  onClick={() => void handleSaveAndExit()}
+                  disabled={saveUi === "saving" || hydratingDraft || mediaStudioBusy.active}
+                >
+                  Save &amp; exit
                 </button>
                 {workspaceStage < 5 ? (
                   <button

@@ -1,0 +1,254 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  background: rgba(28, 48, 44, 0.26);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: backdropIn var(--dur-2) var(--ease-out-soft);
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  width: min(420px, 100%);
+  border-radius: var(--radius);
+  padding: 22px 22px 20px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border-mint);
+  box-shadow: var(--elev-3);
+  color: rgba(32, 62, 56, 0.96);
+  animation: modalIn var(--dur-3) var(--ease-out-soft);
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 620;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  color: rgba(26, 56, 52, 0.98);
+}
+
+.close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin: -4px -6px 0 0;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 178, 164, 0.35);
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(42, 72, 66, 0.88);
+  cursor: pointer;
+  transition: var(--transition-surface), transform var(--dur-2) var(--ease-out-soft);
+}
+
+.close:hover {
+  transform: translateY(var(--hover-lift-xs));
+  border-color: rgba(72, 140, 128, 0.42);
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(110, 185, 178, 0.18);
+  box-shadow: var(--elev-0);
+}
+
+.avatar {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: rgba(22, 56, 52, 0.92);
+  background: rgba(236, 252, 248, 0.95);
+  border: 1px solid rgba(120, 178, 164, 0.32);
+}
+
+.heroText {
+  min-width: 0;
+}
+
+.agentName {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  color: rgba(22, 56, 52, 0.98);
+  line-height: 1.25;
+}
+
+.brokerage {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: rgba(72, 104, 96, 0.78);
+  line-height: 1.35;
+}
+
+.lede {
+  margin: 0 0 16px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: rgba(52, 82, 76, 0.86);
+}
+
+.pathGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 400px) {
+  .pathGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.pathCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 112px;
+  padding: 14px 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(120, 178, 164, 0.28);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--elev-0);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: var(--transition-hover-lift), border-color var(--dur-2) var(--ease-out-soft);
+}
+
+.pathCard:hover {
+  border-color: rgba(52, 130, 118, 0.38);
+  transform: translateY(var(--hover-lift-xs));
+  box-shadow: var(--elev-1);
+}
+
+.pathCardDisabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.pathCardDisabled:hover {
+  transform: none;
+  box-shadow: var(--elev-0);
+  border-color: rgba(120, 178, 164, 0.22);
+}
+
+.pathIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(244, 252, 249, 0.95);
+  border: 1px solid rgba(110, 185, 178, 0.22);
+  color: rgba(52, 130, 118, 0.92);
+}
+
+.pathLabel {
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: rgba(22, 56, 52, 0.96);
+}
+
+.pathHint {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(72, 104, 96, 0.72);
+  line-height: 1.35;
+}
+
+.pathHintMuted {
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: rgba(72, 104, 96, 0.62);
+}
+
+.inboxRow {
+  margin: 16px 0 0;
+  text-align: center;
+}
+
+.inboxLink {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: rgba(52, 130, 118, 0.92);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color var(--dur-2) var(--ease-out-soft);
+}
+
+.inboxLink:hover {
+  color: rgba(22, 86, 74, 0.95);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .modal,
+  .pathCard,
+  .close {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .pathCard:hover,
+  .close:hover {
+    transform: none;
+  }
+}

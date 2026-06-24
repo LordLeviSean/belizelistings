@@ -6,26 +6,44 @@
   align-items: center;
 }
 
-.bellButton {
-  position: relative;
-}
-
-.bellIcon {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-}
-
-.unreadDot {
-  position: absolute;
-  top: 7px;
-  right: 9px;
-  width: 7px;
-  height: 7px;
+.unreadBadge {
+  margin-left: 1px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
   border-radius: 999px;
-  background: rgba(72, 138, 124, 0.88);
-  box-shadow: 0 0 0 2px rgba(238, 248, 244, 0.95);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(255, 228, 224, 0.94);
+  border: 1px solid rgba(232, 168, 158, 0.52);
+  color: rgba(112, 52, 52, 0.92);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset;
   pointer-events: none;
+  transition:
+    transform var(--dur-3) var(--ease-out-soft),
+    opacity var(--dur-2) var(--ease-default);
+}
+
+.unreadBadgePulse {
+  animation: notifyUnreadBadgePulse var(--dur-5) var(--ease-in-out) infinite;
+}
+
+@keyframes notifyUnreadBadgePulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.045);
+    opacity: 0.9;
+  }
 }
 
 .panel {
@@ -263,5 +281,9 @@
 
   .row:hover {
     transform: none;
+  }
+
+  .unreadBadgePulse {
+    animation: none;
   }
 }

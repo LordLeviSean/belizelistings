@@ -1,24 +1,25 @@
-import { OWNERSHIP_ACTIONS, OWNERSHIP_KEYS } from "../constants/ownershipModel";
-import {
-  getArchiveStatus,
-  getModerationStatus,
-  getRepublishStatus,
-  LISTING_LIFECYCLE,
-} from "../constants/operationalModel";
+import { OWNERSHIP_ACTIONS } from "../constants/ownershipModel";
+import { getArchiveStatus, LISTING_LIFECYCLE } from "../constants/operationalModel";
 import { getLifecycleStatus } from "./canonicalListing";
-import { MUTATION_ENRICHMENT_STRIP_ORDER } from "../lib/canonicalMutationStrips";
 import { logRawSupabaseError, logSupabaseMutationResult } from "../lib/supabaseRawError";
+import { isMissingColumnError } from "../lib/supabaseCompat";
 import {
-  extractMissingColumnName,
-  isMissingColumnError,
-} from "../lib/supabaseCompat";
+  buildModerationApproveFallback,
+  buildModerationApprovePatch,
+  buildModerationArchiveFallback,
+  buildModerationArchivePatch,
+  buildModerationRejectFallback,
+  buildModerationRejectPatch,
+  buildModerationResubmitFallback,
+  buildModerationResubmitPatch,
+  executeListingUpdate,
+} from "../lib/listingWriteContract";
+import { omitSubmitForReviewWorkflowFields } from "../lib/draftListingInsertContract";
 import {
   LISTING_MUTATION_FLOW,
   LISTING_MUTATION_OPERATION,
   logListingMutationFailureGrouped,
 } from "../lib/listingMutationDiagnostics";
-import { sanitizeListingMutationPayload } from "../lib/listingPayloadSanitize";
-
 const isProd =
   typeof process !== "undefined" && process.env.NODE_ENV === "production";
 
@@ -99,94 +100,28 @@ function logMutationSuccess(logTag, stage, payload, meta = {}) {
 async function updateListingSafe(supabase, listingId, updates, options = {}) {
   const {
     logTag = "update",
-    maxAttempts = 28,
     mutationFlow = LISTING_MUTATION_FLOW.UNSPECIFIED,
+    minimalFallback = null,
+    eqFilters = {},
   } = options;
-  let payload = sanitizeListingMutationPayload({ ...(updates || {}) }, {
+
+  const result = await executeListingUpdate(supabase, listingId, updates, {
     mutationFlow,
-    operation: LISTING_MUTATION_OPERATION.PATCH,
+    logTag,
+    eqFilters,
+    minimalFallback,
   });
-  let attempts = 0;
-  let lastError = null;
-  const strippedKeys = [];
 
-  while (attempts < maxAttempts) {
-    attempts += 1;
-    const { error } = await supabase
-      .from("listings")
-      .update(payload)
-      .eq("id", listingId);
-    if (!error) {
-      return {
-        data: null,
-        error: null,
-        appliedPayload: payload,
-        meta: { strippedKeys, attempts },
-      };
-    }
-    lastError = error;
-
-    const missingFromMessage = extractMissingColumnName(error);
-    if (
-      missingFromMessage &&
-      missingFromMessage !== "user_id" &&
-      missingFromMessage in payload
-    ) {
-      strippedKeys.push(missingFromMessage);
-      logMutationFailure(logTag, `strip-named:${attempts}`, error, payload, {
-        strippedKey: missingFromMessage,
-        strippedColumnsSoFar: [...strippedKeys],
-        attempt: attempts,
-        retryMax: maxAttempts,
-        mutationFlow,
-      });
-      const { [missingFromMessage]: _removed, ...next } = payload;
-      payload = next;
-      continue;
-    }
-
-    if (isMissingColumnError(error)) {
-      const stripKey = MUTATION_ENRICHMENT_STRIP_ORDER.find(
-        (k) => k !== "user_id" && k in payload
-      );
-      if (stripKey) {
-        strippedKeys.push(stripKey);
-        logMutationFailure(logTag, `strip-enrichment:${attempts}`, error, payload, {
-          strippedKey: stripKey,
-          parsedColumn: missingFromMessage || null,
-          strippedColumnsSoFar: [...strippedKeys],
-          attempt: attempts,
-          retryMax: maxAttempts,
-          mutationFlow,
-        });
-        const { [stripKey]: _r, ...next } = payload;
-        payload = next;
-        continue;
-      }
-    }
-
-    logMutationFailure(logTag, `non-recoverable:${attempts}`, error, payload, {
-      parsedColumn: missingFromMessage || null,
-      missingColumnError: isMissingColumnError(error),
-      strippedColumnsSoFar: strippedKeys,
-      attempt: attempts,
-      retryMax: maxAttempts,
+  if (result.error) {
+    logMutationFailure(logTag, result.meta?.stage || "failed", result.error, result.appliedPayload, {
+      strippedColumnsSoFar: result.meta?.strippedKeys || [],
+      attempt: result.meta?.attempts ?? 0,
+      retryMax: 2,
       mutationFlow,
     });
-    return {
-      data: null,
-      error,
-      appliedPayload: payload,
-      meta: { strippedKeys, attempts },
-    };
   }
 
-  return {
-    data: null,
-    error: lastError || new Error("Unable to apply listing update safely."),
-    appliedPayload: payload,
-    meta: { strippedKeys, attempts },
-  };
+  return result;
 }
 
 export async function applyListingOwnershipStamp(supabase, {
@@ -200,74 +135,35 @@ export async function applyListingOwnershipStamp(supabase, {
   });
 }
 
-/** Restore from archived, or resubmit from rejected → pending review (not public). */
-function pendingReviewQueuePayload(actor) {
-  const pending = getRepublishStatus();
-  return {
-    status: pending,
-    lifecycle_status: pending,
-    moderation_status: "pending_review",
-    archived_at: null,
-    published_at: null,
-    reviewed_at: null,
-    [OWNERSHIP_KEYS.ARCHIVED_BY]: null,
-    [OWNERSHIP_KEYS.PUBLISHED_BY]: null,
-    [OWNERSHIP_KEYS.REVIEWED_BY]: null,
-    [OWNERSHIP_KEYS.MODERATED_BY]: actor,
-  };
-}
-
-function lifecyclePayloadForAction({ action, actorId, nowIso }) {
-  const actor = actorId || null;
+function lifecyclePayloadForAction({ action }) {
   if (action === OWNERSHIP_ACTIONS.APPROVE) {
-    const approved = getModerationStatus("approved");
-    return {
-      status: approved,
-      lifecycle_status: approved,
-      moderation_status: "approved",
-      reviewed_at: nowIso,
-      published_at: nowIso,
-      [OWNERSHIP_KEYS.REVIEWED_BY]: actor,
-      [OWNERSHIP_KEYS.MODERATED_BY]: actor,
-      [OWNERSHIP_KEYS.PUBLISHED_BY]: actor,
-    };
+    return buildModerationApprovePatch();
   }
   if (action === OWNERSHIP_ACTIONS.REJECT) {
-    const rejected = getModerationStatus("rejected");
-    return {
-      status: rejected,
-      lifecycle_status: rejected,
-      moderation_status: "rejected",
-      published_at: null,
-      reviewed_at: null,
-      last_reviewed_at: nowIso,
-      [OWNERSHIP_KEYS.PUBLISHED_BY]: null,
-      [OWNERSHIP_KEYS.REVIEWED_BY]: null,
-      [OWNERSHIP_KEYS.MODERATED_BY]: actor,
-    };
+    return buildModerationRejectPatch();
   }
   if (action === OWNERSHIP_ACTIONS.ARCHIVE) {
-    const archived = getArchiveStatus();
-    return {
-      status: archived,
-      lifecycle_status: archived,
-      moderation_status: "archived",
-      archived_at: nowIso,
-      [OWNERSHIP_KEYS.ARCHIVED_BY]: actor,
-      [OWNERSHIP_KEYS.MODERATED_BY]: actor,
-    };
+    return buildModerationArchivePatch();
   }
   if (action === OWNERSHIP_ACTIONS.REPUBLISH || action === OWNERSHIP_ACTIONS.RESUBMIT) {
-    return pendingReviewQueuePayload(actor);
+    return buildModerationResubmitPatch();
   }
   if (action === OWNERSHIP_ACTIONS.VERIFY) {
     return {
-      verified_at: nowIso,
       verification_status: "verified",
-      [OWNERSHIP_KEYS.VERIFIED_BY]: actor,
     };
   }
   return {};
+}
+
+function moderationFallbackForAction(action) {
+  if (action === OWNERSHIP_ACTIONS.APPROVE) return buildModerationApproveFallback();
+  if (action === OWNERSHIP_ACTIONS.REJECT) return buildModerationRejectFallback();
+  if (action === OWNERSHIP_ACTIONS.ARCHIVE) return buildModerationArchiveFallback();
+  if (action === OWNERSHIP_ACTIONS.REPUBLISH || action === OWNERSHIP_ACTIONS.RESUBMIT) {
+    return buildModerationResubmitFallback();
+  }
+  return null;
 }
 
 async function getCurrentActorId(supabase) {
@@ -276,110 +172,63 @@ async function getCurrentActorId(supabase) {
 }
 
 export async function applyListingLifecycleAction(supabase, { listingId, action, extraUpdates = {} }) {
-  const actorId = await getCurrentActorId(supabase);
-  const nowIso = new Date().toISOString();
-  const base = lifecyclePayloadForAction({ action, actorId, nowIso });
-  const payload = { ...base, ...extraUpdates };
-  const primary = await updateListingSafe(supabase, listingId, payload, {
+  const base = lifecyclePayloadForAction({ action });
+  const { body: merged } = omitSubmitForReviewWorkflowFields({ ...base, ...extraUpdates });
+  const payload = merged;
+  const minimalFallback = moderationFallbackForAction(action);
+
+  const result = await updateListingSafe(supabase, listingId, payload, {
     logTag: `lifecycle:${action}`,
+    minimalFallback,
   });
-  if (!primary.error) {
-    logMutationSuccess(`lifecycle:${action}`, "success-primary", primary.appliedPayload, {
-      strippedColumns: primary.meta?.strippedKeys || [],
-      attempts: primary.meta?.attempts,
+
+  if (!result.error) {
+    logMutationSuccess(`lifecycle:${action}`, "success", result.appliedPayload, {
+      strippedColumns: result.meta?.strippedKeys || [],
+      attempts: result.meta?.attempts,
+      usedFallback: result.meta?.usedFallback,
     });
-    return { ...primary, meta: { ...primary.meta, usedMinimalFallback: false } };
+    return {
+      ...result,
+      meta: { ...result.meta, usedMinimalFallback: Boolean(result.meta?.usedFallback) },
+    };
   }
 
   if (action === OWNERSHIP_ACTIONS.ARCHIVE) {
-    const archived = getArchiveStatus();
-    const minimal = { status: archived, lifecycle_status: archived, moderation_status: "archived" };
-    logMutationFailure(`lifecycle:${action}`, "fallback-minimal-archive", primary.error, minimal, {
-      priorStage: "primary-failed",
-      primaryStripped: primary.meta?.strippedKeys || [],
+    logRawSupabaseError("lifecycle:archive:final-error", result.error, {
+      listingId,
+      appliedPayload: result.appliedPayload,
+      meta: result.meta,
     });
-    const minimalResult = await updateListingSafe(supabase, listingId, minimal, {
-      logTag: `lifecycle:${action}:minimal-archive`,
+    const probeDirect = await supabase
+      .from("listings")
+      .update({ status: getArchiveStatus() })
+      .eq("id", listingId);
+    logSupabaseMutationResult("lifecycle:archive:direct-probe-eq-id-as-passed", probeDirect, {
+      listingId,
+      idArgType: typeof listingId,
+      idArgValue: listingId,
     });
-    if (!minimalResult.error) {
-      logMutationSuccess(`lifecycle:${action}`, "success-fallback-minimal-archive", minimalResult.appliedPayload, {
-        strippedColumnsPrimary: primary.meta?.strippedKeys || [],
-        strippedColumnsFallback: minimalResult.meta?.strippedKeys || [],
-      });
-    } else {
-      logRawSupabaseError("lifecycle:archive:minimal-path-final-error", minimalResult.error, {
-        listingId,
-        appliedPayload: minimalResult.appliedPayload,
-        meta: minimalResult.meta,
-      });
-      const probeDirect = await supabase
+    if (
+      probeDirect.error &&
+      typeof listingId === "string" &&
+      /^[0-9]+$/.test(String(listingId))
+    ) {
+      const probeNumeric = await supabase
         .from("listings")
         .update({ status: getArchiveStatus() })
-        .eq("id", listingId);
-      logSupabaseMutationResult("lifecycle:archive:direct-probe-eq-id-as-passed", probeDirect, {
+        .eq("id", Number(listingId));
+      logSupabaseMutationResult("lifecycle:archive:direct-probe-eq-id-coerced-number", probeNumeric, {
         listingId,
-        idArgType: typeof listingId,
-        idArgValue: listingId,
+        idNumber: Number(listingId),
       });
-      if (
-        probeDirect.error &&
-        typeof listingId === "string" &&
-        /^[0-9]+$/.test(String(listingId))
-      ) {
-        const probeNumeric = await supabase
-          .from("listings")
-          .update({ status: getArchiveStatus() })
-          .eq("id", Number(listingId));
-        logSupabaseMutationResult("lifecycle:archive:direct-probe-eq-id-coerced-number", probeNumeric, {
-          listingId,
-          idNumber: Number(listingId),
-        });
-      }
     }
-    return {
-      ...minimalResult,
-      meta: {
-        ...minimalResult.meta,
-        usedMinimalFallback: !minimalResult.error,
-        primaryStrippedKeys: primary.meta?.strippedKeys,
-      },
-    };
-  }
-  if (action === OWNERSHIP_ACTIONS.REPUBLISH || action === OWNERSHIP_ACTIONS.RESUBMIT) {
-    const minimal = {
-      status: getRepublishStatus(),
-      lifecycle_status: getRepublishStatus(),
-      moderation_status: "pending_review",
-    };
-    logMutationFailure(`lifecycle:${action}`, "fallback-minimal-pending-queue", primary.error, minimal, {
-      priorStage: "primary-failed",
-      primaryStripped: primary.meta?.strippedKeys || [],
-    });
-    const minimalResult = await updateListingSafe(supabase, listingId, minimal, {
-      logTag: `lifecycle:${action}:minimal-pending-queue`,
-    });
-    if (!minimalResult.error) {
-      logMutationSuccess(
-        `lifecycle:${action}`,
-        "success-fallback-minimal-pending-queue",
-        minimalResult.appliedPayload,
-        {
-          strippedColumnsPrimary: primary.meta?.strippedKeys || [],
-          strippedColumnsFallback: minimalResult.meta?.strippedKeys || [],
-        }
-      );
-    }
-    return {
-      ...minimalResult,
-      meta: {
-        ...minimalResult.meta,
-        usedMinimalFallback: !minimalResult.error,
-        primaryStrippedKeys: primary.meta?.strippedKeys,
-      },
-    };
   }
 
-  return primary;
+  return {
+    ...result,
+    meta: { ...result.meta, usedMinimalFallback: Boolean(result.meta?.usedFallback) },
+  };
 }
 
 function rowIsArchivedForPermanentDelete(row) {

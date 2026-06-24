@@ -3,7 +3,7 @@
   background: #eef8f4;
   color: #3b5f56;
   background-image: radial-gradient(circle at 20% 0%, rgba(var(--glow-rgb), 0.12), transparent 40%);
-  transition: background-image 0.35s var(--motion-ease);
+  transition: background-image var(--dur-3) var(--motion-ease);
 }
 
 .pageSignup {
@@ -13,7 +13,7 @@
 }
 
 .main {
-  min-height: calc(100vh - 72px);
+  min-height: calc(100vh - var(--site-nav-offset));
   display: grid;
   place-items: center;
   padding: 24px 16px;
@@ -32,6 +32,34 @@
   transition:
     border-color var(--motion-fast) var(--motion-ease),
     box-shadow var(--motion-fast) var(--motion-ease);
+}
+
+.sessionShell {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  gap: 14px;
+  text-align: center;
+}
+
+.sessionShellNote {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #739088;
+}
+
+.sessionLoader {
+  width: 28px;
+  height: 28px;
+  color: #5a8f82;
+  animation: sessionSpin 0.85s linear infinite;
+}
+
+@keyframes sessionSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .cardSignup {
@@ -219,4 +247,141 @@
 .textLink:hover {
   color: #c9e3f8;
   text-decoration: underline;
+}
+
+/* --- Post-signup success modal (Create Account) --- */
+.authStage {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  justify-self: center;
+}
+
+.cardLocked {
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.88;
+  filter: saturate(0.92);
+}
+
+.successBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 12px;
+  background: rgba(236, 248, 243, 0.52);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 0 1px rgba(154, 210, 200, 0.22);
+  pointer-events: auto;
+}
+
+.successModal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  width: min(100%, 360px);
+  padding: 22px 20px 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(154, 210, 200, 0.38);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.94), rgba(241, 250, 246, 0.9)),
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(137, 205, 189, 0.22), transparent 72%);
+  box-shadow:
+    0 18px 44px rgba(100, 150, 135, 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.55) inset,
+    0 0 32px rgba(137, 205, 189, 0.12);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  pointer-events: auto;
+}
+
+.successModalTitle {
+  margin: 0 0 10px;
+  font-family: "DM Serif Display", "Georgia", "Times New Roman", serif;
+  font-size: 1.45rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: rgba(28, 64, 72, 0.96);
+  line-height: 1.15;
+}
+
+.successModalBody {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(62, 92, 84, 0.92);
+}
+
+.successModalFine {
+  margin: 0 0 18px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: rgba(90, 118, 110, 0.82);
+}
+
+.successModalActions {
+  display: grid;
+  gap: 10px;
+}
+
+.successPrimaryLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-weight: 650;
+  color: #f7fcfa;
+  background: linear-gradient(180deg, rgba(var(--glow-rgb), 0.38), rgba(var(--glow-rgb), 0.26));
+  border: 1px solid rgba(var(--glow-rgb), 0.55);
+  box-shadow: 0 4px 18px rgba(110, 170, 155, 0.2);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.successPrimaryLink:hover {
+  background: linear-gradient(180deg, rgba(var(--glow-rgb), 0.46), rgba(var(--glow-rgb), 0.32));
+  border-color: rgba(var(--glow-rgb), 0.68);
+}
+
+.successSecondaryBtn {
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(52, 82, 74, 0.92);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(151, 190, 179, 0.4);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.successSecondaryBtn:hover {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(127, 178, 164, 0.55);
+}
+
+.successTertiaryBtn {
+  margin-top: 4px;
+  align-self: center;
+  background: none;
+  border: none;
+  padding: 6px 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(95, 130, 148, 0.9);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.successTertiaryBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  text-decoration: none;
 }

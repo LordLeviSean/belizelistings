@@ -2,17 +2,29 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: visible;
+}
+
+.ownerPendingBanner {
+  margin: 0;
+  padding: 12px 18px;
+  text-align: center;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #3d6057;
+  background: rgba(198, 228, 218, 0.72);
+  border-bottom: 1px solid rgba(137, 205, 189, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .page {
-  /* Viewport shell: clips to one screen; scroll lives in .detailBody / .thumbRow */
-  height: calc(100dvh - 72px);
-  max-height: calc(100dvh - 72px);
-  overflow: hidden;
-  min-height: 0;
+  /* Single document scroll: page grows with content (no nested column scroll) */
+  min-height: calc(100dvh - var(--site-nav-offset));
+  overflow: visible;
 
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
+  align-items: start;
 
   background:
     radial-gradient(ellipse 36% 34% at 12% 8%, rgba(137, 205, 189, 0.1), transparent 62%),
@@ -34,8 +46,8 @@
     radial-gradient(ellipse 52% 40% at 20% 24%, rgba(137, 205, 189, 0.13), transparent 68%),
     radial-gradient(ellipse 44% 34% at 76% 14%, rgba(198, 182, 232, 0.12), transparent 66%),
     radial-gradient(ellipse 58% 40% at 66% 80%, rgba(164, 197, 235, 0.09), transparent 70%);
-  filter: blur(24px);
-  opacity: 0.55;
+  filter: blur(26px);
+  opacity: 0.48;
 }
 
 /* Direct grid columns — photo | details (no extra wrapper breaking grid) */
@@ -55,8 +67,11 @@
 
 .mainImageFrame {
   position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 5 / 3;
+  max-height: min(68vh, 640px);
+  min-height: 220px;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -110,7 +125,6 @@
 }
 
 .imageStage img {
-  position: relative;
   z-index: 1;
   border-radius: 0;
   box-shadow: none;
@@ -196,16 +210,13 @@
 }
 
 .thumbRow {
-  /* Scroll container: intentional vertical scroll (many thumbnails) */
   flex: 0 0 auto;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   justify-content: center;
   align-content: flex-start;
-  max-height: 92px;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: visible;
   /* Same “family” as the frame — reads as one gallery, not a loose strip */
   margin-top: 0;
   padding: 4px 6px 5px;
@@ -256,11 +267,10 @@
 }
 
 .detailColumn {
-  min-height: 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   border-left: 1px solid rgba(223, 235, 230, 0.1);
   background: linear-gradient(180deg, rgba(250, 254, 252, 0.78), rgba(241, 249, 246, 0.72));
   position: relative;
@@ -269,7 +279,14 @@
 
 .detailTop {
   flex-shrink: 0;
-  padding: 14px 24px 8px;
+  padding: 12px 20px 6px;
+}
+
+.detailToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 
 .backButton {
@@ -297,12 +314,9 @@
 }
 
 .detailBody {
-  /* Scroll container: intentional vertical scroll */
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding: 4px 24px 24px;
+  flex: 0 0 auto;
+  overflow: visible;
+  padding: 2px 20px 30px;
   display: flex;
   flex-direction: column;
 }
@@ -486,13 +500,12 @@
 
 /* RIGHT SIDE — CONTENT */
 .container {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 12px;
+  gap: 8px;
   padding: 0;
-  min-height: 0;
 }
 
 /* HEADER (back + title + price) */
@@ -500,7 +513,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  gap: 6px;
 }
 
 .listingHeader .title {
@@ -517,9 +530,9 @@
 
 .price {
   margin: 0;
-  font-size: 46px;
+  font-size: clamp(1.85rem, 4.2vw, 2.35rem);
   font-weight: 620;
-  line-height: 1;
+  line-height: 1.05;
   color: rgba(32, 67, 75, 0.96);
 }
 
@@ -543,17 +556,17 @@
 .infoGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px 12px;
-
-  margin-top: 4px;
+  gap: 8px 10px;
+  margin-top: 2px;
+  align-items: start;
 }
 
 .infoBox {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 
-  padding: 9px 11px;
+  padding: 8px 10px;
 
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.56);
@@ -574,23 +587,48 @@
   color: rgba(45, 78, 86, 0.95);
 }
 
+/* Region cell: same chip language as .highlightChip, grid-safe */
+.infoBoxInteractive {
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(72, 140, 128, 0.24);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--elev-0);
+  transition: var(--transition-hover-lift), border-color var(--dur-2) var(--ease-out-soft),
+    box-shadow var(--dur-2) var(--ease-out-soft);
+}
+
+.infoBoxInteractive:hover {
+  border-color: rgba(52, 130, 118, 0.38);
+  box-shadow: var(--elev-1);
+  transform: translateY(var(--hover-lift-xs));
+}
+
+.infoBoxInteractive:focus-visible {
+  outline: 2px solid rgba(109, 164, 214, 0.6);
+  outline-offset: 2px;
+}
+
+.infoBoxInteractive .infoValue {
+  overflow-wrap: anywhere;
+}
+
 /* DESCRIPTION — full editorial block on detail only (no clamp) */
 .description {
-  margin-top: 10px;
+  margin-top: 4px;
   max-width: 38rem;
   width: 100%;
 }
 
-/* ACTION BUTTONS */
+/* Legacy listing actions (prefer ListingContactActions module) */
 .actions {
   display: flex;
   gap: 10px;
   margin-top: 6px;
   padding-top: 14px;
   flex-shrink: 0;
-  position: sticky;
-  bottom: 0;
-  background: linear-gradient(to top, #eef8f4 72%, transparent);
 }
 
 .primaryBtn {
@@ -750,15 +788,15 @@
 }
 
 .lightboxImageInner {
+  position: relative;
+  width: min(95vw, 1920px);
+  height: min(90vh, 1280px);
   max-width: 95vw;
   max-height: 90vh;
-  width: auto;
-  height: auto;
   min-width: 0;
   min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
   pointer-events: auto;
   animation: lightboxIn var(--dur-2) var(--ease-out-soft);
   transform-origin: center center;
@@ -773,10 +811,6 @@
     opacity: 1;
     transform: scale(1);
   }
-}
-
-.lightboxImageInner img {
-  border-radius: 12px;
 }
 
 /* NO PHOTO (hero) */
@@ -796,13 +830,18 @@
 }
 
 /* RESPONSIVE */
+@media (max-width: 720px) {
+  .detailBody {
+    padding: 2px 16px 20px;
+  }
+}
+
 @media (max-width: 900px) {
   .page {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(200px, 42dvh) minmax(0, 1fr);
-    height: calc(100dvh - 72px);
-    max-height: calc(100dvh - 72px);
-    overflow: hidden;
+    grid-template-rows: auto auto;
+    min-height: 0;
+    overflow: visible;
   }
 
   .heroColumn {
@@ -821,6 +860,11 @@
 
   .container {
     height: auto;
+  }
+
+  .mainImageFrame {
+    max-height: min(46vh, 420px);
+    min-height: 200px;
   }
 
   .thumbCell {
@@ -858,14 +902,14 @@
 .highlightStrip {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 8px 0 10px;
+  gap: 6px;
+  margin: 4px 0 6px;
 }
 
 .highlightChip {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
-  padding: 8px 14px;
+  padding: 6px 12px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid rgba(72, 140, 128, 0.24);
@@ -874,8 +918,8 @@
 }
 
 .storyLead {
-  margin: 0 0 14px;
-  font-size: 1.02rem;
+  margin: 0 0 10px;
+  font-size: 0.98rem;
   line-height: 1.55;
   font-weight: 500;
   color: rgba(38, 68, 62, 0.9);
@@ -890,42 +934,6 @@
 
 .storyBody + .storyBody {
   margin-top: 12px;
-}
-
-.locContext {
-  margin-top: 8px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(72, 140, 128, 0.2);
-  box-shadow: var(--elev-0);
-}
-
-.locContextBlurb {
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: rgba(42, 72, 68, 0.9);
-}
-
-.locContextTitle {
-  margin: 0 0 6px;
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(72, 104, 96, 0.62);
-}
-
-.locLink {
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: rgba(28, 92, 82, 0.95);
-  text-decoration: none;
-  border-bottom: 1px solid rgba(52, 130, 118, 0.35);
-}
-
-.locLink:hover {
-  border-bottom-color: rgba(52, 130, 118, 0.65);
 }
 
 .page[data-atmosphere="coastal"] {
@@ -1015,6 +1023,7 @@
   .mainImageFrame,
   .thumbCell,
   .highlightChip,
+  .infoBoxInteractive,
   .lightboxNavBtn,
   .lightboxThumbBtn,
   .lightboxBackdrop,
@@ -1025,7 +1034,8 @@
 
   .mainImageFrame:hover,
   .thumbCell:hover,
-  .highlightChip:hover {
+  .highlightChip:hover,
+  .infoBoxInteractive:hover {
     transform: none;
   }
 

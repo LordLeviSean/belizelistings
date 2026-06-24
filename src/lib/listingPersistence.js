@@ -1,18 +1,33 @@
 import { normalizeRegionSlug, getRegionByAny } from "../constants/geographyLayer";
 import { sanitizeAmenitiesArray } from "../constants/listingAmenities";
 import { isLandInventoryListing } from "../utils/listingPresentation";
-import { applyListingOwnershipStamp } from "../utils/ownershipAttribution";
-import { MUTATION_ENRICHMENT_STRIP_ORDER } from "./canonicalMutationStrips";
-import { extractMissingColumnName, isMissingColumnError } from "./supabaseCompat";
+import { isTerminalDashboardCountError } from "./supabaseCompat";
+import { logDashboardMetricFailureOnce } from "./dashboardMetricsTelemetry";
 import { logSupabaseMutationResult, snapshotSupabaseError } from "./supabaseRawError";
 import {
   LISTING_MUTATION_FLOW,
   LISTING_MUTATION_OPERATION,
   logListingMutationFailureGrouped,
 } from "./listingMutationDiagnostics";
-import { sanitizeListingMutationPayload } from "./listingPayloadSanitize";
-
-const NEVER_STRIP_INSERT_KEYS = new Set(["user_id"]);
+import { LISTING_LIFECYCLE } from "../constants/operationalModel";
+import { getLifecycleStatus, tallyOperationalLifecycleCounts } from "../utils/canonicalListing";
+import {
+  LISTING_DASHBOARD_COUNT_SELECT_TIERS,
+  buildListingDashboardCountSelect,
+  executeListingDashboardSelectQuery,
+} from "./listingDashboardSelectContract";
+import {
+  omitDraftInsertOnlyFields,
+  omitSubmitForReviewWorkflowFields,
+} from "./draftListingInsertContract";
+import {
+  LISTING_INSERT_RETURN_TIERS,
+  buildModerationArchivePatch,
+  buildSubmitForReviewMinimalFallback,
+  buildSubmitForReviewStatusPatch,
+  executeListingInsert,
+  executeListingUpdate,
+} from "./listingWriteContract";
 
 const isProd =
   typeof process !== "undefined" && process.env.NODE_ENV === "production";
@@ -32,27 +47,6 @@ function assignBrowserInsertGlobals(error, payload) {
   window.__BL_LAST_INSERT_PAYLOAD = cloneJson(payload);
 }
 
-function logInsertAttemptFull(stage, result, body, extra = {}) {
-  const { error } = result || {};
-  const strippedKeysHistory = extra.strippedColumnsSoFar ?? extra.strippedKeysHistory ?? [];
-
-  if (error) {
-    logListingMutationFailureGrouped({
-      operation: LISTING_MUTATION_OPERATION.INSERT,
-      mutationFlow: extra.mutationFlow ?? LISTING_MUTATION_FLOW.UNSPECIFIED,
-      stage,
-      attempt: extra.attempt ?? 0,
-      retryMax: extra.retryMax ?? null,
-      strippedKeys: strippedKeysHistory,
-      payload: body,
-      error,
-    });
-    assignBrowserInsertGlobals(error, body);
-  }
-
-  return { stage };
-}
-
 function logInsertSuccess(stage, body, meta = {}) {
   if (isProd || typeof console === "undefined" || !console.info) return;
   console.info(`[listing-insert] stage=${stage}`, {
@@ -62,69 +56,6 @@ function logInsertSuccess(stage, body, meta = {}) {
     strippedKeysHistory: meta.strippedKeysHistory ?? [],
     ...meta,
   });
-}
-
-/**
- * Last-resort insert: ONLY title, price, status pending, user_id (RLS-safe partial schema).
- */
-async function runMinimalFinalSafeInsert(
-  supabase,
-  originalPayload,
-  strippedKeys,
-  attempts,
-  priorError,
-  { mutationFlow = LISTING_MUTATION_FLOW.UNSPECIFIED } = {}
-) {
-  const minimalPayload = {
-    title: String(originalPayload?.title ?? "").trim() || "__bl_listing__",
-    price: Number(originalPayload?.price ?? 0),
-    status: "pending",
-    user_id: originalPayload?.user_id,
-  };
-
-  if (!isProd) {
-    console.info("[listing-insert:minimal-final-safe]", {
-      at: new Date().toISOString(),
-      survivingPayload: cloneJson(minimalPayload),
-      strippedKeysHistory: [...strippedKeys],
-      attempts,
-      priorError: priorError ? snapshotSupabaseError(priorError) : null,
-    });
-  }
-
-  if (!minimalPayload.user_id) {
-    const err = new Error("Minimal insert requires user_id");
-    console.error("[listing-insert:minimal-final-safe] aborted: missing user_id");
-    return { data: null, error: err, appliedPayload: minimalPayload };
-  }
-
-  const result = await supabase.from("listings").insert(minimalPayload).select().single();
-
-  if (!result.error && result.data) {
-    if (!isProd) {
-      console.info("[listing-insert:minimal-final-safe] success", {
-        id: result.data?.id ?? null,
-        survivingPayload: cloneJson(minimalPayload),
-      });
-    }
-    assignBrowserInsertGlobals(null, minimalPayload);
-    return { data: result.data, error: null, appliedPayload: minimalPayload };
-  }
-
-  if (result.error) {
-    logListingMutationFailureGrouped({
-      operation: LISTING_MUTATION_OPERATION.INSERT,
-      mutationFlow,
-      stage: "minimal-final-safe",
-      attempt: attempts,
-      retryMax: null,
-      strippedKeys,
-      payload: minimalPayload,
-      error: result.error,
-    });
-    assignBrowserInsertGlobals(result.error, minimalPayload);
-  }
-  return { data: null, error: result.error, appliedPayload: minimalPayload };
 }
 
 /**
@@ -141,7 +72,8 @@ async function runMinimalListingInsertProbe(supabase, originalPayload) {
     status: "pending",
   };
 
-  const result = await supabase.from("listings").insert(minimal).select().single();
+  const probeSelect = LISTING_INSERT_RETURN_TIERS[LISTING_INSERT_RETURN_TIERS.length - 1];
+  const result = await supabase.from("listings").insert(minimal).select(probeSelect).single();
 
   const summary = {
     at: new Date().toISOString(),
@@ -172,12 +104,50 @@ async function runMinimalListingInsertProbe(supabase, originalPayload) {
   return summary;
 }
 
+/**
+ * Resolve canonical district slug from form region fields (label, slug, or parent region).
+ * @param {Record<string, unknown>} form
+ * @returns {string}
+ */
+export function resolveListingDistrictSlug(form = {}) {
+  const candidates = [form?.district, form?.subregion_slug, form?.region_slug].filter(Boolean);
+  for (const raw of candidates) {
+    const slug = normalizeRegionSlug(raw);
+    if (slug && getRegionByAny(slug)) return slug;
+  }
+  return "";
+}
+
+/**
+ * Pre-mutation contract for draft insert/update (avoids NOT NULL / RLS churn).
+ * @param {{ form?: Record<string, unknown>, authUserId?: string|null }} args
+ */
+export function validateListingDraftContract({ form = {}, authUserId = null } = {}) {
+  const errors = {};
+  if (!authUserId) errors.auth = "Sign in to save your draft.";
+  const district = resolveListingDistrictSlug(form);
+  if (!district) errors.district = "Select a region.";
+  const property_type = String(form?.property_type ?? "").trim().toLowerCase();
+  if (!property_type) errors.property_type = "Select a property type.";
+  const listing_type = String(form?.listing_type ?? "sale").trim().toLowerCase();
+  if (listing_type !== "sale" && listing_type !== "rent") {
+    errors.listing_type = "Choose sale or rent.";
+  }
+  return {
+    ok: Object.keys(errors).length === 0,
+    errors,
+    district,
+    property_type,
+    listing_type,
+  };
+}
+
 function buildListingCoreFields({
   form,
   authUserId,
   linkedUnitId = "",
 }) {
-  const selectedSlug = normalizeRegionSlug(form?.district || "");
+  const selectedSlug = resolveListingDistrictSlug(form);
   const meta = getRegionByAny(selectedSlug);
   let regionSlug = selectedSlug;
   let subregionSlug = null;
@@ -245,6 +215,8 @@ function buildListingCoreFields({
   return payload;
 }
 
+export { DRAFT_INSERT_PAYLOAD_OMIT_KEYS, omitDraftInsertOnlyFields } from "./draftListingInsertContract";
+
 /** Full insert payload for submit-for-review / non-draft creation paths. */
 export function buildCreateListingPayload({
   form,
@@ -275,12 +247,6 @@ export function buildCreateListingPayload({
     reviewed_at: null,
     created_at: nowIso,
     updated_at: nowIso,
-    occupancy_status: null,
-    vacancy_status: null,
-    occupied_at: null,
-    vacated_at: null,
-    maintenance_hold: false,
-    seasonal_hold: false,
   };
 }
 
@@ -290,42 +256,36 @@ export function buildDraftListingPayload({
   authUserId,
   linkedUnitId = "",
 }) {
-  const nowIso = new Date().toISOString();
   const core = buildListingCoreFields({ form, authUserId, linkedUnitId });
   const title = core.title || "Untitled draft";
   const price = Number.isFinite(core.price) && core.price > 0 ? core.price : 0;
 
-  return {
+  const { body } = omitDraftInsertOnlyFields({
     ...core,
     title,
     price,
     status: "draft",
-    lifecycle_status: "draft",
-    moderation_status: "draft",
-    reviewed_by: null,
-    moderated_by: null,
-    published_by: null,
-    verified_by: null,
-    archived_by: null,
-    closed_by: null,
-    deleted_by: null,
-    published_at: null,
-    verified_at: null,
-    archived_at: null,
-    rented_at: null,
-    sold_at: null,
-    expired_at: null,
-    deleted_at: null,
-    reviewed_at: null,
-    created_at: nowIso,
+  });
+  return body;
+}
+
+/**
+ * PATCH payload for draft → pending review (step 5). Core listing fields + lifecycle only;
+ * omits user_id and unapplied enrichment columns (see listingsSchemaAllowlist).
+ */
+export function buildSubmitForReviewPatch({
+  form,
+  authUserId,
+  linkedUnitId = "",
+}) {
+  const nowIso = new Date().toISOString();
+  const core = buildListingCoreFields({ form, authUserId, linkedUnitId });
+  const { body } = omitSubmitForReviewWorkflowFields({
+    ...core,
+    ...buildSubmitForReviewStatusPatch(),
     updated_at: nowIso,
-    occupancy_status: null,
-    vacancy_status: null,
-    occupied_at: null,
-    vacated_at: null,
-    maintenance_hold: false,
-    seasonal_hold: false,
-  };
+  });
+  return body;
 }
 
 /** Partial update while staying in draft (controlled saves). Omits ownership ids — unchanged server-side. */
@@ -333,6 +293,7 @@ export function buildDraftAutosavePayload({
   form,
   authUserId,
   linkedUnitId = "",
+  sourceLifecycle = "",
 }) {
   const nowIso = new Date().toISOString();
   const core = buildListingCoreFields({
@@ -345,13 +306,20 @@ export function buildDraftAutosavePayload({
   const title = writable.title || "Untitled draft";
   const price = Number.isFinite(writable.price) ? writable.price : 0;
 
+  const lifecycleFields =
+    sourceLifecycle === LISTING_LIFECYCLE.ARCHIVED
+      ? buildModerationArchivePatch()
+      : {
+          status: "draft",
+          lifecycle_status: "draft",
+          moderation_status: "draft",
+        };
+
   return {
     ...writable,
     title,
     price,
-    status: "draft",
-    lifecycle_status: "draft",
-    moderation_status: "draft",
+    ...lifecycleFields,
     updated_at: nowIso,
   };
 }
@@ -363,24 +331,28 @@ export async function submitDraftListingForReview(supabase, {
   authUserId,
   linkedUnitId = "",
 }) {
-  const snapshot = buildCreateListingPayload({
+  const updates = buildSubmitForReviewPatch({
     form,
     authUserId,
     linkedUnitId,
   });
-  const { created_at: _c, user_id: _u, ...rest } = snapshot;
-  const updates = {
-    ...rest,
-    status: "pending",
-    lifecycle_status: "pending",
-    moderation_status: "pending_review",
-    updated_at: new Date().toISOString(),
-  };
-  return applyListingOwnershipStamp(supabase, {
-    listingId,
-    updates,
+  const eqFilters = authUserId ? { user_id: authUserId } : {};
+  const result = await executeListingUpdate(supabase, listingId, updates, {
     mutationFlow: LISTING_MUTATION_FLOW.SUBMIT_DRAFT_REVIEW,
+    eqFilters,
+    minimalFallback: buildSubmitForReviewMinimalFallback(),
+    returnRow: true,
   });
+  if (!isProd && typeof console !== "undefined" && console.info) {
+    console.info("[submit-draft-review]", {
+      listingId,
+      appliedPayload: result.appliedPayload,
+      returned: result.data,
+      stage: result.meta?.stage,
+      usedFallback: result.meta?.usedFallback,
+    });
+  }
+  return result;
 }
 
 function buildInsertSuccessMeta({ strippedKeys, attempts, usedMinimalFinalSafe }) {
@@ -395,130 +367,56 @@ function buildInsertSuccessMeta({ strippedKeys, attempts, usedMinimalFinalSafe }
 
 export async function safeInsertListing(supabase, payload, options = {}) {
   const mutationFlow = options.mutationFlow ?? LISTING_MUTATION_FLOW.UNSPECIFIED;
-  const sanitized = sanitizeListingMutationPayload({ ...payload }, {
+  const insertResult = await executeListingInsert(supabase, payload, {
     mutationFlow,
-    operation: LISTING_MUTATION_OPERATION.INSERT,
+    resolveDistrict: resolveListingDistrictSlug,
   });
-  const originalPayload = { ...sanitized };
-  let body = { ...sanitized };
-  let attempts = 0;
-  const maxAttempts = 48;
-  const strippedKeys = [];
-  let lastError = null;
-  let lastResult = null;
 
-  while (attempts < maxAttempts) {
-    attempts += 1;
-    const result = await supabase.from("listings").insert(body).select().single();
-    lastResult = result;
-    const { data, error } = result;
+  const {
+    data,
+    error,
+    appliedPayload,
+    meta = {},
+  } = insertResult;
+  const { strippedKeys = [], attempts = 0, usedMinimalFinalSafe = false, stage = "" } = meta;
 
-    if (!error) {
-      assignBrowserInsertGlobals(null, body);
-      logInsertSuccess("success", body, {
-        attempts,
-        strippedKeysHistory: strippedKeys,
-        skipOwnershipEnrichment: strippedKeys.length > 0,
-        usedMinimalFinalSafe: false,
-      });
-      return {
-        data,
-        error: null,
-        appliedPayload: body,
-        meta: buildInsertSuccessMeta({ strippedKeys, attempts, usedMinimalFinalSafe: false }),
-      };
-    }
-
-    lastError = error;
-    logInsertAttemptFull(`strip-or-fatal:${attempts}`, result, body, {
-      strippedColumnsSoFar: strippedKeys,
-      mutationFlow,
-      attempt: attempts,
-      retryMax: maxAttempts,
-    });
-
-    const missingFromMessage = extractMissingColumnName(error);
-    if (
-      missingFromMessage &&
-      !NEVER_STRIP_INSERT_KEYS.has(missingFromMessage) &&
-      missingFromMessage in body
-    ) {
-      strippedKeys.push(missingFromMessage);
-      const { [missingFromMessage]: _removed, ...next } = body;
-      body = next;
-      continue;
-    }
-
-    if (isMissingColumnError(error)) {
-      const stripKey = MUTATION_ENRICHMENT_STRIP_ORDER.find(
-        (k) => !NEVER_STRIP_INSERT_KEYS.has(k) && k in body
-      );
-      if (stripKey) {
-        strippedKeys.push(stripKey);
-        const { [stripKey]: _r, ...next } = body;
-        body = next;
-        continue;
-      }
-    }
-
-    logListingMutationFailureGrouped({
-      operation: LISTING_MUTATION_OPERATION.INSERT,
-      mutationFlow,
-      stage: "strip-loop-exhausted",
-      attempt: attempts,
-      retryMax: maxAttempts,
-      strippedKeys,
-      payload: body,
-      error: lastError,
-    });
-    assignBrowserInsertGlobals(lastError, body);
-    break;
-  }
-
-  const finalAttempt = await runMinimalFinalSafeInsert(
-    supabase,
-    originalPayload,
-    strippedKeys,
-    attempts,
-    lastError,
-    { mutationFlow }
-  );
-
-  if (!finalAttempt.error && finalAttempt.data) {
-    logInsertSuccess("minimal-final-safe-success", finalAttempt.appliedPayload, {
+  if (!error && data) {
+    assignBrowserInsertGlobals(null, appliedPayload);
+    logInsertSuccess(usedMinimalFinalSafe ? "minimal-final-safe-success" : "success", appliedPayload, {
       attempts,
       strippedKeysHistory: strippedKeys,
-      skipOwnershipEnrichment: true,
-      usedMinimalFinalSafe: true,
+      skipOwnershipEnrichment: meta.skipOwnershipEnrichment,
+      usedMinimalFinalSafe,
     });
     return {
-      data: finalAttempt.data,
+      data,
       error: null,
-      appliedPayload: finalAttempt.appliedPayload,
-      meta: buildInsertSuccessMeta({ strippedKeys, attempts, usedMinimalFinalSafe: true }),
+      appliedPayload,
+      meta: buildInsertSuccessMeta({ strippedKeys, attempts, usedMinimalFinalSafe }),
     };
   }
 
-  await runMinimalListingInsertProbe(supabase, originalPayload);
-
-  const terminalError = finalAttempt.error || lastError || new Error("Unable to insert listing safely.");
-  assignBrowserInsertGlobals(terminalError, body);
-
-  logListingMutationFailureGrouped({
-    operation: LISTING_MUTATION_OPERATION.INSERT,
-    mutationFlow,
-    stage: "terminal-after-minimal-final-safe",
-    attempt: attempts,
-    retryMax: maxAttempts,
-    strippedKeys,
-    payload: body,
-    error: terminalError,
-  });
+  if (error) {
+    logListingMutationFailureGrouped({
+      operation: LISTING_MUTATION_OPERATION.INSERT,
+      mutationFlow,
+      stage: stage || "write-contract-failed",
+      attempt: attempts,
+      retryMax: 2,
+      strippedKeys,
+      payload: appliedPayload,
+      error,
+    });
+    assignBrowserInsertGlobals(error, appliedPayload);
+    if (!isProd) {
+      await runMinimalListingInsertProbe(supabase, payload);
+    }
+  }
 
   return {
     data: null,
-    error: terminalError,
-    appliedPayload: body,
+    error: error || new Error("Unable to insert listing safely."),
+    appliedPayload,
     meta: {
       strippedKeys,
       attempts,
@@ -529,44 +427,69 @@ export async function safeInsertListing(supabase, payload, options = {}) {
 }
 
 /**
- * Listings that count toward free-agent active cap: not archived on status and
- * not archived on lifecycle_status when that column is used.
+ * Operational inventory counts for a user (canonical lifecycle resolution, no SQL drift).
+ * Uses {@link executeListingDashboardSelectQuery} count tiers — never inline count SELECT.
+ * @returns {Promise<{ active: number, pending: number, error: Error|null }>}
  */
-export async function getUserActiveListingCount(supabase, userId) {
-  let { count, error } = await supabase
-    .from("listings")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .neq("status", "draft")
-    .not("status", "eq", "archived")
-    .or("lifecycle_status.is.null,lifecycle_status.neq.archived");
+export async function fetchUserListingOperationalCounts(supabase, userId) {
+  if (!supabase || !userId) return { active: 0, pending: 0, error: null };
 
-  if (error && isMissingColumnError(error)) {
-    const legacy = await supabase
-      .from("listings")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .neq("status", "archived")
-      .neq("status", "draft");
-    return Number(legacy.count || 0);
-  }
+  const { data, error, terminal } = await executeListingDashboardSelectQuery(
+    supabase,
+    (select) => supabase.from("listings").select(select).eq("user_id", userId),
+    {
+      tiers: LISTING_DASHBOARD_COUNT_SELECT_TIERS,
+      buildSelect: (tier) => buildListingDashboardCountSelect(tier),
+    }
+  );
 
   if (error) {
-    if (typeof console !== "undefined" && console.warn) {
-      console.warn("[listing-active-count] canonical query failed; using legacy count", {
-        userId,
-        message: error?.message,
-        details: error?.details,
-      });
+    logDashboardMetricFailureOnce("listings operational counts", error, {
+      resource: "listings",
+      operation: "select",
+      filters: [{ column: "user_id", op: "eq", value: userId }],
+    });
+    if (terminal) {
+      return { active: 0, pending: 0, error };
     }
-    const legacy = await supabase
-      .from("listings")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .neq("status", "archived")
-      .neq("status", "draft");
-    return Number(legacy.count || 0);
+    return { active: 0, pending: 0, error };
   }
 
-  return Number(count || 0);
+  const { approved, pending } = tallyOperationalLifecycleCounts(data || []);
+  return { active: approved, pending, error: null };
+}
+
+/**
+ * Published / approved / live listings only — consumes simultaneous cap slots.
+ * Pending review, draft, archived, and rejected rows are excluded.
+ */
+export async function getUserActiveListingCount(supabase, userId) {
+  const { active, error } = await fetchUserListingOperationalCounts(supabase, userId);
+  if (error) return 0;
+  return active;
+}
+
+/** Permanently remove a private draft row (images + favorites + listing). */
+export async function discardDraftListing(supabase, { listingId, userId }) {
+  const id = String(listingId || "").trim();
+  const uid = String(userId || "").trim();
+  if (!id || !uid) return { error: new Error("Draft discard requires a listing and user.") };
+
+  const { data: row, error: loadError } = await supabase
+    .from("listings")
+    .select("id,user_id,status,lifecycle_status,moderation_status")
+    .eq("id", id)
+    .maybeSingle();
+  if (loadError) return { error: loadError };
+  if (!row) return { error: new Error("Draft not found.") };
+  if (String(row.user_id) !== uid) return { error: new Error("You cannot discard this draft.") };
+  if (getLifecycleStatus(row) !== LISTING_LIFECYCLE.DRAFT) {
+    return { error: new Error("Only drafts can be discarded from here.") };
+  }
+
+  await supabase.from("listing_images").delete().eq("listing_id", id);
+  await supabase.from("favorites").delete().eq("listing_id", id);
+
+  const { error: deleteError } = await supabase.from("listings").delete().eq("id", id).eq("user_id", uid);
+  return { error: deleteError || null };
 }

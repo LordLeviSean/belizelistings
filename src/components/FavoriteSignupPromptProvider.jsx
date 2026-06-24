@@ -8,8 +8,8 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/router";
 import { Heart } from "lucide-react";
+import { useAuthGate } from "./auth/AuthGateProvider";
 import styles from "./FavoriteSignupPrompt.module.css";
 
 const FavoriteSignupPromptContext = createContext(null);
@@ -17,7 +17,7 @@ const FavoriteSignupPromptContext = createContext(null);
 function noop() {}
 
 export function FavoriteSignupPromptProvider({ children }) {
-  const router = useRouter();
+  const { openLoginIfNeeded } = useAuthGate();
   const [open, setOpen] = useState(false);
   const titleId = useId();
   const descId = useId();
@@ -34,8 +34,8 @@ export function FavoriteSignupPromptProvider({ children }) {
 
   const confirmSignup = useCallback(() => {
     setOpen(false);
-    void router.push("/login?signup=1");
-  }, [router]);
+    openLoginIfNeeded({ signup: true });
+  }, [openLoginIfNeeded]);
 
   useEffect(() => {
     if (!open) return;

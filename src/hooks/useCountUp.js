@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 /**
  * Smoothly animates a displayed integer toward `target` (operational stat cards).
  */
-export function useCountUp(target, durationMs = 480) {
+export function useCountUp(target, durationMs = 580) {
   const [display, setDisplay] = useState(target);
   const displayRef = useRef(display);
   displayRef.current = display;

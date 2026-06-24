@@ -15,6 +15,23 @@ describe("canonicalListing", () => {
     expect(getLifecycleStatus({ status: "pending" })).toBe("pending");
   });
 
+  test("submit-for-review: submitted lifecycle and stale draft lifecycle resolve to pending", () => {
+    expect(
+      getLifecycleStatus({
+        status: "pending",
+        lifecycle_status: "submitted",
+        moderation_status: "pending_review",
+      })
+    ).toBe("pending");
+    expect(
+      getLifecycleStatus({
+        status: "pending",
+        lifecycle_status: "draft",
+        moderation_status: "pending_review",
+      })
+    ).toBe("pending");
+  });
+
   test("resolves moderation status with fallback", () => {
     expect(getModerationStatus({ moderation_status: "approved" })).toBe("approved");
     expect(getModerationStatus({ status: "pending" })).toBe("pending_review");
@@ -46,6 +63,27 @@ describe("canonicalListing", () => {
     expect(
       getLifecycleStatus({ lifecycle_status: "pending", status: "archived", moderation_status: "pending_review" })
     ).toBe("archived");
+  });
+
+  test("lifecycle_status published resolves to approved inventory", () => {
+    expect(
+      getLifecycleStatus({
+        status: "approved",
+        lifecycle_status: "published",
+        moderation_status: "approved",
+      })
+    ).toBe("approved");
+    expect(
+      normalizeOperationalLifecycle({
+        id: 1,
+        status: "approved",
+        lifecycle_status: "published",
+        moderation_status: "approved",
+      })
+    ).toBe(OPERATIONAL_LIFECYCLE_BUCKET.APPROVED);
+    expect(isPubliclyVisibleListing({ id: 1, lifecycle_status: "published", status: "approved" })).toBe(
+      true
+    );
   });
 
   test("isPubliclyVisibleListing: only canonical published", () => {

@@ -3,6 +3,35 @@ import { isChildRegion, normalizeRegionSlug } from "../constants/geographyLayer"
 import { getListingRegionSlug } from "./canonicalListing";
 import { isLandInventoryListing } from "./listingPresentation";
 
+function getListingMarketSignals(listing) {
+  return [
+    listing?.listing_type,
+    listing?.market_type,
+    listing?.listing_status,
+    listing?.status,
+    listing?.category,
+  ]
+    .map((value) => String(value || "").toLowerCase().trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+/** Canonical sale/rent kind for filter matching (UI uses `for-sale` / `rent`). */
+export function getListingMarketKind(listing) {
+  const signals = getListingMarketSignals(listing);
+  if (/(rent|rental|lease|for-rent|for rent)/.test(signals)) return "rent";
+  if (/(sale|sell|for-sale|for sale)/.test(signals)) return "sale";
+  return "sale";
+}
+
+function normalizeFilterMarketStatus(status) {
+  const raw = String(status || "all").trim().toLowerCase();
+  if (raw === "all") return "all";
+  if (raw === "rent" || raw === "for-rent" || raw === "for rent") return "rent";
+  if (raw === "sale" || raw === "for-sale" || raw === "for sale") return "sale";
+  return raw;
+}
+
 export function filterListings(listings, filters = {}) {
   const {
     district = null,
@@ -16,6 +45,8 @@ export function filterListings(listings, filters = {}) {
     baths = null,
   } = filters;
 
+  const marketFilter = normalizeFilterMarketStatus(status);
+
   return listings.filter((listing) => {
     // Region-aware filter with child-region continuity.
     if (district) {
@@ -26,8 +57,8 @@ export function filterListings(listings, filters = {}) {
       }
     }
 
-    // 🏷 Listing type filter
-    if (status !== "all" && listing.listing_type !== status) {
+    // Listing type filter — UI sends `for-sale`; rows may store `sale`.
+    if (marketFilter !== "all" && getListingMarketKind(listing) !== marketFilter) {
       return false;
     }
 

@@ -11,6 +11,11 @@ body {
   overflow-x: hidden;
 }
 
+/* Home + district share `home-map-page-root` — document scroll only */
+.home-map-page-root {
+  overflow: visible;
+}
+
 body {
   color: var(--text-primary);
   background: var(--bg-main);

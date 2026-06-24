@@ -8,6 +8,13 @@ import { fetchInquiriesForAgent } from "@/lib/listingInquiries";
 import { INQUIRY_STATUS } from "@/constants/inquiryModel";
 import { getLifecycleStatus } from "@/utils/canonicalListing";
 import { LISTING_LIFECYCLE } from "@/constants/operationalModel";
+import { LISTING_MODERATION_TOAST } from "@/constants/listingModerationNotifications";
+import {
+  AGENT_UPGRADE_REQUEST_STATUS,
+  AGENT_UPGRADE_TOAST,
+  formatAdminAgentUpgradeNotification,
+} from "@/constants/agentUpgradeNotifications";
+import { fetchPendingAgentUpgradeRequestForUser, fetchPendingAgentUpgradeRequests } from "@/lib/agentUpgradeRequests";
 import nav from "../SiteNavUnified.module.css";
 import styles from "./NotificationCenter.module.css";
 
@@ -25,7 +32,7 @@ function formatWhen(iso) {
 }
 
 const PENDING_OR =
-  "status.eq.pending,moderation_status.eq.pending_review,lifecycle_status.eq.pending";
+  "status.eq.pending,moderation_status.eq.pending_review,lifecycle_status.eq.pending,lifecycle_status.eq.submitted";
 
 export default function NotificationCenter() {
   const router = useRouter();
@@ -100,11 +107,23 @@ export default function NotificationCenter() {
         }
         next.push(...summaries, ...inquiryItems.slice(0, 8));
       } else if (role === "admin") {
-        const { count, error } = await supabase
-          .from("listings")
-          .select("id", { count: "exact", head: true })
-          .or(PENDING_OR);
+        const [{ count, error }, upgradeResult] = await Promise.all([
+          supabase.from("listings").select("id", { count: "exact", head: true }).or(PENDING_OR),
+          fetchPendingAgentUpgradeRequests(),
+        ]);
         const n = !error && typeof count === "number" ? count : 0;
+        const upgradeRows = upgradeResult.data || [];
+        for (const row of upgradeRows.slice(0, 5)) {
+          next.push({
+            id: `admin-agent-upgrade-${row.id}`,
+            category: "guidance",
+            title: "Agent upgrade request",
+            detail: formatAdminAgentUpgradeNotification(row.username || row.email),
+            href: "/admin?tab=upgrades",
+            when: formatWhen(row.requested_at),
+            unread: true,
+          });
+        }
         next.push({
           id: "admin-moderation",
           category: "moderation",
@@ -128,15 +147,130 @@ export default function NotificationCenter() {
           unread: false,
         });
       } else if (user) {
-        next.push({
-          id: "explorer",
-          category: "guidance",
-          title: "Operational awareness",
-          detail: "Publishing as an agent opens inquiries, drafts, and publication signals here.",
-          href: "/dashboard/user",
-          when: "",
-          unread: false,
-        });
+        const { data: listingRows } = await supabase
+          .from("listings")
+          .select("id,title,updated_at,lifecycle_status,status,moderation_status")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false })
+          .limit(40);
+
+        let pendingN = 0;
+        let draftN = 0;
+        let approvedN = 0;
+        let rejectedN = 0;
+        for (const L of listingRows || []) {
+          const lc = getLifecycleStatus(L);
+          if (lc === LISTING_LIFECYCLE.PENDING_REVIEW) pendingN += 1;
+          if (lc === LISTING_LIFECYCLE.DRAFT) draftN += 1;
+          if (lc === LISTING_LIFECYCLE.PUBLISHED) approvedN += 1;
+          if (lc === LISTING_LIFECYCLE.REJECTED) rejectedN += 1;
+        }
+
+        const summaries = [];
+        if (pendingN > 0) {
+          summaries.push({
+            id: "sum-pending-user",
+            category: "moderation",
+            title:
+              pendingN === 1
+                ? "Listing awaiting publication review"
+                : "Listings awaiting publication review",
+            detail: `${pendingN} in the editorial queue`,
+            href: role === "agent" ? "/dashboard/agent" : "/dashboard/user?tab=pending",
+            when: "",
+            unread: true,
+          });
+        }
+        if (rejectedN > 0) {
+          summaries.push({
+            id: "sum-rejected-user",
+            category: "moderation",
+            title: rejectedN === 1 ? "Listing needs revisions" : "Listings need revisions",
+            detail: LISTING_MODERATION_TOAST.REJECTED,
+            href: role === "agent" ? "/dashboard/agent" : "/dashboard/user?tab=my-listings",
+            when: "",
+            unread: true,
+          });
+        }
+        if (approvedN > 0) {
+          summaries.push({
+            id: "sum-approved-user",
+            category: "guidance",
+            title: approvedN === 1 ? "Listing published" : "Listings published",
+            detail: LISTING_MODERATION_TOAST.APPROVED,
+            href: role === "agent" ? "/dashboard/agent" : "/dashboard/user?tab=my-listings",
+            when: "",
+            unread: false,
+          });
+        }
+        if (draftN > 0) {
+          summaries.push({
+            id: "sum-drafts-user",
+            category: "draft",
+            title: "Draft in progress",
+            detail: `${draftN} draft${draftN === 1 ? "" : "s"} in your workspace`,
+            href: "/dashboard/create",
+            when: "",
+            unread: false,
+          });
+        }
+        if (summaries.length === 0) {
+          summaries.push({
+            id: "explorer",
+            category: "guidance",
+            title: "Operational awareness",
+            detail: "Publishing opens editorial review signals and listing status updates here.",
+            href: "/dashboard/user",
+            when: "",
+            unread: false,
+          });
+        }
+
+        const { data: pendingUpgrade } = await fetchPendingAgentUpgradeRequestForUser(user.id);
+        if (pendingUpgrade?.id) {
+          summaries.unshift({
+            id: "agent-upgrade-pending",
+            category: "guidance",
+            title: "Agent upgrade pending",
+            detail: "Your Agent access request is awaiting review.",
+            href: "/dashboard/user",
+            when: formatWhen(pendingUpgrade.requested_at),
+            unread: true,
+          });
+        }
+
+        const { data: recentUpgradeRows } = await supabase
+          .from("agent_upgrade_requests")
+          .select("id,status,reviewed_at,updated_at")
+          .eq("user_id", user.id)
+          .in("status", [AGENT_UPGRADE_REQUEST_STATUS.APPROVED, AGENT_UPGRADE_REQUEST_STATUS.REJECTED])
+          .order("reviewed_at", { ascending: false })
+          .limit(1);
+
+        const recentUpgrade = recentUpgradeRows?.[0];
+        if (recentUpgrade?.status === AGENT_UPGRADE_REQUEST_STATUS.APPROVED) {
+          summaries.unshift({
+            id: `agent-upgrade-approved-${recentUpgrade.id}`,
+            category: "guidance",
+            title: "Agent access approved",
+            detail: AGENT_UPGRADE_TOAST.APPROVED,
+            href: "/dashboard/agent",
+            when: formatWhen(recentUpgrade.reviewed_at || recentUpgrade.updated_at),
+            unread: false,
+          });
+        } else if (recentUpgrade?.status === AGENT_UPGRADE_REQUEST_STATUS.REJECTED) {
+          summaries.unshift({
+            id: `agent-upgrade-rejected-${recentUpgrade.id}`,
+            category: "moderation",
+            title: "Agent upgrade declined",
+            detail: AGENT_UPGRADE_TOAST.REJECTED,
+            href: "/dashboard/user",
+            when: formatWhen(recentUpgrade.reviewed_at || recentUpgrade.updated_at),
+            unread: true,
+          });
+        }
+
+        next.push(...summaries);
       }
     } catch {
       /* ignore */
@@ -154,6 +288,41 @@ export default function NotificationCenter() {
     if (!open) return;
     void load();
   }, [open, load]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const ch = supabase
+      .channel(`nav-notify-listings-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "listings", filter: `user_id=eq.${user.id}` },
+        () => void load()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "agent_upgrade_requests", filter: `user_id=eq.${user.id}` },
+        () => void load()
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [user?.id, load]);
+
+  useEffect(() => {
+    if (!user?.id || role !== "admin") return;
+    const ch = supabase
+      .channel(`nav-notify-admin-upgrades-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "agent_upgrade_requests" },
+        () => void load()
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [user?.id, role, load]);
 
   useEffect(() => {
     if (!user?.id || role !== "agent") return;
@@ -189,21 +358,33 @@ export default function NotificationCenter() {
   if (!user || loading) return null;
 
   const unreadCount = items.filter((x) => x.unread).length;
+  const badgeText = unreadCount > 99 ? "99+" : String(unreadCount);
 
   return (
     <div className={styles.root} ref={rootRef}>
       <button
         type="button"
-        className={`${nav.navLink} ${nav.navPillNotifications} ${open ? nav.navPillNotificationsActive : ""} ${styles.bellButton}`}
+        className={`${nav.navLink} ${nav.navPillNotifications} ${
+          open ? `${nav.navLinkActive} ${nav.navPillNotificationsActive}` : ""
+        }`}
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-label={unreadCount ? `Updates, ${unreadCount} unread` : "Operational updates"}
+        aria-label={
+          unreadCount
+            ? `Notifications, ${unreadCount} unread operational updates`
+            : "Notifications, operational updates"
+        }
         onClick={() => setOpen((o) => !o)}
       >
         <span className={nav.navLinkInner}>
-          <Bell className={`${nav.navIcon} ${styles.bellIcon}`} strokeWidth={1.85} aria-hidden />
+          <Bell className={nav.navIcon} fill="currentColor" strokeWidth={1.85} aria-hidden />
+          Notifications
+          {unreadCount > 0 ? (
+            <span className={`${styles.unreadBadge} ${styles.unreadBadgePulse}`} aria-hidden>
+              {badgeText}
+            </span>
+          ) : null}
         </span>
-        {unreadCount > 0 ? <span className={styles.unreadDot} aria-hidden /> : null}
       </button>
 
       {open ? (

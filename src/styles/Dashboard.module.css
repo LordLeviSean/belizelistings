@@ -1,5 +1,6 @@
 .page {
   min-height: 100vh;
+  overflow: visible;
   background: var(--bg-main);
   color: var(--text-primary);
 }
@@ -20,11 +21,17 @@
 }
 
 .main {
-  max-width: 1100px;
+  max-width: 1160px;
   margin: 0 auto;
-  padding: 0 16px 36px;
+  padding: 14px 16px 30px;
   position: relative;
   z-index: 1;
+}
+
+@media (max-width: 720px) {
+  .main {
+    padding: 10px 12px 20px;
+  }
 }
 
 .adminWrapper {
@@ -227,6 +234,16 @@ button.dashboardLink:disabled {
   flex-wrap: wrap;
 }
 
+@media (min-width: 1280px) {
+  .operationalStatsGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .operationalStatsGridSecondary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .toggleButton {
   border: 1px solid var(--border-subtle);
   border-radius: 999px;
@@ -403,6 +420,27 @@ button.dashboardLink:disabled {
   gap: 12px;
 }
 
+.operationalStatsGridSecondary {
+  margin-top: 10px;
+}
+
+.operationalStatClickable {
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  appearance: none;
+}
+
+.operationalStatClickable:focus-visible {
+  outline: 2px solid rgba(46, 139, 120, 0.55);
+  outline-offset: 2px;
+}
+
+.operationalStatDraft .operationalStatAccent {
+  background: linear-gradient(90deg, rgba(159, 179, 217, 0.55), rgba(130, 160, 210, 0.35));
+}
+
 .operationalStatCard {
   position: relative;
   overflow: hidden;
@@ -473,6 +511,7 @@ button.dashboardLink:disabled {
   color: rgba(22, 48, 52, 0.94);
   font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: color var(--dur-2) var(--ease-default), opacity var(--dur-2) var(--ease-default);
 }
 
 .operationalStatSub {
@@ -520,6 +559,477 @@ button.dashboardLink:disabled {
 
 .operationalStatUsers .operationalStatAccent {
   background: linear-gradient(90deg, rgba(100, 150, 200, 0.75), rgba(180, 210, 235, 0.4));
+}
+
+.operationalStatFavorites .operationalStatAccent {
+  background: linear-gradient(90deg, rgba(120, 165, 210, 0.78), rgba(200, 220, 245, 0.42));
+}
+
+.operationalStatInquiries .operationalStatAccent {
+  background: linear-gradient(90deg, rgba(255, 188, 128, 0.82), rgba(255, 236, 210, 0.45));
+}
+
+.operationalStatActive .operationalStatAccent {
+  background: linear-gradient(90deg, rgba(38, 150, 138, 0.92), rgba(140, 220, 205, 0.48));
+}
+
+.operationalStatLimit .operationalStatAccent {
+  background: linear-gradient(90deg, rgba(46, 139, 120, 0.88), rgba(160, 220, 205, 0.45));
+}
+
+.operationalStatLimit {
+  background: linear-gradient(168deg, rgba(255, 255, 255, 0.62), rgba(232, 248, 244, 0.45));
+}
+
+.operationalStatLimitExhausted {
+  background: linear-gradient(168deg, rgba(255, 252, 248, 0.72), rgba(255, 238, 228, 0.42));
+  border-color: rgba(210, 165, 148, 0.38);
+}
+
+.operationalStatLimitExhausted .operationalStatAccent {
+  background: linear-gradient(90deg, rgba(200, 130, 108, 0.72), rgba(255, 210, 190, 0.38));
+}
+
+.operationalStatLimitExhausted .operationalStatLabel {
+  color: rgba(88, 58, 52, 0.72);
+}
+
+.operationalStatLimitExhausted .operationalStatValue {
+  color: rgba(72, 48, 44, 0.9);
+}
+
+/* User dashboard — private coastal lounge (homepage sea-glass evolved) */
+.userDashboardPage {
+  background:
+    radial-gradient(ellipse 58% 46% at 6% 10%, rgba(108, 186, 168, 0.24), transparent 72%),
+    radial-gradient(ellipse 50% 42% at 96% 4%, rgba(152, 178, 198, 0.18), transparent 68%),
+    radial-gradient(ellipse 54% 44% at 90% 90%, rgba(198, 152, 128, 0.14), transparent 74%),
+    radial-gradient(ellipse 48% 40% at 12% 88%, rgba(118, 168, 148, 0.16), transparent 70%),
+    linear-gradient(
+      168deg,
+      #dceeea 0%,
+      #d6ebe4 24%,
+      #dce8f0 52%,
+      #e6e8ec 82%,
+      #e8f2ee 100%
+    );
+}
+
+.userDashboardPage::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.34;
+  background:
+    radial-gradient(ellipse 44% 38% at 18% 22%, rgba(96, 178, 158, 0.2), transparent 68%),
+    radial-gradient(ellipse 40% 36% at 82% 18%, rgba(168, 188, 218, 0.14), transparent 66%),
+    radial-gradient(ellipse 46% 40% at 72% 78%, rgba(188, 148, 122, 0.12), transparent 72%);
+  filter: blur(48px);
+}
+
+.userDashboardPage .main {
+  z-index: 1;
+}
+
+.userDashboardSurface {
+  position: relative;
+  isolation: isolate;
+}
+
+.userAtmosphereLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      172deg,
+      rgba(208, 232, 222, 0.62) 0%,
+      rgba(214, 236, 240, 0.48) 42%,
+      rgba(222, 228, 220, 0.42) 100%
+    );
+}
+
+.userAtmosphereLayer::before,
+.userAtmosphereLayer::after {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+}
+
+.userAtmosphereLayer::before {
+  opacity: 0.54;
+  background:
+    radial-gradient(ellipse 52% 46% at 8% 14%, rgba(108, 186, 168, 0.24), transparent 68%),
+    radial-gradient(ellipse 48% 42% at 92% 8%, rgba(142, 172, 198, 0.18), transparent 66%),
+    radial-gradient(ellipse 54% 44% at 82% 82%, rgba(198, 152, 128, 0.16), transparent 70%),
+    radial-gradient(ellipse 46% 40% at 14% 78%, rgba(168, 198, 178, 0.14), transparent 68%),
+    radial-gradient(ellipse 44% 38% at 58% 38%, rgba(88, 172, 152, 0.16), transparent 72%),
+    radial-gradient(ellipse 38% 34% at 36% 56%, rgba(124, 178, 148, 0.12), transparent 74%);
+  filter: blur(38px);
+}
+
+.userAtmosphereLayer::after {
+  opacity: 0.36;
+  background:
+    linear-gradient(168deg, rgba(228, 246, 240, 0.48) 0%, transparent 48%),
+    linear-gradient(108deg, rgba(236, 248, 244, 0.32) 0%, rgba(218, 232, 248, 0.24) 52%, transparent 78%),
+    radial-gradient(ellipse 72% 58% at 50% 100%, rgba(96, 168, 148, 0.1), transparent 65%);
+  filter: blur(26px);
+}
+
+.userAtmosphereDepth {
+  position: absolute;
+  inset: -8%;
+  pointer-events: none;
+  opacity: 0.42;
+  background:
+    radial-gradient(ellipse 62% 50% at 28% 62%, rgba(100, 158, 132, 0.18), transparent 70%),
+    radial-gradient(ellipse 56% 48% at 74% 48%, rgba(118, 188, 178, 0.14), transparent 68%),
+    radial-gradient(ellipse 48% 42% at 50% 18%, rgba(178, 148, 188, 0.08), transparent 72%);
+  filter: blur(44px);
+}
+
+.userAtmosphereVeil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(232, 246, 242, 0.78) 0%, rgba(234, 244, 248, 0.52) 48%, rgba(236, 246, 244, 0.32) 100%),
+    linear-gradient(185deg, rgba(255, 255, 255, 0.26) 0%, transparent 46%);
+}
+
+.userDashboardAboveArt {
+  position: relative;
+  z-index: 1;
+}
+
+.userActionPanel {
+  margin-top: 22px;
+  padding: 20px 20px 18px;
+  border-radius: calc(var(--radius) + 2px);
+  border: 1px solid var(--border-subtle);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.9), rgba(245, 252, 249, 0.72));
+  box-shadow: var(--elev-1);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.userActionHeadline {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: rgba(28, 56, 60, 0.95);
+}
+
+.userActionSubtext {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(72, 96, 92, 0.78);
+  max-width: 56ch;
+}
+
+.userTryRow {
+  margin: 14px 0 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(44, 72, 68, 0.88);
+}
+
+.userTryRemainder {
+  font-weight: 600;
+  color: rgba(46, 130, 118, 0.82);
+  letter-spacing: 0.01em;
+}
+
+.userCtaRow {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.userCtaSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(169, 188, 198, 0.38);
+  border-radius: 999px;
+  padding: 9px 16px;
+  color: rgba(52, 66, 75, 0.9);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(245, 249, 251, 0.9));
+  box-shadow:
+    0 10px 24px rgba(16, 28, 36, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.65) inset;
+  transition:
+    background 160ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    border-color 160ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    transform 160ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    box-shadow 160ms cubic-bezier(0.32, 0.06, 0.2, 1);
+}
+
+.userCtaSecondary:hover {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(239, 247, 243, 0.92));
+  border-color: rgba(46, 139, 120, 0.42);
+  transform: translateY(-1.5px);
+  box-shadow:
+    0 13px 28px rgba(16, 28, 36, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.68) inset,
+    0 0 22px rgba(46, 139, 120, 0.22);
+}
+
+.userPrimaryDisabled,
+.userPrimaryDisabled:disabled {
+  border-color: rgba(154, 210, 200, 0.3);
+  background: linear-gradient(165deg, rgba(244, 252, 249, 0.94), rgba(232, 246, 242, 0.9));
+  color: rgba(72, 108, 102, 0.74);
+  opacity: 1;
+  cursor: not-allowed;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset;
+  transform: none;
+  filter: none;
+}
+
+.userPrimaryDisabled:hover,
+.userPrimaryDisabled:disabled:hover {
+  transform: none;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset;
+  filter: none;
+}
+
+.userUpgradeRow {
+  margin-top: 12px;
+}
+
+.userUpgradeCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(100, 168, 218, 0.42);
+  border-radius: 999px;
+  padding: 10px 18px;
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: rgba(28, 72, 108, 0.94);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.88), rgba(228, 242, 252, 0.78)),
+    radial-gradient(ellipse 80% 120% at 12% 0%, rgba(120, 188, 230, 0.18), transparent 62%);
+  box-shadow:
+    var(--elev-1),
+    0 0 22px rgba(100, 170, 220, 0.14);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  transition:
+    background var(--dur-3) var(--ease-out-soft),
+    border-color var(--dur-3) var(--ease-out-soft),
+    transform var(--dur-3) var(--ease-out-soft),
+    box-shadow var(--dur-3) var(--ease-out-soft);
+}
+
+.userUpgradeCta:hover {
+  border-color: rgba(72, 148, 210, 0.52);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.96), rgba(220, 238, 252, 0.86)),
+    radial-gradient(ellipse 80% 120% at 12% 0%, rgba(100, 176, 228, 0.22), transparent 62%);
+  transform: translateY(-1.5px);
+  box-shadow:
+    var(--elev-2),
+    0 0 28px rgba(88, 160, 220, 0.2);
+}
+
+.userPlaceholderGrid {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.agentBenefitsList {
+  margin: 0;
+  padding-left: 0;
+  color: rgba(40, 68, 62, 0.88);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.agentBenefitsList li {
+  margin-bottom: 6px;
+  list-style: none;
+  position: relative;
+  padding-left: 1.1rem;
+}
+
+.agentBenefitsList li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: rgba(72, 140, 120, 0.82);
+  font-weight: 600;
+}
+
+.userPlaceholderCard {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px dashed rgba(160, 182, 178, 0.45);
+  background: rgba(255, 255, 255, 0.42);
+  opacity: 0.88;
+}
+
+.userPlaceholderTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: rgba(42, 68, 66, 0.72);
+}
+
+.userPlaceholderHint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(86, 102, 100, 0.62);
+}
+
+.userPlaceholderBadge {
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(110, 128, 124, 0.72);
+}
+
+.userTierBlock {
+  margin-top: 18px;
+  padding: 18px 18px 16px;
+  border-radius: calc(var(--radius) + 2px);
+  border: 1px solid rgba(154, 210, 200, 0.28);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.9), rgba(236, 248, 244, 0.72));
+  box-shadow: var(--elev-1);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.userTierHeader {
+  margin-bottom: 12px;
+}
+
+.userTierTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: rgba(28, 56, 60, 0.95);
+}
+
+.userTierSubtext {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(72, 96, 92, 0.78);
+  max-width: 56ch;
+}
+
+.userTierGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.userTierStat {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(154, 210, 200, 0.22);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.userTierStatLabel {
+  display: block;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(86, 102, 100, 0.72);
+}
+
+.userTierStatValue {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: rgba(32, 68, 62, 0.94);
+}
+
+.userTierSummary {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: rgba(72, 96, 92, 0.82);
+}
+
+.userTierActions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.userTierBrokerPlaceholder {
+  font-size: 12px;
+  color: rgba(72, 96, 108, 0.78);
+  max-width: 42ch;
+}
+
+.userListingToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.userListingSearchWrap {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.userListingSearch {
+  width: 100%;
+  border: 1px solid rgba(154, 210, 200, 0.35);
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.88);
+  color: rgba(32, 52, 56, 0.94);
+}
+
+.userListingSelect {
+  border: 1px solid rgba(154, 210, 200, 0.35);
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.88);
+  color: rgba(32, 52, 56, 0.94);
+  min-width: 140px;
+}
+
+.statusNeedsEdits {
+  color: rgba(100, 72, 32, 0.92);
+  border-color: rgba(220, 180, 100, 0.48);
+  background: linear-gradient(135deg, rgba(255, 244, 220, 0.62), rgba(248, 210, 150, 0.22));
 }
 
 .rejectedTone {
@@ -573,8 +1083,9 @@ button.dashboardLink:disabled {
 }
 
 .emptyState {
-  opacity: 0.6;
   font-size: 14px;
+  line-height: 1.55;
+  color: rgba(55, 82, 78, 0.72);
 }
 
 .emptyState h4,
@@ -583,7 +1094,8 @@ button.dashboardLink:disabled {
 }
 
 .emptyState p {
-  margin-top: 4px;
+  margin-top: 6px;
+  color: rgba(55, 82, 78, 0.68);
 }
 
 .dashboardListingBlock {
@@ -1165,6 +1677,123 @@ button.dashboardLink:disabled {
   gap: 12px;
 }
 
+.userListingCardTop {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 12px 14px;
+  align-items: start;
+}
+
+.userListingThumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: rgba(238, 246, 242, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.userListingThumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.userListingThumbPlaceholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: rgba(55, 72, 68, 0.55);
+  padding: 6px;
+  text-align: center;
+}
+
+.userListingCardBody {
+  min-width: 0;
+}
+
+.userListingActions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 0;
+  align-self: center;
+  min-width: 7.25rem;
+  max-width: 9rem;
+}
+
+.userListingActions .approveButton,
+.userListingActions .deleteListingButton {
+  width: 100%;
+  height: auto;
+  min-height: 34px;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .userListingCardTop {
+    grid-template-columns: 80px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+
+  .userListingActions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-self: stretch;
+    max-width: none;
+    min-width: 0;
+    margin-top: 2px;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .statusToggle {
+    gap: 6px;
+  }
+
+  .toggleButton {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  .operationalStatsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .userTierGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .userListingToolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .userListingSelect {
+    width: 100%;
+  }
+
+  .userListingActions .approveButton,
+  .userListingActions .deleteListingButton {
+    width: auto;
+    min-height: 34px;
+  }
+}
+
 .pendingCard {
   display: grid;
   grid-template-columns: 140px 1fr;
@@ -1196,10 +1825,11 @@ button.dashboardLink:disabled {
 }
 
 .pendingImage {
+  position: relative;
   width: 100%;
   height: 96px;
   border-radius: 10px;
-  object-fit: cover;
+  overflow: hidden;
   background: rgba(238, 246, 242, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
@@ -1290,10 +1920,12 @@ button.dashboardLink:disabled {
 }
 
 .listingsThumb {
+  position: relative;
   width: 74px;
   height: 56px;
   border-radius: 8px;
-  object-fit: cover;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .rowActions {
@@ -1309,13 +1941,18 @@ button.dashboardLink:disabled {
   border-radius: 50%;
   margin-right: 8px;
   background: #8ccbb7;
-  box-shadow: 0 0 12px rgba(120, 178, 164, 0.55);
-  animation: pulseDot 1.4s infinite ease-in-out;
+  box-shadow: var(--glow-soft);
+  animation: pulseDot 2.8s var(--ease-in-out) infinite;
 }
 
 @keyframes pulseDot {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.12); }
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .modalBackdrop {
@@ -1394,6 +2031,12 @@ button.dashboardLink:disabled {
   color: #5f799f;
   border-color: rgba(159, 179, 217, 0.42);
   background: rgba(159, 179, 217, 0.16);
+}
+
+.statusLegacyDraft {
+  color: rgba(118, 86, 38, 0.92);
+  border-color: rgba(230, 195, 128, 0.52);
+  background: linear-gradient(135deg, rgba(255, 238, 210, 0.58), rgba(248, 210, 155, 0.22));
 }
 
 .statusVacant {
@@ -1517,4 +2160,11 @@ button.dashboardLink:disabled {
 .rejectButton:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liveDot {
+    animation: none;
+    opacity: 0.92;
+  }
 }

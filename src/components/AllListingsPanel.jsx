@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
+import { fetchProfileRowsByIds } from "../lib/profileSelectContract";
 import { sanitizeListingMutationPayload } from "../lib/listingPayloadSanitize";
 import { LISTING_MUTATION_FLOW, LISTING_MUTATION_OPERATION } from "../lib/listingMutationDiagnostics";
 import { clearAllFavoritesForListing } from "../lib/favorites";
@@ -28,6 +29,9 @@ import {
 } from "../utils/ownershipAttribution";
 import { OWNERSHIP_ACTIONS } from "../constants/ownershipModel";
 import PremiumEmptyState, { getPremiumEmptyForRegistryFilter } from "./ui/PremiumEmptyState";
+import ListingMediaImage from "./listing/ListingMediaImage";
+import { IMAGE_QUALITY_THUMB, IMAGE_SIZES_ADMIN_ROW_THUMB } from "../constants/imageQuality";
+import { formatProfileDisplayLabel } from "../lib/profileDisplayName";
 
 const EDITOR_STEPS = [
   { id: "basic", label: "Basic" },
@@ -46,7 +50,7 @@ const STATUS_FILTERS = [
   { label: "Archived", value: "archived" },
 ];
 
-export default function AllListingsPanel({ onAction }) {
+export default function AllListingsPanel({ onAction, profilesRevision = 0, listingsRevision = 0 }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [listings, setListings] = useState([]);
@@ -91,19 +95,21 @@ export default function AllListingsPanel({ onAction }) {
       ),
     ];
     if (ownerIds.length > 0) {
-      const { data: profileRows } = await supabase.from("profiles").select("id,email,full_name").in("id", ownerIds);
+      const { data: profileRows } = await fetchProfileRowsByIds(supabase, ownerIds);
       const nextOwnerMap = {};
       for (const profile of profileRows || []) {
-        nextOwnerMap[String(profile.id)] = profile.full_name || profile.email || String(profile.id).slice(0, 8);
+        nextOwnerMap[String(profile.id)] = formatProfileDisplayLabel(profile);
       }
       setOwnerMap(nextOwnerMap);
+    } else {
+      setOwnerMap({});
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
     loadListings();
-  }, [loadListings]);
+  }, [loadListings, profilesRevision, listingsRevision]);
   const filteredListings = useMemo(() => {
     if (statusFilter === "all") return listings;
     return listings.filter((listing) => {
@@ -505,7 +511,16 @@ export default function AllListingsPanel({ onAction }) {
         const rowIsLand = isLandInventoryListing(listing);
         return (
         <div key={listing.id} className={styles.listingsRow}>
-          <img src={imageUrl} alt={listing.title || "Listing"} className={styles.listingsThumb} />
+          <div className={styles.listingsThumb}>
+            <ListingMediaImage
+              src={imageUrl}
+              alt={listing.title || "Listing"}
+              fill
+              sizes={IMAGE_SIZES_ADMIN_ROW_THUMB}
+              quality={IMAGE_QUALITY_THUMB}
+              hoverZoom={false}
+            />
+          </div>
           <div>
             {editingId === String(listing.id) ? null : (
               <>

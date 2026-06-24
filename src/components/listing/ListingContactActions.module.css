@@ -1,18 +1,24 @@
 .wrap {
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(72, 140, 128, 0.14);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(72, 140, 128, 0.1);
 }
 
 .row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  justify-content: space-between;
 }
 
-.contactSlot {
-  position: relative;
+.rowLead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
 .primaryBtn {
@@ -35,44 +41,6 @@
 .primaryBtn:hover {
   border-color: rgba(52, 130, 118, 0.42);
   transform: translateY(var(--hover-lift-xs));
-}
-
-.chevron {
-  opacity: 0.72;
-  margin-left: 2px;
-}
-
-.menu {
-  position: absolute;
-  left: 0;
-  top: calc(100% + 8px);
-  min-width: 220px;
-  padding: 6px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.97);
-  border: 1px solid rgba(110, 185, 178, 0.28);
-  box-shadow: var(--elev-2);
-  z-index: 30;
-}
-
-.menuItem {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: none;
-  background: transparent;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: rgba(28, 58, 54, 0.92);
-  cursor: pointer;
-  text-decoration: none;
-  transition: background var(--dur-2) var(--ease-out-soft);
-}
-
-.menuItem:hover {
-  background: rgba(232, 248, 244, 0.85);
 }
 
 .secondaryBtn {
@@ -99,7 +67,7 @@
 .shareBtn {
   width: 40px;
   height: 40px;
-  margin-left: auto;
+  flex-shrink: 0;
   border-radius: 999px;
   border: 1px solid rgba(146, 198, 190, 0.48);
   background: rgba(255, 255, 255, 0.92);
@@ -123,8 +91,12 @@
     align-items: stretch;
   }
 
+  .rowLead {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .shareBtn {
-    margin-left: 0;
     align-self: flex-end;
   }
 }

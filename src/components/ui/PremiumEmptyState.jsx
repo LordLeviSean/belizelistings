@@ -11,13 +11,13 @@ const VARIANT_DEFAULTS = {
     description: "Save listings you love — they’ll appear here.",
   },
   search: {
-    title: "No matches in this view",
-    description: "Widen your search, try another district, or return to the map to discover more.",
+    title: "Nothing in this view yet",
+    description: "Try a wider area, another district, or the homepage map — new inventory arrives often.",
   },
   district: {
-    title: "We're sorry",
+    title: "Quiet in this slice for now",
     description:
-      "There are currently no listings available. Explore another district or return later! New listings are added often.",
+      "No listings match what you have selected. Ease a filter, pick another district, or check back soon — the map updates as inventory lands.",
   },
   listings: {
     title: "Start building your Belize inventory",

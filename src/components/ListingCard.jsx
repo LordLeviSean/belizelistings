@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Heart } from "lucide-react";
+import { IMAGE_QUALITY_CARD } from "@/constants/imageQuality";
 import ListingMediaImage from "./listing/ListingMediaImage";
 import ShareListingIconButton from "./ShareListingIconButton";
 import styles from "./ListingCard.module.css";
@@ -54,7 +55,7 @@ export default function ListingCard({
               alt=""
               fill
               sizes="(max-width: 640px) 28vw, 112px"
-              quality={82}
+              quality={IMAGE_QUALITY_CARD}
               hoverZoom
             />
           </div>

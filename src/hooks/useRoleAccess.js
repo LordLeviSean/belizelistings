@@ -1,57 +1,39 @@
-import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
-import { PLATFORM_TIERS, resolveTierFromProfile } from "../constants/operationalModel";
-import { getTrustTierCapabilities, resolveProfileVerification } from "../constants/trustModel";
+import { PLATFORM_TIERS } from "../constants/operationalModel";
+import { getTrustTierCapabilities } from "../constants/trustModel";
+import useUserRole from "./useUserRole";
 
-export default function useRoleAccess(userId) {
-  const [profile, setProfile] = useState(null);
-  const [roleLoading, setRoleLoading] = useState(Boolean(userId));
+/**
+ * Role/tier capabilities for gated flows (create workspace, listing detail).
+ * Reads the canonical profile from {@link UserRoleProvider} — no extra `profiles` GET.
+ */
+export default function useRoleAccess(requestedUserId) {
+  const { user, profile, tier, verification, trustCapabilities, loading, role } = useUserRole();
 
-  useEffect(() => {
-    if (!userId) {
-      setProfile(null);
-      setRoleLoading(false);
-      return;
-    }
+  const sessionUserId = user?.id ?? null;
+  const matchesSession =
+    !requestedUserId || !sessionUserId || String(requestedUserId) === String(sessionUserId);
+  const profileRow = matchesSession ? profile : null;
+  const roleLoading = loading || (Boolean(requestedUserId) && !matchesSession);
 
-    let cancelled = false;
-    setRoleLoading(true);
-
-    const loadProfile = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (!cancelled) {
-        setProfile(data ?? null);
-        setRoleLoading(false);
-      }
-    };
-
-    loadProfile();
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  const tier = resolveTierFromProfile(profile);
   const isAdmin = tier === PLATFORM_TIERS.ADMIN;
   const isAgent = tier === PLATFORM_TIERS.AGENT_FREE || tier === PLATFORM_TIERS.AGENT_PRO;
-  const verification = resolveProfileVerification(profile || {});
-  const trustCapabilities = getTrustTierCapabilities(tier);
+  const isRegularUser = String(profileRow?.role || role || "").toLowerCase() === "user";
+  const canCreateListingsAsUser = isRegularUser && tier === PLATFORM_TIERS.PUBLIC;
+  const effectiveVerification = verification;
+  const effectiveTrustCapabilities = trustCapabilities;
 
   return {
-    profile,
+    profile: profileRow,
+    role: String(profileRow?.role || role || "").trim().toLowerCase(),
     tier,
-    verification,
-    trustCapabilities,
+    verification: effectiveVerification,
+    trustCapabilities: effectiveTrustCapabilities,
     roleLoading,
     isAdmin,
     isAgent,
+    isRegularUser,
     canAccessDashboard: isAdmin || isAgent,
-    canCreateListings: isAdmin || isAgent,
+    canCreateListings: isAdmin || isAgent || canCreateListingsAsUser,
     canModerateListings: isAdmin,
   };
 }

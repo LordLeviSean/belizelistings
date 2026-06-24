@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
+import { fetchProfileRowsByIds } from "../lib/profileSelectContract";
 import { sanitizeListingMutationPayload } from "../lib/listingPayloadSanitize";
 import { LISTING_MUTATION_FLOW, LISTING_MUTATION_OPERATION } from "../lib/listingMutationDiagnostics";
 import { clearAllFavoritesForListing } from "../lib/favorites";
@@ -20,6 +21,7 @@ import {
 } from "../utils/ownershipAttribution";
 import { OWNERSHIP_ACTIONS } from "../constants/ownershipModel";
 import PremiumEmptyState, { getPremiumEmptyForRegistryFilter } from "./ui/PremiumEmptyState";
+import { formatProfileDisplayLabel } from "../lib/profileDisplayName";
 
 const FILTERS = [
   { label: "All", value: "all" },
@@ -39,7 +41,7 @@ const EDITOR_STEPS = [
 ];
 const REGION_OPTIONS = getSelectableRegions();
 
-export default function OperatorListingsPanel({ onAction }) {
+export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [listings, setListings] = useState([]);
@@ -84,10 +86,10 @@ export default function OperatorListingsPanel({ onAction }) {
       ),
     ];
     if (ownerIds.length > 0) {
-      const { data: profileRows } = await supabase.from("profiles").select("id,email,full_name").in("id", ownerIds);
+      const { data: profileRows } = await fetchProfileRowsByIds(supabase, ownerIds);
       const nextOwnerMap = {};
       for (const profile of profileRows || []) {
-        nextOwnerMap[String(profile.id)] = profile.full_name || profile.email || String(profile.id).slice(0, 8);
+        nextOwnerMap[String(profile.id)] = formatProfileDisplayLabel(profile);
       }
       setOwnerMap(nextOwnerMap);
     } else {
@@ -98,7 +100,7 @@ export default function OperatorListingsPanel({ onAction }) {
 
   useEffect(() => {
     loadListings();
-  }, [loadListings]);
+  }, [loadListings, profilesRevision]);
 
   useEffect(() => {
     const channel = supabase

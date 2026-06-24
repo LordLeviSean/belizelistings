@@ -1,7 +1,8 @@
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import useAuth from "../hooks/useAuth";
 import { supabase } from "../lib/supabaseClient";
+import { fetchProfileRowsByIds } from "../lib/profileSelectContract";
 import { traceAction } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
 import { getRegionLabel } from "../constants/geographyLayer";
@@ -21,12 +22,17 @@ import {
 import { OWNERSHIP_ACTIONS } from "../constants/ownershipModel";
 import styles from "../styles/Dashboard.module.css";
 import PremiumEmptyState from "./ui/PremiumEmptyState";
+import ListingMediaImage from "./listing/ListingMediaImage";
+import { IMAGE_QUALITY_THUMB, IMAGE_SIZES_DASHBOARD_THUMB } from "../constants/imageQuality";
+import { formatProfileDisplayLabel } from "../lib/profileDisplayName";
+import { invalidateApprovedListingsCache } from "../lib/approvedListingsCache";
+import useUserDashboardStore from "../stores/useUserDashboardStore";
 
 function formatDistrict(district = "") {
   return getRegionLabel(district);
 }
 
-export default function PendingListingsPanel({ onAction }) {
+export default function PendingListingsPanel({ onAction, profilesRevision = 0 }) {
   const router = useRouter();
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -36,7 +42,7 @@ export default function PendingListingsPanel({ onAction }) {
   const [actionKey, setActionKey] = useState("");
   const [removedIds, setRemovedIds] = useState([]);
 
-  const loadPending = async () => {
+  const loadPending = useCallback(async () => {
     setLoading(true);
     let { data, error } = await supabase
       .from("listings")
@@ -49,7 +55,9 @@ export default function PendingListingsPanel({ onAction }) {
           )
         `
       )
-      .or(`status.eq.${getRepublishStatus()},lifecycle_status.eq.pending,moderation_status.eq.pending_review`)
+      .or(
+        `status.eq.${getRepublishStatus()},lifecycle_status.eq.pending,lifecycle_status.eq.submitted,moderation_status.eq.pending_review`
+      )
       .order("created_at", { ascending: false });
     if (error && isMissingColumnError(error)) {
       ({ data, error } = await supabase
@@ -85,24 +93,21 @@ export default function PendingListingsPanel({ onAction }) {
       ),
     ];
     if (ownerIds.length > 0) {
-      const { data: profileRows } = await supabase
-        .from("profiles")
-        .select("id,email,full_name")
-        .in("id", ownerIds);
+      const { data: profileRows } = await fetchProfileRowsByIds(supabase, ownerIds);
       const nextOwnerMap = {};
       for (const profile of profileRows || []) {
-        nextOwnerMap[String(profile.id)] = profile.full_name || profile.email || String(profile.id).slice(0, 8);
+        nextOwnerMap[String(profile.id)] = formatProfileDisplayLabel(profile);
       }
       setOwnerMap(nextOwnerMap);
     } else {
       setOwnerMap({});
     }
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     void loadPending();
-  }, []);
+  }, [loadPending, profilesRevision]);
   const agentSnapshotMap = useMemo(
     () => buildAgentOperationalSnapshotMap(listings),
     [listings]
@@ -123,7 +128,7 @@ export default function PendingListingsPanel({ onAction }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [loadPending]);
 
   const moderateListing = async (listingId, nextStatus) => {
     if (!user?.id) return;
@@ -137,9 +142,6 @@ export default function PendingListingsPanel({ onAction }) {
     const { error } = await applyListingLifecycleAction(supabase, {
       listingId,
       action,
-      extraUpdates: {
-        status: nextStatus,
-      },
     });
     traceAction({
       type: `admin_${nextStatus}_pending_result`,
@@ -154,12 +156,28 @@ export default function PendingListingsPanel({ onAction }) {
     if (nextStatus === "approved") {
       await clearAllFavoritesForListing(listingId);
     }
+    const approved = getModerationStatus("approved");
+    setListings((prev) =>
+      prev.map((row) =>
+        String(row.id) === String(listingId)
+          ? {
+              ...row,
+              status: nextStatus,
+              lifecycle_status: nextStatus === approved ? approved : nextStatus,
+              moderation_status: nextStatus === approved ? "approved" : "rejected",
+            }
+          : row
+      )
+    );
     setRemovedIds((prev) => [...prev, String(listingId)]);
     window.setTimeout(() => {
       setListings((prev) => prev.filter((row) => String(row.id) !== String(listingId)));
       setRemovedIds((prev) => prev.filter((id) => id !== String(listingId)));
     }, 220);
-    onAction?.(`${nextStatus === "approved" ? "Approved" : "Rejected"} pending listing`);
+    invalidateApprovedListingsCache();
+    useUserDashboardStore.getState().invalidate();
+    await onAction?.(`${nextStatus === "approved" ? "Approved" : "Rejected"} pending listing`);
+    void loadPending();
     showToast({
       type: "success",
       message: nextStatus === "approved" ? "Listing approved" : "Listing moved to Rejected",
@@ -201,7 +219,16 @@ export default function PendingListingsPanel({ onAction }) {
             key={listingKey}
             className={`${styles.pendingCard} ${removedIds.includes(listingKey) ? styles.pendingCardRemoving : ""}`}
           >
-            <img src={firstImage} alt={listing.title || "Listing"} className={styles.pendingImage} />
+            <div className={styles.pendingImage}>
+              <ListingMediaImage
+                src={firstImage}
+                alt={listing.title || "Listing"}
+                fill
+                sizes={IMAGE_SIZES_DASHBOARD_THUMB}
+                quality={IMAGE_QUALITY_THUMB}
+                hoverZoom={false}
+              />
+            </div>
             <div className={styles.pendingBody}>
               <div className={styles.pendingMeta}>
                 <p className={styles.pendingTitle}><strong>{listing.title || "Untitled listing"}</strong></p>

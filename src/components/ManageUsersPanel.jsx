@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabaseClient";
 import { clearAllFavoritesForListing } from "../lib/favorites";
 import { traceAction } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
+import { fetchAllProfileRows } from "../lib/profileSelectContract";
 import { isMissingColumnError } from "../lib/supabaseCompat";
 import { sanitizeListingMutationPayload } from "../lib/listingPayloadSanitize";
 import { LISTING_MUTATION_FLOW, LISTING_MUTATION_OPERATION } from "../lib/listingMutationDiagnostics";
@@ -12,6 +13,7 @@ import { getLifecycleStatus } from "../utils/canonicalListing";
 import { normalizeUsername, validateUsernameCandidate } from "../lib/usernameRules";
 import styles from "../styles/Dashboard.module.css";
 import mu from "./ManageUsersPanel.module.css";
+import { formatProfileDisplayLabel } from "../lib/profileDisplayName";
 
 function listingOwnerProfileId(listing) {
   return String(listing?.user_id || listing?.agent_id || "").trim();
@@ -39,7 +41,7 @@ async function loadListingsForProfileId(supabaseClient, profileId) {
   return [];
 }
 
-export default function ManageUsersPanel({ onAction }) {
+export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [users, setUsers] = useState([]);
@@ -63,7 +65,7 @@ export default function ManageUsersPanel({ onAction }) {
 
   const loadUsers = useCallback(async () => {
     setUsersLoading(true);
-    const { data: usersData, error: usersError } = await supabase.from("profiles").select("*");
+    const { data: usersData, error: usersError } = await fetchAllProfileRows(supabase);
     if (usersError) {
       console.error("[manage-users-panel] profiles load error", usersError);
     }
@@ -81,13 +83,12 @@ export default function ManageUsersPanel({ onAction }) {
 
   useEffect(() => {
     void loadUsers();
-  }, [loadUsers]);
+  }, [loadUsers, profilesRevision]);
 
   useEffect(() => {
     let debounceL;
-    let debounceP;
     const channel = supabase
-      .channel("admin-listings-users-v2")
+      .channel("admin-manage-users-listings")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "listings" },
@@ -102,24 +103,13 @@ export default function ManageUsersPanel({ onAction }) {
           }, 420);
         }
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "profiles" },
-        () => {
-          clearTimeout(debounceP);
-          debounceP = setTimeout(() => {
-            void loadUsers();
-          }, 420);
-        }
-      )
       .subscribe();
 
     return () => {
       clearTimeout(debounceL);
-      clearTimeout(debounceP);
       supabase.removeChannel(channel);
     };
-  }, [fetchListingsForUser, loadUsers]);
+  }, [fetchListingsForUser]);
 
   const listingBuckets = useMemo(() => {
     const byUser = {};
@@ -319,7 +309,12 @@ export default function ManageUsersPanel({ onAction }) {
         const archived = userListings.filter((l) => getLifecycleStatus(l) === "archived").length;
         const roleOk = isRoleUnlocked(user.id);
         const listOk = isListingsUnlocked(user.id);
-        const displayUsername = user.username ? String(user.username) : "—";
+        const displayUsername = formatProfileDisplayLabel({
+          username: user.username,
+          full_name: user.full_name,
+          email: user.email,
+          id: user.id,
+        });
 
         return (
           <div key={user.id} className={`${styles.card} ${mu.userCard}`}>

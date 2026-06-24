@@ -25,8 +25,16 @@ export function getLifecycleStatus(listing = {}) {
   if (st === "rejected" || lcRaw === "rejected" || mod === "rejected") {
     return normalizeLifecycleStatus("rejected");
   }
+  const isPendingQueue =
+    st === LISTING_LIFECYCLE.PENDING_REVIEW ||
+    mod === "pending_review" ||
+    lcRaw === "submitted" ||
+    lcRaw === LISTING_LIFECYCLE.PENDING_REVIEW;
+  if (isPendingQueue) return LISTING_LIFECYCLE.PENDING_REVIEW;
+
   if (listing?.lifecycle_status != null && String(listing.lifecycle_status).trim() !== "") {
-    return normalizeLifecycleStatus(listing.lifecycle_status);
+    const fromLifecycle = normalizeLifecycleStatus(listing.lifecycle_status);
+    if (fromLifecycle !== LISTING_LIFECYCLE.DRAFT) return fromLifecycle;
   }
   return normalizeLifecycleStatus(listing?.status || "draft");
 }

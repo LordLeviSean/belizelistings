@@ -1,4 +1,4 @@
-import { Building2, Network, Scale, Shield } from "lucide-react";
+import { Building2, Network, Scale, Shield, User } from "lucide-react";
 import { DASHBOARD_ROLE_META } from "@/constants/dashboardRoles";
 import styles from "./RoleBadge.module.css";
 
@@ -7,6 +7,7 @@ const TONE_CLASS = {
   broker: styles.toneBroker,
   operator: styles.toneOperator,
   admin: styles.toneAdmin,
+  user: styles.toneUser,
 };
 
 const ROLE_ICON = {
@@ -14,6 +15,7 @@ const ROLE_ICON = {
   broker: Network,
   operator: Scale,
   admin: Shield,
+  user: User,
 };
 
 export default function RoleBadge({ roleKey }) {

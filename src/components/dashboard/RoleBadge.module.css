@@ -55,6 +55,25 @@
   color: rgba(52, 44, 32, 0.92);
 }
 
+.toneUser {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border-color: rgba(154, 210, 200, 0.32);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.72) 0%, rgba(244, 252, 249, 0.5) 100%),
+    radial-gradient(ellipse 72% 100% at 18% 0%, rgba(137, 205, 189, 0.1), transparent 58%);
+  color: rgba(48, 78, 74, 0.88);
+  box-shadow: var(--elev-1);
+}
+
+.badge[data-dashboard-role="user"] .roleIcon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.82;
+}
+
 @keyframes roleBadgeSettle {
   from {
     opacity: 0;

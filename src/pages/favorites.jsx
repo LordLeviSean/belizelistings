@@ -84,9 +84,9 @@ export default function FavoritesPage() {
               <div className={styles.coastalEmptyIcon} aria-hidden>
                 <Heart strokeWidth={2} />
               </div>
-              <h2 className={styles.coastalEmptyTitle}>Heart your listings to add them to Favorites!</h2>
+              <h2 className={styles.coastalEmptyTitle}>Save listings you love</h2>
               <p className={styles.coastalEmptySub}>
-                Save places you love while you browse — they&apos;ll appear in this calm space.
+                Tap the heart while you browse — favorites gather here in one calm, easy-to-scan place.
               </p>
               <Link href="/" className={`${dashboardStyles.primaryButton} ${styles.coastalEmptyCta}`}>
                 <Search size={18} strokeWidth={2} aria-hidden />

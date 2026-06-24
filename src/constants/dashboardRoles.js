@@ -4,6 +4,7 @@ export const DASHBOARD_ROLE = {
   broker: "broker",
   operator: "operator",
   admin: "admin",
+  user: "user",
 };
 
 export const DASHBOARD_ROLE_META = {
@@ -26,5 +27,10 @@ export const DASHBOARD_ROLE_META = {
     badgeLabel: "Platform Administrator",
     tone: "admin",
     defaultSubtitle: "Full ecosystem visibility and controls.",
+  },
+  [DASHBOARD_ROLE.user]: {
+    badgeLabel: "Platform User",
+    tone: "user",
+    defaultSubtitle: "Explore Belize, save favorites, and manage your listings.",
   },
 };

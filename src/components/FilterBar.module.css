@@ -1,6 +1,6 @@
 .filterBar {
   position: sticky;
-  top: 72px;
+  top: var(--site-nav-offset);
   z-index: 30;
   display: flex;
   gap: 12px;
@@ -166,7 +166,7 @@
   /* MOBILE */
   @media (max-width: 900px) {
   .filterBar {
-  top: 64px;
+  top: var(--site-nav-offset);
   padding: 10px 12px;
   gap: 8px;
   flex-wrap: nowrap;

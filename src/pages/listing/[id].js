@@ -7,11 +7,15 @@ Use CSS modules for structural layout.
 
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { createDebugger } from "@/lib/debug";
 import { Heart } from "lucide-react";
 import ListingMediaImage from "@/components/listing/ListingMediaImage";
-import ListingMediaIntrinsic from "@/components/listing/ListingMediaIntrinsic";
+import {
+  IMAGE_QUALITY_HERO,
+  IMAGE_QUALITY_THUMB,
+  IMAGE_SIZES_LIGHTBOX_MAIN,
+} from "@/constants/imageQuality";
 import BackButton from "@/components/BackButton";
 import SiteNav from "@/components/SiteNav";
 import { fetchListingByIdWithImages } from "../../lib/listingQueries";
@@ -19,7 +23,9 @@ import useAuth from "../../hooks/useAuth";
 import useRoleAccess from "../../hooks/useRoleAccess";
 import useFavorites from "../../hooks/useFavorites";
 import { getRegionCaption, getRegionLabel } from "../../constants/geographyLayer";
-import { getListingRegionSlug } from "../../utils/canonicalListing";
+import { getListingRegionSlug, getLifecycleStatus } from "../../utils/canonicalListing";
+import { LISTING_LIFECYCLE } from "../../constants/operationalModel";
+import { getDistrictExploreHref } from "@/lib/districtExploreRoutes";
 import styles from "../../styles/ListingDetail.module.css";
 import favoriteStyles from "../../styles/FavoriteButton.module.css";
 import { useFavoriteSignupPrompt } from "../../components/FavoriteSignupPromptProvider";
@@ -27,6 +33,7 @@ import ListingTrustStrip from "@/components/listing/ListingTrustStrip";
 import ListingContactActions from "@/components/listing/ListingContactActions";
 import { getListingAtmosphereKey } from "@/utils/listingAtmosphere";
 import { derivePropertyHighlights } from "@/utils/propertyHighlights";
+import { getListingGalleryImages } from "@/utils/listingImage";
 import { isLandInventoryListing } from "../../utils/listingPresentation";
 
 const formatDistrict = (district) => getRegionLabel(district);
@@ -40,6 +47,7 @@ export default function ListingPage() {
   const isAdminView = requestedAdminBypass && isAdmin;
 
   const [listing, setListing] = useState(null);
+  const [ownerPreview, setOwnerPreview] = useState(false);
   const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -63,7 +71,11 @@ export default function ListingPage() {
     (async () => {
       setLoading(true);
       try {
-        const { data, error } = await fetchListingByIdWithImages(id, isAdminView);
+        const { data, error, ownerPreview: isOwnerPreview } = await fetchListingByIdWithImages(
+          id,
+          isAdminView,
+          { ownerUserId: user?.id }
+        );
 
         debugRef.current.log("RAW_DB_RESPONSE", data);
         debugRef.current.log("LISTING_FETCH", { data, error });
@@ -71,33 +83,35 @@ export default function ListingPage() {
         if (error || !data) {
           if (!cancelled) {
             setListing(null);
+            setOwnerPreview(false);
             setDebugState(debugRef.current.getState());
           }
         } else {
-        const images = (data?.listing_images || [])
-          .filter((img) => img?.image_url?.startsWith("http"))
-          .sort((a, b) => (a.position ?? 999) - (b.position ?? 999));
-        const mainImage = images.length > 0 ? images[0].image_url : null;
+        const images = getListingGalleryImages(data);
+        const mainImage = images[0]?.image_url ?? null;
 
         debugRef.current.log("FINAL_LISTING", data);
-        debugRef.current.log("IMAGES_ARRAY", data?.listing_images);
+        debugRef.current.log("IMAGES_ARRAY", images);
         debugRef.current.log("MAIN_IMAGE", mainImage);
         debugRef.current.log("IMAGE_COUNT", images.length);
         debugRef.current.log("FIRST_IMAGE", images[0]?.image_url);
 
         if (!cancelled) {
           setListing(data);
+          setOwnerPreview(Boolean(isOwnerPreview));
           setDebugState(debugRef.current.getState());
         }
 
         if (images.length === 0) {
           setTimeout(async () => {
-            const retry = await fetchListingByIdWithImages(id, isAdminView);
+            const retry = await fetchListingByIdWithImages(id, isAdminView, { ownerUserId: user?.id });
 
             debugRef.current.log("RETRY_FETCH", retry.data);
 
-            if (retry.data?.listing_images?.length > 0 && !cancelled) {
+            const retryImages = retry.data ? getListingGalleryImages(retry.data) : [];
+            if (retryImages.length > 0 && !cancelled) {
               setListing(retry.data);
+              setOwnerPreview(Boolean(retry.ownerPreview));
               setDebugState(debugRef.current.getState());
             }
           }, 800);
@@ -107,6 +121,7 @@ export default function ListingPage() {
         debugRef.current.log("LISTING_FETCH_FAILED", fetchError);
         if (!cancelled) {
           setListing(null);
+          setOwnerPreview(false);
         }
       } finally {
         if (!cancelled) {
@@ -117,12 +132,13 @@ export default function ListingPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, isAdminView, requestedAdminBypass, roleLoading]);
+  }, [id, isAdminView, requestedAdminBypass, roleLoading, user?.id]);
 
-  const images = (listing?.listing_images || [])
-    .filter((img) => img && img.image_url && img.image_url.startsWith("http"))
-    .sort((a, b) => (a.position ?? 999) - (b.position ?? 999));
-  const mainImage = images[0]?.image_url;
+  const images = useMemo(
+    () => (listing ? getListingGalleryImages(listing) : []),
+    [listing]
+  );
+  const activeImageUrl = images[index]?.image_url || "/placeholder.jpg";
 
   useEffect(() => {
     setIndex(0);
@@ -179,11 +195,15 @@ export default function ListingPage() {
   }, [index, lightboxOpen]);
 
   useEffect(() => {
-    if (!lightboxOpen) return;
-    const prev = document.body.style.overflow;
+    if (!lightboxOpen) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    const prevPaddingRight = document.body.style.paddingRight;
+    const gap = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = "hidden";
+    if (gap > 0) document.body.style.paddingRight = `${gap}px`;
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
     };
   }, [lightboxOpen]);
 
@@ -285,16 +305,24 @@ export default function ListingPage() {
   const regionSlug = getListingRegionSlug(listing);
   const regionLabel = formatDistrict(regionSlug);
   const regionCaption = getRegionCaption(regionSlug);
+  const districtExploreHref = getDistrictExploreHref(regionSlug);
 
   const atmosphere = getListingAtmosphereKey(listing);
   const highlights = derivePropertyHighlights(listing);
   const descriptionText = String(listing?.description || "").trim();
 
   const hasImages = images.length > 0;
+  const showOwnerPendingBanner =
+    ownerPreview && getLifecycleStatus(listing) === LISTING_LIFECYCLE.PENDING_REVIEW;
 
   return (
     <div className={styles.pageShell}>
       <SiteNav active="browse" />
+      {showOwnerPendingBanner ? (
+        <div className={styles.ownerPendingBanner} role="status">
+          Pending approval — only you can see this preview until BelizeListings publishes your listing.
+        </div>
+      ) : null}
       <div className={styles.page} data-atmosphere={atmosphere}>
         <section className={`${styles.heroColumn} safeFlexCol`} aria-label="Listing photos">
         <div
@@ -344,13 +372,14 @@ export default function ListingPage() {
               className={`${styles.heroImage} ${heroDip ? styles.heroImageFadeChanging : ""}`}
             >
               <ListingMediaImage
-                src={images[index]?.image_url || "/placeholder.jpg"}
+                key={activeImageUrl}
+                src={activeImageUrl}
                 alt="Listing"
                 fill
                 mode="contain"
                 sizes="(max-width: 520px) 100vw, (max-width: 1100px) 92vw, min(960px, 52vw)"
-                quality={90}
-                priority={index === 0}
+                quality={IMAGE_QUALITY_HERO}
+                priority
                 hoverZoom={false}
               />
             </div>
@@ -360,7 +389,7 @@ export default function ListingPage() {
           <div className={styles.thumbRow}>
             {images.map((img, i) => (
               <button
-                key={img.image_url || i}
+                key={img.id || `hero-thumb-${i}-${img.image_url}`}
                 type="button"
                 className={`${styles.thumbCell} ${i === index ? styles.thumbCellActive : ""}`}
                 onClick={() => setIndex(i)}
@@ -368,11 +397,12 @@ export default function ListingPage() {
                 aria-label={`Show photo ${i + 1} in gallery`}
               >
                 <ListingMediaImage
+                  key={img.image_url}
                   src={img.image_url}
                   alt=""
                   fill
                   sizes="(max-width: 900px) 18vw, 120px"
-                  quality={78}
+                  quality={IMAGE_QUALITY_THUMB}
                   hoverZoom={false}
                 />
               </button>
@@ -383,14 +413,7 @@ export default function ListingPage() {
 
         <section className={`${styles.detailColumn} safeFlexCol`}>
         <div className={styles.detailTop}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "16px",
-            }}
-          >
+          <div className={styles.detailToolbar}>
             <div>
               <BackButton label="Back" className={styles.backButton} />
             </div>
@@ -451,8 +474,19 @@ export default function ListingPage() {
                 <Info label="Garage" value={listing.garage} />
               </>
             )}
-            <Info label="Region" value={regionLabel} />
+            <Info
+              label="Region"
+              value={regionLabel}
+              href={districtExploreHref}
+              linkAriaLabel={
+                districtExploreHref
+                  ? `Open map and listings for ${regionLabel}`
+                  : undefined
+              }
+            />
           </div>
+
+          <ListingContactActions listing={listing} user={user} />
 
           {descriptionText ? (
             <section className={styles.description} aria-labelledby="story-heading">
@@ -467,16 +501,6 @@ export default function ListingPage() {
             </section>
           ) : null}
 
-          <div className={styles.locContext}>
-            <p className={styles.locContextBlurb}>
-              {regionCaption ? `${regionCaption} · ` : ""}
-              <Link href={`/listings/district/${encodeURIComponent(regionSlug)}`} className={styles.locLink}>
-                Explore {regionLabel}
-              </Link>
-            </p>
-          </div>
-
-          <ListingContactActions listing={listing} user={user} />
           {isDebug && (
             <div
               style={{
@@ -555,7 +579,17 @@ export default function ListingPage() {
               {index + 1} / {images.length}
             </div>
             <div className={styles.lightboxImageInner}>
-              <ListingMediaIntrinsic src={images[index]?.image_url} alt="Listing full size" />
+              <ListingMediaImage
+                key={activeImageUrl}
+                src={activeImageUrl}
+                alt="Listing full size"
+                fill
+                mode="contain"
+                sizes={IMAGE_SIZES_LIGHTBOX_MAIN}
+                quality={IMAGE_QUALITY_HERO}
+                priority
+                hoverZoom={false}
+              />
             </div>
           </div>
 
@@ -568,18 +602,19 @@ export default function ListingPage() {
             >
               {images.map((img, i) => (
                 <button
-                  key={img.image_url || i}
+                  key={img.id || `lightbox-thumb-${i}-${img.image_url}`}
                   type="button"
                   className={`${styles.lightboxThumbBtn} ${i === index ? styles.lightboxThumbBtnActive : ""}`}
                   onClick={() => setIndex(i)}
                   aria-label={`Photo ${i + 1}`}
                 >
                   <ListingMediaImage
+                    key={img.image_url}
                     src={img.image_url}
                     alt=""
                     fill
                     sizes="(max-width: 900px) 14vw, 96px"
-                    quality={78}
+                    quality={IMAGE_QUALITY_THUMB}
                     hoverZoom={false}
                   />
                 </button>
@@ -593,11 +628,23 @@ export default function ListingPage() {
   );
 }
 
-function Info({ label, value }) {
-  return (
-    <div className={styles.infoBox}>
+function Info({ label, value, href, linkAriaLabel }) {
+  const body = (
+    <>
       <span className={styles.infoLabel}>{label}</span>
       <strong className={styles.infoValue}>{value}</strong>
-    </div>
+    </>
   );
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={`${styles.infoBox} ${styles.infoBoxInteractive}`}
+        aria-label={linkAriaLabel || `Explore ${label}: ${value}`}
+      >
+        {body}
+      </Link>
+    );
+  }
+  return <div className={styles.infoBox}>{body}</div>;
 }
