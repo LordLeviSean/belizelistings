@@ -74,19 +74,7 @@
 .heroSection {
   position: relative;
   isolation: isolate;
-  padding: 0 0 6px;
-}
-
-.heroSection::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 40px;
-  z-index: 4;
-  pointer-events: none;
-  background: linear-gradient(180deg, transparent 0%, rgba(253, 252, 251, 0.72) 55%, rgba(253, 252, 251, 0.96) 100%);
+  padding: 0;
 }
 
 .heroCanvas {
@@ -100,14 +88,47 @@
   padding: 8px 10px 12px;
   border-radius: calc(var(--ui-radius) + 2px);
   overflow: hidden;
+  --sea-flow-intensity: 1;
   background:
     linear-gradient(
       168deg,
-      rgba(252, 254, 253, 0.985) 0%,
-      rgba(246, 252, 250, 0.975) 36%,
-      rgba(241, 249, 252, 0.965) 68%,
-      rgba(250, 248, 246, 0.975) 100%
+      rgba(252, 254, 253, 0.9) 0%,
+      rgba(246, 252, 250, 0.88) 36%,
+      rgba(241, 249, 252, 0.86) 68%,
+      rgba(250, 248, 246, 0.88) 100%
     );
+}
+
+.heroCanvasAtmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.heroCanvasStaticWash {
+  position: absolute;
+  inset: -10% -6%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 86% 80% at 14% 54%, rgba(52, 200, 182, 0.38), transparent 76%),
+    radial-gradient(ellipse 82% 76% at 86% 32%, rgba(112, 170, 240, 0.32), transparent 80%),
+    radial-gradient(ellipse 70% 70% at 56% 82%, rgba(255, 202, 168, 0.28), transparent 82%);
+  filter: blur(36px);
+  opacity: calc(0.52 + 0.18 * var(--sea-flow-intensity, 1));
+}
+
+.heroCanvasStaticWash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 130% 60% at 40% -10%, rgba(255, 255, 255, 0.1), transparent 55%);
+  opacity: calc(0.38 + 0.12 * var(--sea-flow-intensity, 1));
+  animation: mapWaterGlint var(--ambient-cycle-d) var(--ambient-ease-drift) infinite alternate;
+  pointer-events: none;
 }
 
 .heroCanvas::before {
@@ -121,7 +142,7 @@
     radial-gradient(ellipse 52% 36% at 18% 30%, rgba(120, 224, 204, 0.16), transparent 76%),
     radial-gradient(ellipse 42% 32% at 88% 12%, rgba(198, 200, 250, 0.1), transparent 72%);
   filter: blur(40px);
-  opacity: 0.48;
+  opacity: calc(0.28 + 0.28 * var(--sea-flow-intensity, 1));
   animation: heroAtmosphereGlow var(--ambient-cycle-c) var(--ambient-ease-drift) infinite alternate;
 }
 
@@ -310,9 +331,6 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 7px;
   isolation: isolate;
-  padding: 5px;
-  border-radius: calc(var(--ui-radius) + 1px);
-  background: rgba(252, 254, 253, 0.94);
 }
 
 .statCard {
@@ -405,19 +423,7 @@
   align-self: stretch;
   padding-top: 0;
   isolation: isolate;
-  overflow: hidden;
-  border-radius: calc(var(--ui-radius) + 1px);
-}
-
-.heroRight::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background:
-    linear-gradient(168deg, rgba(244, 252, 250, 0.82) 0%, rgba(238, 246, 252, 0.78) 52%, rgba(250, 248, 246, 0.8) 100%);
+  overflow: visible;
 }
 
 .mapPane {
@@ -438,86 +444,9 @@
 }
 
 /**
- * Clips map backdrop + sea-flow to the pane — glow cocoon (::after) stays outside this box.
+ * Animated sea-flow layers — hero canvas engine when Sea Flow Mode is enabled.
  */
-.mapPaneAtmosphereClip {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  border-radius: calc(var(--ui-radius) + 3px);
-  pointer-events: none;
-  isolation: isolate;
-}
-
-.mapPaneAtmosphereClip::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  border-radius: inherit;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -18px 32px rgba(255, 255, 255, 0.06),
-    inset 0 28px 42px rgba(252, 255, 254, 0.05);
-}
-
-/** Semi-opaque editorial surface — blocks hero canvas bleed into the map stack. */
-.mapPaneSurface {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  border-radius: calc(var(--ui-radius) + 3px);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(248, 252, 251, 0.58) 42%, rgba(252, 254, 253, 0.42) 100%);
-}
-
-/**
- * Atmospheric cocoon — clipped to pane; no negative inset bleed into hero column.
- */
-.mapPane::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 12;
-  pointer-events: none;
-  border-radius: calc(var(--ui-radius) + 3px);
-  box-shadow:
-    0 0 48px rgba(58, 168, 186, 0.06),
-    0 24px 52px rgba(18, 40, 52, 0.034),
-    0 0 72px rgba(196, 218, 240, 0.04);
-}
-
-/** Static tropical wash behind the map — always visible; clipped to pane. */
-.mapPaneBackdrop {
-  position: absolute;
-  inset: -8% -6%;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 86% 80% at 14% 54%, rgba(52, 200, 182, 0.46), transparent 76%),
-    radial-gradient(ellipse 82% 76% at 86% 32%, rgba(112, 170, 240, 0.38), transparent 80%),
-    radial-gradient(ellipse 70% 70% at 56% 82%, rgba(255, 202, 168, 0.36), transparent 82%);
-  filter: blur(36px);
-  opacity: 0.68;
-}
-
-.mapPaneBackdrop::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse 130% 60% at 40% -10%, rgba(255, 255, 255, 0.12), transparent 55%);
-  opacity: 0.46;
-  animation: mapWaterGlint var(--ambient-cycle-d) var(--ambient-ease-drift) infinite alternate;
-  pointer-events: none;
-}
-
-/**
- * Animated sea-flow layers — only mounted when Sea Flow Mode is enabled (admin toggle).
- */
-.mapPaneSeaFlowLayers {
+.heroCanvasSeaFlowLayers {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -525,17 +454,17 @@
   overflow: hidden;
 }
 
-.mapPaneSeaFlowLayers::before {
+.heroCanvasSeaFlowLayers::before {
   content: "";
   position: absolute;
   inset: -58% -52%;
   z-index: 0;
-  opacity: 0.14;
+  opacity: calc(0.14 * var(--sea-flow-intensity, 1));
   background:
     radial-gradient(ellipse 92% 86% at 22% 58%, rgba(48, 168, 164, 0.28), transparent 62%),
     radial-gradient(ellipse 88% 80% at 82% 36%, rgba(56, 136, 186, 0.21), transparent 64%),
     radial-gradient(ellipse 78% 74% at 52% 78%, rgba(72, 188, 180, 0.17), transparent 66%);
-  filter: blur(68px);
+  filter: blur(calc(56px + 12px * var(--sea-flow-intensity, 1)));
   will-change: transform, filter;
   animation:
     seaFlowDriftA 74s var(--ambient-ease-drift) infinite alternate,
@@ -543,12 +472,12 @@
     mapShimmerDrift 96s var(--ambient-ease-drift) infinite alternate;
 }
 
-.mapPaneSeaFlowLayers::after {
+.heroCanvasSeaFlowLayers::after {
   content: "";
   position: absolute;
   inset: -64% -56%;
   z-index: 1;
-  opacity: 0.09;
+  opacity: calc(0.09 * var(--sea-flow-intensity, 1));
   background:
     radial-gradient(ellipse 74% 68% at 28% 34%, rgba(40, 128, 150, 0.18), transparent 58%),
     radial-gradient(ellipse 82% 74% at 72% 66%, rgba(56, 158, 176, 0.14), transparent 62%),
@@ -561,7 +490,7 @@
       rgba(42, 128, 148, 0.14),
       rgba(38, 122, 140, 0.14)
     );
-  filter: blur(74px) saturate(1.04);
+  filter: blur(calc(62px + 12px * var(--sea-flow-intensity, 1))) saturate(calc(1 + 0.04 * var(--sea-flow-intensity, 1)));
   mix-blend-mode: normal;
   will-change: transform, filter;
   animation:
@@ -590,10 +519,10 @@
   pointer-events: none;
   border-radius: 28% 28% 40% 40%;
   background:
-    radial-gradient(ellipse 74% 58% at 48% 86%, rgba(72, 160, 186, 0.28), transparent 68%),
-    radial-gradient(ellipse 94% 44% at 52% 12%, rgba(255, 255, 255, 0.1), transparent 72%);
-  filter: blur(28px);
-  opacity: 0.54;
+    radial-gradient(ellipse 74% 58% at 48% 86%, rgba(72, 160, 186, 0.16), transparent 68%),
+    radial-gradient(ellipse 94% 44% at 52% 12%, rgba(255, 255, 255, 0.06), transparent 72%);
+  filter: blur(24px);
+  opacity: calc(0.28 + 0.22 * var(--sea-flow-intensity, 1));
 }
 
 .mapPaneMapWrap > * {
@@ -608,18 +537,6 @@
   padding: 8px 0 10px;
   margin-top: 0;
   margin-bottom: 0;
-}
-
-.featuredSection::before {
-  content: "";
-  position: absolute;
-  top: -18px;
-  left: -8px;
-  right: -8px;
-  height: 24px;
-  pointer-events: none;
-  z-index: 0;
-  background: linear-gradient(180deg, rgba(253, 252, 251, 0.88), transparent);
 }
 
 .sectionTitleRow {
@@ -1325,12 +1242,6 @@
     align-items: center;
     padding-top: 0;
   }
-
-  .heroRight::before {
-    opacity: 0.42;
-    background:
-      linear-gradient(180deg, rgba(252, 254, 253, 0.72) 0%, rgba(246, 252, 250, 0.58) 100%);
-  }
 }
 
 @media (max-width: 760px) {
@@ -1405,18 +1316,13 @@
 @media (prefers-reduced-motion: reduce) {
   .page::before,
   .page::after,
-  .heroCanvas::before {
+  .heroCanvas::before,
+  .heroCanvasStaticWash::after {
     animation: none !important;
   }
 
-  .mapPaneBackdrop::after {
-    animation: none !important;
-    opacity: 0.44;
-    transform: none !important;
-  }
-
-  .mapPaneSeaFlowLayers::before,
-  .mapPaneSeaFlowLayers::after {
+  .heroCanvasSeaFlowLayers::before,
+  .heroCanvasSeaFlowLayers::after {
     animation: none !important;
     transform: none !important;
     filter: blur(74px);

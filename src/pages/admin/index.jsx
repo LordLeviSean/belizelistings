@@ -10,6 +10,7 @@ import useUserRole from "../../hooks/useUserRole";
 import useLivePaletteMode from "../../hooks/useLivePaletteMode";
 import usePulseMode from "../../hooks/usePulseMode";
 import useSeaFlowMode from "../../hooks/useSeaFlowMode";
+import useSeaFlowIntensity from "../../hooks/useSeaFlowIntensity";
 import { ACTIVITY_SIGNAL_TYPES } from "../../constants/trustModel";
 import { clearAllFavoritesForListings } from "../../lib/favorites";
 import { isMissingColumnError } from "../../lib/supabaseCompat";
@@ -55,6 +56,7 @@ export default function AdminPage() {
   const { enabled: livePaletteModeEnabled, setMode: setLivePaletteMode } = useLivePaletteMode();
   const { enabled: pulseModeEnabled, setMode: setPulseMode } = usePulseMode();
   const { enabled: seaFlowModeEnabled, setMode: setSeaFlowMode } = useSeaFlowMode();
+  const { intensity: seaFlowIntensity, setIntensity: setSeaFlowIntensity } = useSeaFlowIntensity();
 
   const refreshStats = useCallback(async () => {
     const [operational, { count: usersCount, error: usersError }] = await Promise.all([
@@ -397,7 +399,7 @@ export default function AdminPage() {
                   <div>
                     <p className={styles.livePaletteLabel}>Sea Flow Mode</p>
                     <p className={styles.livePaletteSubtext}>
-                      Layered sea-glass current motion behind the homepage map surface.
+                      Layered sea-glass current motion across the full homepage hero canvas.
                     </p>
                   </div>
                   <label className={styles.livePaletteSwitch}>
@@ -409,6 +411,41 @@ export default function AdminPage() {
                     />
                     <span className={styles.livePaletteSlider} />
                   </label>
+                </div>
+                <div className={`${styles.effectCard} ${styles.effectCardStacked}`}>
+                  <div className={styles.effectCardCopy}>
+                    <p className={styles.livePaletteLabel}>Sea Flow Intensity</p>
+                    <p className={styles.livePaletteSubtext}>
+                      Wave visibility, atmospheric strength, and glow — live across headline, metrics, and map.
+                    </p>
+                    <p className={styles.livePaletteIndicator}>
+                      {Math.round(seaFlowIntensity * 100)}%
+                    </p>
+                  </div>
+                  <input
+                    type="range"
+                    className={styles.seaFlowIntensityRange}
+                    min="0"
+                    max="150"
+                    step="25"
+                    value={Math.round(seaFlowIntensity * 100)}
+                    onChange={(e) => setSeaFlowIntensity(Number(e.target.value) / 100)}
+                    aria-label="Sea flow intensity"
+                    aria-valuemin={0}
+                    aria-valuemax={150}
+                    aria-valuenow={Math.round(seaFlowIntensity * 100)}
+                    list="sea-flow-intensity-stops"
+                    disabled={!seaFlowModeEnabled}
+                  />
+                  <datalist id="sea-flow-intensity-stops">
+                    <option value="0" label="0%" />
+                    <option value="25" label="25%" />
+                    <option value="50" label="50%" />
+                    <option value="75" label="75%" />
+                    <option value="100" label="100%" />
+                    <option value="125" label="125%" />
+                    <option value="150" label="150%" />
+                  </datalist>
                 </div>
               </div>
               <h4 style={{ marginTop: 16, marginBottom: 8 }}>Recent Activity</h4>

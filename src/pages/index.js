@@ -27,6 +27,7 @@ import { fetchApprovedListingsWithImages } from "../lib/listingQueries";
 import { filterListings } from "../utils/filterListings";
 import { getLifecycleStatus, getListingRegionSlug } from "../utils/canonicalListing";
 import useSeaFlowMode from "../hooks/useSeaFlowMode";
+import useSeaFlowIntensity from "../hooks/useSeaFlowIntensity";
 import { useFavoriteSignupPrompt } from "../components/FavoriteSignupPromptProvider";
 
 import styles from "../styles/HomeMapFirst.module.css";
@@ -78,6 +79,7 @@ export default function HomePage() {
   const featuredScrollRef = useRef(null);
   const featuredPausedRef = useRef(false);
   const { enabled: seaFlowModeEnabled } = useSeaFlowMode();
+  const { intensity: seaFlowIntensity } = useSeaFlowIntensity();
   const { isFavorite, toggleFavorite, isBusy, isAuthenticated } = useFavorites();
   const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
 
@@ -267,7 +269,15 @@ export default function HomePage() {
 
       <main className={styles.pageMain}>
         <section className={styles.heroSection}>
-          <div className={styles.heroCanvas}>
+          <div
+            className={styles.heroCanvas}
+            style={{ "--sea-flow-intensity": seaFlowIntensity }}
+            data-sea-flow={seaFlowModeEnabled ? "on" : "off"}
+          >
+            <div className={styles.heroCanvasAtmosphere} aria-hidden>
+              <div className={styles.heroCanvasStaticWash} />
+              {seaFlowModeEnabled ? <div className={styles.heroCanvasSeaFlowLayers} /> : null}
+            </div>
             <div className={styles.heroLeft}>
             <p className={styles.heroKicker}>EXPLORE. INVEST. THRIVE.</p>
             <h1 className={styles.heroHeadline}>Belize&apos;s Living Property Map</h1>
@@ -343,13 +353,6 @@ export default function HomePage() {
 
           <div className={styles.heroRight}>
             <section className={`${styles.mapPane} home-map-pane`}>
-              <div className={styles.mapPaneAtmosphereClip} aria-hidden>
-                <div className={styles.mapPaneBackdrop} />
-                {seaFlowModeEnabled ? (
-                  <div className={styles.mapPaneSeaFlowLayers} />
-                ) : null}
-              </div>
-              <div className={styles.mapPaneSurface} aria-hidden />
               <div className={styles.mapPaneMapWrap}>
                 <BelizeMap
                   districtListingCounts={districtListingCounts}
