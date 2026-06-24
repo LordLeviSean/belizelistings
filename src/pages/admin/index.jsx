@@ -11,6 +11,7 @@ import useLivePaletteMode from "../../hooks/useLivePaletteMode";
 import usePulseMode from "../../hooks/usePulseMode";
 import useSeaFlowMode from "../../hooks/useSeaFlowMode";
 import useSeaFlowIntensity from "../../hooks/useSeaFlowIntensity";
+import { getSeaFlowIntensityLabel } from "../../utils/seaFlowIntensity";
 import { ACTIVITY_SIGNAL_TYPES } from "../../constants/trustModel";
 import { clearAllFavoritesForListings } from "../../lib/favorites";
 import { isMissingColumnError } from "../../lib/supabaseCompat";
@@ -419,32 +420,30 @@ export default function AdminPage() {
                       Wave visibility, atmospheric strength, and glow — live across headline, metrics, and map.
                     </p>
                     <p className={styles.livePaletteIndicator}>
-                      {Math.round(seaFlowIntensity * 100)}%
+                      {getSeaFlowIntensityLabel(seaFlowIntensity)}
                     </p>
                   </div>
                   <input
                     type="range"
                     className={styles.seaFlowIntensityRange}
                     min="0"
-                    max="150"
+                    max="100"
                     step="25"
                     value={Math.round(seaFlowIntensity * 100)}
                     onChange={(e) => setSeaFlowIntensity(Number(e.target.value) / 100)}
                     aria-label="Sea flow intensity"
                     aria-valuemin={0}
-                    aria-valuemax={150}
+                    aria-valuemax={100}
                     aria-valuenow={Math.round(seaFlowIntensity * 100)}
                     list="sea-flow-intensity-stops"
                     disabled={!seaFlowModeEnabled}
                   />
                   <datalist id="sea-flow-intensity-stops">
-                    <option value="0" label="0%" />
-                    <option value="25" label="25%" />
-                    <option value="50" label="50%" />
-                    <option value="75" label="75%" />
-                    <option value="100" label="100%" />
-                    <option value="125" label="125%" />
-                    <option value="150" label="150%" />
+                    <option value="0" label="Disabled" />
+                    <option value="25" label="Subtle" />
+                    <option value="50" label="Default" />
+                    <option value="75" label="Pronounced" />
+                    <option value="100" label="Cinematic" />
                   </datalist>
                 </div>
               </div>

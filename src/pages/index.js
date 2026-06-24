@@ -352,14 +352,15 @@ export default function HomePage() {
           </div>
 
           <div className={styles.heroRight}>
-            <section className={`${styles.mapPane} home-map-pane`}>
+            <div className={styles.mapPane}>
               <div className={styles.mapPaneMapWrap}>
                 <BelizeMap
+                  showAmbientVeil={false}
                   districtListingCounts={districtListingCounts}
                   onDistrictClick={(slug) => router.push(`/listings/district/${slug}`)}
                 />
               </div>
-            </section>
+            </div>
           </div>
           </div>
         </section>

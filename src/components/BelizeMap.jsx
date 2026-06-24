@@ -47,6 +47,7 @@ const BelizeMap = ({
   activeDistrictSlug = null,
   activeSubregionSlug = null,
   onDistrictClick = null,
+  showAmbientVeil = true,
 }) => {
   void districtListingCounts;
 
@@ -280,7 +281,7 @@ const BelizeMap = ({
       }`}
     >
       <div className={styles.mapStage}>
-        <div className={styles.mapAmbientVeil} aria-hidden />
+        {showAmbientVeil ? <div className={styles.mapAmbientVeil} aria-hidden /> : null}
         <div
           ref={mapContainerRef}
           className={styles.mapSvg}
