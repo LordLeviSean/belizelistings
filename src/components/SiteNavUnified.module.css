@@ -133,8 +133,8 @@
   }
 }
 
-/* Tighter pill rhythm when notification bell is absent (signed-out shells) */
-.navbarSignedOut .navLinks {
+/* Tighter pill rhythm when notification bell is absent (signed-out shells, desktop) */
+.navbarSignedOut .navLinksDesktop {
   gap: 3px;
 }
 
@@ -142,24 +142,18 @@
   gap: 3px;
 }
 
-/* Signed in: session cluster + notifications pill wrap cleanly on narrow viewports */
-.navbarSignedIn .navLinks {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  row-gap: 5px;
-}
+/* Signed in: session cluster + notifications pill wrap cleanly on narrow viewports (desktop only) */
+@media (min-width: 801px) {
+  .navbarSignedIn .navLinksDesktop {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 5px;
+  }
 
-.navbarSignedIn .authSessionCluster {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  row-gap: 5px;
-}
-
-@media (max-width: 800px) {
-  .navbarSignedIn .navLinks,
   .navbarSignedIn .authSessionCluster {
-    gap: 3px;
-    column-gap: 3px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 5px;
   }
 }
 
@@ -800,34 +794,119 @@
 }
 
 @media (max-width: 800px) {
+  .navLinksDesktop {
+    display: none;
+  }
+
+  .navLinksMobilePrimary {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-end;
+    margin-left: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .navbar {
+    padding: 0 8px;
+    gap: 4px;
+  }
+
   .brandWordmark {
-    font-size: calc(0.88rem + 12px);
+    font-size: calc(0.76rem + 8px);
   }
 
   .brand {
-    flex-shrink: 0;
+    flex-shrink: 1;
     min-width: 0;
+    max-width: 42%;
   }
 
-  .navLinks {
-    display: none;
+  .navLinksMobilePrimary .navLink,
+  .navLinksMobilePrimary .navBtn {
+    padding: 4px 6px;
+    font-size: 0.62rem;
+    letter-spacing: 0.008em;
+  }
+
+  .navLinksMobilePrimary .navLinkInner {
+    gap: 3px;
+  }
+
+  .navLinksMobilePrimary .navIcon {
+    width: 11px;
+    height: 11px;
+  }
+
+  .navLinksMobilePrimary .authAccountSlot {
+    min-width: 0;
+    flex-shrink: 0;
+  }
+
+  .navLinksMobilePrimary .navAuthSkeleton {
+    min-width: 3.5rem;
+    min-height: 24px;
+    padding: 4px 6px;
   }
 
   .mobileMenuBtn {
     display: inline-flex;
+    width: 32px;
+    height: 32px;
   }
 
-  .navLink,
-  .navBtn {
-    padding: 5px 8px;
-    font-size: 0.7rem;
+  .mobileMenuIcon {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+@media (min-width: 801px) {
+  .navLinksDesktop {
+    display: flex;
+  }
+
+  .navLinksMobilePrimary {
+    display: none;
   }
 }
 
 /* Keep sticky nav at token height — avoid wrap-driven double chrome on narrow phones */
 @media (max-width: 420px) {
   .brandWordmark {
-    font-size: calc(0.82rem + 10px);
+    font-size: calc(0.68rem + 7px);
+  }
+
+  .navbar {
+    padding: 0 6px;
+    gap: 2px;
+  }
+
+  .navLinksMobilePrimary {
+    gap: 1px;
+    margin-left: 4px;
+  }
+
+  .navLinksMobilePrimary .navLink,
+  .navLinksMobilePrimary .navBtn {
+    padding: 3px 5px;
+    font-size: 0.58rem;
+  }
+
+  .navLinksMobilePrimary .navIcon {
+    width: 10px;
+    height: 10px;
+  }
+
+  .navLinksMobilePrimary .navLinkInner {
+    gap: 2px;
+  }
+
+  .mobileMenuBtn {
+    width: 30px;
+    height: 30px;
   }
 }
 

@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   Sparkles,
+  UserCircle,
   UsersRound,
   X,
 } from "lucide-react";
@@ -229,13 +230,25 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const signedInNavCluster =
     authLayoutReady && !loading && user;
 
-  const renderNavActions = (variant = "desktop") => {
-    const isDrawer = variant === "drawer";
-    const onNavigate = isDrawer ? closeMobileMenu : undefined;
-    const linkBase = isDrawer ? `${styles.navLink} ${styles.drawerNavLink}` : styles.navLink;
-    const btnBase = isDrawer ? `${styles.navBtn} ${styles.drawerNavLink}` : styles.navBtn;
+  const hasMobileDrawer = authLayoutReady && !loading && Boolean(user);
 
-    const favoritesLink = (
+  useEffect(() => {
+    if (!hasMobileDrawer) closeMobileMenu();
+  }, [hasMobileDrawer, closeMobileMenu]);
+
+  const navContextClasses = (variant) => {
+    const isDrawer = variant === "drawer";
+    return {
+      isDrawer,
+      onNavigate: isDrawer ? closeMobileMenu : undefined,
+      linkBase: isDrawer ? `${styles.navLink} ${styles.drawerNavLink}` : styles.navLink,
+      btnBase: isDrawer ? `${styles.navBtn} ${styles.drawerNavLink}` : styles.navBtn,
+    };
+  };
+
+  const renderFavoritesLink = (variant) => {
+    const { onNavigate, linkBase } = navContextClasses(variant);
+    return (
       <Link
         href="/favorites"
         onClick={onNavigate}
@@ -256,112 +269,167 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
         </span>
       </Link>
     );
+  };
 
-    const sessionCluster = (
-      <>
-        {user ? (
-          <button
-            type="button"
-            onClick={isDrawer ? handleDashboardFromMobile : handleDashboard}
-            className={`${linkBase} ${styles.navPillDashboard} ${
-              resolvedActive === "dashboard" ? styles.navLinkActive : ""
-            } ${resolvedActive === "dashboard" ? styles.navDashboardActive : ""}`}
-          >
-            <span className={styles.navLinkInner}>
-              <Sparkles
-                className={`${styles.navIcon} ${styles.navIconDashboard} ${
-                  dashboardIdleHomeChrome ? styles.navIconDashboardHome : ""
-                } ${
-                  resolvedActive === "dashboard" ? styles.navIconDashboardActive : ""
-                } ${resolvedActive === "dashboard" && role === "admin" ? styles.navIconDashboardPower : ""
-                }`}
-                fill={dashboardFilled ? "currentColor" : "none"}
-                strokeWidth={1.85}
-                aria-hidden
-              />
-              Dashboard
-            </span>
-          </button>
-        ) : null}
-
-        <Link
-          href="/agents"
-          onClick={onNavigate}
-          className={`${linkBase} ${styles.navPillAgents} ${
-            agentsNavActive ? styles.navLinkActive : ""
-          } ${agentsNavActive ? styles.navAgentsActive : ""}`}
-        >
-          <span className={styles.navLinkInner}>
-            <UsersRound
-              className={`${styles.navIcon} ${styles.navIconAgents} ${
-                agentsIdleHomeChrome ? styles.navIconAgentsHome : ""
-              } ${agentsNavActive ? styles.navIconAgentsActive : ""}`}
-              fill={agentsFilled ? "currentColor" : "none"}
-              strokeWidth={1.85}
-              aria-hidden
-            />
-            Agents
-          </span>
-        </Link>
-
-        {isDrawer ? (
-          <div className={styles.drawerNotificationWrap}>
-            <NotificationCenter />
-          </div>
-        ) : (
-          <NotificationCenter />
-        )}
-
-        <div className={isDrawer ? styles.drawerAuthSlot : styles.authAccountSlot}>
-          {!authLayoutReady ? (
-            <span className={`${linkBase} ${styles.navAuthSkeleton}`} aria-hidden="true" />
-          ) : loading ? (
-            <span className={`${linkBase} ${styles.navLinkIdle}`} aria-busy="true" aria-label="Loading">
-              <Loader2 className={`${styles.navIcon} ${styles.navIconSpin}`} strokeWidth={1.85} aria-hidden />
-            </span>
-          ) : user ? (
-            <button
-              type="button"
-              onClick={handleLogout}
-              className={`${btnBase} ${styles.navPillLogout}`}
-            >
-              <span className={styles.navLinkInner}>
-                <LogOut className={styles.navIcon} strokeWidth={1.85} aria-hidden />
-                Logout
-              </span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                onNavigate?.();
-                openLoginIfNeeded();
-              }}
-              className={linkBase}
-            >
-              <span className={styles.navLinkInner}>
-                <LogIn className={styles.navIcon} strokeWidth={1.85} aria-hidden />
-                Login
-              </span>
-            </button>
-          )}
-        </div>
-      </>
+  const renderAgentsLink = (variant) => {
+    const { onNavigate, linkBase } = navContextClasses(variant);
+    return (
+      <Link
+        href="/agents"
+        onClick={onNavigate}
+        className={`${linkBase} ${styles.navPillAgents} ${
+          agentsNavActive ? styles.navLinkActive : ""
+        } ${agentsNavActive ? styles.navAgentsActive : ""}`}
+      >
+        <span className={styles.navLinkInner}>
+          <UsersRound
+            className={`${styles.navIcon} ${styles.navIconAgents} ${
+              agentsIdleHomeChrome ? styles.navIconAgentsHome : ""
+            } ${agentsNavActive ? styles.navIconAgentsActive : ""}`}
+            fill={agentsFilled ? "currentColor" : "none"}
+            strokeWidth={1.85}
+            aria-hidden
+          />
+          Agents
+        </span>
+      </Link>
     );
+  };
 
+  const renderDashboardButton = (variant) => {
+    if (!user) return null;
+    const { linkBase } = navContextClasses(variant);
+    return (
+      <button
+        type="button"
+        onClick={variant === "drawer" ? handleDashboardFromMobile : handleDashboard}
+        className={`${linkBase} ${styles.navPillDashboard} ${
+          resolvedActive === "dashboard" ? styles.navLinkActive : ""
+        } ${resolvedActive === "dashboard" ? styles.navDashboardActive : ""}`}
+      >
+        <span className={styles.navLinkInner}>
+          <Sparkles
+            className={`${styles.navIcon} ${styles.navIconDashboard} ${
+              dashboardIdleHomeChrome ? styles.navIconDashboardHome : ""
+            } ${
+              resolvedActive === "dashboard" ? styles.navIconDashboardActive : ""
+            } ${resolvedActive === "dashboard" && role === "admin" ? styles.navIconDashboardPower : ""}`}
+            fill={dashboardFilled ? "currentColor" : "none"}
+            strokeWidth={1.85}
+            aria-hidden
+          />
+          Dashboard
+        </span>
+      </button>
+    );
+  };
+
+  const renderNotificationCenter = (variant) => {
+    if (!user) return null;
+    const { isDrawer } = navContextClasses(variant);
     if (isDrawer) {
       return (
-        <>
-          {favoritesLink}
-          {sessionCluster}
-        </>
+        <div className={styles.drawerNotificationWrap}>
+          <NotificationCenter />
+        </div>
+      );
+    }
+    return <NotificationCenter />;
+  };
+
+  const renderAuthSlot = (variant, { mode = "default" } = {}) => {
+    const { onNavigate, linkBase, btnBase } = navContextClasses(variant);
+
+    if (!authLayoutReady) {
+      return (
+        <span className={`${linkBase} ${styles.navAuthSkeleton}`} aria-hidden="true" />
+      );
+    }
+
+    if (loading) {
+      return (
+        <span className={`${linkBase} ${styles.navLinkIdle}`} aria-busy="true" aria-label="Loading">
+          <Loader2 className={`${styles.navIcon} ${styles.navIconSpin}`} strokeWidth={1.85} aria-hidden />
+        </span>
+      );
+    }
+
+    if (user) {
+      if (mode === "account") {
+        return (
+          <button
+            type="button"
+            onClick={handleDashboard}
+            className={linkBase}
+          >
+            <span className={styles.navLinkInner}>
+              <UserCircle className={styles.navIcon} strokeWidth={1.85} aria-hidden />
+              Account
+            </span>
+          </button>
+        );
+      }
+
+      return (
+        <button
+          type="button"
+          onClick={handleLogout}
+          className={`${btnBase} ${styles.navPillLogout}`}
+        >
+          <span className={styles.navLinkInner}>
+            <LogOut className={styles.navIcon} strokeWidth={1.85} aria-hidden />
+            Logout
+          </span>
+        </button>
       );
     }
 
     return (
+      <button
+        type="button"
+        onClick={() => {
+          onNavigate?.();
+          openLoginIfNeeded();
+        }}
+        className={linkBase}
+      >
+        <span className={styles.navLinkInner}>
+          <LogIn className={styles.navIcon} strokeWidth={1.85} aria-hidden />
+          Login
+        </span>
+      </button>
+    );
+  };
+
+  const renderNavActions = (variant = "desktop") => (
+    <>
+      {renderFavoritesLink(variant)}
+      <div className={styles.authSessionCluster}>
+        {renderDashboardButton(variant)}
+        {renderAgentsLink(variant)}
+        {renderNotificationCenter(variant)}
+        <div className={navContextClasses(variant).isDrawer ? styles.drawerAuthSlot : styles.authAccountSlot}>
+          {renderAuthSlot(variant)}
+        </div>
+      </div>
+    </>
+  );
+
+  const renderPrimaryNavActions = (variant = "mobileBar") => (
+    <>
+      {renderFavoritesLink(variant)}
+      {renderAgentsLink(variant)}
+      <div className={styles.authAccountSlot}>{renderAuthSlot(variant, { mode: user ? "account" : "default" })}</div>
+    </>
+  );
+
+  const renderSecondaryNavActions = (variant = "drawer") => {
+    if (!user) return null;
+    return (
       <>
-        {favoritesLink}
-        <div className={styles.authSessionCluster}>{sessionCluster}</div>
+        {renderDashboardButton(variant)}
+        {renderNotificationCenter(variant)}
+        <div className={styles.drawerAuthSlot}>{renderAuthSlot(variant)}</div>
       </>
     );
   };
@@ -392,27 +460,36 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
         </span>
       </Link>
 
-      <nav className={styles.navLinks} aria-label="Primary navigation">
+      <nav className={`${styles.navLinks} ${styles.navLinksDesktop}`} aria-label="Primary navigation">
         {renderNavActions("desktop")}
       </nav>
 
-      <button
-        ref={mobileMenuBtnRef}
-        type="button"
-        className={styles.mobileMenuBtn}
-        aria-expanded={mobileMenuOpen}
-        aria-controls="site-nav-mobile-drawer"
-        aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-        onClick={() => setMobileMenuOpen((open) => !open)}
+      <nav
+        className={`${styles.navLinks} ${styles.navLinksMobilePrimary}`}
+        aria-label="Primary navigation"
       >
-        {mobileMenuOpen ? (
-          <X className={styles.mobileMenuIcon} strokeWidth={2} aria-hidden />
-        ) : (
-          <Menu className={styles.mobileMenuIcon} strokeWidth={2} aria-hidden />
-        )}
-      </button>
+        {renderPrimaryNavActions("mobileBar")}
+      </nav>
 
-      {mobileMenuOpen ? (
+      {hasMobileDrawer ? (
+        <button
+          ref={mobileMenuBtnRef}
+          type="button"
+          className={styles.mobileMenuBtn}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="site-nav-mobile-drawer"
+          aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+          onClick={() => setMobileMenuOpen((open) => !open)}
+        >
+          {mobileMenuOpen ? (
+            <X className={styles.mobileMenuIcon} strokeWidth={2} aria-hidden />
+          ) : (
+            <Menu className={styles.mobileMenuIcon} strokeWidth={2} aria-hidden />
+          )}
+        </button>
+      ) : null}
+
+      {mobileMenuOpen && hasMobileDrawer ? (
         <>
           <div
             className={styles.mobileDrawerBackdrop}
@@ -427,9 +504,9 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
             className={styles.mobileDrawer}
             role="dialog"
             aria-modal="true"
-            aria-label="Primary navigation"
+            aria-label="Account navigation"
           >
-            <div className={styles.mobileDrawerInner}>{renderNavActions("drawer")}</div>
+            <div className={styles.mobileDrawerInner}>{renderSecondaryNavActions("drawer")}</div>
           </nav>
         </>
       ) : null}

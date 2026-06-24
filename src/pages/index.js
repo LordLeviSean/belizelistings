@@ -267,7 +267,8 @@ export default function HomePage() {
 
       <main className={styles.pageMain}>
         <section className={styles.heroSection}>
-          <div className={styles.heroLeft}>
+          <div className={styles.heroCanvas}>
+            <div className={styles.heroLeft}>
             <p className={styles.heroKicker}>EXPLORE. INVEST. THRIVE.</p>
             <h1 className={styles.heroHeadline}>Belize&apos;s Living Property Map</h1>
             <p className={styles.heroTrustLine}>
@@ -342,10 +343,13 @@ export default function HomePage() {
 
           <div className={styles.heroRight}>
             <section className={`${styles.mapPane} home-map-pane`}>
-              <div className={styles.mapPaneBackdrop} aria-hidden />
-              {seaFlowModeEnabled ? (
-                <div className={styles.mapPaneSeaFlowLayers} aria-hidden />
-              ) : null}
+              <div className={styles.mapPaneAtmosphereClip} aria-hidden>
+                <div className={styles.mapPaneBackdrop} />
+                {seaFlowModeEnabled ? (
+                  <div className={styles.mapPaneSeaFlowLayers} />
+                ) : null}
+              </div>
+              <div className={styles.mapPaneSurface} aria-hidden />
               <div className={styles.mapPaneMapWrap}>
                 <BelizeMap
                   districtListingCounts={districtListingCounts}
@@ -353,6 +357,7 @@ export default function HomePage() {
                 />
               </div>
             </section>
+          </div>
           </div>
         </section>
 

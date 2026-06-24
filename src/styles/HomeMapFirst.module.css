@@ -75,6 +75,12 @@
 
 .heroSection {
   position: relative;
+  padding: 0;
+}
+
+.heroCanvas {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(360px, 0.86fr) minmax(440px, 1.14fr);
   gap: 12px;
@@ -85,11 +91,12 @@
   overflow: hidden;
 }
 
-.heroSection::before {
+.heroCanvas::before {
   content: "";
   position: absolute;
-  inset: -10% -8%;
+  inset: 0;
   pointer-events: none;
+  z-index: 0;
   background:
     radial-gradient(ellipse 54% 38% at 62% 56%, rgba(92, 200, 220, 0.22), transparent 78%),
     radial-gradient(ellipse 52% 36% at 18% 30%, rgba(120, 224, 204, 0.24), transparent 76%),
@@ -99,15 +106,19 @@
   animation: heroAtmosphereGlow var(--ambient-cycle-c) var(--ambient-ease-drift) infinite alternate;
 }
 
-.heroSection::after {
+.heroCanvas::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0)),
-    repeating-linear-gradient(106deg, rgba(255, 255, 255, 0.05) 0 2px, rgba(255, 255, 255, 0) 2px 18px);
+  z-index: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0));
   opacity: 0.14;
+}
+
+.heroSection::before,
+.heroSection::after {
+  content: none;
 }
 
 .heroLeft {
@@ -278,10 +289,13 @@
 }
 
 .statGrid {
+  position: relative;
+  z-index: 1;
   margin-top: 5px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 7px;
+  isolation: isolate;
 }
 
 .statCard {
@@ -295,18 +309,29 @@
   padding: 7px 8px;
   background:
     radial-gradient(circle at 92% -20%, rgba(248, 224, 240, 0.16), transparent 48%),
-    rgba(255, 255, 255, 0.8);
+    linear-gradient(168deg, rgba(255, 255, 255, 0.94) 0%, rgba(250, 253, 252, 0.9) 100%);
   box-shadow:
     var(--ui-shadow-soft),
     0 1px 0 rgba(255, 255, 255, 0.45) inset,
     0 20px 40px rgba(200, 180, 220, 0.035);
   backdrop-filter: blur(13px);
+  -webkit-backdrop-filter: blur(13px);
   text-align: center;
   isolation: isolate;
   transition:
     transform 560ms var(--ui-ease),
     box-shadow 560ms var(--ui-ease),
     filter 560ms var(--ui-ease);
+}
+
+.statCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .statCard::after {
@@ -364,10 +389,25 @@
   justify-content: flex-end;
   align-self: stretch;
   padding-top: 0;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: calc(var(--ui-radius) + 1px);
+}
+
+.heroRight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(168deg, rgba(244, 252, 250, 0.82) 0%, rgba(238, 246, 252, 0.78) 52%, rgba(250, 248, 246, 0.8) 100%);
 }
 
 .mapPane {
   position: relative;
+  z-index: 1;
   width: min(100%, 548px);
   height: clamp(292px, 43vh, 410px);
   min-height: 292px;
@@ -380,6 +420,29 @@
   box-shadow: none;
   overflow: visible;
   isolation: isolate;
+}
+
+/**
+ * Clips map backdrop + sea-flow to the pane — glow cocoon (::after) stays outside this box.
+ */
+.mapPaneAtmosphereClip {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: calc(var(--ui-radius) + 3px);
+  pointer-events: none;
+}
+
+/** Semi-opaque editorial surface — blocks hero canvas bleed into the map stack. */
+.mapPaneSurface {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: calc(var(--ui-radius) + 3px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(248, 252, 251, 0.28) 38%, rgba(255, 255, 255, 0.08) 100%);
 }
 
 /**
@@ -405,7 +468,7 @@
 /** Static tropical wash behind the map — always visible. */
 .mapPaneBackdrop {
   position: absolute;
-  inset: -30% -26%;
+  inset: -24% -22%;
   z-index: 0;
   pointer-events: none;
   background:
@@ -434,7 +497,7 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .mapPaneSeaFlowLayers::before {
@@ -484,7 +547,7 @@
 
 .mapPaneMapWrap {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
@@ -1201,7 +1264,7 @@
 }
 
 @media (max-width: 1160px) {
-  .heroSection {
+  .heroCanvas {
     grid-template-columns: 1fr;
     min-height: 0;
   }
@@ -1299,7 +1362,7 @@
 @media (prefers-reduced-motion: reduce) {
   .page::before,
   .page::after,
-  .heroSection::before {
+  .heroCanvas::before {
     animation: none !important;
   }
 
