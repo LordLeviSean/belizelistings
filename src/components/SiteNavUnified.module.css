@@ -804,8 +804,17 @@
     font-size: calc(0.88rem + 12px);
   }
 
+  .brand {
+    flex-shrink: 0;
+    min-width: 0;
+  }
+
   .navLinks {
-    gap: 4px;
+    display: none;
+  }
+
+  .mobileMenuBtn {
+    display: inline-flex;
   }
 
   .navLink,
@@ -817,20 +826,155 @@
 
 /* Keep sticky nav at token height — avoid wrap-driven double chrome on narrow phones */
 @media (max-width: 420px) {
-  .navbarSignedIn .navLinks,
-  .navbarSignedIn .authSessionCluster {
-    flex-wrap: nowrap;
-    gap: 2px;
-  }
-
-  .navLink,
-  .navBtn {
-    padding: 4px 6px;
-    font-size: 0.65rem;
-  }
-
   .brandWordmark {
     font-size: calc(0.82rem + 10px);
+  }
+}
+
+/* Mobile nav drawer — sea-glass sheet; desktop pills unchanged above 801px */
+.mobileMenuBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(174, 220, 210, 0.38);
+  border-radius: 999px;
+  background: rgba(252, 254, 253, 0.9);
+  color: rgba(44, 72, 78, 0.94);
+  cursor: pointer;
+  box-shadow:
+    0 10px 24px rgba(10, 20, 28, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.45) inset;
+  transition:
+    background var(--dur-2) var(--ease-out-soft),
+    border-color var(--dur-2) var(--ease-out-soft),
+    transform var(--dur-2) var(--ease-out-soft),
+    box-shadow var(--dur-2) var(--ease-out-soft);
+}
+
+.mobileMenuBtn:hover {
+  border-color: rgba(174, 220, 210, 0.44);
+  transform: translateY(-1px);
+}
+
+.mobileMenuBtn:focus-visible {
+  outline: 2px solid rgba(120, 210, 195, 0.65);
+  outline-offset: 3px;
+}
+
+.mobileMenuIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.mobileDrawerBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: rgba(8, 14, 18, 0.42);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: mobileDrawerBackdropIn var(--dur-2) var(--ease-out-soft);
+}
+
+.mobileDrawer {
+  position: fixed;
+  top: var(--site-nav-height);
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  width: min(100vw - 28px, 320px);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(118, 124, 122, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 28%),
+    linear-gradient(
+      180deg,
+      rgba(26, 26, 28, 0.96) 0%,
+      rgba(16, 17, 19, 0.97) 100%
+    );
+  box-shadow:
+    -18px 0 48px rgba(4, 6, 8, 0.38),
+    0 0 0 1px rgba(6, 7, 8, 0.55);
+  backdrop-filter: blur(20px) saturate(1.12);
+  -webkit-backdrop-filter: blur(20px) saturate(1.12);
+  animation: mobileDrawerIn var(--dur-3) var(--ease-out-soft);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.mobileDrawerInner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 14px 24px;
+}
+
+.drawerNavLink {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  border-radius: calc(var(--ui-radius, 12px) + 2px);
+}
+
+.drawerNavLink .navLinkInner {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.drawerAuthSlot {
+  display: flex;
+  width: 100%;
+}
+
+.drawerAuthSlot .navLink,
+.drawerAuthSlot .navBtn {
+  width: 100%;
+}
+
+.drawerNotificationWrap {
+  width: 100%;
+}
+
+.drawerNotificationWrap :global(button) {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.drawerNotificationWrap :global(button) span {
+  justify-content: flex-start;
+}
+
+@keyframes mobileDrawerBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mobileDrawerIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobileDrawerBackdrop,
+  .mobileDrawer {
+    animation: none !important;
   }
 }
 

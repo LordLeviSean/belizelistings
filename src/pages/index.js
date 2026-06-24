@@ -74,6 +74,7 @@ export default function HomePage() {
   const [searchSubmitting, setSearchSubmitting] = useState(false);
   const [carouselIndexById, setCarouselIndexById] = useState({});
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [compactSearchPlaceholder, setCompactSearchPlaceholder] = useState(false);
   const featuredScrollRef = useRef(null);
   const featuredPausedRef = useRef(false);
   const { enabled: seaFlowModeEnabled } = useSeaFlowMode();
@@ -108,6 +109,15 @@ export default function HomePage() {
     if (!router.isReady) return;
     queueMicrotask(() => setHydrated(true));
   }, [router.isReady]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const mq = window.matchMedia("(max-width: 760px)");
+    const sync = () => setCompactSearchPlaceholder(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   const districtListingCounts = useMemo(() => {
     const counts = {};
@@ -260,6 +270,9 @@ export default function HomePage() {
           <div className={styles.heroLeft}>
             <p className={styles.heroKicker}>EXPLORE. INVEST. THRIVE.</p>
             <h1 className={styles.heroHeadline}>Belize&apos;s Living Property Map</h1>
+            <p className={styles.heroTrustLine}>
+              Verified listings. Real agents. One national property map.
+            </p>
             <p className={styles.heroSubtext}>
               Discover real estate opportunities across Belize. Interactive. Intelligent. Always up
               to date.
@@ -277,7 +290,11 @@ export default function HomePage() {
                 onChange={(event) => setSearchTerm(event.target.value)}
                 className={styles.searchInput}
                 type="search"
-                placeholder="Explore Belize by district, property type, or lifestyle…"
+                placeholder={
+                  compactSearchPlaceholder
+                    ? "District, type, or lifestyle…"
+                    : "Explore Belize by district, property type, or lifestyle…"
+                }
                 aria-label="Search listings; Enter opens full results"
                 enterKeyHint="search"
               />

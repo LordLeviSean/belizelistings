@@ -1,14 +1,27 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DM_Sans } from "next/font/google";
-import { ChevronLeft, Heart, Loader2, LogIn, LogOut, Sparkles, UsersRound } from "lucide-react";
+import {
+  ChevronLeft,
+  Heart,
+  Loader2,
+  LogIn,
+  LogOut,
+  Menu,
+  Sparkles,
+  UsersRound,
+  X,
+} from "lucide-react";
 import useUserRole from "../hooks/useUserRole";
 import { useAuthGate } from "./auth/AuthGateProvider";
 import useLivePaletteMode from "../hooks/useLivePaletteMode";
 import usePulseMode from "../hooks/usePulseMode";
 import styles from "./SiteNavUnified.module.css";
 import NotificationCenter from "./notifications/NotificationCenter";
+
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Premium geometric-humanist wordmark only — scoped to nav brand link */
 const brandWordmarkFont = DM_Sans({
@@ -26,10 +39,77 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const { user, role, loading } = useUserRole();
   const { openLoginIfNeeded, logoutToHome } = useAuthGate();
   const [authLayoutReady, setAuthLayoutReady] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileDrawerRef = useRef(null);
+  const mobileMenuBtnRef = useRef(null);
+  const wasMobileMenuOpenRef = useRef(false);
 
   useEffect(() => {
     setAuthLayoutReady(true);
   }, []);
+
+  const closeMobileMenu = useCallback(() => {
+    setMobileMenuOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    const prevPaddingRight = document.body.style.paddingRight;
+    const gap = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = "hidden";
+    if (gap > 0) document.body.style.paddingRight = `${gap}px`;
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") closeMobileMenu();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileMenuOpen, closeMobileMenu]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen || !mobileDrawerRef.current) return undefined;
+    const drawer = mobileDrawerRef.current;
+    const focusables = Array.from(drawer.querySelectorAll(FOCUSABLE));
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    first?.focus();
+
+    const onKeyDown = (e) => {
+      if (e.key !== "Tab" || focusables.length === 0) return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        }
+      } else if (document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    };
+
+    drawer.addEventListener("keydown", onKeyDown);
+    return () => drawer.removeEventListener("keydown", onKeyDown);
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      wasMobileMenuOpenRef.current = true;
+      return undefined;
+    }
+    if (wasMobileMenuOpenRef.current) {
+      mobileMenuBtnRef.current?.focus();
+      wasMobileMenuOpenRef.current = false;
+    }
+    return undefined;
+  }, [mobileMenuOpen]);
   const { enabled: livePaletteModeEnabled } = useLivePaletteMode();
   const { enabled: pulseModeEnabled } = usePulseMode();
 
@@ -94,7 +174,13 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     else router.push("/dashboard/user");
   };
 
+  const handleDashboardFromMobile = () => {
+    closeMobileMenu();
+    handleDashboard();
+  };
+
   const handleLogout = async () => {
+    closeMobileMenu();
     await logoutToHome();
   };
 
@@ -143,6 +229,143 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const signedInNavCluster =
     authLayoutReady && !loading && user;
 
+  const renderNavActions = (variant = "desktop") => {
+    const isDrawer = variant === "drawer";
+    const onNavigate = isDrawer ? closeMobileMenu : undefined;
+    const linkBase = isDrawer ? `${styles.navLink} ${styles.drawerNavLink}` : styles.navLink;
+    const btnBase = isDrawer ? `${styles.navBtn} ${styles.drawerNavLink}` : styles.navBtn;
+
+    const favoritesLink = (
+      <Link
+        href="/favorites"
+        onClick={onNavigate}
+        className={`${linkBase} ${styles.navPillFavorites} ${
+          favoritesNavActive ? styles.navLinkActive : ""
+        } ${favoritesNavActive ? styles.navFavoritesActive : ""}`}
+      >
+        <span className={styles.navLinkInner}>
+          <Heart
+            className={`${styles.navIcon} ${styles.navIconFavorites} ${
+              favoritesIdleHomeChrome ? styles.navIconFavoritesHome : ""
+            } ${favoritesNavActive ? styles.navIconFavoritesActive : ""}`}
+            fill={favoritesFilled ? "currentColor" : "none"}
+            strokeWidth={1.85}
+            aria-hidden
+          />
+          Favorites
+        </span>
+      </Link>
+    );
+
+    const sessionCluster = (
+      <>
+        {user ? (
+          <button
+            type="button"
+            onClick={isDrawer ? handleDashboardFromMobile : handleDashboard}
+            className={`${linkBase} ${styles.navPillDashboard} ${
+              resolvedActive === "dashboard" ? styles.navLinkActive : ""
+            } ${resolvedActive === "dashboard" ? styles.navDashboardActive : ""}`}
+          >
+            <span className={styles.navLinkInner}>
+              <Sparkles
+                className={`${styles.navIcon} ${styles.navIconDashboard} ${
+                  dashboardIdleHomeChrome ? styles.navIconDashboardHome : ""
+                } ${
+                  resolvedActive === "dashboard" ? styles.navIconDashboardActive : ""
+                } ${resolvedActive === "dashboard" && role === "admin" ? styles.navIconDashboardPower : ""
+                }`}
+                fill={dashboardFilled ? "currentColor" : "none"}
+                strokeWidth={1.85}
+                aria-hidden
+              />
+              Dashboard
+            </span>
+          </button>
+        ) : null}
+
+        <Link
+          href="/agents"
+          onClick={onNavigate}
+          className={`${linkBase} ${styles.navPillAgents} ${
+            agentsNavActive ? styles.navLinkActive : ""
+          } ${agentsNavActive ? styles.navAgentsActive : ""}`}
+        >
+          <span className={styles.navLinkInner}>
+            <UsersRound
+              className={`${styles.navIcon} ${styles.navIconAgents} ${
+                agentsIdleHomeChrome ? styles.navIconAgentsHome : ""
+              } ${agentsNavActive ? styles.navIconAgentsActive : ""}`}
+              fill={agentsFilled ? "currentColor" : "none"}
+              strokeWidth={1.85}
+              aria-hidden
+            />
+            Agents
+          </span>
+        </Link>
+
+        {isDrawer ? (
+          <div className={styles.drawerNotificationWrap}>
+            <NotificationCenter />
+          </div>
+        ) : (
+          <NotificationCenter />
+        )}
+
+        <div className={isDrawer ? styles.drawerAuthSlot : styles.authAccountSlot}>
+          {!authLayoutReady ? (
+            <span className={`${linkBase} ${styles.navAuthSkeleton}`} aria-hidden="true" />
+          ) : loading ? (
+            <span className={`${linkBase} ${styles.navLinkIdle}`} aria-busy="true" aria-label="Loading">
+              <Loader2 className={`${styles.navIcon} ${styles.navIconSpin}`} strokeWidth={1.85} aria-hidden />
+            </span>
+          ) : user ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className={`${btnBase} ${styles.navPillLogout}`}
+            >
+              <span className={styles.navLinkInner}>
+                <LogOut className={styles.navIcon} strokeWidth={1.85} aria-hidden />
+                Logout
+              </span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                onNavigate?.();
+                openLoginIfNeeded();
+              }}
+              className={linkBase}
+            >
+              <span className={styles.navLinkInner}>
+                <LogIn className={styles.navIcon} strokeWidth={1.85} aria-hidden />
+                Login
+              </span>
+            </button>
+          )}
+        </div>
+      </>
+    );
+
+    if (isDrawer) {
+      return (
+        <>
+          {favoritesLink}
+          {sessionCluster}
+        </>
+      );
+    }
+
+    return (
+      <>
+        {favoritesLink}
+        <div className={styles.authSessionCluster}>{sessionCluster}</div>
+      </>
+    );
+  };
+
   return (
     <header
       className={`${styles.navbar}${signedOutNavTight ? ` ${styles.navbarSignedOut}` : ""}${
@@ -170,105 +393,46 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
       </Link>
 
       <nav className={styles.navLinks} aria-label="Primary navigation">
-        <Link
-          href="/favorites"
-          className={`${styles.navLink} ${styles.navPillFavorites} ${
-            favoritesNavActive ? styles.navLinkActive : ""
-          } ${favoritesNavActive ? styles.navFavoritesActive : ""}`}
-        >
-          <span className={styles.navLinkInner}>
-            <Heart
-              className={`${styles.navIcon} ${styles.navIconFavorites} ${
-                favoritesIdleHomeChrome ? styles.navIconFavoritesHome : ""
-              } ${favoritesNavActive ? styles.navIconFavoritesActive : ""}`}
-              fill={favoritesFilled ? "currentColor" : "none"}
-              strokeWidth={1.85}
-              aria-hidden
-            />
-            Favorites
-          </span>
-        </Link>
-
-        <div className={styles.authSessionCluster}>
-          {user ? (
-            <button
-              type="button"
-              onClick={handleDashboard}
-              className={`${styles.navLink} ${styles.navPillDashboard} ${
-                resolvedActive === "dashboard" ? styles.navLinkActive : ""
-              } ${resolvedActive === "dashboard" ? styles.navDashboardActive : ""}`}
-            >
-              <span className={styles.navLinkInner}>
-                <Sparkles
-                  className={`${styles.navIcon} ${styles.navIconDashboard} ${
-                    dashboardIdleHomeChrome ? styles.navIconDashboardHome : ""
-                  } ${
-                    resolvedActive === "dashboard" ? styles.navIconDashboardActive : ""
-                  } ${resolvedActive === "dashboard" && role === "admin" ? styles.navIconDashboardPower : ""
-                  }`}
-                  fill={dashboardFilled ? "currentColor" : "none"}
-                  strokeWidth={1.85}
-                  aria-hidden
-                />
-                Dashboard
-              </span>
-            </button>
-          ) : null}
-
-          <Link
-            href="/agents"
-            className={`${styles.navLink} ${styles.navPillAgents} ${
-              agentsNavActive ? styles.navLinkActive : ""
-            } ${agentsNavActive ? styles.navAgentsActive : ""}`}
-          >
-            <span className={styles.navLinkInner}>
-              <UsersRound
-                className={`${styles.navIcon} ${styles.navIconAgents} ${
-                  agentsIdleHomeChrome ? styles.navIconAgentsHome : ""
-                } ${agentsNavActive ? styles.navIconAgentsActive : ""}`}
-                fill={agentsFilled ? "currentColor" : "none"}
-                strokeWidth={1.85}
-                aria-hidden
-              />
-              Agents
-            </span>
-          </Link>
-
-          <NotificationCenter />
-
-          <div className={styles.authAccountSlot}>
-            {!authLayoutReady ? (
-              <span className={`${styles.navLink} ${styles.navAuthSkeleton}`} aria-hidden="true" />
-            ) : loading ? (
-              <span className={`${styles.navLink} ${styles.navLinkIdle}`} aria-busy="true" aria-label="Loading">
-                <Loader2 className={`${styles.navIcon} ${styles.navIconSpin}`} strokeWidth={1.85} aria-hidden />
-              </span>
-            ) : user ? (
-              <button
-                type="button"
-                onClick={handleLogout}
-                className={`${styles.navBtn} ${styles.navPillLogout}`}
-              >
-                <span className={styles.navLinkInner}>
-                  <LogOut className={styles.navIcon} strokeWidth={1.85} aria-hidden />
-                  Logout
-                </span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => openLoginIfNeeded()}
-                className={styles.navLink}
-              >
-                <span className={styles.navLinkInner}>
-                  <LogIn className={styles.navIcon} strokeWidth={1.85} aria-hidden />
-                  Login
-                </span>
-              </button>
-            )}
-          </div>
-        </div>
+        {renderNavActions("desktop")}
       </nav>
+
+      <button
+        ref={mobileMenuBtnRef}
+        type="button"
+        className={styles.mobileMenuBtn}
+        aria-expanded={mobileMenuOpen}
+        aria-controls="site-nav-mobile-drawer"
+        aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+        onClick={() => setMobileMenuOpen((open) => !open)}
+      >
+        {mobileMenuOpen ? (
+          <X className={styles.mobileMenuIcon} strokeWidth={2} aria-hidden />
+        ) : (
+          <Menu className={styles.mobileMenuIcon} strokeWidth={2} aria-hidden />
+        )}
+      </button>
+
+      {mobileMenuOpen ? (
+        <>
+          <div
+            className={styles.mobileDrawerBackdrop}
+            role="presentation"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) closeMobileMenu();
+            }}
+          />
+          <nav
+            id="site-nav-mobile-drawer"
+            ref={mobileDrawerRef}
+            className={styles.mobileDrawer}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Primary navigation"
+          >
+            <div className={styles.mobileDrawerInner}>{renderNavActions("drawer")}</div>
+          </nav>
+        </>
+      ) : null}
     </header>
   );
 }
