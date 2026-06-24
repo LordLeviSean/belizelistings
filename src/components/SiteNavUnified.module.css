@@ -7,6 +7,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--site-nav-inline-pad);
+  overflow: visible;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0) 34%),
     linear-gradient(
@@ -20,8 +21,7 @@
   -webkit-backdrop-filter: blur(20px) saturate(1.12);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.055) inset,
-    0 22px 48px rgba(4, 6, 8, 0.42),
-    0 10px 26px rgba(18, 20, 22, 0.22),
+    0 10px 24px rgba(4, 6, 8, 0.28),
     0 0 0 1px rgba(6, 7, 8, 0.55);
   transform: translateZ(0);
   backface-visibility: hidden;
@@ -30,6 +30,7 @@
 
 .brand {
   position: relative;
+  z-index: 1;
   text-decoration: none;
   font-synthesis: none;
   filter: drop-shadow(0 2px 14px rgba(10, 20, 28, 0.45));
@@ -795,23 +796,27 @@
 
 @media (max-width: 800px) {
   .navLinksDesktop {
-    display: none;
+    display: none !important;
   }
 
   .navLinksMobilePrimary {
-    display: flex;
+    display: flex !important;
     align-items: center;
     gap: 2px;
-    flex: 1;
+    flex: 1 1 auto;
     min-width: 0;
     justify-content: flex-end;
     margin-left: 6px;
     flex-wrap: nowrap;
+    position: relative;
+    z-index: 2;
+    flex-shrink: 1;
   }
 
   .navbar {
     padding: 0 8px;
     gap: 4px;
+    overflow: visible;
   }
 
   .brandWordmark {
@@ -819,9 +824,10 @@
   }
 
   .brand {
+    flex: 0 1 auto;
     flex-shrink: 1;
     min-width: 0;
-    max-width: 42%;
+    max-width: 38%;
   }
 
   .navLinksMobilePrimary .navLink,
@@ -829,6 +835,8 @@
     padding: 4px 6px;
     font-size: 0.62rem;
     letter-spacing: 0.008em;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   .navLinksMobilePrimary .navLinkInner {
@@ -869,7 +877,7 @@
   }
 
   .navLinksMobilePrimary {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -882,6 +890,10 @@
   .navbar {
     padding: 0 6px;
     gap: 2px;
+  }
+
+  .brand {
+    max-width: 34%;
   }
 
   .navLinksMobilePrimary {
