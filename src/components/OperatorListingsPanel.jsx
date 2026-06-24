@@ -10,6 +10,7 @@ import HomePropertyCard from "./HomePropertyCard";
 import ListingTrustStrip from "./ListingTrustStrip";
 import ListingOwnershipMeta from "./ListingOwnershipMeta";
 import DeleteConfirmModal from "./DeleteConfirmModal";
+import ArchiveListingModal from "./listing/ArchiveListingModal";
 import { getSelectableRegions } from "../constants/geographyLayer";
 import { getArchiveStatus, getModerationStatus, getRepublishStatus, LISTING_LIFECYCLE } from "../constants/operationalModel";
 import styles from "../styles/Dashboard.module.css";
@@ -51,6 +52,7 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
   const [statusFilter, setStatusFilter] = useState("all");
   const [editingId, setEditingId] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [archiveTargetId, setArchiveTargetId] = useState("");
   const [editStep, setEditStep] = useState(0);
   const [editForm, setEditForm] = useState({
     title: "",
@@ -130,7 +132,10 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
       return true;
     });
   }, [listings, statusFilter]);
-  const archiveListing = async (listingId) => {
+  const confirmArchiveListing = async () => {
+    const listingId = archiveTargetId;
+    if (!listingId) return;
+
     setActionKey(`${listingId}:archive`);
     const { error } = await applyListingLifecycleAction(supabase, {
       listingId,
@@ -159,8 +164,9 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
     );
     await loadListings();
     onAction?.("Archived listing from operator panel");
-    showToast({ type: "info", message: "Listing archived" });
+    showToast({ type: "success", message: "Listing archived successfully." });
     setActionKey("");
+    setArchiveTargetId("");
   };
 
   const approveListing = async (listingId) => {
@@ -525,7 +531,7 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
                     <button
                       type="button"
                       className={styles.deleteListingButton}
-                      onClick={() => archiveListing(listing.id)}
+                      onClick={() => setArchiveTargetId(String(listing.id))}
                       disabled={isBusy}
                     >
                       {actionKey === `${listing.id}:archive` ? "Removing..." : "Archive"}
@@ -585,7 +591,7 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
                     <button
                       type="button"
                       className={styles.deleteListingButton}
-                      onClick={() => archiveListing(listing.id)}
+                      onClick={() => setArchiveTargetId(String(listing.id))}
                       disabled={isBusy}
                     >
                       {actionKey === `${listing.id}:archive` ? "Removing..." : "Remove Listing"}
@@ -671,6 +677,15 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
           </div>
         </div>
       ) : null}
+      <ArchiveListingModal
+        open={Boolean(archiveTargetId)}
+        isArchiving={Boolean(archiveTargetId && actionKey === `${archiveTargetId}:archive`)}
+        onClose={() => {
+          if (actionKey === `${archiveTargetId}:archive`) return;
+          setArchiveTargetId("");
+        }}
+        onConfirm={confirmArchiveListing}
+      />
       <DeleteConfirmModal
         isOpen={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}

@@ -5,6 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import { supabase } from "@/lib/supabaseClient";
 import { discardDraftListing } from "@/lib/listingPersistence";
 import { isLegacyGenerationDraft } from "@/lib/legacyDraftCompat";
+import ArchiveListingModal from "@/components/listing/ArchiveListingModal";
 import DiscardDraftModal from "@/components/listing/DiscardDraftModal";
 import UserListingRowIntel from "@/components/user/UserListingRowIntel";
 import useUserDashboardStore from "@/stores/useUserDashboardStore";
@@ -46,6 +47,7 @@ function UserMyListingsPanel({ userId, tier }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [actionId, setActionId] = useState("");
+  const [archiveTargetId, setArchiveTargetId] = useState("");
   const [discardTargetId, setDiscardTargetId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(MY_LISTINGS_STATUS_FILTERS.ALL);
@@ -89,13 +91,9 @@ function UserMyListingsPanel({ userId, tier }) {
   const showListingsSkeleton =
     loading || (!myListingsInitialFetchDone && !listingsErrorMessage && listings.length === 0);
 
-  const archiveListing = async (listingId) => {
-    const confirmSeenKey = "user_listing_archive_confirm_seen_v1";
-    if (typeof window !== "undefined" && !window.localStorage.getItem(confirmSeenKey)) {
-      const confirmed = window.confirm("Remove from public? You can re-submit after edits if needed.");
-      if (!confirmed) return;
-      window.localStorage.setItem(confirmSeenKey, "true");
-    }
+  const confirmArchiveListing = async () => {
+    const listingId = archiveTargetId;
+    if (!listingId) return;
 
     setActionId(String(listingId));
     patchMyListingRow(listingId, buildModerationArchivePatch());
@@ -113,8 +111,9 @@ function UserMyListingsPanel({ userId, tier }) {
       return;
     }
     invalidate();
-    showToast({ type: "info", message: "Listing archived" });
+    showToast({ type: "success", message: "Listing archived successfully." });
     setActionId("");
+    setArchiveTargetId("");
   };
 
   const confirmDiscardDraft = async () => {
@@ -309,7 +308,7 @@ function UserMyListingsPanel({ userId, tier }) {
                       <button
                         type="button"
                         className={styles.deleteListingButton}
-                        onClick={() => archiveListing(l.id)}
+                        onClick={() => setArchiveTargetId(String(l.id))}
                         disabled={actionId === String(l.id)}
                       >
                         {actionId === String(l.id) ? "Archiving…" : "Archive"}
@@ -330,7 +329,7 @@ function UserMyListingsPanel({ userId, tier }) {
                         <button
                           type="button"
                           className={styles.deleteListingButton}
-                          onClick={() => archiveListing(l.id)}
+                          onClick={() => setArchiveTargetId(String(l.id))}
                           disabled={actionId === String(l.id)}
                         >
                           {actionId === String(l.id) ? "Archiving…" : "Archive"}
@@ -343,6 +342,15 @@ function UserMyListingsPanel({ userId, tier }) {
             );
           })}
       </div>
+      <ArchiveListingModal
+        open={Boolean(archiveTargetId)}
+        isArchiving={Boolean(archiveTargetId && actionId === archiveTargetId)}
+        onClose={() => {
+          if (actionId === archiveTargetId) return;
+          setArchiveTargetId("");
+        }}
+        onConfirm={confirmArchiveListing}
+      />
       <DiscardDraftModal
         open={Boolean(discardTargetId)}
         discarding={Boolean(discardTargetId && actionId === discardTargetId)}

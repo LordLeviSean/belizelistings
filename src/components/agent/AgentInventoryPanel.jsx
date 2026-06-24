@@ -5,6 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import { supabase } from "@/lib/supabaseClient";
 import { discardDraftListing } from "@/lib/listingPersistence";
 import { getUserActiveListingCount } from "@/lib/listingPersistence";
+import ArchiveListingModal from "@/components/listing/ArchiveListingModal";
 import DiscardDraftModal from "@/components/listing/DiscardDraftModal";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import UserListingRowIntel from "@/components/user/UserListingRowIntel";
@@ -57,6 +58,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
   const router = useRouter();
   const { showToast } = useToast();
   const [actionId, setActionId] = useState("");
+  const [archiveTargetId, setArchiveTargetId] = useState("");
   const [discardTargetId, setDiscardTargetId] = useState("");
   const [deleteTargetId, setDeleteTargetId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -103,13 +105,9 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
   const showSkeleton =
     loading || (!myListingsInitialFetchDone && !listingsErrorMessage && listings.length === 0);
 
-  const archiveListing = async (listingId) => {
-    const confirmSeenKey = "agent_listing_archive_confirm_seen_v1";
-    if (typeof window !== "undefined" && !window.localStorage.getItem(confirmSeenKey)) {
-      const confirmed = window.confirm("Remove from public? You can re-submit after edits if needed.");
-      if (!confirmed) return;
-      window.localStorage.setItem(confirmSeenKey, "true");
-    }
+  const confirmArchiveListing = async () => {
+    const listingId = archiveTargetId;
+    if (!listingId) return;
 
     setActionId(String(listingId));
     patchMyListingRow(listingId, buildModerationArchivePatch());
@@ -125,8 +123,9 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
       return;
     }
     invalidate();
-    showToast({ type: "info", message: "Listing archived" });
+    showToast({ type: "success", message: "Listing archived successfully." });
     setActionId("");
+    setArchiveTargetId("");
   };
 
   const republishListing = async (listingId) => {
@@ -383,7 +382,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
                       <button
                         type="button"
                         className={styles.deleteListingButton}
-                        onClick={() => archiveListing(l.id)}
+                        onClick={() => setArchiveTargetId(String(l.id))}
                         disabled={actionId === String(l.id)}
                       >
                         {actionId === String(l.id) ? "Archiving…" : "Archive"}
@@ -405,7 +404,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
                         <button
                           type="button"
                           className={styles.deleteListingButton}
-                          onClick={() => archiveListing(l.id)}
+                          onClick={() => setArchiveTargetId(String(l.id))}
                           disabled={actionId === String(l.id)}
                         >
                           Archive
@@ -438,6 +437,16 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
             );
           })}
       </div>
+
+      <ArchiveListingModal
+        open={Boolean(archiveTargetId)}
+        isArchiving={Boolean(archiveTargetId && actionId === archiveTargetId)}
+        onClose={() => {
+          if (actionId === archiveTargetId) return;
+          setArchiveTargetId("");
+        }}
+        onConfirm={confirmArchiveListing}
+      />
 
       <DiscardDraftModal
         open={Boolean(discardTargetId)}

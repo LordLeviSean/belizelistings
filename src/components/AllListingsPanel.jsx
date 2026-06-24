@@ -11,6 +11,7 @@ import HomePropertyCard from "./HomePropertyCard";
 import ListingTrustStrip from "./ListingTrustStrip";
 import ListingOwnershipMeta from "./ListingOwnershipMeta";
 import DeleteConfirmModal from "./DeleteConfirmModal";
+import ArchiveListingModal from "./listing/ArchiveListingModal";
 import { getSelectableRegions } from "../constants/geographyLayer";
 import {
   getArchiveStatus,
@@ -60,6 +61,7 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
   const [editingId, setEditingId] = useState("");
   const [editStep, setEditStep] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [archiveTargetId, setArchiveTargetId] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [editForm, setEditForm] = useState({
     title: "",
@@ -247,7 +249,10 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
     setActionKey("");
   };
 
-  const archiveListing = async (listingId) => {
+  const confirmArchiveListing = async () => {
+    const listingId = archiveTargetId;
+    if (!listingId) return;
+
     setActionKey(`${listingId}:archive`);
     traceAction({
       type: "admin_archive_listing",
@@ -297,8 +302,9 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
     });
     await loadListings();
     onAction?.("Archived listing");
-    showToast({ type: "info", message: "Listing archived" });
+    showToast({ type: "success", message: "Listing archived successfully." });
     setActionKey("");
+    setArchiveTargetId("");
   };
 
   const restoreListing = async (listingId) => {
@@ -582,7 +588,7 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
                 <button
                   type="button"
                   className={styles.deleteListingButton}
-                  onClick={() => archiveListing(listing.id)}
+                  onClick={() => setArchiveTargetId(String(listing.id))}
                   disabled={rowBusy}
                 >
                   {actionKey === `${listing.id}:archive` ? "Processing..." : "Archive"}
@@ -615,7 +621,7 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
                 <button
                   type="button"
                   className={styles.deleteListingButton}
-                  onClick={() => archiveListing(listing.id)}
+                  onClick={() => setArchiveTargetId(String(listing.id))}
                   disabled={rowBusy}
                 >
                   {actionKey === `${listing.id}:archive` ? "Processing..." : "Archive"}
@@ -701,6 +707,15 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
           </div>
         </div>
       ) : null}
+      <ArchiveListingModal
+        open={Boolean(archiveTargetId)}
+        isArchiving={Boolean(archiveTargetId && actionKey === `${archiveTargetId}:archive`)}
+        onClose={() => {
+          if (actionKey === `${archiveTargetId}:archive`) return;
+          setArchiveTargetId("");
+        }}
+        onConfirm={confirmArchiveListing}
+      />
       <DeleteConfirmModal
         isOpen={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}

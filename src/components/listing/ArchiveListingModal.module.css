@@ -1,0 +1,213 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 230;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  background: rgba(28, 48, 44, 0.26);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: backdropIn var(--dur-2) var(--ease-out-soft);
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  width: min(440px, 100%);
+  border-radius: calc(var(--radius) + 2px);
+  padding: 24px 24px 22px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border-mint);
+  box-shadow: var(--elev-3);
+  color: rgba(32, 62, 56, 0.96);
+  animation: modalIn var(--dur-3) var(--ease-out-soft);
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.iconWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 14px;
+}
+
+.iconGlow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(224, 178, 98, 0.38) 0%, rgba(224, 178, 98, 0.08) 68%, transparent 100%);
+}
+
+.icon {
+  position: relative;
+  z-index: 1;
+  color: rgba(168, 118, 42, 0.96);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.22rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  color: rgba(26, 56, 52, 0.98);
+}
+
+.close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin: -4px -6px 0 0;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 178, 164, 0.35);
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(42, 72, 66, 0.88);
+  cursor: pointer;
+  transition: var(--transition-surface), transform var(--dur-2) var(--ease-out-soft);
+}
+
+.close:hover:not(:disabled) {
+  transform: translateY(var(--hover-lift-xs));
+  border-color: rgba(72, 140, 128, 0.42);
+}
+
+.close:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.body {
+  margin: 0 0 10px;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: rgba(52, 82, 76, 0.88);
+}
+
+.helper {
+  margin: 0 0 20px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: rgba(88, 108, 102, 0.72);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+}
+
+@media (min-width: 400px) {
+  .actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+
+.btnSecondary {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(120, 168, 158, 0.42);
+  background: rgba(255, 255, 255, 0.82);
+  color: rgba(42, 72, 66, 0.92);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-hover-lift), border-color var(--dur-2) var(--ease-out-soft);
+}
+
+.btnSecondary:hover:not(:disabled) {
+  border-color: rgba(72, 140, 128, 0.48);
+  transform: translateY(var(--hover-lift-xs));
+}
+
+.btnSecondary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(194, 160, 106, 0.55);
+  background: linear-gradient(135deg, rgba(255, 236, 196, 0.88), rgba(224, 178, 98, 0.42));
+  color: rgba(88, 58, 18, 0.96);
+  font-size: 0.9rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: var(--transition-hover-lift), border-color var(--dur-2) var(--ease-out-soft);
+  box-shadow: var(--elev-1);
+}
+
+.btnPrimary:hover:not(:disabled) {
+  border-color: rgba(168, 118, 42, 0.62);
+  transform: translateY(var(--hover-lift-xs));
+}
+
+.btnPrimary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (min-width: 400px) {
+  .btnSecondary,
+  .btnPrimary {
+    flex: 0 1 auto;
+    min-width: 132px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .modal,
+  .close,
+  .btnSecondary,
+  .btnPrimary {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .close:hover:not(:disabled),
+  .btnSecondary:hover:not(:disabled),
+  .btnPrimary:hover:not(:disabled) {
+    transform: none;
+  }
+}
