@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { DM_Sans } from "next/font/google";
 import {
   ChevronLeft,
@@ -39,16 +40,23 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const { openLoginIfNeeded, logoutToHome } = useAuthGate();
   const [authLayoutReady, setAuthLayoutReady] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isMobileNav, setIsMobileNav] = useState(false);
+  const [drawerPortalReady, setDrawerPortalReady] = useState(false);
+  const [isMobileNav, setIsMobileNav] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 800px)").matches;
+  });
   const mobileDrawerRef = useRef(null);
   const accountMenuBtnRef = useRef(null);
   const wasMobileMenuOpenRef = useRef(false);
 
   useEffect(() => {
+    setDrawerPortalReady(true);
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined") return undefined;
     const mq = window.matchMedia("(max-width: 800px)");
     const sync = () => setIsMobileNav(mq.matches);
-    sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
@@ -60,6 +68,13 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const closeMobileMenu = useCallback(() => {
     setMobileMenuOpen(false);
   }, []);
+
+  const toggleAccountMenu = useCallback(() => {
+    setMobileMenuOpen((open) => !open);
+  }, []);
+
+  const { enabled: livePaletteModeEnabled } = useLivePaletteMode();
+  const { enabled: pulseModeEnabled } = usePulseMode();
 
   const hasMobileDrawer = authLayoutReady && !loading && Boolean(user);
   const drawerOpen = mobileMenuOpen && hasMobileDrawer;
@@ -131,8 +146,6 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     }
     return undefined;
   }, [mobileMenuOpen]);
-  const { enabled: livePaletteModeEnabled } = useLivePaletteMode();
-  const { enabled: pulseModeEnabled } = usePulseMode();
 
   const route = router.pathname || "";
   const isHomepage = route === "/";
@@ -225,10 +238,6 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     }
     void router.push("/");
   };
-
-  const toggleAccountMenu = useCallback(() => {
-    setMobileMenuOpen((open) => !open);
-  }, []);
 
   if (variant === "userDashboard") {
     return (
@@ -458,64 +467,71 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     );
   };
 
-  return (
-    <header
-      className={`${styles.navbar}${signedOutNavTight ? ` ${styles.navbarSignedOut}` : ""}${
-        signedInNavCluster ? ` ${styles.navbarSignedIn}` : ""
-      }`}
-    >
-      <Link href="/" className={`${styles.brand} ${brandWordmarkFont.className}`}>
-        <span
-          aria-label="BelizeListings"
-          className={styles.brandWordmark}
-          data-live={livePaletteModeEnabled ? "true" : "false"}
-          data-pulse={pulseModeEnabled ? "true" : "false"}
-        >
-          {brandLetters.map((ch, i) => (
-            <span
-              key={`${ch}-${i}`}
-              className={`${styles.brandLetter} ${
-                i < belizeEnd ? styles.brandLetterBelize : styles.brandLetterListings
-              }`}
+  const mobileDrawerLayer =
+    drawerOpen && drawerPortalReady
+      ? createPortal(
+          <>
+            <div
+              className={styles.mobileDrawerBackdrop}
+              role="presentation"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) closeMobileMenu();
+              }}
+            />
+            <nav
+              id="site-nav-mobile-drawer"
+              ref={mobileDrawerRef}
+              className={styles.mobileDrawer}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Account navigation"
             >
-              {ch}
-            </span>
-          ))}
-        </span>
-      </Link>
+              <div className={styles.mobileDrawerInner}>{renderSecondaryNavActions("drawer")}</div>
+            </nav>
+          </>,
+          document.body
+        )
+      : null;
 
-      <nav className={`${styles.navLinks} ${styles.navLinksDesktop}`} aria-label="Primary navigation">
-        {renderNavActions("desktop")}
-      </nav>
-
-      <nav
-        className={`${styles.navLinks} ${styles.navLinksMobilePrimary}`}
-        aria-label="Primary navigation"
+  return (
+    <>
+      <header
+        className={`${styles.navbar}${signedOutNavTight ? ` ${styles.navbarSignedOut}` : ""}${
+          signedInNavCluster ? ` ${styles.navbarSignedIn}` : ""
+        }`}
       >
-        {renderPrimaryNavActions("mobileBar")}
-      </nav>
-
-      {drawerOpen ? (
-        <>
-          <div
-            className={styles.mobileDrawerBackdrop}
-            role="presentation"
-            onMouseDown={(e) => {
-              if (e.target === e.currentTarget) closeMobileMenu();
-            }}
-          />
-          <nav
-            id="site-nav-mobile-drawer"
-            ref={mobileDrawerRef}
-            className={styles.mobileDrawer}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Account navigation"
+        <Link href="/" className={`${styles.brand} ${brandWordmarkFont.className}`}>
+          <span
+            aria-label="BelizeListings"
+            className={styles.brandWordmark}
+            data-live={livePaletteModeEnabled ? "true" : "false"}
+            data-pulse={pulseModeEnabled ? "true" : "false"}
           >
-            <div className={styles.mobileDrawerInner}>{renderSecondaryNavActions("drawer")}</div>
-          </nav>
-        </>
-      ) : null}
-    </header>
+            {brandLetters.map((ch, i) => (
+              <span
+                key={`${ch}-${i}`}
+                className={`${styles.brandLetter} ${
+                  i < belizeEnd ? styles.brandLetterBelize : styles.brandLetterListings
+                }`}
+              >
+                {ch}
+              </span>
+            ))}
+          </span>
+        </Link>
+
+        <nav className={`${styles.navLinks} ${styles.navLinksDesktop}`} aria-label="Primary navigation">
+          {renderNavActions("desktop")}
+        </nav>
+
+        <nav
+          className={`${styles.navLinks} ${styles.navLinksMobilePrimary}`}
+          aria-label="Primary navigation"
+        >
+          {renderPrimaryNavActions("mobileBar")}
+        </nav>
+      </header>
+      {mobileDrawerLayer}
+    </>
   );
 }

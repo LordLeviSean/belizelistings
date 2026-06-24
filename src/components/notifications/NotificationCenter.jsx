@@ -41,7 +41,15 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
   const [busy, setBusy] = useState(false);
   const [items, setItems] = useState([]);
   const rootRef = useRef(null);
+  const mountedRef = useRef(true);
   const isDrawer = layout === "drawer";
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const load = useCallback(async () => {
     if (!user?.id || loading) return;
@@ -277,6 +285,7 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
       /* ignore */
     }
 
+    if (!mountedRef.current) return;
     setItems(next.slice(0, 10));
     setBusy(false);
   }, [user?.id, role, loading]);
