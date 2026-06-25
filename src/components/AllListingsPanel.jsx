@@ -10,7 +10,13 @@ import { useToast } from "./ui/ToastProvider";
 import ListingCard from "./ListingCard";
 import ListingOwnershipMeta from "./ListingOwnershipMeta";
 import AdminListingTrustAction from "./admin/AdminListingTrustAction";
-import { shouldSkipVerificationRealtimeReload } from "./admin/adminListingTrustActionState";
+import AdminListingActionConfirmModal from "./admin/AdminListingActionConfirmModal";
+import {
+  shouldSkipVerificationRealtimeReload,
+  UNVERIFY_CONFIRM_COPY,
+} from "./admin/adminListingTrustActionState";
+import { applyListingVerificationAction } from "../lib/listingVerificationMutations";
+import useUserRole from "../hooks/useUserRole";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import ArchiveListingModal from "./listing/ArchiveListingModal";
 import { getSelectableRegions } from "../constants/geographyLayer";
@@ -54,6 +60,7 @@ const STATUS_FILTERS = [
 
 export default function AllListingsPanel({ onAction, profilesRevision = 0, listingsRevision = 0 }) {
   const router = useRouter();
+  const { user } = useUserRole();
   const { showToast } = useToast();
   const [listings, setListings] = useState([]);
   const [ownerMap, setOwnerMap] = useState({});
@@ -63,6 +70,7 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
   const [editStep, setEditStep] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [archiveTargetId, setArchiveTargetId] = useState("");
+  const [unverifyTargetId, setUnverifyTargetId] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [editForm, setEditForm] = useState({
     title: "",
@@ -78,6 +86,19 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
   });
 
   const actionKeyRef = useRef("");
+  const unverifyTargetIdRef = useRef("");
+
+  const setVerificationActionKey = useCallback((next) => {
+    const key = String(next || "");
+    actionKeyRef.current = key;
+    setActionKey(key);
+  }, []);
+
+  const setUnverifyTarget = useCallback((next) => {
+    const id = String(next || "");
+    unverifyTargetIdRef.current = id;
+    setUnverifyTargetId(id);
+  }, []);
 
   const loadListings = useCallback(async ({ background = false } = {}) => {
     if (!background) setLoading(true);
@@ -113,10 +134,6 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
   }, []);
 
   useEffect(() => {
-    actionKeyRef.current = actionKey;
-  }, [actionKey]);
-
-  useEffect(() => {
     loadListings();
   }, [loadListings, profilesRevision, listingsRevision]);
   const filteredListings = useMemo(() => {
@@ -138,7 +155,11 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
         "postgres_changes",
         { event: "*", schema: "public", table: "listings" },
         () => {
-          if (shouldSkipVerificationRealtimeReload(actionKeyRef.current)) return;
+          if (
+            shouldSkipVerificationRealtimeReload(actionKeyRef.current, unverifyTargetIdRef.current)
+          ) {
+            return;
+          }
           void loadListings({ background: true });
         }
       )
@@ -256,6 +277,61 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
     showToast({ type: "success", message: "Listing moved to Pending Review" });
     setActionKey("");
   };
+
+  const runListingVerification = useCallback(
+    async (listingId, verified) => {
+      const id = String(listingId || "").trim();
+      if (!id || !user?.id) return;
+
+      setVerificationActionKey(`${id}:verify`);
+      try {
+        const result = await applyListingVerificationAction({
+          listingId: id,
+          verified,
+          adminUserId: user.id,
+          client: supabase,
+        });
+        if (!result.ok) {
+          console.error("[all-listings-panel] verification update failed", result.error);
+          showToast({
+            type: "error",
+            message: verified ? "Unable to verify listing" : "Unable to remove verification",
+          });
+          return;
+        }
+
+        const patch = result.data || {};
+        setListings((prev) =>
+          prev.map((row) =>
+            String(row.id) === id
+              ? {
+                  ...row,
+                  verification_status:
+                    patch.verification_status ?? (verified ? "verified" : "unverified"),
+                  verified_at: patch.verified_at ?? (verified ? new Date().toISOString() : null),
+                  verified_by: patch.verified_by ?? (verified ? user.id : null),
+                }
+              : row
+          )
+        );
+        onAction?.(verified ? "Verified listing" : "Removed listing verification");
+        showToast({
+          type: "success",
+          message: verified ? "Listing verified" : "Verification removed",
+        });
+        if (!verified) setUnverifyTarget("");
+      } catch (error) {
+        console.error("[all-listings-panel] verification update threw", error);
+        showToast({
+          type: "error",
+          message: verified ? "Unable to verify listing" : "Unable to remove verification",
+        });
+      } finally {
+        setVerificationActionKey("");
+      }
+    },
+    [onAction, setUnverifyTarget, setVerificationActionKey, showToast, user?.id]
+  );
 
   const confirmArchiveListing = async () => {
     const listingId = archiveTargetId;
@@ -554,15 +630,8 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
                 <AdminListingTrustAction
                   listing={listing}
                   busy={actionKey === `${listing.id}:verify`}
-                  onBusyChange={(next) => setActionKey(next ? `${listing.id}:verify` : "")}
-                  onUpdated={(nextListing) => {
-                    setListings((prev) =>
-                      prev.map((row) =>
-                        String(row.id) === String(listing.id) ? { ...row, ...nextListing } : row
-                      )
-                    );
-                  }}
-                  onAction={(message) => onAction?.(message)}
+                  onVerify={() => void runListingVerification(listing.id, true)}
+                  onRequestUnverify={() => setUnverifyTarget(String(listing.id))}
                 />
               </>
             )}
@@ -736,6 +805,16 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
           setArchiveTargetId("");
         }}
         onConfirm={confirmArchiveListing}
+      />
+      <AdminListingActionConfirmModal
+        open={Boolean(unverifyTargetId)}
+        busy={Boolean(unverifyTargetId && actionKey === `${unverifyTargetId}:verify`)}
+        onClose={() => {
+          if (actionKey === `${unverifyTargetId}:verify`) return;
+          setUnverifyTarget("");
+        }}
+        onConfirm={() => void runListingVerification(unverifyTargetId, false)}
+        {...UNVERIFY_CONFIRM_COPY}
       />
       <DeleteConfirmModal
         isOpen={Boolean(deleteTarget)}

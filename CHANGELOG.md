@@ -9,6 +9,12 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 - **`docs/admin-operations.md`** — verification workflow reference, reusable admin action patterns, migration/audit runbook, dashboard framework vision.
 - **`scripts/apply-supabase-migrations.mjs`** — applies pending migrations via `DATABASE_URL`, Supabase Management API, or linked CLI.
 
+## [1.1.3] - 2026-06-25
+
+### Fixed
+
+- **Remove Verification workflow (Sprint 2.1.2)** — unverify confirm modal lifted to `AllListingsPanel` (same pattern as archive), so postgres realtime refetches no longer fight row-level modal state; action-key guard refs update synchronously before mutations; verify and unverify share one panel-level mutation runner.
+
 ## [1.1.2] - 2026-06-25
 
 ### Fixed
@@ -52,7 +58,9 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 - **Homepage v1.0 FROZEN** — editorial map-first homepage, featured and recently-added rails, district exploration, and calm luxury card DNA.
 - Reference tag: [`v1.0-homepage`](https://github.com/belizelistings/belizelistings-frontend/tree/v1.0-homepage) (`691db60`, also `3629a03`).
 
-[Unreleased]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.1.2...v1.1.3
+[1.1.2]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.0-homepage...v1.1.0
 [1.0.0]: https://github.com/belizelistings/belizelistings-frontend/releases/tag/v1.0-homepage
