@@ -1508,7 +1508,7 @@
     isolation: isolate;
     width: 100%;
     margin: 28px 0 0;
-    padding: 24px 16px;
+    padding: 24px 16px 40px;
     border-radius: calc(var(--ui-radius) + 1px);
     background:
       radial-gradient(ellipse 86% 80% at 14% 54%, rgba(52, 200, 182, 0.14), transparent 76%),
@@ -1534,7 +1534,7 @@
     display: block;
     position: relative;
     z-index: 1;
-    margin: 0 0 10px;
+    margin: 0 0 20px;
     width: 100%;
     text-align: center;
     font-size: 0.58rem;
@@ -1553,6 +1553,8 @@
     height: clamp(360px, 70vh, 520px);
     max-height: none;
     margin: 0 auto;
+    padding: 12px 14px;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1614,6 +1616,25 @@
     transform: none !important;
     transform-origin: center center !important;
     display: block;
+  }
+
+  .mobileMapSection .mapPaneMapWrap :global(.map.mapFitLayout) {
+    align-items: center;
+  }
+
+  .mobileMapSection .mapPaneMapWrap :global(.map.mapFitLayout .mapStage) {
+    align-items: center;
+    padding-bottom: 0;
+  }
+
+  .mobileMapSection .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg) {
+    align-items: center;
+    transform: none !important;
+  }
+
+  .mobileMapSection .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg svg) {
+    transform: none !important;
+    transform-origin: center center !important;
   }
 
   .mobileMapSection .mobileMapHint {
