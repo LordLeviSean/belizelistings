@@ -1359,6 +1359,16 @@
   .searchFilterBtn {
     grid-column: 1 / -1;
     width: 100%;
+    min-height: var(--touch-target-min, 44px);
+  }
+
+  .searchShell {
+    min-height: var(--touch-target-min, 44px);
+  }
+
+  .communityPrimaryBtn,
+  .communitySecondaryBtn {
+    min-height: var(--touch-target-min, 44px);
   }
 
   .statGrid {
@@ -1455,37 +1465,35 @@
   .heroMapBlock {
     order: 4;
     width: 100%;
-    margin-top: 2px;
-    padding: 10px 8px 12px;
+    margin-top: 0;
+    padding: 4px 0 8px;
     z-index: 1;
     justify-content: center;
     align-items: center;
     overflow: visible;
-    border-radius: calc(var(--ui-radius) + 1px);
-    background:
-      radial-gradient(ellipse 88% 70% at 50% 18%, rgba(196, 224, 255, 0.22), transparent 62%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(246, 252, 250, 0.18) 100%);
-    border: 1px solid rgba(164, 198, 192, 0.22);
-    box-shadow: var(--elev-0);
+    border-radius: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
   }
 
   .heroMapCaption {
     display: block;
-    margin: 0 0 6px;
+    margin: 0 0 4px;
     width: 100%;
     text-align: center;
-    font-size: 0.62rem;
+    font-size: 0.58rem;
     font-weight: 600;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(66, 98, 103, 0.72);
+    color: rgba(66, 98, 103, 0.68);
   }
 
   .mapPane {
-    width: min(100%, 340px);
+    width: min(100%, 320px);
     min-height: 0;
-    height: clamp(96px, 24vw, 128px);
-    max-height: 128px;
+    height: clamp(88px, 22vw, 120px);
+    max-height: 120px;
     margin: 0 auto;
     overflow: visible;
   }

@@ -836,11 +836,15 @@
 
   .navLinksMobilePrimary .navLink,
   .navLinksMobilePrimary .navBtn {
-    padding: 4px 5px;
-    font-size: 0.6rem;
+    min-width: var(--touch-target-min, 44px);
+    min-height: var(--touch-target-min, 44px);
+    padding: 8px 10px;
+    font-size: 0.62rem;
     letter-spacing: 0.006em;
     flex-shrink: 0;
     white-space: nowrap;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .navLinksMobilePrimary .navLinkInner {
@@ -892,7 +896,9 @@
 
   .navLinksMobilePrimary .navLink,
   .navLinksMobilePrimary .navBtn {
-    padding: 3px 4px;
+    min-width: var(--touch-target-min, 44px);
+    min-height: var(--touch-target-min, 44px);
+    padding: 7px 8px;
     font-size: 0.56rem;
   }
 
@@ -906,24 +912,72 @@
   }
 }
 
-/* Mobile nav drawer — sea-glass sheet; desktop pills unchanged above 801px */
-.mobileDrawerBackdrop {
+/* Mobile nav drawer — portal shell; sea-glass sheet; desktop pills unchanged above 801px */
+.mobileDrawerRoot {
   position: fixed;
   inset: 0;
   z-index: 9998;
-  background: rgba(8, 14, 18, 0.38);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  touch-action: manipulation;
-}
-
-.mobileDrawerBackdrop[data-interactive="false"] {
+  isolation: isolate;
   pointer-events: none;
 }
 
-.mobileDrawerBackdrop[data-interactive="true"] {
+.mobileDrawerBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: rgba(8, 14, 18, 0.42);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   pointer-events: auto;
-  cursor: pointer;
+}
+
+.mobileDrawer {
+  position: fixed;
+  top: calc(var(--site-nav-height) + env(safe-area-inset-top, 0px));
+  right: 0;
+  z-index: 1;
+  width: min(100vw - 28px, 320px);
+  height: calc(100dvh - var(--site-nav-height) - env(safe-area-inset-top, 0px));
+  max-height: calc(100dvh - var(--site-nav-height) - env(safe-area-inset-top, 0px));
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  visibility: visible;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  border-left: 1px solid rgba(152, 192, 184, 0.32);
+  background:
+    radial-gradient(circle at 12% -4%, rgba(252, 230, 244, 0.14), transparent 46%),
+    radial-gradient(circle at 88% 8%, rgba(196, 224, 255, 0.22), transparent 48%),
+    linear-gradient(
+      168deg,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(246, 252, 250, 0.96) 52%,
+      rgba(239, 248, 252, 0.94) 100%
+    );
+  box-shadow:
+    -18px 0 48px rgba(4, 6, 8, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.42) inset;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .mobileDrawerBackdrop {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .mobileDrawer {
+    backdrop-filter: blur(20px) saturate(1.08);
+    -webkit-backdrop-filter: blur(20px) saturate(1.08);
+  }
 }
 
 .mobileMenuBtn {
@@ -965,40 +1019,6 @@
   height: 18px;
 }
 
-.mobileDrawer {
-  position: fixed;
-  top: var(--site-nav-height);
-  right: 0;
-  z-index: 9999;
-  width: min(100vw - 28px, 320px);
-  height: calc(100dvh - var(--site-nav-height));
-  max-height: calc(100dvh - var(--site-nav-height));
-  display: flex;
-  flex-direction: column;
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  border-left: 1px solid rgba(152, 192, 184, 0.32);
-  background:
-    radial-gradient(circle at 12% -4%, rgba(252, 230, 244, 0.14), transparent 46%),
-    radial-gradient(circle at 88% 8%, rgba(196, 224, 255, 0.22), transparent 48%),
-    linear-gradient(
-      168deg,
-      rgba(255, 255, 255, 0.94) 0%,
-      rgba(246, 252, 250, 0.92) 52%,
-      rgba(239, 248, 252, 0.9) 100%
-    );
-  box-shadow:
-    -18px 0 48px rgba(4, 6, 8, 0.14),
-    0 0 0 1px rgba(255, 255, 255, 0.42) inset;
-  backdrop-filter: blur(20px) saturate(1.08);
-  -webkit-backdrop-filter: blur(20px) saturate(1.08);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  touch-action: manipulation;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
 .mobileDrawerInner {
   display: flex;
   flex-direction: column;
@@ -1009,7 +1029,8 @@
 .drawerNavLink {
   width: 100%;
   justify-content: flex-start;
-  padding: 10px 14px;
+  min-height: var(--touch-target-min, 44px);
+  padding: 12px 14px;
   font-size: 0.82rem;
   border-radius: calc(var(--ui-radius, 12px) + 2px);
 }
@@ -1056,13 +1077,6 @@
 @media (max-width: 800px) {
   .mobileDrawerBackdrop {
     padding-top: env(safe-area-inset-top, 0px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mobileDrawer {
-    opacity: 1 !important;
-    transform: translate3d(0, 0, 0) !important;
   }
 }
 

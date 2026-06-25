@@ -25,6 +25,12 @@ body {
   letter-spacing: 0.003em;
 }
 
+/* Mobile account drawer scroll lock — class + inline overflow for iOS Safari cleanup */
+body.site-nav-drawer-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body::before {
   content: "";
   position: fixed;

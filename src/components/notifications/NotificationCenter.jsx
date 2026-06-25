@@ -367,7 +367,23 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
     return () => window.removeEventListener("keydown", onEsc, true);
   }, [open]);
 
-  if (!user || loading) return null;
+  if (!user) return null;
+
+  if (loading) {
+    const skeletonClass = isDrawer
+      ? `${nav.navLink} ${nav.drawerNavLink} ${nav.navLinkIdle}`
+      : `${nav.navLink} ${nav.navPillNotifications} ${nav.navLinkIdle}`;
+    return (
+      <div className={`${styles.root}${isDrawer ? ` ${styles.rootDrawer}` : ""}`}>
+        <span className={skeletonClass} aria-busy="true" aria-label="Loading notifications">
+          <span className={nav.navLinkInner}>
+            <Loader2 className={`${nav.navIcon} ${nav.navIconSpin}`} strokeWidth={1.85} aria-hidden />
+            Notifications
+          </span>
+        </span>
+      </div>
+    );
+  }
 
   const unreadCount = items.filter((x) => x.unread).length;
   const badgeText = unreadCount > 99 ? "99+" : String(unreadCount);

@@ -21,35 +21,9 @@ import usePulseMode from "../hooks/usePulseMode";
 import styles from "./SiteNavUnified.module.css";
 import NotificationCenter from "./notifications/NotificationCenter";
 
-const FOCUSABLE =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-/** Keeps Account drawer shell mounted if NotificationCenter throws during render. */
-class MobileDrawerErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error, info) {
-    console.error("[MobileDrawerErrorBoundary]", error, info?.componentStack);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <p className={styles.drawerFallback}>
-          Account menu paused — close and try again, or use Dashboard from desktop width.
-        </p>
-      );
-    }
-    return this.props.children;
-  }
-}
+const BODY_DRAWER_CLASS = "site-nav-drawer-open";
+/** Ignore backdrop taps right after open (iOS ghost-tap guard). */
+const BACKDROP_TAP_GUARD_MS = 380;
 
 /** Premium geometric-humanist wordmark only — scoped to nav brand link */
 const brandWordmarkFont = DM_Sans({
@@ -74,8 +48,7 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   });
   const mobileDrawerRef = useRef(null);
   const accountMenuBtnRef = useRef(null);
-  const wasMobileMenuOpenRef = useRef(false);
-  const [backdropInteractive, setBackdropInteractive] = useState(false);
+  const drawerOpenedAtRef = useRef(0);
   const [drawerExtrasReady, setDrawerExtrasReady] = useState(false);
 
   useEffect(() => {
@@ -116,21 +89,32 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
-    if (!drawerOpen) return undefined;
-    const prevOverflow = document.body.style.overflow;
-    const prevPaddingRight = document.body.style.paddingRight;
+    if (!drawerOpen) {
+      document.body.classList.remove(BODY_DRAWER_CLASS);
+      document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
+      return undefined;
+    }
+    drawerOpenedAtRef.current = Date.now();
+    document.body.classList.add(BODY_DRAWER_CLASS);
     const gap = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = "hidden";
     if (gap > 0) document.body.style.paddingRight = `${gap}px`;
+    const extrasRaf = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => setDrawerExtrasReady(true));
+    });
     return () => {
-      document.body.style.overflow = prevOverflow;
-      document.body.style.paddingRight = prevPaddingRight;
+      window.cancelAnimationFrame(extrasRaf);
+      document.body.classList.remove(BODY_DRAWER_CLASS);
+      document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
     };
   }, [drawerOpen]);
 
   useEffect(
     () => () => {
       if (typeof document === "undefined") return;
+      document.body.classList.remove(BODY_DRAWER_CLASS);
       document.body.style.overflow = "";
       document.body.style.paddingRight = "";
     },
@@ -139,18 +123,8 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
 
   useEffect(() => {
     if (!drawerOpen) {
-      setBackdropInteractive(false);
       setDrawerExtrasReady(false);
-      return undefined;
     }
-    const backdropTimer = window.setTimeout(() => setBackdropInteractive(true), 320);
-    const extrasRaf = window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => setDrawerExtrasReady(true));
-    });
-    return () => {
-      window.clearTimeout(backdropTimer);
-      window.cancelAnimationFrame(extrasRaf);
-    };
   }, [drawerOpen]);
 
   useEffect(() => {
@@ -162,51 +136,14 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [drawerOpen, closeMobileMenu]);
 
-  useEffect(() => {
-    if (!drawerOpen || !mobileDrawerRef.current) return undefined;
-    const drawer = mobileDrawerRef.current;
-    let removeKeydown = () => {};
-
-    const raf = window.requestAnimationFrame(() => {
-      const focusables = Array.from(drawer.querySelectorAll(FOCUSABLE));
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      first?.focus({ preventScroll: true });
-
-      const onKeyDown = (e) => {
-        if (e.key !== "Tab" || focusables.length === 0) return;
-        if (e.shiftKey) {
-          if (document.activeElement === first) {
-            e.preventDefault();
-            last?.focus();
-          }
-        } else if (document.activeElement === last) {
-          e.preventDefault();
-          first?.focus();
-        }
-      };
-
-      drawer.addEventListener("keydown", onKeyDown);
-      removeKeydown = () => drawer.removeEventListener("keydown", onKeyDown);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(raf);
-      removeKeydown();
-    };
-  }, [drawerOpen]);
-
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      wasMobileMenuOpenRef.current = true;
-      return undefined;
-    }
-    if (wasMobileMenuOpenRef.current) {
-      accountMenuBtnRef.current?.focus();
-      wasMobileMenuOpenRef.current = false;
-    }
-    return undefined;
-  }, [mobileMenuOpen]);
+  const handleBackdropDismiss = useCallback(
+    (event) => {
+      if (Date.now() - drawerOpenedAtRef.current < BACKDROP_TAP_GUARD_MS) return;
+      if (event.target !== event.currentTarget) return;
+      closeMobileMenu();
+    },
+    [closeMobileMenu]
+  );
 
   const route = router.pathname || "";
   const isHomepage = route === "/";
@@ -539,11 +476,15 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
 
   const renderSecondaryNavActions = (variant = "drawer") => {
     if (!user) return null;
+    const showNotifications =
+      variant !== "drawer" || drawerExtrasReady;
     return (
       <>
         {renderDashboardButton(variant)}
-        {renderNotificationCenter(variant, { deferDrawerMount: variant === "drawer" })}
         <div className={styles.drawerAuthSlot}>{renderAuthSlot(variant)}</div>
+        {showNotifications
+          ? renderNotificationCenter(variant, { deferDrawerMount: false })
+          : null}
       </>
     );
   };
@@ -551,16 +492,12 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const mobileDrawerLayer =
     drawerOpen && typeof document !== "undefined"
       ? createPortal(
-          <>
+          <div className={styles.mobileDrawerRoot}>
             <div
               className={styles.mobileDrawerBackdrop}
-              data-interactive={backdropInteractive ? "true" : "false"}
               role="presentation"
               aria-hidden="true"
-              onClick={(e) => {
-                if (!backdropInteractive || e.target !== e.currentTarget) return;
-                closeMobileMenu();
-              }}
+              onPointerDown={handleBackdropDismiss}
             />
             <nav
               id="site-nav-mobile-drawer"
@@ -570,13 +507,9 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
               aria-modal="true"
               aria-label="Account navigation"
             >
-              <div className={styles.mobileDrawerInner}>
-                <MobileDrawerErrorBoundary key={user?.id ?? "guest"}>
-                  {renderSecondaryNavActions("drawer")}
-                </MobileDrawerErrorBoundary>
-              </div>
+              <div className={styles.mobileDrawerInner}>{renderSecondaryNavActions("drawer")}</div>
             </nav>
-          </>,
+          </div>,
           document.body
         )
       : null;

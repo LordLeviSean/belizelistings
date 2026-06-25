@@ -125,6 +125,21 @@
   --site-nav-inline-pad: 12px;
   --site-nav-chrome-gap: 8px;
   --site-nav-offset: calc(var(--site-nav-height) + var(--site-nav-chrome-gap));
+
+  /* —— Responsive breakpoints (reference widths; use in @media queries) —— */
+  --bp-phone-sm: 390px;
+  --bp-phone-md: 393px;
+  --bp-phone-lg: 414px;
+  --bp-phone-xl: 430px;
+  --bp-tablet-sm: 768px;
+  --bp-tablet-md: 820px;
+  --bp-desktop-sm: 1024px;
+  --bp-desktop-md: 1280px;
+  --bp-desktop-lg: 1440px;
+  --bp-desktop-xl: 1920px;
+
+  /* Touch-first minimum (WCAG / iOS HIG) — mobile overlays & nav */
+  --touch-target-min: 44px;
 }
 
 @media (min-width: 801px) {
