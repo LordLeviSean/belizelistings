@@ -1416,20 +1416,43 @@
   .pageMain {
     width: calc(100% - 16px);
     padding-top: 4px;
-    gap: 8px;
+    gap: 0;
   }
 
   .heroSection {
     margin-bottom: 0;
+    overflow: hidden;
   }
 
   .heroCanvas {
     display: block;
     min-height: 0;
     gap: 0;
-    padding: 6px 6px 4px;
+    padding: 6px 6px 0;
     border-radius: calc(var(--ui-radius) + 1px);
-    overflow: visible;
+    overflow: hidden;
+  }
+
+  .heroCanvas::before {
+    display: none;
+  }
+
+  .heroCanvas::after {
+    opacity: 0.06;
+  }
+
+  .heroCanvasStaticWash {
+    inset: -10% -6% 0;
+    opacity: calc(0.1 + 0.24 * var(--sea-flow-intensity, 0.5));
+  }
+
+  .heroCanvasSeaFlowLayers {
+    opacity: calc(0.35 + 0.25 * var(--sea-flow-intensity, 0.5));
+  }
+
+  .heroRight,
+  .heroMapDesktop {
+    display: none !important;
   }
 
   .heroLeft {
@@ -1453,7 +1476,13 @@
     width: 100%;
     margin-top: 0;
     margin-bottom: 0;
+    padding-bottom: 0;
     gap: 5px;
+  }
+
+  .heroStatsBlock.statGrid,
+  .statGrid {
+    margin-bottom: 0;
   }
 
   .heroHeadline {
@@ -1471,8 +1500,8 @@
     position: relative;
     isolation: isolate;
     width: 100%;
-    margin: 0;
-    padding: 6px 6px 10px;
+    margin: 20px 0 0;
+    padding: 0 6px 12px;
     border-radius: calc(var(--ui-radius) + 1px);
     background: transparent;
     border: 0;
@@ -1481,18 +1510,7 @@
   }
 
   .mobileMapSection::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    border-radius: inherit;
-    background:
-      radial-gradient(ellipse 54% 38% at 62% 56%, rgba(92, 200, 220, 0.1), transparent 78%),
-      radial-gradient(ellipse 52% 36% at 18% 30%, rgba(120, 224, 204, 0.12), transparent 76%),
-      radial-gradient(ellipse 42% 32% at 88% 12%, rgba(198, 200, 250, 0.08), transparent 72%);
-    filter: blur(40px);
-    opacity: 0.28;
+    display: none;
   }
 
   .mobileMapSection .heroMapCaption {
@@ -1548,8 +1566,8 @@
   }
 
   .featuredSection {
-    margin-top: 4px;
-    padding: 4px 0 8px;
+    margin-top: 20px;
+    padding: 0 0 8px;
   }
 }
 

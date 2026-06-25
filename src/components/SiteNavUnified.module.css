@@ -836,29 +836,68 @@
 
   .navLinksMobilePrimary .navLink,
   .navLinksMobilePrimary .navBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: var(--touch-target-min, 44px);
     min-width: var(--touch-target-min, 44px);
     min-height: var(--touch-target-min, 44px);
-    padding: 8px 10px;
+    padding: 0 8px;
     font-size: 0.62rem;
-    letter-spacing: 0.006em;
+    letter-spacing: 0.004em;
+    line-height: 1;
+    text-align: center;
     flex-shrink: 0;
     white-space: nowrap;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
 
+  .navLinksMobilePrimary .navLink:hover,
+  .navLinksMobilePrimary .navBtn:hover {
+    transform: none;
+  }
+
   .navLinksMobilePrimary .navLinkInner {
-    gap: 3px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    line-height: 1;
+    margin: 0;
+    padding: 0;
+    transform: translateY(-1px);
   }
 
   .navLinksMobilePrimary .navIcon {
+    display: block;
     width: 11px;
     height: 11px;
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .navLinksMobilePrimary .navIconFavoritesHome,
+  .navLinksMobilePrimary .navIconAgentsHome,
+  .navLinksMobilePrimary .navIconDashboardHome {
+    transform: none;
   }
 
   .navLinksMobilePrimary .authAccountSlot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     min-width: 0;
     flex-shrink: 0;
+  }
+
+  .navLinksMobilePrimary .authAccountSlot .navLink,
+  .navLinksMobilePrimary .authAccountSlot .navBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .navLinksMobilePrimary .navAuthSkeleton {
@@ -896,10 +935,12 @@
 
   .navLinksMobilePrimary .navLink,
   .navLinksMobilePrimary .navBtn {
+    height: var(--touch-target-min, 44px);
     min-width: var(--touch-target-min, 44px);
     min-height: var(--touch-target-min, 44px);
-    padding: 7px 8px;
+    padding: 0 7px;
     font-size: 0.56rem;
+    letter-spacing: 0.003em;
   }
 
   .navLinksMobilePrimary .navIcon {
