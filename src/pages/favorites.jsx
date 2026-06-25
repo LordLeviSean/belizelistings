@@ -4,7 +4,7 @@ import { Heart, Search } from "lucide-react";
 import useFavorites from "../hooks/useFavorites";
 import SiteNav from "../components/SiteNav";
 import BackButton from "../components/BackButton";
-import HomePropertyCard from "../components/HomePropertyCard";
+import ListingCard from "../components/ListingCard";
 import { useToast } from "../components/ui/ToastProvider";
 import styles from "../styles/Favorites.module.css";
 import dashboardStyles from "../styles/Dashboard.module.css";
@@ -104,7 +104,7 @@ export default function FavoritesPage() {
                   removingIds.includes(String(listing.id)) ? styles.gridItemRemoving : ""
                 }`}
               >
-                <HomePropertyCard
+                <ListingCard
                   listing={listing}
                   showFavoriteButton
                   isFavorited

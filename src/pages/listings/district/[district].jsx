@@ -8,7 +8,7 @@ import BackButton from "../../../components/BackButton";
 import DistrictLayout from "../../../components/DistrictLayout";
 import useFavorites from "../../../hooks/useFavorites";
 import { useFavoriteSignupPrompt } from "../../../components/FavoriteSignupPromptProvider";
-import HomePropertyCard from "../../../components/HomePropertyCard";
+import ListingCard from "../../../components/ListingCard";
 import SiteNav from "../../../components/SiteNav";
 import {
   getRegionCaption,
@@ -413,7 +413,7 @@ export default function DistrictListings() {
                 <div className={styles.listingsGrid}>
                   {remainingListings.map((listing) => (
                     <div key={listing.id} className={styles.gridItem}>
-                      <HomePropertyCard
+                      <ListingCard
                         listing={listing}
                         showFavoriteButton
                         isFavorited={isFavorite(listing.id)}

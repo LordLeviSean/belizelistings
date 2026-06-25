@@ -104,7 +104,7 @@ export async function fetchAgentDirectory(supabaseClient) {
   const { data: profiles, error: profilesError } = await supabaseClient
     .from("profiles")
     .select(PROFILE_OWNER_MINIMAL_SELECT)
-    .eq("role", "agent")
+    .in("role", ["agent", "broker"])
     .not("username", "is", null)
     .order("username", { ascending: true });
 

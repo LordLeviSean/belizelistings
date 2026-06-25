@@ -67,7 +67,7 @@ import CreateListingAmenitiesSelector from "../../components/CreateListingAmenit
 import styles from "../../styles/Dashboard.module.css";
 import cw from "../../styles/CreateWorkspace.module.css";
 
-const HomePropertyCard = dynamic(() => import("@/components/HomePropertyCard"), { ssr: false });
+const ListingCard = dynamic(() => import("@/components/ListingCard"), { ssr: false });
 
 const PROPERTY_TYPES = ["house", "apartment", "condo", "land", "commercial"];
 const DISTRICTS = getSelectableRegions().map((region) => region.label);
@@ -145,6 +145,21 @@ function formHasMeaningfulContent(form, pendingCount) {
       String(form.property_type || "").trim() ||
       amenityCount > 0
   );
+}
+
+/** Minimal draft fields so media uploads can persist before stage 1 is complete. */
+function buildFormForMediaDraft(form) {
+  const selectable = getSelectableRegions();
+  const fallbackSlug = selectable[0]?.slug || "belize";
+  const districtSlug = resolveListingDistrictSlug(form) || fallbackSlug;
+  const districtLabel = getRegionLabel(normalizeRegionSlug(districtSlug));
+  return {
+    ...form,
+    title: String(form.title || "").trim() || "Untitled draft",
+    property_type: String(form.property_type || "").trim() || "house",
+    district: String(form.district || "").trim() || districtLabel,
+    listing_type: form.listing_type === "rent" ? "rent" : "sale",
+  };
 }
 
 function optionalSquareFeet(form) {
@@ -449,6 +464,137 @@ export default function DashboardCreatePage() {
       setRemoteImages(rows);
     },
     []
+  );
+
+  const ensureDraftListingIdForMedia = useCallback(async () => {
+    if (draftListingId) return draftListingId;
+    if (!user?.id || !canCreateListings || legacyDraftBlocked) return null;
+
+    const mediaForm = buildFormForMediaDraft(form);
+    const contract = validateListingDraftContract({ form: mediaForm, authUserId: user.id });
+    if (!contract.ok) return null;
+
+    const payload = buildDraftListingPayload({
+      form: mediaForm,
+      authUserId: user.id,
+      linkedUnitId,
+    });
+    const insertResult = await safeInsertListing(supabase, payload, {
+      mutationFlow: LISTING_MUTATION_FLOW.DRAFT_AUTOSAVE,
+    });
+    if (insertResult.error || !insertResult.data?.id) return null;
+
+    const activeId = String(insertResult.data.id);
+    skipDraftHydrateForIdRef.current = activeId;
+    setDraftListingId(activeId);
+    if (!String(form.title || "").trim()) {
+      setForm((prev) => ({ ...prev, title: mediaForm.title }));
+    }
+    if (!String(form.property_type || "").trim()) {
+      setForm((prev) => ({ ...prev, property_type: mediaForm.property_type }));
+    }
+    if (!String(form.district || "").trim()) {
+      setForm((prev) => ({ ...prev, district: mediaForm.district }));
+    }
+    draftUrlSyncRef.current = true;
+    try {
+      await router.replace(
+        { pathname: router.pathname, query: { ...router.query, draft: activeId } },
+        undefined,
+        { shallow: true }
+      );
+    } finally {
+      draftUrlSyncRef.current = false;
+    }
+    return activeId;
+  }, [
+    draftListingId,
+    user?.id,
+    canCreateListings,
+    legacyDraftBlocked,
+    form,
+    linkedUnitId,
+    router,
+  ]);
+
+  const uploadPendingFilesImmediately = useCallback(
+    async (entries) => {
+      if (!entries?.length || !user?.id) return;
+      const activeId = await ensureDraftListingIdForMedia();
+      if (!activeId) {
+        showToast({
+          type: "info",
+          message: "Could not create a draft for photos — check your connection and try again.",
+        });
+        return;
+      }
+
+      const filesOnly = entries.map((p) => p.file).filter(Boolean);
+      const entryKeys = new Set(entries.map((p) => p.key));
+      let startPos = remoteImages.length;
+      if (startPos === 0) {
+        const { count } = await supabase
+          .from("listing_images")
+          .select("id", { count: "exact", head: true })
+          .eq("listing_id", activeId);
+        startPos = Number(count || 0);
+      }
+
+      const totalFiles = filesOnly.length;
+      setMediaStudioBusy({ active: true, phase: "uploading", done: 0, total: totalFiles });
+      try {
+        const { failures, insertedRows } = await uploadListingImageFiles(supabase, {
+          listingId: activeId,
+          userId: user.id,
+          files: filesOnly,
+          startPosition: startPos,
+          onProgress: (done, total) => {
+            setMediaStudioBusy((prev) => ({
+              ...prev,
+              active: true,
+              phase: "uploading",
+              done,
+              total,
+            }));
+          },
+        });
+
+        if (failures.length) {
+          showToast({
+            type: "info",
+            message:
+              failures.length >= totalFiles
+                ? "No images uploaded — check your connection and try again."
+                : `${failures.length} of ${totalFiles} image(s) did not upload.`,
+          });
+        }
+
+        if (insertedRows?.length) {
+          setRemoteImages((prev) => {
+            const seen = new Set(prev.map((row) => String(row.id || row.image_url || "")));
+            const merged = [...prev];
+            for (const row of insertedRows) {
+              const key = String(row.id || row.image_url || "");
+              if (!key || seen.has(key)) continue;
+              seen.add(key);
+              merged.push(row);
+            }
+            return merged.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+          });
+        }
+        await refetchRemoteImages(activeId);
+        setPendingUploads((prev) => {
+          prev.forEach((p) => {
+            if (entryKeys.has(p.key) && p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+          });
+          return prev.filter((p) => !entryKeys.has(p.key));
+        });
+        setDirty(true);
+      } finally {
+        setMediaStudioBusy({ active: false, phase: "idle", done: 0, total: 0 });
+      }
+    },
+    [ensureDraftListingIdForMedia, user?.id, remoteImages.length, refetchRemoteImages, showToast]
   );
 
   const runAutosave = useCallback(async (opts = {}) => {
@@ -911,30 +1057,40 @@ export default function DashboardCreatePage() {
     return () => window.clearInterval(id);
   }, [loadingCreate, submissionPhase]);
 
-  const mergeFilesIntoPending = useCallback((fileList) => {
-    const incoming = Array.from(fileList || []).filter(Boolean);
-    if (!incoming.length) return;
-    setPendingUploads((prev) => {
-      const next = [...prev];
-      const sigs = new Set(
-        prev.map((p) => `${p.file.name}:${p.file.size}`).concat(
-          remoteImages.map((r) => String(r.image_url || ""))
-        )
-      );
-      for (const file of incoming) {
-        const sig = `${file.name}:${file.size}`;
-        if (sigs.has(sig)) continue;
-        sigs.add(sig);
-        next.push({
-          key: makeUploadKey(),
-          file,
-          previewUrl: URL.createObjectURL(file),
-        });
+  const mergeFilesIntoPending = useCallback(
+    (fileList) => {
+      const incoming = Array.from(fileList || []).filter(Boolean);
+      if (!incoming.length) return;
+      let queued = [];
+      setPendingUploads((prev) => {
+        const next = [...prev];
+        const sigs = new Set(
+          prev.map((p) => `${p.file.name}:${p.file.size}`).concat(
+            remoteImages.map((r) => String(r.image_url || ""))
+          )
+        );
+        for (const file of incoming) {
+          const sig = `${file.name}:${file.size}`;
+          if (sigs.has(sig)) continue;
+          sigs.add(sig);
+          const entry = {
+            key: makeUploadKey(),
+            file,
+            previewUrl: URL.createObjectURL(file),
+            uploading: true,
+          };
+          next.push(entry);
+          queued.push(entry);
+        }
+        return next;
+      });
+      if (queued.length) {
+        setDirty(true);
+        void uploadPendingFilesImmediately(queued);
       }
-      return next;
-    });
-    setDirty(true);
-  }, [remoteImages]);
+    },
+    [remoteImages, uploadPendingFilesImmediately]
+  );
 
   const removePendingAt = useCallback((key) => {
     setPendingUploads((prev) => {
@@ -961,7 +1117,7 @@ export default function DashboardCreatePage() {
 
   const moveRemote = useCallback(
     async (from, to) => {
-      if (to < 0 || to >= remoteImages.length) return;
+      if (to < 0 || to >= remoteImages.length || from === to) return;
       const next = [...remoteImages];
       const [it] = next.splice(from, 1);
       next.splice(to, 0, it);
@@ -981,6 +1137,20 @@ export default function DashboardCreatePage() {
       setDirty(true);
     },
     [remoteImages, draftListingId, refetchRemoteImages, showToast]
+  );
+
+  const moveRemoteToFront = useCallback(
+    (idx) => {
+      void moveRemote(idx, 0);
+    },
+    [moveRemote]
+  );
+
+  const moveRemoteToBack = useCallback(
+    (idx) => {
+      void moveRemote(idx, remoteImages.length - 1);
+    },
+    [moveRemote, remoteImages.length]
   );
 
   const validateSubmit = useCallback(() => {
@@ -1804,37 +1974,78 @@ export default function DashboardCreatePage() {
                     <div key={img.id || img.image_url} className={cw.mediaThumb}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={img.image_url} alt="" loading="lazy" decoding="async" />
+                      <span className={cw.photoNumberBadge} aria-hidden="true">
+                        {idx + 1}
+                      </span>
                       {idx === 0 ? <span className={cw.coverBadge}>Cover</span> : null}
                       <div className={cw.mediaActions}>
                         <button
                           type="button"
                           className={cw.mediaBtn}
                           onClick={() => moveRemote(idx, idx - 1)}
-                          disabled={idx === 0}
+                          disabled={idx === 0 || mediaStudioBusy.active}
+                          aria-label="Move left"
                         >
-                          ↑
+                          ←
                         </button>
                         <button
                           type="button"
                           className={cw.mediaBtn}
                           onClick={() => moveRemote(idx, idx + 1)}
-                          disabled={idx >= remoteImages.length - 1}
+                          disabled={idx >= remoteImages.length - 1 || mediaStudioBusy.active}
+                          aria-label="Move right"
                         >
-                          ↓
+                          →
                         </button>
-                        <button type="button" className={cw.mediaBtn} onClick={() => removeRemoteAt(img)}>
-                          ✕
+                        <button
+                          type="button"
+                          className={cw.mediaBtn}
+                          onClick={() => moveRemoteToFront(idx)}
+                          disabled={idx === 0 || mediaStudioBusy.active}
+                          aria-label="Move to front"
+                        >
+                          Front
+                        </button>
+                        <button
+                          type="button"
+                          className={cw.mediaBtn}
+                          onClick={() => moveRemoteToBack(idx)}
+                          disabled={idx >= remoteImages.length - 1 || mediaStudioBusy.active}
+                          aria-label="Move to back"
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="button"
+                          className={cw.mediaBtn}
+                          onClick={() => removeRemoteAt(img)}
+                          disabled={mediaStudioBusy.active}
+                          aria-label="Remove photo"
+                        >
+                          Remove
                         </button>
                       </div>
                     </div>
                   ))}
-                  {pendingUploads.map((p) => (
-                    <div key={p.key} className={cw.mediaThumb}>
+                  {pendingUploads.map((p, idx) => (
+                    <div key={p.key} className={`${cw.mediaThumb} ${cw.mediaThumbPending}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={p.previewUrl} alt="" />
+                      <span className={cw.photoNumberBadge} aria-hidden="true">
+                        {remoteImages.length + idx + 1}
+                      </span>
+                      <span className={cw.uploadingBadge} aria-live="polite">
+                        Uploading…
+                      </span>
                       <div className={cw.mediaActions}>
-                        <button type="button" className={cw.mediaBtn} onClick={() => removePendingAt(p.key)}>
-                          ✕
+                        <button
+                          type="button"
+                          className={cw.mediaBtn}
+                          onClick={() => removePendingAt(p.key)}
+                          disabled={p.uploading}
+                          aria-label="Cancel upload"
+                        >
+                          Remove
                         </button>
                       </div>
                     </div>
@@ -1858,7 +2069,7 @@ export default function DashboardCreatePage() {
                       </p>
                     ) : null}
                     <div className={cw.previewCardShell}>
-                      <HomePropertyCard
+                      <ListingCard
                         listing={syntheticListing}
                         imagePriority={false}
                         disableNavigation

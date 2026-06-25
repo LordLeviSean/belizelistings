@@ -7,7 +7,7 @@ import { LISTING_MUTATION_FLOW, LISTING_MUTATION_OPERATION } from "../lib/listin
 import { clearAllFavoritesForListing } from "../lib/favorites";
 import { traceAction, traceLog } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
-import HomePropertyCard from "./HomePropertyCard";
+import ListingCard from "./ListingCard";
 import ListingTrustStrip from "./ListingTrustStrip";
 import ListingOwnershipMeta from "./ListingOwnershipMeta";
 import DeleteConfirmModal from "./DeleteConfirmModal";
@@ -665,7 +665,7 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
               {renderEditStepFields()}
               <div style={{ marginTop: 6 }}>
                 <p className={styles.muted} style={{ margin: "0 0 6px" }}>Live Public Preview</p>
-                <HomePropertyCard
+                <ListingCard
                   listing={{
                     id: editingId || "edit-preview",
                     title: editForm.title || "Belize Property",

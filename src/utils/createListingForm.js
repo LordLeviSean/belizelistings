@@ -50,7 +50,7 @@ export function mapListingRowToCreateForm(listing = {}) {
 }
 
 /**
- * Build a listing-shaped object for `HomePropertyCard` preview (Create workspace).
+ * Build a listing-shaped object for `ListingCard` preview (Create workspace).
  * @param {{}} form
  * @param {Array} remoteImages
  * @param {string[]} pendingLocalUrls

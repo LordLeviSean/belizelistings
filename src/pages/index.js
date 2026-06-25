@@ -20,7 +20,7 @@ import BelizeMap from "../components/BelizeMap";
 import AmbientPalmBackdrop from "../components/AmbientPalmBackdrop";
 import SiteNav from "../components/SiteNav";
 import HomeAdvancedFiltersModal from "../components/HomeAdvancedFiltersModal";
-import HomePropertyCard from "../components/HomePropertyCard";
+import ListingCard from "../components/ListingCard";
 import useFavorites from "../hooks/useFavorites";
 import { BELIZE_MAP_REGION_CONFIG, BELIZE_MAP_REGION_ORDER } from "../constants/belizeMapRegions";
 import { getRegionLabel } from "../constants/geographyLayer";
@@ -262,7 +262,7 @@ export default function HomePage() {
   const renderListingCard = useCallback(
     (listing, imageSizes) => {
       return (
-        <HomePropertyCard
+        <ListingCard
           listing={listing}
           imageSizes={imageSizes}
           showFavoriteButton

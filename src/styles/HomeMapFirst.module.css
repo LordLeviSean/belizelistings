@@ -901,11 +901,19 @@
   mix-blend-mode: multiply;
 }
 
-.propertyBadge {
+.propertyBadgeStack {
   position: absolute;
   top: 9px;
   left: 9px;
   z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  pointer-events: none;
+}
+
+.propertyBadge {
   font-size: 11px;
   letter-spacing: 0.06em;
   border-radius: 999px;
@@ -920,6 +928,36 @@
 .propertyBadgeRent {
   background: rgba(202, 232, 223, 0.92);
   color: rgba(54, 98, 88, 0.92);
+}
+
+.verificationBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 620;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  padding: 5px 9px;
+  line-height: 1;
+}
+
+.verificationBadge svg {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+
+.verificationBadgeVerified {
+  background: rgba(196, 228, 220, 0.88);
+  border: 1px solid rgba(137, 190, 176, 0.42);
+  color: rgba(38, 62, 58, 0.9);
+}
+
+.verificationBadgeUnverified {
+  background: rgba(244, 246, 248, 0.9);
+  border: 1px solid rgba(180, 188, 196, 0.38);
+  color: rgba(72, 82, 88, 0.82);
 }
 
 .carouselDots {

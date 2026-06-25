@@ -75,10 +75,11 @@ function createMockSupabase({ profiles = [], listings = [] }) {
             filters.push({ col, val });
             return chain;
           }),
+          in: jest.fn(() => chain),
           not: jest.fn(() => chain),
           order: jest.fn(() =>
             Promise.resolve({
-              data: profiles.filter((p) => p.role === "agent" && p.username),
+              data: profiles.filter((p) => ["agent", "broker"].includes(p.role) && p.username),
               error: null,
             })
           ),

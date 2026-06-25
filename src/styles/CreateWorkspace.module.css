@@ -729,10 +729,54 @@
 
 .mediaActions {
   position: absolute;
-  right: 6px;
-  bottom: 6px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
   display: flex;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 3px;
+  justify-content: flex-end;
+}
+
+.photoNumberBadge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  min-width: 22px;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 4px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(169, 188, 198, 0.42);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary);
+  box-shadow: var(--elev-0);
+}
+
+.mediaThumbPending::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(244, 250, 248, 0.42);
+  pointer-events: none;
+}
+
+.uploadingBadge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(137, 190, 176, 0.38);
+  background: rgba(230, 246, 241, 0.92);
+  color: rgba(38, 62, 58, 0.88);
+  box-shadow: var(--elev-0);
 }
 
 .mediaBtn {

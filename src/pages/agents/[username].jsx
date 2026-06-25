@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import SiteNav from "@/components/SiteNav";
 import RoleBadge from "@/components/dashboard/RoleBadge";
-import HomePropertyCard from "@/components/HomePropertyCard";
+import ListingCard from "@/components/ListingCard";
+import useFavorites from "@/hooks/useFavorites";
+import { useFavoriteSignupPrompt } from "@/components/FavoriteSignupPromptProvider";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import { DASHBOARD_ROLE } from "@/constants/dashboardRoles";
 import { supabase } from "@/lib/supabaseClient";
@@ -56,6 +58,18 @@ export default function AgentPublicProfilePage() {
     return slugs.map((s) => getRegionLabel(normalizeRegionSlug(s))).filter(Boolean);
   }, [listings]);
 
+  const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
+  const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
+  const [carouselIndexById, setCarouselIndexById] = useState({});
+
+  const handleFavoriteClick = (listingId) => {
+    if (!isAuthenticated) {
+      openFavoriteSignupPrompt();
+      return;
+    }
+    void toggleFavorite(listingId);
+  };
+
   return (
     <div className={styles.page}>
       <SiteNav active="agents" />
@@ -106,6 +120,23 @@ export default function AgentPublicProfilePage() {
                   </div>
                 ) : null}
               </dl>
+              {profile?.email ? (
+                <p className={styles.contactLine}>
+                  <a href={`mailto:${encodeURIComponent(String(profile.email).trim())}`}>
+                    Contact {displayName}
+                  </a>
+                  {listings.length > 0 ? (
+                    <span className={styles.contactHint}>
+                      {" "}
+                      · or open a listing below to schedule a viewing
+                    </span>
+                  ) : null}
+                </p>
+              ) : listings.length > 0 ? (
+                <p className={styles.contactLine}>
+                  Open a listing below to contact this agent — no login required.
+                </p>
+              ) : null}
             </header>
 
             {listings.length === 0 ? (
@@ -115,7 +146,19 @@ export default function AgentPublicProfilePage() {
             ) : (
               <div className={styles.grid}>
                 {listings.map((listing) => (
-                  <HomePropertyCard key={listing.id} listing={listing} />
+                  <ListingCard
+                    key={listing.id}
+                    listing={listing}
+                    showFavoriteButton
+                    isFavorited={isFavorite(listing.id)}
+                    favoriteBusy={isBusy(listing.id)}
+                    onFavoriteClick={handleFavoriteClick}
+                    imageSizes="(max-width: 760px) 100vw, (max-width: 980px) 50vw, 33vw"
+                    carouselIndex={Number(carouselIndexById[listing.id] || 0)}
+                    onCarouselIndexChange={(nextIndex) =>
+                      setCarouselIndexById((prev) => ({ ...prev, [listing.id]: nextIndex }))
+                    }
+                  />
                 ))}
               </div>
             )}
