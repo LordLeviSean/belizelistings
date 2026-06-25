@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DM_Sans } from "next/font/google";
 import {
+  Bell,
   ChevronLeft,
   Heart,
   Loader2,
@@ -74,6 +75,8 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const mobileDrawerRef = useRef(null);
   const accountMenuBtnRef = useRef(null);
   const wasMobileMenuOpenRef = useRef(false);
+  const [backdropInteractive, setBackdropInteractive] = useState(false);
+  const [drawerExtrasReady, setDrawerExtrasReady] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -133,6 +136,22 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     },
     []
   );
+
+  useEffect(() => {
+    if (!drawerOpen) {
+      setBackdropInteractive(false);
+      setDrawerExtrasReady(false);
+      return undefined;
+    }
+    const backdropTimer = window.setTimeout(() => setBackdropInteractive(true), 320);
+    const extrasRaf = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => setDrawerExtrasReady(true));
+    });
+    return () => {
+      window.clearTimeout(backdropTimer);
+      window.cancelAnimationFrame(extrasRaf);
+    };
+  }, [drawerOpen]);
 
   useEffect(() => {
     if (!drawerOpen) return undefined;
@@ -393,11 +412,21 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     );
   };
 
-  const renderNotificationCenter = (variant) => {
+  const renderNotificationCenter = (variant, { deferDrawerMount = false } = {}) => {
     if (!user) return null;
     const { isDrawer } = navContextClasses(variant);
     if (!isDrawer && isMobileNav) return null;
     if (isDrawer) {
+      if (deferDrawerMount && !drawerExtrasReady) {
+        return (
+          <span className={`${styles.navLink} ${styles.drawerNavLink} ${styles.navLinkIdle}`} aria-hidden="true">
+            <span className={styles.navLinkInner}>
+              <Bell className={styles.navIcon} strokeWidth={1.85} aria-hidden />
+              Notifications
+            </span>
+          </span>
+        );
+      }
       if (loading) {
         return (
           <span className={`${styles.navLink} ${styles.drawerNavLink} ${styles.navLinkIdle}`} aria-busy="true">
@@ -492,7 +521,7 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
       <div className={styles.authSessionCluster}>
         {renderDashboardButton(variant)}
         {renderAgentsLink(variant)}
-        {renderNotificationCenter(variant)}
+        {renderNotificationCenter(variant, { deferDrawerMount: variant === "drawer" })}
         <div className={navContextClasses(variant).isDrawer ? styles.drawerAuthSlot : styles.authAccountSlot}>
           {renderAuthSlot(variant)}
         </div>
@@ -513,7 +542,7 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     return (
       <>
         {renderDashboardButton(variant)}
-        {renderNotificationCenter(variant)}
+        {renderNotificationCenter(variant, { deferDrawerMount: variant === "drawer" })}
         <div className={styles.drawerAuthSlot}>{renderAuthSlot(variant)}</div>
       </>
     );
@@ -522,15 +551,15 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const mobileDrawerLayer =
     drawerOpen && typeof document !== "undefined"
       ? createPortal(
-          <div className={styles.mobileDrawerStack}>
+          <>
             <div
               className={styles.mobileDrawerBackdrop}
+              data-interactive={backdropInteractive ? "true" : "false"}
               role="presentation"
-              onMouseDown={(e) => {
-                if (e.target === e.currentTarget) closeMobileMenu();
-              }}
-              onTouchEnd={(e) => {
-                if (e.target === e.currentTarget) closeMobileMenu();
+              aria-hidden="true"
+              onClick={(e) => {
+                if (!backdropInteractive || e.target !== e.currentTarget) return;
+                closeMobileMenu();
               }}
             />
             <nav
@@ -547,7 +576,7 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
                 </MobileDrawerErrorBoundary>
               </div>
             </nav>
-          </div>,
+          </>,
           document.body
         )
       : null;

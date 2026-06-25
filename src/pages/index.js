@@ -280,6 +280,7 @@ export default function HomePage() {
               {seaFlowModeEnabled ? <div className={styles.heroCanvasSeaFlowLayers} /> : null}
             </div>
             <div className={styles.heroLeft}>
+            <div className={styles.heroCopyBlock}>
             <p className={styles.heroKicker}>EXPLORE. INVEST. THRIVE.</p>
             <h1 className={styles.heroHeadline}>Belize&apos;s Living Property Map</h1>
             <p className={styles.heroTrustLine}>
@@ -289,9 +290,10 @@ export default function HomePage() {
               Discover real estate opportunities across Belize. Interactive. Intelligent. Always up
               to date.
             </p>
+            </div>
 
             <form
-              className={`${styles.searchShell} ${searchSubmitting ? styles.searchShellSubmitting : ""}`}
+              className={`${styles.searchShell} ${styles.heroSearchBlock} ${searchSubmitting ? styles.searchShellSubmitting : ""}`}
               onSubmit={handleSearchSubmit}
             >
               <span className={styles.searchIcon} aria-hidden="true">
@@ -320,7 +322,7 @@ export default function HomePage() {
               </button>
             </form>
 
-            <div className={styles.statGrid}>
+            <div className={`${styles.statGrid} ${styles.heroStatsBlock}`}>
               <article className={styles.statCard}>
                 <span className={styles.statIcon} aria-hidden="true">
                   <House />
@@ -352,7 +354,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className={styles.heroRight}>
+          <div className={`${styles.heroRight} ${styles.heroMapBlock}`}>
+            <p className={styles.heroMapCaption}>Explore by district</p>
             <div className={styles.mapPane}>
               <div className={styles.mapPaneMapWrap}>
                 <BelizeMap

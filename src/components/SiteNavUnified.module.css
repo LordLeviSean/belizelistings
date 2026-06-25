@@ -907,11 +907,23 @@
 }
 
 /* Mobile nav drawer — sea-glass sheet; desktop pills unchanged above 801px */
-.mobileDrawerStack {
+.mobileDrawerBackdrop {
   position: fixed;
   inset: 0;
   z-index: 9998;
+  background: rgba(8, 14, 18, 0.38);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  touch-action: manipulation;
+}
+
+.mobileDrawerBackdrop[data-interactive="false"] {
   pointer-events: none;
+}
+
+.mobileDrawerBackdrop[data-interactive="true"] {
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .mobileMenuBtn {
@@ -953,29 +965,18 @@
   height: 18px;
 }
 
-.mobileDrawerBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: auto;
-  background: rgba(8, 14, 18, 0.38);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  animation: mobileDrawerBackdropIn var(--dur-2) var(--ease-out-soft);
-  animation-fill-mode: forwards;
-}
-
 .mobileDrawer {
   position: fixed;
   top: var(--site-nav-height);
   right: 0;
-  bottom: 0;
-  z-index: 1;
-  pointer-events: auto;
+  z-index: 9999;
   width: min(100vw - 28px, 320px);
+  height: calc(100dvh - var(--site-nav-height));
+  max-height: calc(100dvh - var(--site-nav-height));
   display: flex;
   flex-direction: column;
   opacity: 1;
+  transform: translate3d(0, 0, 0);
   border-left: 1px solid rgba(152, 192, 184, 0.32);
   background:
     radial-gradient(circle at 12% -4%, rgba(252, 230, 244, 0.14), transparent 46%),
@@ -991,11 +992,11 @@
     0 0 0 1px rgba(255, 255, 255, 0.42) inset;
   backdrop-filter: blur(20px) saturate(1.08);
   -webkit-backdrop-filter: blur(20px) saturate(1.08);
-  animation: mobileDrawerIn var(--dur-3) var(--ease-out-soft);
-  animation-fill-mode: forwards;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: manipulation;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .mobileDrawerInner {
@@ -1052,32 +1053,16 @@
   border: 1px solid rgba(164, 198, 192, 0.28);
 }
 
-@keyframes mobileDrawerBackdropIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes mobileDrawerIn {
-  from {
-    opacity: 0;
-    transform: translateX(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
+@media (max-width: 800px) {
+  .mobileDrawerBackdrop {
+    padding-top: env(safe-area-inset-top, 0px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mobileDrawerBackdrop,
   .mobileDrawer {
-    animation: none !important;
     opacity: 1 !important;
-    transform: none !important;
+    transform: translate3d(0, 0, 0) !important;
   }
 }
 
