@@ -4,7 +4,33 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
-## [1.4.0] - 2026-06-25
+## [1.5.0] - 2026-06-26
+
+### Milestone
+
+- **Phase 3 Milestone 3.1 — Property Timeline Foundation** — append-only `listing_events` table, centralized event writer (`src/lib/listingEvents/`), RPC `append_listing_event` + atomic `apply_listing_verification_with_event`, verification and lifecycle mutation wiring, backfill script, and Workstream C/D design docs. Public `ListingTimelinePanel` deferred to 3.1B.
+
+### Added
+
+- **`supabase/migrations/20260626120000_listing_events.sql`** — `listing_events` table, RLS (public/owner/admin read), immutability triggers, `append_listing_event` and `apply_listing_verification_with_event` RPCs.
+- **`src/lib/listingEvents/`** — `listingEventTypes.js`, `buildListingEventPayload.js`, `writeListingEvent.js` (single insert entry point).
+- **`scripts/backfill-listing-events.mjs`** — seed events from `created_at`, `published_at`, `verified_at`, `sold_at`, `rented_at`, `archived_at`.
+- **`docs/platform/phase-3-program.md`** — Workstreams A–F, milestone breakdown, delivery model.
+- **`docs/platform/proposals/activity-engine-architecture.md`** — Workstream C design (read model).
+- **`docs/platform/proposals/notification-framework-architecture.md`** — Workstream D design.
+- **Feature flag** `NEXT_PUBLIC_BL_ENABLE_LISTING_EVENTS` (default false).
+
+### Changed
+
+- **`listingVerificationMutations.js`** — emits `listing.verification.approved` / `listing.verification.removed` via RPC or fallback `writeListingEvent`.
+- **`ownershipAttribution.js`** — `applyListingLifecycleAction` emits publish, archive, reject, republish events after successful PATCH.
+
+### Deferred
+
+- Milestone **3.2** — CRM tables (`listing_inquiries` official migration, conversations, messages).
+- Milestone **3.1B** — public `ListingTimelinePanel` beneath `ListingTrustStrip`.
+- Workstream **C/D implementation** — Activity Engine and Notification Framework (design only in 3.1).
+
 
 ### Milestone
 

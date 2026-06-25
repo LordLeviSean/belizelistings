@@ -1,7 +1,8 @@
 # Marketplace Infrastructure Phase
 
 **Phase 3** — follows **Platform Foundation Complete v1.4.0**  
-**Status:** Planning complete; implementation not started  
+**Status:** Milestone 3.1 shipped (v1.5.0-timeline-foundation)  
+**Program doc:** [phase-3-program.md](./phase-3-program.md)  
 **Milestone doc:** [milestone-platform-foundation-complete.md](./milestone-platform-foundation-complete.md)
 
 ---

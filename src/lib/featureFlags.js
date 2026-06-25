@@ -14,3 +14,9 @@ function readTruthyPublicEnv(name) {
 }
 
 export const BL_ENABLE_INQUIRIES = readTruthyPublicEnv("NEXT_PUBLIC_BL_ENABLE_INQUIRIES");
+
+/**
+ * `NEXT_PUBLIC_BL_ENABLE_LISTING_EVENTS` — append/read listing_events via RPC.
+ * Default when unset: false (safe when migration not applied).
+ */
+export const BL_ENABLE_LISTING_EVENTS = readTruthyPublicEnv("NEXT_PUBLIC_BL_ENABLE_LISTING_EVENTS");

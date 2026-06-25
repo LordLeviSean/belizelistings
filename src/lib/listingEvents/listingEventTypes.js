@@ -1,0 +1,59 @@
+import { TRUST_VISIBILITY_SCOPE } from "../../constants/trustModel";
+
+/**
+ * Canonical listing event type registry.
+ * Add new types here — no ALTER TABLE required (payload carries domain fields).
+ */
+export const LISTING_EVENT_TYPES = Object.freeze({
+  CREATED: "listing.created",
+  PUBLISHED: "listing.published",
+  VERIFICATION_APPROVED: "listing.verification.approved",
+  VERIFICATION_REMOVED: "listing.verification.removed",
+  PRICE_REDUCED: "listing.price.reduced",
+  PRICE_INCREASED: "listing.price.increased",
+  PHOTOS_UPDATED: "listing.photos.updated",
+  DESCRIPTION_UPDATED: "listing.description.updated",
+  STATUS_CHANGED: "listing.status.changed",
+  ARCHIVED: "listing.archived",
+  REPUBLISHED: "listing.republished",
+  SOLD: "listing.sold",
+  RENTED: "listing.rented",
+  UNDER_CONTRACT: "listing.under_contract",
+  MODERATION_APPROVED: "listing.moderation.approved",
+  MODERATION_REJECTED: "listing.moderation.rejected",
+});
+
+/** Default visibility per event type (public vs internal). */
+export const LISTING_EVENT_VISIBILITY = Object.freeze({
+  [LISTING_EVENT_TYPES.CREATED]: TRUST_VISIBILITY_SCOPE.INTERNAL,
+  [LISTING_EVENT_TYPES.PUBLISHED]: TRUST_VISIBILITY_SCOPE.PUBLIC,
+  [LISTING_EVENT_TYPES.VERIFICATION_APPROVED]: TRUST_VISIBILITY_SCOPE.PUBLIC,
+  [LISTING_EVENT_TYPES.VERIFICATION_REMOVED]: TRUST_VISIBILITY_SCOPE.INTERNAL,
+  [LISTING_EVENT_TYPES.PRICE_REDUCED]: TRUST_VISIBILITY_SCOPE.PUBLIC,
+  [LISTING_EVENT_TYPES.PRICE_INCREASED]: TRUST_VISIBILITY_SCOPE.PUBLIC,
+  [LISTING_EVENT_TYPES.PHOTOS_UPDATED]: TRUST_VISIBILITY_SCOPE.PUBLIC,
+  [LISTING_EVENT_TYPES.DESCRIPTION_UPDATED]: TRUST_VISIBILITY_SCOPE.INTERNAL,
+  [LISTING_EVENT_TYPES.STATUS_CHANGED]: TRUST_VISIBILITY_SCOPE.INTERNAL,
+  [LISTING_EVENT_TYPES.ARCHIVED]: TRUST_VISIBILITY_SCOPE.PUBLIC,
+  [LISTING_EVENT_TYPES.REPUBLISHED]: TRUST_VISIBILITY_SCOPE.PUBLIC,
+  [LISTING_EVENT_TYPES.SOLD]: TRUST_VISIBILITY_SCOPE.PUBLIC,
+  [LISTING_EVENT_TYPES.RENTED]: TRUST_VISIBILITY_SCOPE.PUBLIC,
+  [LISTING_EVENT_TYPES.UNDER_CONTRACT]: TRUST_VISIBILITY_SCOPE.PUBLIC,
+  [LISTING_EVENT_TYPES.MODERATION_APPROVED]: TRUST_VISIBILITY_SCOPE.INTERNAL,
+  [LISTING_EVENT_TYPES.MODERATION_REJECTED]: TRUST_VISIBILITY_SCOPE.INTERNAL,
+});
+
+export const LISTING_EVENT_SOURCES = Object.freeze({
+  APP: "app",
+  ADMIN: "admin",
+  SYSTEM: "system",
+  MIGRATION_BACKFILL: "migration_backfill",
+});
+
+export function getListingEventVisibility(eventType) {
+  return LISTING_EVENT_VISIBILITY[eventType] || TRUST_VISIBILITY_SCOPE.INTERNAL;
+}
+
+export function isKnownListingEventType(eventType) {
+  return Object.values(LISTING_EVENT_TYPES).includes(eventType);
+}

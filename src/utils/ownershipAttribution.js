@@ -20,6 +20,11 @@ import {
   LISTING_MUTATION_OPERATION,
   logListingMutationFailureGrouped,
 } from "../lib/listingMutationDiagnostics";
+import {
+  emitListingEventAfterMutation,
+  lifecycleActionToEventDescriptor,
+  resolveEventWriteParams,
+} from "../lib/listingEvents";
 const isProd =
   typeof process !== "undefined" && process.env.NODE_ENV === "production";
 
@@ -171,11 +176,52 @@ async function getCurrentActorId(supabase) {
   return String(data?.user?.id || "");
 }
 
+async function emitLifecycleListingEvent(supabase, { listingId, action, fromStatus, actorId, result }) {
+  const toStatus = resultAppliedStatus(result);
+  const descriptor = lifecycleActionToEventDescriptor(action, { fromStatus, toStatus });
+  if (!descriptor) return;
+
+  const actorRole =
+    action === OWNERSHIP_ACTIONS.APPROVE || action === OWNERSHIP_ACTIONS.REJECT
+      ? "admin"
+      : actorId
+        ? "agent"
+        : null;
+  const resolved = resolveEventWriteParams(descriptor);
+
+  await emitListingEventAfterMutation({
+    client: supabase,
+    listingId,
+    eventType: resolved.eventType,
+    payload: resolved.payload,
+    visibility: resolved.visibility,
+    actorId: actorId || null,
+    actorRole,
+    source: resolved.source,
+  });
+}
+
+function resultAppliedStatus(result) {
+  const patch = result?.appliedPayload || {};
+  return patch.lifecycle_status || patch.status || null;
+}
+
 export async function applyListingLifecycleAction(supabase, { listingId, action, extraUpdates = {} }) {
   const base = lifecyclePayloadForAction({ action });
   const { body: merged } = omitSubmitForReviewWorkflowFields({ ...base, ...extraUpdates });
   const payload = merged;
   const minimalFallback = moderationFallbackForAction(action);
+
+  let fromStatus = null;
+  const eventDescriptor = lifecycleActionToEventDescriptor(action);
+  if (eventDescriptor) {
+    const { data: priorRow } = await supabase
+      .from("listings")
+      .select("status, lifecycle_status")
+      .eq("id", listingId)
+      .maybeSingle();
+    fromStatus = getLifecycleStatus(priorRow || {});
+  }
 
   const result = await updateListingSafe(supabase, listingId, payload, {
     logTag: `lifecycle:${action}`,
@@ -188,6 +234,16 @@ export async function applyListingLifecycleAction(supabase, { listingId, action,
       attempts: result.meta?.attempts,
       usedFallback: result.meta?.usedFallback,
     });
+
+    const actorId = await getCurrentActorId(supabase);
+    await emitLifecycleListingEvent(supabase, {
+      listingId,
+      action,
+      fromStatus,
+      actorId,
+      result,
+    });
+
     return {
       ...result,
       meta: { ...result.meta, usedMinimalFallback: Boolean(result.meta?.usedFallback) },
