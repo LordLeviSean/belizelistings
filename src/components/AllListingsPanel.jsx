@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
 import { fetchProfileRowsByIds } from "../lib/profileSelectContract";
@@ -10,6 +10,7 @@ import { useToast } from "./ui/ToastProvider";
 import ListingCard from "./ListingCard";
 import ListingOwnershipMeta from "./ListingOwnershipMeta";
 import AdminListingTrustAction from "./admin/AdminListingTrustAction";
+import { shouldSkipVerificationRealtimeReload } from "./admin/adminListingTrustActionState";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import ArchiveListingModal from "./listing/ArchiveListingModal";
 import { getSelectableRegions } from "../constants/geographyLayer";
@@ -76,15 +77,17 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
     currency: "BZD",
   });
 
-  const loadListings = useCallback(async () => {
-    setLoading(true);
+  const actionKeyRef = useRef("");
+
+  const loadListings = useCallback(async ({ background = false } = {}) => {
+    if (!background) setLoading(true);
     const { data, error } = await supabase
       .from("listings")
       .select("*, listing_images(image_url,position)")
       .order("created_at", { ascending: false });
     if (error) {
       console.error("[all-listings-panel] load error", error);
-      setLoading(false);
+      if (!background) setLoading(false);
       return;
     }
     const rows = data || [];
@@ -106,8 +109,12 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
     } else {
       setOwnerMap({});
     }
-    setLoading(false);
+    if (!background) setLoading(false);
   }, []);
+
+  useEffect(() => {
+    actionKeyRef.current = actionKey;
+  }, [actionKey]);
 
   useEffect(() => {
     loadListings();
@@ -131,7 +138,8 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
         "postgres_changes",
         { event: "*", schema: "public", table: "listings" },
         () => {
-          loadListings();
+          if (shouldSkipVerificationRealtimeReload(actionKeyRef.current)) return;
+          void loadListings({ background: true });
         }
       )
       .subscribe();
@@ -468,7 +476,7 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
     return null;
   };
 
-  if (loading) {
+  if (loading && listings.length === 0) {
     return (
       <div className={styles.listingsTable}>
         {Array.from({ length: 4 }).map((_, index) => (

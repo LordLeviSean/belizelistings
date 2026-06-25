@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import useUserRole from "../../hooks/useUserRole";
 import { useToast } from "../ui/ToastProvider";
 import {
@@ -27,62 +27,87 @@ export default function AdminListingTrustAction({
   const { showToast } = useToast();
   const [confirmMode, setConfirmMode] = useState(null);
   const [localBusy, setLocalBusy] = useState(false);
-
-  if (role !== "admin") return null;
+  const inFlightRef = useRef(false);
 
   const listingId = String(listing?.id || "");
   const isVerified = isListingCardVerified(listing);
   const label = getListingVerificationAdminLabel(listing);
   const isBusy = busy || localBusy;
 
-  const setBusy = (next) => {
-    setLocalBusy(next);
-    onBusyChange?.(next);
-  };
+  const setBusy = useCallback(
+    (next) => {
+      setLocalBusy(next);
+      onBusyChange?.(next);
+    },
+    [onBusyChange]
+  );
 
-  const runVerificationUpdate = async (verified) => {
-    if (!listingId || !user?.id || isBusy) return;
-    setBusy(true);
-    const result = await applyListingVerificationAction({
-      listingId,
-      verified,
-      adminUserId: user.id,
-      client: supabase,
-    });
-    if (!result.ok) {
-      console.error("[admin-listing-trust] verification update failed", result.error);
-      showToast({
-        type: "error",
-        message: verified ? "Unable to verify listing" : "Unable to remove verification",
-      });
-      setBusy(false);
-      return;
-    }
-
-    const patch = result.data || {};
-    onUpdated?.({
-      ...listing,
-      verification_status: patch.verification_status ?? (verified ? "verified" : "unverified"),
-      verified_at: patch.verified_at ?? (verified ? new Date().toISOString() : null),
-      verified_by: patch.verified_by ?? (verified ? user.id : null),
-    });
-    onAction?.(verified ? "Verified listing" : "Removed listing verification");
-    showToast({
-      type: "success",
-      message: verified ? "Listing verified" : "Verification removed",
-    });
+  const closeConfirmModal = useCallback(() => {
     setConfirmMode(null);
-    setBusy(false);
-  };
+  }, []);
 
-  const openConfirm = (mode) => {
-    if (isBusy) return;
-    if (mode === "verify") {
-      void runVerificationUpdate(true);
-      return;
-    }
-    setConfirmMode(mode);
-  };
+  const runVerificationUpdate = useCallback(
+    async (verified) => {
+      if (!listingId || !user?.id || inFlightRef.current) return;
+
+      inFlightRef.current = true;
+      setBusy(true);
+      try {
+        const result = await applyListingVerificationAction({
+          listingId,
+          verified,
+          adminUserId: user.id,
+          client: supabase,
+        });
+        if (!result.ok) {
+          console.error("[admin-listing-trust] verification update failed", result.error);
+          showToast({
+            type: "error",
+            message: verified ? "Unable to verify listing" : "Unable to remove verification",
+          });
+          return;
+        }
+
+        const patch = result.data || {};
+        onUpdated?.({
+          ...listing,
+          verification_status: patch.verification_status ?? (verified ? "verified" : "unverified"),
+          verified_at: patch.verified_at ?? (verified ? new Date().toISOString() : null),
+          verified_by: patch.verified_by ?? (verified ? user.id : null),
+        });
+        onAction?.(verified ? "Verified listing" : "Removed listing verification");
+        showToast({
+          type: "success",
+          message: verified ? "Listing verified" : "Verification removed",
+        });
+        closeConfirmModal();
+      } catch (error) {
+        console.error("[admin-listing-trust] verification update threw", error);
+        showToast({
+          type: "error",
+          message: verified ? "Unable to verify listing" : "Unable to remove verification",
+        });
+      } finally {
+        inFlightRef.current = false;
+        setBusy(false);
+      }
+    },
+    [closeConfirmModal, listing, listingId, onAction, onUpdated, setBusy, showToast, user?.id]
+  );
+
+  const openConfirm = useCallback(
+    (mode) => {
+      if (isBusy || inFlightRef.current) return;
+      if (mode === "verify") {
+        void runVerificationUpdate(true);
+        return;
+      }
+      setConfirmMode(mode);
+    },
+    [isBusy, runVerificationUpdate]
+  );
+
+  if (role !== "admin") return null;
 
   const confirmCopy =
     confirmMode === "unverify"
@@ -97,6 +122,16 @@ export default function AdminListingTrustAction({
 
   const chipTone = isVerified ? trustStyles.verified : "";
 
+  const modal = (
+    <AdminListingActionConfirmModal
+      open={Boolean(confirmCopy)}
+      busy={isBusy}
+      onClose={closeConfirmModal}
+      onConfirm={() => void runVerificationUpdate(false)}
+      {...(confirmCopy || {})}
+    />
+  );
+
   if (layout === "compact") {
     return (
       <>
@@ -109,16 +144,7 @@ export default function AdminListingTrustAction({
         >
           {isBusy ? "Processing…" : isVerified ? "Remove Verification" : "Verify Listing"}
         </button>
-        <AdminListingActionConfirmModal
-          open={Boolean(confirmCopy)}
-          busy={isBusy}
-          onClose={() => {
-            if (isBusy) return;
-            setConfirmMode(null);
-          }}
-          onConfirm={() => void runVerificationUpdate(false)}
-          {...(confirmCopy || {})}
-        />
+        {modal}
       </>
     );
   }
@@ -134,16 +160,7 @@ export default function AdminListingTrustAction({
       >
         {isBusy ? "Processing…" : isVerified ? "Remove Verification" : "Verify Listing"}
       </button>
-      <AdminListingActionConfirmModal
-        open={Boolean(confirmCopy)}
-        busy={isBusy}
-        onClose={() => {
-          if (isBusy) return;
-          setConfirmMode(null);
-        }}
-        onConfirm={() => void runVerificationUpdate(false)}
-        {...(confirmCopy || {})}
-      />
+      {modal}
     </div>
   );
 }

@@ -9,6 +9,12 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 - **`docs/admin-operations.md`** — verification workflow reference, reusable admin action patterns, migration/audit runbook, dashboard framework vision.
 - **`scripts/apply-supabase-migrations.mjs`** — applies pending migrations via `DATABASE_URL`, Supabase Management API, or linked CLI.
 
+## [1.1.2] - 2026-06-25
+
+### Fixed
+
+- **Remove Verification modal** — confirm dialog no longer flickers or stays stuck; background listing refetches no longer unmount admin trust controls mid-action, and verify/unverify mutations share a `try/finally` cleanup path that always clears busy state and closes the modal on success.
+
 ## [1.1.1] - 2026-06-25
 
 ### Added
