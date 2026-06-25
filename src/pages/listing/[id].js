@@ -31,6 +31,7 @@ import favoriteStyles from "../../styles/FavoriteButton.module.css";
 import { useFavoriteSignupPrompt } from "../../components/FavoriteSignupPromptProvider";
 import ListingTrustStrip from "@/components/listing/ListingTrustStrip";
 import ListingContactActions from "@/components/listing/ListingContactActions";
+import ListingDescriptionContent from "@/components/listing/ListingDescriptionContent";
 import { getListingAtmosphereKey } from "@/utils/listingAtmosphere";
 import { derivePropertyHighlights } from "@/utils/propertyHighlights";
 import { getListingGalleryImages } from "@/utils/listingImage";
@@ -310,6 +311,11 @@ export default function ListingPage() {
   const atmosphere = getListingAtmosphereKey(listing);
   const highlights = derivePropertyHighlights(listing);
   const descriptionText = String(listing?.description || "").trim();
+  const mobileThumbVisible = 4;
+  const mobileThumbOverflow = Math.max(0, images.length - mobileThumbVisible);
+  const mobileThumbs =
+    mobileThumbOverflow > 0 ? images.slice(0, mobileThumbVisible) : images;
+  const mobileOverflowActive = index >= mobileThumbVisible && mobileThumbOverflow > 0;
 
   const hasImages = images.length > 0;
   const showOwnerPendingBanner =
@@ -386,28 +392,67 @@ export default function ListingPage() {
           </div>
         </div>
         {hasImages && images.length > 1 && (
-          <div className={styles.thumbRow}>
-            {images.map((img, i) => (
-              <button
-                key={img.id || `hero-thumb-${i}-${img.image_url}`}
-                type="button"
-                className={`${styles.thumbCell} ${i === index ? styles.thumbCellActive : ""}`}
-                onClick={() => setIndex(i)}
-                onMouseEnter={() => setIndex(i)}
-                aria-label={`Show photo ${i + 1} in gallery`}
-              >
-                <ListingMediaImage
-                  key={img.image_url}
-                  src={img.image_url}
-                  alt=""
-                  fill
-                  sizes="(max-width: 900px) 18vw, 120px"
-                  quality={IMAGE_QUALITY_THUMB}
-                  hoverZoom={false}
-                />
-              </button>
-            ))}
-          </div>
+          <>
+            <div className={`${styles.thumbRow} ${styles.thumbRowDesktop}`}>
+              {images.map((img, i) => (
+                <button
+                  key={img.id || `hero-thumb-${i}-${img.image_url}`}
+                  type="button"
+                  className={`${styles.thumbCell} ${i === index ? styles.thumbCellActive : ""}`}
+                  onClick={() => setIndex(i)}
+                  onMouseEnter={() => setIndex(i)}
+                  aria-label={`Show photo ${i + 1} in gallery`}
+                >
+                  <ListingMediaImage
+                    key={img.image_url}
+                    src={img.image_url}
+                    alt=""
+                    fill
+                    sizes="(max-width: 900px) 18vw, 120px"
+                    quality={IMAGE_QUALITY_THUMB}
+                    hoverZoom={false}
+                  />
+                </button>
+              ))}
+            </div>
+            <div className={`${styles.thumbRow} ${styles.thumbRowMobile}`}>
+              {mobileThumbs.map((img, i) => (
+                <button
+                  key={img.id || `mobile-thumb-${i}-${img.image_url}`}
+                  type="button"
+                  className={`${styles.thumbCell} ${i === index ? styles.thumbCellActive : ""}`}
+                  onClick={() => setIndex(i)}
+                  aria-label={`Show photo ${i + 1} in gallery`}
+                >
+                  <ListingMediaImage
+                    key={img.image_url}
+                    src={img.image_url}
+                    alt=""
+                    fill
+                    sizes="22vw"
+                    quality={IMAGE_QUALITY_THUMB}
+                    hoverZoom={false}
+                  />
+                </button>
+              ))}
+              {mobileThumbOverflow > 0 ? (
+                <button
+                  type="button"
+                  className={`${styles.thumbOverflow} ${mobileOverflowActive ? styles.thumbCellActive : ""}`}
+                  onClick={() => {
+                    if (mobileOverflowActive) {
+                      setLightboxOpen(true);
+                      return;
+                    }
+                    setIndex(mobileThumbVisible);
+                  }}
+                  aria-label={`Show ${mobileThumbOverflow} more photos`}
+                >
+                  +{mobileThumbOverflow}
+                </button>
+              ) : null}
+            </div>
+          </>
         )}
         </section>
 
@@ -486,18 +531,18 @@ export default function ListingPage() {
             />
           </div>
 
-          <ListingContactActions listing={listing} user={user} />
+          <div className={styles.contactSlot}>
+            <ListingContactActions listing={listing} user={user} />
+          </div>
+
+          <div className={styles.mobileStickySpacer} aria-hidden="true" />
 
           {descriptionText ? (
             <section className={styles.description} aria-labelledby="story-heading">
               <h2 id="story-heading" className={styles.storyLead}>
                 About this property
               </h2>
-              {descriptionText.split(/\n+/).map((para, pi) => (
-                <p key={pi} className={styles.storyBody}>
-                  {para}
-                </p>
-              ))}
+              <ListingDescriptionContent description={descriptionText} />
             </section>
           ) : null}
 

@@ -4,10 +4,18 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-25
+
 ### Added
 
-- **`docs/admin-operations.md`** — verification workflow reference, reusable admin action patterns, migration/audit runbook, dashboard framework vision.
-- **`scripts/apply-supabase-migrations.mjs`** — applies pending migrations via `DATABASE_URL`, Supabase Management API, or linked CLI.
+- **Listing detail mobile optimization (Sprint 2.3)** — swipeable hero with compact horizontal thumbnail strip (`+N` overflow), structured description formatting (phones, URLs, sections, bullets), and sticky mobile contact bar.
+- **`listingDescriptionFormat`** utility and **`ListingDescriptionContent`** component for rich description rendering on listing detail.
+- **`docs/listing-detail/sprint-2.3.md`** — sprint summary and QA checklist.
+
+### Changed
+
+- Listing detail **Verified Listing** trust badge separated from status chips (sea-glass styling via `verification_status`); removed **Verified inventory signal** from mixed trust chips.
+- Mobile gallery height reduced; highlight chips and info cards slightly denser; increased bottom spacing before page end.
 
 ## [1.2.0] - 2026-06-25
 

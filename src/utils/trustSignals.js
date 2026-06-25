@@ -248,13 +248,6 @@ export function buildPublicListingTrustChips(listing = {}) {
     chips.push({ key: "newly", label: "Newly listed" });
   }
 
-  if (
-    snap.verificationStatus === VERIFICATION_STATUS.VERIFIED ||
-    String(listing?.verification_status || "").toLowerCase() === VERIFICATION_STATUS.VERIFIED
-  ) {
-    chips.push({ key: "verified_inv", label: "Verified inventory signal" });
-  }
-
   if (!stale.isStale && !stale.isAging && listing?.price > 0) {
     chips.push({ key: "active", label: "Active listing" });
   }

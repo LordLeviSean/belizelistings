@@ -1,0 +1,58 @@
+.content {
+  max-width: 38rem;
+  width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.sectionHeading {
+  margin: 16px 0 8px;
+  font-size: 0.88rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(38, 68, 62, 0.88);
+}
+
+.sectionHeading:first-child {
+  margin-top: 0;
+}
+
+.paragraph {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.72;
+  color: rgba(48, 72, 68, 0.92);
+}
+
+.paragraph + .paragraph,
+.list + .paragraph,
+.paragraph + .list {
+  margin-top: 12px;
+}
+
+.list {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.listItem {
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: rgba(48, 72, 68, 0.92);
+}
+
+.inlineLink {
+  color: rgba(42, 108, 98, 0.96);
+  text-decoration: underline;
+  text-decoration-color: rgba(72, 140, 128, 0.45);
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+.inlineLink:hover {
+  color: rgba(28, 82, 74, 0.98);
+}

@@ -227,6 +227,14 @@
   box-sizing: border-box;
 }
 
+.thumbRowMobile {
+  display: none;
+}
+
+.thumbRowDesktop {
+  display: flex;
+}
+
 .thumbCell {
   position: relative;
   flex: 0 0 auto;
@@ -264,6 +272,44 @@
     0 0 0 1px rgba(236, 248, 245, 0.52),
     0 0 14px rgba(166, 220, 210, 0.34),
     0 2px 6px rgba(0, 0, 0, 0.24);
+}
+
+.thumbOverflow {
+  flex: 0 0 auto;
+  width: 72px;
+  height: 54px;
+  padding: 0;
+  border: 1px solid rgba(120, 178, 164, 0.38);
+  border-radius: 10px;
+  background: rgba(228, 244, 239, 0.92);
+  color: rgba(38, 72, 66, 0.92);
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.88;
+  transition: var(--transition-hover-lift), opacity var(--dur-2) var(--ease-out-soft);
+}
+
+.thumbOverflow:hover {
+  opacity: 1;
+  border-color: rgba(52, 130, 118, 0.42);
+  transform: translateY(var(--hover-lift-xs));
+}
+
+.thumbOverflow:focus-visible {
+  outline: 2px solid rgba(109, 164, 214, 0.6);
+  outline-offset: 2px;
+}
+
+.mobileStickySpacer {
+  display: none;
+}
+
+.contactSlot {
+  min-height: 0;
 }
 
 .detailColumn {
@@ -832,7 +878,20 @@
 /* RESPONSIVE */
 @media (max-width: 720px) {
   .detailBody {
-    padding: 2px 16px 20px;
+    padding: 2px 16px 36px;
+  }
+
+  .highlightChip {
+    padding: 5px 10px;
+    font-size: 0.72rem;
+  }
+
+  .infoBox {
+    padding: 6px 9px;
+  }
+
+  .infoValue {
+    font-size: 15px;
   }
 }
 
@@ -863,19 +922,57 @@
   }
 
   .mainImageFrame {
-    max-height: min(46vh, 420px);
-    min-height: 200px;
+    max-height: min(42vh, 360px);
+    min-height: 180px;
+    aspect-ratio: 16 / 10;
+  }
+
+  .thumbRowDesktop {
+    display: none;
+  }
+
+  .thumbRowMobile {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+    padding: 5px 8px 6px;
+    max-height: 68px;
+  }
+
+  .thumbRowMobile::-webkit-scrollbar {
+    display: none;
   }
 
   .thumbCell {
-    width: 80px;
-    height: 58px;
+    width: 72px;
+    height: 54px;
     min-height: 44px;
+    flex-shrink: 0;
   }
 
-  .thumbRow {
-    gap: 8px;
-    padding: 6px 8px 6px;
+  .thumbOverflow {
+    width: 72px;
+    height: 54px;
+    flex-shrink: 0;
+  }
+
+  .heroColumn {
+    max-height: min(800px, calc(42vh + 88px));
+  }
+
+  .mobileStickySpacer {
+    display: block;
+    height: 84px;
+    flex-shrink: 0;
+  }
+
+  .contactSlot {
+    min-height: 72px;
   }
 }
 

@@ -1,13 +1,46 @@
-.strip {
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.trustRow {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin: 0 0 10px;
+}
+
+.verifiedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: rgba(196, 228, 220, 0.88);
+  border: 1px solid rgba(137, 190, 176, 0.42);
+  color: rgba(38, 62, 58, 0.9);
+  box-shadow: var(--elev-0);
+}
+
+.verifiedBadge svg {
+  flex-shrink: 0;
+}
+
+.statusStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.chip {
+.statusChip {
   font-size: 0.72rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -17,4 +50,12 @@
   border: 1px solid rgba(72, 140, 128, 0.26);
   color: rgba(48, 82, 74, 0.92);
   box-shadow: var(--elev-0);
+}
+
+@media (max-width: 520px) {
+  .verifiedBadge,
+  .statusChip {
+    padding: 5px 10px;
+    font-size: 0.68rem;
+  }
 }
