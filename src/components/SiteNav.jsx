@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DM_Sans } from "next/font/google";
 import {
@@ -23,6 +23,33 @@ import NotificationCenter from "./notifications/NotificationCenter";
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+/** Keeps Account drawer shell mounted if NotificationCenter throws during render. */
+class MobileDrawerErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, info) {
+    console.error("[MobileDrawerErrorBoundary]", error, info?.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <p className={styles.drawerFallback}>
+          Account menu paused — close and try again, or use Dashboard from desktop width.
+        </p>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 /** Premium geometric-humanist wordmark only — scoped to nav brand link */
 const brandWordmarkFont = DM_Sans({
   subsets: ["latin"],
@@ -40,7 +67,6 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const { openLoginIfNeeded, logoutToHome } = useAuthGate();
   const [authLayoutReady, setAuthLayoutReady] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [drawerPortalReady, setDrawerPortalReady] = useState(false);
   const [isMobileNav, setIsMobileNav] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(max-width: 800px)").matches;
@@ -48,10 +74,6 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const mobileDrawerRef = useRef(null);
   const accountMenuBtnRef = useRef(null);
   const wasMobileMenuOpenRef = useRef(false);
-
-  useEffect(() => {
-    setDrawerPortalReady(true);
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -76,10 +98,21 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const { enabled: livePaletteModeEnabled } = useLivePaletteMode();
   const { enabled: pulseModeEnabled } = usePulseMode();
 
-  const hasMobileDrawer = authLayoutReady && !loading && Boolean(user);
-  const drawerOpen = mobileMenuOpen && hasMobileDrawer;
+  const canShowMobileDrawer = authLayoutReady && Boolean(user);
+  const drawerOpen = mobileMenuOpen && canShowMobileDrawer;
 
   useEffect(() => {
+    closeMobileMenu();
+  }, [router.pathname, closeMobileMenu]);
+
+  useEffect(() => {
+    if (canShowMobileDrawer || !mobileMenuOpen) return undefined;
+    setMobileMenuOpen(false);
+    return undefined;
+  }, [canShowMobileDrawer, mobileMenuOpen]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
     if (!drawerOpen) return undefined;
     const prevOverflow = document.body.style.overflow;
     const prevPaddingRight = document.body.style.paddingRight;
@@ -91,6 +124,15 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
       document.body.style.paddingRight = prevPaddingRight;
     };
   }, [drawerOpen]);
+
+  useEffect(
+    () => () => {
+      if (typeof document === "undefined") return;
+      document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
+    },
+    []
+  );
 
   useEffect(() => {
     if (!drawerOpen) return undefined;
@@ -356,6 +398,16 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     const { isDrawer } = navContextClasses(variant);
     if (!isDrawer && isMobileNav) return null;
     if (isDrawer) {
+      if (loading) {
+        return (
+          <span className={`${styles.navLink} ${styles.drawerNavLink} ${styles.navLinkIdle}`} aria-busy="true">
+            <span className={styles.navLinkInner}>
+              <Loader2 className={`${styles.navIcon} ${styles.navIconSpin}`} strokeWidth={1.85} aria-hidden />
+              Notifications
+            </span>
+          </span>
+        );
+      }
       return (
         <div className={styles.drawerNotificationWrap}>
           <NotificationCenter layout="drawer" onNavigate={closeMobileMenu} />
@@ -468,13 +520,16 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   };
 
   const mobileDrawerLayer =
-    drawerOpen && drawerPortalReady
+    drawerOpen && typeof document !== "undefined"
       ? createPortal(
-          <>
+          <div className={styles.mobileDrawerStack}>
             <div
               className={styles.mobileDrawerBackdrop}
               role="presentation"
               onMouseDown={(e) => {
+                if (e.target === e.currentTarget) closeMobileMenu();
+              }}
+              onTouchEnd={(e) => {
                 if (e.target === e.currentTarget) closeMobileMenu();
               }}
             />
@@ -486,9 +541,13 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
               aria-modal="true"
               aria-label="Account navigation"
             >
-              <div className={styles.mobileDrawerInner}>{renderSecondaryNavActions("drawer")}</div>
+              <div className={styles.mobileDrawerInner}>
+                <MobileDrawerErrorBoundary key={user?.id ?? "guest"}>
+                  {renderSecondaryNavActions("drawer")}
+                </MobileDrawerErrorBoundary>
+              </div>
             </nav>
-          </>,
+          </div>,
           document.body
         )
       : null;

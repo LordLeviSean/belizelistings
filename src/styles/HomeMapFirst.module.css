@@ -1389,6 +1389,91 @@
   }
 }
 
+/* Mobile homepage hero — max-width 800px matches SiteNav mobile breakpoint */
+@media (max-width: 800px) {
+  .pageMain {
+    width: calc(100% - 16px);
+    padding-top: 4px;
+    gap: 8px;
+  }
+
+  .heroSection {
+    margin-bottom: 0;
+  }
+
+  .heroCanvas {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: 0;
+    padding: 4px 4px 0;
+    border-radius: calc(var(--ui-radius) + 1px);
+    overflow: visible;
+  }
+
+  .heroLeft {
+    order: 1;
+    margin-top: 0;
+    max-width: none;
+    padding-right: 0;
+  }
+
+  .heroHeadline {
+    font-size: clamp(1.65rem, 8.2vw, 2rem);
+    max-width: none;
+  }
+
+  .heroTrustLine,
+  .heroSubtext {
+    max-width: none;
+  }
+
+  .searchShell {
+    margin-top: 4px;
+  }
+
+  .statGrid {
+    margin-top: 4px;
+    margin-bottom: 0;
+    gap: 5px;
+  }
+
+  .heroRight {
+    order: 2;
+    margin-top: -6px;
+    padding-top: 0;
+    z-index: 1;
+    justify-content: center;
+    align-items: center;
+    overflow: visible;
+  }
+
+  .mapPane {
+    width: min(100%, 420px);
+    min-height: 118px;
+    height: clamp(118px, 18vh, 158px);
+    max-height: 158px;
+    margin-top: 0;
+    margin-bottom: 2px;
+    overflow: visible;
+  }
+
+  .mapPaneMapWrap {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg svg) {
+    transform: scale(0.92, 0.96) translate(0, 2%);
+    transform-origin: center center;
+  }
+
+  .featuredSection {
+    margin-top: 6px;
+    padding: 4px 0 8px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page::before,
   .page::after,
