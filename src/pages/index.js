@@ -71,6 +71,7 @@ export default function HomePage() {
   const router = useRouter();
 
   const [hydrated, setHydrated] = useState(false);
+  const [mobileLayout, setMobileLayout] = useState(false);
   const [listingsData, setListingsData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchSubmitting, setSearchSubmitting] = useState(false);
@@ -110,8 +111,20 @@ export default function HomePage() {
 
   useLayoutEffect(() => {
     if (!router.isReady) return;
-    queueMicrotask(() => setHydrated(true));
+    const mobile =
+      typeof window !== "undefined" && window.matchMedia("(max-width: 800px)").matches;
+    setMobileLayout(mobile);
+    setHydrated(true);
   }, [router.isReady]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const mq = window.matchMedia("(max-width: 800px)");
+    const sync = () => setMobileLayout(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -226,6 +239,21 @@ export default function HomePage() {
     return () => cancelAnimationFrame(raf);
   }, [featuredLoop.length]);
 
+  const renderHeroMap = () => (
+    <>
+      <p className={styles.heroMapCaption}>Explore by district</p>
+      <div className={styles.mapPane}>
+        <div className={styles.mapPaneMapWrap}>
+          <BelizeMap
+            showAmbientVeil={false}
+            districtListingCounts={districtListingCounts}
+            onDistrictClick={(slug) => router.push(`/listings/district/${slug}`)}
+          />
+        </div>
+      </div>
+    </>
+  );
+
   const renderListingCard = useCallback(
     (listing, imageSizes) => {
       return (
@@ -280,94 +308,91 @@ export default function HomePage() {
               {seaFlowModeEnabled ? <div className={styles.heroCanvasSeaFlowLayers} /> : null}
             </div>
             <div className={styles.heroLeft}>
-            <div className={styles.heroCopyBlock}>
-            <p className={styles.heroKicker}>EXPLORE. INVEST. THRIVE.</p>
-            <h1 className={styles.heroHeadline}>Belize&apos;s Living Property Map</h1>
-            <p className={styles.heroTrustLine}>
-              Verified listings. Real agents. One national property map.
-            </p>
-            <p className={styles.heroSubtext}>
-              Discover real estate opportunities across Belize. Interactive. Intelligent. Always up
-              to date.
-            </p>
-            </div>
+              <div className={styles.heroCopyBlock}>
+                <p className={styles.heroKicker}>EXPLORE. INVEST. THRIVE.</p>
+                <h1 className={styles.heroHeadline}>Belize&apos;s Living Property Map</h1>
+                <p className={styles.heroTrustLine}>
+                  Verified listings. Real agents. One national property map.
+                </p>
+                <p className={styles.heroSubtext}>
+                  Discover real estate opportunities across Belize. Interactive. Intelligent. Always
+                  up to date.
+                </p>
+              </div>
 
-            <form
-              className={`${styles.searchShell} ${styles.heroSearchBlock} ${searchSubmitting ? styles.searchShellSubmitting : ""}`}
-              onSubmit={handleSearchSubmit}
-            >
-              <span className={styles.searchIcon} aria-hidden="true">
-                <Search />
-              </span>
-              <input
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                className={styles.searchInput}
-                type="search"
-                placeholder={
-                  compactSearchPlaceholder
-                    ? "District, type, or lifestyle…"
-                    : "Explore Belize by district, property type, or lifestyle…"
-                }
-                aria-label="Search listings; Enter opens full results"
-                enterKeyHint="search"
-              />
-              <button
-                className={styles.searchFilterBtn}
-                type="button"
-                aria-label="Open advanced filters"
-                onClick={() => setFiltersOpen(true)}
+              <form
+                className={`${styles.searchShell} ${styles.heroSearchBlock} ${searchSubmitting ? styles.searchShellSubmitting : ""}`}
+                onSubmit={handleSearchSubmit}
               >
-                <SlidersHorizontal />
-              </button>
-            </form>
-
-            <div className={`${styles.statGrid} ${styles.heroStatsBlock}`}>
-              <article className={styles.statCard}>
-                <span className={styles.statIcon} aria-hidden="true">
-                  <House />
-                </span>
-                <p className={styles.statValue}>{activeListings.length}</p>
-                <p className={styles.statLabel}>Active Listings</p>
-              </article>
-              <article className={styles.statCard}>
-                <span className={styles.statIcon} aria-hidden="true">
-                  <Tag />
-                </span>
-                <p className={styles.statValue}>{saleCount}</p>
-                <p className={styles.statLabel}>For Sale</p>
-              </article>
-              <article className={styles.statCard}>
-                <span className={styles.statIcon} aria-hidden="true">
+                <span className={styles.searchIcon} aria-hidden="true">
                   <Search />
                 </span>
-                <p className={styles.statValue}>{rentCount}</p>
-                <p className={styles.statLabel}>For Rent</p>
-              </article>
-              <article className={styles.statCard}>
-                <span className={styles.statIcon} aria-hidden="true">
-                  <TrendingUp />
-                </span>
-                <p className={styles.statValue}>100%</p>
-                <p className={styles.statLabel}>Real-time Data</p>
-              </article>
-            </div>
-          </div>
-
-          <div className={`${styles.heroRight} ${styles.heroMapBlock}`}>
-            <p className={styles.heroMapCaption}>Explore by district</p>
-            <div className={styles.mapPane}>
-              <div className={styles.mapPaneMapWrap}>
-                <BelizeMap
-                  showAmbientVeil={false}
-                  districtListingCounts={districtListingCounts}
-                  onDistrictClick={(slug) => router.push(`/listings/district/${slug}`)}
+                <input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  className={styles.searchInput}
+                  type="search"
+                  placeholder={
+                    compactSearchPlaceholder
+                      ? "District, type, or lifestyle…"
+                      : "Explore Belize by district, property type, or lifestyle…"
+                  }
+                  aria-label="Search listings; Enter opens full results"
+                  enterKeyHint="search"
                 />
+                <button
+                  className={styles.searchFilterBtn}
+                  type="button"
+                  aria-label="Open advanced filters"
+                  onClick={() => setFiltersOpen(true)}
+                >
+                  <SlidersHorizontal />
+                </button>
+              </form>
+
+              <div className={`${styles.statGrid} ${styles.heroStatsBlock}`}>
+                <article className={styles.statCard}>
+                  <span className={styles.statIcon} aria-hidden="true">
+                    <House />
+                  </span>
+                  <p className={styles.statValue}>{activeListings.length}</p>
+                  <p className={styles.statLabel}>Active Listings</p>
+                </article>
+                <article className={styles.statCard}>
+                  <span className={styles.statIcon} aria-hidden="true">
+                    <Tag />
+                  </span>
+                  <p className={styles.statValue}>{saleCount}</p>
+                  <p className={styles.statLabel}>For Sale</p>
+                </article>
+                <article className={styles.statCard}>
+                  <span className={styles.statIcon} aria-hidden="true">
+                    <Search />
+                  </span>
+                  <p className={styles.statValue}>{rentCount}</p>
+                  <p className={styles.statLabel}>For Rent</p>
+                </article>
+                <article className={styles.statCard}>
+                  <span className={styles.statIcon} aria-hidden="true">
+                    <TrendingUp />
+                  </span>
+                  <p className={styles.statValue}>100%</p>
+                  <p className={styles.statLabel}>Real-time Data</p>
+                </article>
               </div>
             </div>
-          </div>
+
+            {!mobileLayout ? (
+              <div className={`${styles.heroRight} ${styles.heroMapDesktop}`}>{renderHeroMap()}</div>
+            ) : null}
           </div>
         </section>
+
+        {mobileLayout ? (
+          <section className={styles.mobileMapSection} aria-label="Explore by district">
+            {renderHeroMap()}
+          </section>
+        ) : null}
 
         {featuredLoop.length ? (
           <section
