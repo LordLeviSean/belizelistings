@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CalendarClock, MessageCircle, Share2 } from "lucide-react";
 import ContactAgentModal from "./ContactAgentModal";
 import ListingMessageModal from "./ListingMessageModal";
@@ -6,11 +6,32 @@ import ListingViewingBookingModal from "./ListingViewingBookingModal";
 import { useToast } from "@/components/ui/ToastProvider";
 import styles from "./ListingContactActions.module.css";
 
+const MOBILE_STICKY_MQ = "(max-width: 520px)";
+
 export default function ListingContactActions({ listing, user }) {
   const { showToast } = useToast();
   const [contactOpen, setContactOpen] = useState(false);
   const [messageOpen, setMessageOpen] = useState(false);
   const [viewingOpen, setViewingOpen] = useState(false);
+  const [footerVisible, setFooterVisible] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const mq = window.matchMedia(MOBILE_STICKY_MQ);
+    if (!mq.matches) return undefined;
+
+    const footer = document.querySelector("footer");
+    if (!footer) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setFooterVisible(entry.isIntersecting),
+      { root: null, threshold: 0, rootMargin: "0px 0px 0px 0px" }
+    );
+    observer.observe(footer);
+
+    return () => observer.disconnect();
+  }, []);
 
   const listingUrl =
     typeof window !== "undefined" ? `${window.location.origin}/listing/${listing?.id}` : "";
@@ -31,8 +52,10 @@ export default function ListingContactActions({ listing, user }) {
     }
   };
 
+  const wrapClass = [styles.wrap, footerVisible ? styles.wrapFooterClear : ""].filter(Boolean).join(" ");
+
   return (
-    <section className={styles.wrap} aria-label="Contact and scheduling">
+    <section className={wrapClass} aria-label="Contact and scheduling">
       <div className={styles.row}>
         <div className={styles.rowLead}>
           <button type="button" className={styles.primaryBtn} onClick={() => setContactOpen(true)}>

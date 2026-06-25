@@ -878,7 +878,11 @@
 /* RESPONSIVE */
 @media (max-width: 720px) {
   .detailBody {
-    padding: 2px 16px 36px;
+    padding: 2px 14px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .detailTop {
+    padding: 8px 14px 2px;
   }
 
   .highlightChip {
@@ -893,6 +897,26 @@
   .infoValue {
     font-size: 15px;
   }
+
+  .container {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 520px) {
+  .pageShell {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .detailToolbar {
+    margin-bottom: 6px;
+  }
+
+  .backButton {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 14px;
+  }
 }
 
 @media (max-width: 900px) {
@@ -905,6 +929,8 @@
 
   .heroColumn {
     min-height: 0;
+    gap: 8px;
+    padding: 12px 12px 10px;
   }
 
   .detailColumn {
@@ -919,12 +945,29 @@
 
   .container {
     height: auto;
+    gap: 7px;
   }
 
   .mainImageFrame {
-    max-height: min(42vh, 360px);
-    min-height: 180px;
+    max-height: min(40vh, 340px);
+    min-height: 176px;
     aspect-ratio: 16 / 10;
+    border-radius: 16px;
+  }
+
+  .imageCounter {
+    top: 10px;
+    right: 10px;
+    font-size: 11px;
+    padding: 5px 9px;
+  }
+
+  .immersiveHint {
+    bottom: 10px;
+    left: 10px;
+    font-size: 10px;
+    padding: 6px 10px;
+    max-width: calc(100% - 88px);
   }
 
   .thumbRowDesktop {
@@ -938,6 +981,7 @@
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
     scrollbar-width: none;
     gap: 8px;
     padding: 5px 8px 6px;
@@ -949,30 +993,103 @@
   }
 
   .thumbCell {
-    width: 72px;
-    height: 54px;
+    width: 68px;
+    height: 51px;
     min-height: 44px;
     flex-shrink: 0;
+    border-radius: 9px;
+  }
+
+  .thumbRowMobile .thumbCellActive {
+    opacity: 1;
+    border-color: rgba(166, 220, 210, 0.72);
+    box-shadow:
+      0 0 0 2px rgba(236, 248, 245, 0.68),
+      0 0 16px rgba(166, 220, 210, 0.36),
+      0 2px 8px rgba(68, 108, 102, 0.14);
+    transform: translateY(-1px);
   }
 
   .thumbOverflow {
-    width: 72px;
-    height: 54px;
+    width: 68px;
+    height: 51px;
+    min-height: 44px;
     flex-shrink: 0;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    font-weight: 700;
+  }
+
+  .thumbRowMobile .thumbOverflow.thumbCellActive {
+    border-color: rgba(166, 220, 210, 0.72);
+    box-shadow:
+      0 0 0 2px rgba(236, 248, 245, 0.68),
+      0 0 16px rgba(166, 220, 210, 0.36),
+      0 2px 8px rgba(68, 108, 102, 0.14);
+    opacity: 1;
   }
 
   .heroColumn {
-    max-height: min(800px, calc(42vh + 88px));
+    max-height: min(780px, calc(40vh + 84px));
   }
 
   .mobileStickySpacer {
     display: block;
-    height: 84px;
+    height: calc(76px + env(safe-area-inset-bottom, 0px));
     flex-shrink: 0;
   }
 
   .contactSlot {
     min-height: 72px;
+  }
+
+  .detailTop {
+    padding: 10px 16px 4px;
+  }
+
+  .detailBody {
+    padding: 2px 16px calc(28px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .listingHeader {
+    gap: 5px;
+  }
+
+  .title {
+    font-size: clamp(1.28rem, 5.2vw, 1.55rem);
+    line-height: 1.22;
+  }
+
+  .price {
+    font-size: clamp(1.62rem, 6.8vw, 1.95rem);
+    line-height: 1.06;
+  }
+
+  .location {
+    font-size: 13px;
+  }
+
+  .highlightStrip {
+    margin: 2px 0 4px;
+    gap: 5px;
+  }
+
+  .infoGrid {
+    gap: 7px 8px;
+    margin-top: 0;
+  }
+
+  .description {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(137, 190, 176, 0.2);
+  }
+
+  .storyLead {
+    margin: 0 0 12px;
+    font-size: 0.94rem;
+    letter-spacing: 0.02em;
   }
 }
 
@@ -1225,9 +1342,14 @@
     transition-duration: 0.01ms !important;
   }
 
+  .thumbRowMobile {
+    scroll-behavior: auto;
+  }
+
   .mainImageFrame:hover,
   .thumbCell:hover,
   .thumbRowDesktop .thumbCellActive,
+  .thumbRowMobile .thumbCellActive,
   .highlightChip:hover,
   .infoBoxInteractive:hover {
     transform: none;

@@ -4,6 +4,12 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-06-25
+
+### Changed
+
+- **Listing detail mobile final polish (Sprint 2.3B)** — sticky contact bar slides away when site footer enters view (IntersectionObserver + safe-area padding), horizontal thumb strip with smooth auto-scroll and premium active state, `+N` overflow chip, hero gallery height/spacing refinements, mobile density and visual rhythm pass, and clearer separation before “About this property”. Desktop layout unchanged (Sprint 2.3A frozen).
+
 ## [1.3.1] - 2026-06-25
 
 ### Changed

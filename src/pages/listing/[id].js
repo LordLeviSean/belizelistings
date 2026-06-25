@@ -57,6 +57,8 @@ export default function ListingPage() {
   const idRefForHeroDip = useRef();
   const touchStartXRef = useRef(null);
   const skipHeroClickRef = useRef(false);
+  const mobileThumbRowRef = useRef(null);
+  const mobileThumbRefs = useRef([]);
   const debugRef = useRef(createDebugger("PUBLIC_PAGE"));
   const [debugState, setDebugState] = useState({});
   const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
@@ -274,6 +276,24 @@ export default function ListingPage() {
     setLightboxOpen(true);
   };
 
+  const mobileThumbVisible = 4;
+  const mobileThumbOverflow = Math.max(0, images.length - mobileThumbVisible);
+  const mobileOverflowActive = index >= mobileThumbVisible && mobileThumbOverflow > 0;
+
+  useEffect(() => {
+    if (!listing || typeof window === "undefined" || images.length < 2) return undefined;
+    const mq = window.matchMedia("(max-width: 900px)");
+    if (!mq.matches) return undefined;
+
+    const overflowIndex = images.length;
+    const activeRef =
+      mobileThumbOverflow > 0 && mobileOverflowActive
+        ? mobileThumbRefs.current[overflowIndex]
+        : mobileThumbRefs.current[index];
+
+    activeRef?.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
+  }, [listing, index, images.length, mobileThumbOverflow, mobileOverflowActive]);
+
   if (!router.isReady) {
     return (
       <div className={styles.pageShell}>
@@ -311,12 +331,7 @@ export default function ListingPage() {
   const atmosphere = getListingAtmosphereKey(listing);
   const highlights = derivePropertyHighlights(listing);
   const descriptionText = String(listing?.description || "").trim();
-  const mobileThumbVisible = 4;
-  const mobileThumbOverflow = Math.max(0, images.length - mobileThumbVisible);
-  const mobileThumbs =
-    mobileThumbOverflow > 0 ? images.slice(0, mobileThumbVisible) : images;
-  const mobileOverflowActive = index >= mobileThumbVisible && mobileThumbOverflow > 0;
-
+  const mobileThumbs = images;
   const hasImages = images.length > 0;
   const showOwnerPendingBanner =
     ownerPreview && getLifecycleStatus(listing) === LISTING_LIFECYCLE.PENDING_REVIEW;
@@ -420,14 +435,18 @@ export default function ListingPage() {
                 </button>
               ))}
             </div>
-            <div className={`${styles.thumbRow} ${styles.thumbRowMobile}`}>
+            <div className={`${styles.thumbRow} ${styles.thumbRowMobile}`} ref={mobileThumbRowRef}>
               {mobileThumbs.map((img, i) => (
                 <button
                   key={img.id || `mobile-thumb-${i}-${img.image_url}`}
+                  ref={(el) => {
+                    mobileThumbRefs.current[i] = el;
+                  }}
                   type="button"
                   className={`${styles.thumbCell} ${i === index ? styles.thumbCellActive : ""}`}
                   onClick={() => setIndex(i)}
                   aria-label={`Show photo ${i + 1} in gallery`}
+                  aria-current={i === index ? "true" : undefined}
                 >
                   <ListingMediaImage
                     key={img.image_url}
@@ -442,6 +461,9 @@ export default function ListingPage() {
               ))}
               {mobileThumbOverflow > 0 ? (
                 <button
+                  ref={(el) => {
+                    mobileThumbRefs.current[mobileThumbs.length] = el;
+                  }}
                   type="button"
                   className={`${styles.thumbOverflow} ${mobileOverflowActive ? styles.thumbCellActive : ""}`}
                   onClick={() => {
@@ -452,6 +474,7 @@ export default function ListingPage() {
                     setIndex(mobileThumbVisible);
                   }}
                   aria-label={`Show ${mobileThumbOverflow} more photos`}
+                  aria-current={mobileOverflowActive ? "true" : undefined}
                 >
                   +{mobileThumbOverflow}
                 </button>

@@ -57,6 +57,38 @@
   color: rgba(28, 82, 74, 0.98);
 }
 
+@media (max-width: 800px) {
+  .content {
+    max-width: 100%;
+  }
+
+  .sectionHeading {
+    margin: 18px 0 8px;
+    font-size: 0.84rem;
+    letter-spacing: 0.05em;
+  }
+
+  .sectionHeading:first-child {
+    margin-top: 4px;
+  }
+
+  .paragraph {
+    font-size: 0.96rem;
+    line-height: 1.68;
+  }
+
+  .paragraph + .paragraph,
+  .list + .paragraph,
+  .paragraph + .list {
+    margin-top: 11px;
+  }
+
+  .listItem {
+    font-size: 0.96rem;
+    line-height: 1.62;
+  }
+}
+
 @media (min-width: 901px) {
   .content {
     max-width: 36rem;
