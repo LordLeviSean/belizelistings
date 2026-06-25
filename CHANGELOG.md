@@ -4,6 +4,11 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+### Added
+
+- **`docs/admin-operations.md`** — verification workflow reference, reusable admin action patterns, migration/audit runbook, dashboard framework vision.
+- **`scripts/apply-supabase-migrations.mjs`** — applies pending migrations via `DATABASE_URL`, Supabase Management API, or linked CLI.
+
 ## [1.1.1] - 2026-06-25
 
 ### Added
