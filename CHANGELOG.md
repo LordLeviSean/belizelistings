@@ -4,6 +4,23 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-06-25
+
+### Milestone
+
+- **Platform Foundation Complete** — frozen baseline for homepage v1.0, ListingCard DNA, Discovery 2.2, Listing Detail 2.3A/2.3B, verification, admin trust workflow, agent directory, and trust system. Phase 3 (**Marketplace Infrastructure**) begins with architecture proposals only.
+
+### Added
+
+- **`docs/platform/milestone-platform-foundation-complete.md`** — completed milestones, architectural decisions, canonical UI inventory, database architecture, extension points, frozen systems policy.
+- **`docs/platform/proposals/property-timeline-architecture.md`** — append-only `listing_events` proposal (no implementation).
+- **`docs/platform/proposals/inquiry-lead-management-architecture.md`** — CRM / lead pipeline proposal (no implementation).
+- **`docs/platform/marketplace-infrastructure-phase.md`** — Phase 3 priorities and implementation order.
+
+### Policy
+
+- **Frozen baseline** — homepage v1.0, ListingCard, Listing Detail 2.3A (desktop), 2.3B (mobile), Discovery 2.2 FilterBar/URL schema, and verification admin workflow must not be redesigned without explicit product instruction. See milestone doc for permitted exception classes (bug fixes, a11y, performance, SEO).
+
 ## [1.3.2] - 2026-06-25
 
 ### Changed
@@ -98,7 +115,11 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 - **Homepage v1.0 FROZEN** — editorial map-first homepage, featured and recently-added rails, district exploration, and calm luxury card DNA.
 - Reference tag: [`v1.0-homepage`](https://github.com/belizelistings/belizelistings-frontend/tree/v1.0-homepage) (`691db60`, also `3629a03`).
 
-[Unreleased]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.3.2...v1.4.0
+[1.3.2]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.3.1...v1.3.2
+[1.3.1]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.1.1...v1.1.2
