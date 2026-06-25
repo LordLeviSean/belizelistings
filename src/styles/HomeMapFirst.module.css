@@ -425,6 +425,11 @@
   margin: 0;
 }
 
+.mobileMapHint {
+  display: none;
+  margin: 0;
+}
+
 .mapPane {
   position: relative;
   z-index: 1;
@@ -1496,28 +1501,40 @@
   }
 
   .mobileMapSection {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     position: relative;
     isolation: isolate;
     width: 100%;
-    margin: 20px 0 0;
-    padding: 0 6px 12px;
+    margin: 28px 0 0;
+    padding: 24px 16px;
     border-radius: calc(var(--ui-radius) + 1px);
-    background: transparent;
+    background:
+      radial-gradient(ellipse 86% 80% at 14% 54%, rgba(52, 200, 182, 0.14), transparent 76%),
+      radial-gradient(ellipse 82% 76% at 86% 32%, rgba(112, 170, 240, 0.1), transparent 80%),
+      radial-gradient(ellipse 70% 70% at 56% 82%, rgba(255, 202, 168, 0.08), transparent 82%);
     border: 0;
     box-shadow: none;
     overflow: visible;
   }
 
   .mobileMapSection::before {
-    display: none;
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0));
+    opacity: 0.14;
   }
 
   .mobileMapSection .heroMapCaption {
     display: block;
     position: relative;
     z-index: 1;
-    margin: 0 0 6px;
+    margin: 0 0 10px;
     width: 100%;
     text-align: center;
     font-size: 0.58rem;
@@ -1530,43 +1547,101 @@
   .mobileMapSection .mapPane {
     position: relative;
     z-index: 1;
-    width: min(100%, 340px);
-    min-height: 0;
-    height: clamp(100px, 28vw, 140px);
-    max-height: 140px;
+    width: 100%;
+    max-width: 100%;
+    min-height: clamp(360px, 70vh, 520px);
+    height: clamp(360px, 70vh, 520px);
+    max-height: none;
     margin: 0 auto;
-    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
   }
 
   .mobileMapSection .mapPaneMapWrap {
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
-
-  .mobileMapSection .mapPaneMapWrap :global(.map.mapFitLayout) {
-    align-items: center;
-  }
-
-  .mobileMapSection .mapPaneMapWrap :global(.map.mapFitLayout .mapStage) {
-    align-items: center;
-    justify-content: center;
-  }
-
-  .mobileMapSection .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg) {
-    transform: none;
+    flex: 1 1 auto;
+    width: 100%;
     height: 100%;
-    width: auto;
-    max-height: 100%;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
   }
 
-  .mobileMapSection .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg svg) {
-    transform: scale(1) translate(0, 0);
-    transform-origin: center center;
+  .mobileMapSection .mapPaneMapWrap > div {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+  }
+
+  .mobileMapSection .mapPaneMapWrap > div > div {
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    padding-bottom: 0 !important;
+    overflow: visible;
+  }
+
+  .mobileMapSection .mapPaneMapWrap div:has(> svg) {
+    transform: none !important;
+    width: auto !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    aspect-ratio: 499 / 962;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 1;
+    overflow: visible;
+  }
+
+  .mobileMapSection .mapPaneMapWrap svg {
+    width: auto !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    transform: none !important;
+    transform-origin: center center !important;
+    display: block;
+  }
+
+  .mobileMapSection .mobileMapHint {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    position: relative;
+    z-index: 1;
+    margin: 10px 0 0;
+    width: 100%;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: rgba(66, 98, 103, 0.68);
+  }
+
+  .mobileMapSection .mobileMapHint :global(svg) {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    opacity: 0.72;
+    stroke-width: 1.85;
   }
 
   .featuredSection {
-    margin-top: 20px;
+    margin-top: 28px;
     padding: 0 0 8px;
   }
 }

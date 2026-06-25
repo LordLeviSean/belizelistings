@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
+  Hand,
   House,
   Search,
   SlidersHorizontal,
@@ -251,6 +252,10 @@ export default function HomePage() {
           />
         </div>
       </div>
+      <p className={styles.mobileMapHint}>
+        <Hand aria-hidden="true" />
+        Tap a district to explore properties
+      </p>
     </>
   );
 
