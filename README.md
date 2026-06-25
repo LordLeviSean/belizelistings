@@ -1,5 +1,17 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
 
+## Environment Setup
+
+1. Copy the template: `cp .env.example .env.local` (Windows: copy `.env.example` to `.env.local`).
+2. In the [Supabase dashboard](https://supabase.com/dashboard) → **Project Settings → API**, copy:
+   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
+   - **anon public** key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - **service_role** key → `SUPABASE_SERVICE_ROLE_KEY` (server-only; required for admin API routes and some scripts)
+3. **Public vs server-only:** Variables prefixed with `NEXT_PUBLIC_` are embedded in the client bundle at build time. Never put the service role key or database credentials in a `NEXT_PUBLIC_` variable.
+4. **Never commit** `.env.local` or other env files with real secrets — they are listed in `.gitignore`. Use `.env.example` as the documented template only.
+
+Optional variables (QA automation, migrations, feature flags) are documented in `.env.example`.
+
 ## Getting Started
 
 First, run the development server:
