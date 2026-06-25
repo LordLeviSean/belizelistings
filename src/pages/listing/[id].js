@@ -30,6 +30,7 @@ import styles from "../../styles/ListingDetail.module.css";
 import favoriteStyles from "../../styles/FavoriteButton.module.css";
 import { useFavoriteSignupPrompt } from "../../components/FavoriteSignupPromptProvider";
 import ListingTrustStrip from "@/components/listing/ListingTrustStrip";
+import ListingTimelinePanel from "@/components/listing/ListingTimelinePanel";
 import ListingContactActions from "@/components/listing/ListingContactActions";
 import ListingDescriptionContent from "@/components/listing/ListingDescriptionContent";
 import { getListingAtmosphereKey } from "@/utils/listingAtmosphere";
@@ -526,6 +527,8 @@ export default function ListingPage() {
           </div>
 
           <ListingTrustStrip listing={listing} />
+
+          <ListingTimelinePanel listingId={listing.id} />
 
           {highlights.length > 0 ? (
             <div className={styles.highlightStrip} aria-label="Highlights">

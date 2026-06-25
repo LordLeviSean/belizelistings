@@ -4,6 +4,22 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-06-26
+
+### Milestone
+
+- **Phase 3 Milestone 3.1B — Property History (Public Timeline)** — collapsible `ListingTimelinePanel` on listing detail beneath `ListingTrustStrip`, lazy-loaded public `listing_events`, centralized event presentation config, and session expansion memory.
+
+### Added
+
+- **`ListingTimelinePanel`** — sea-glass collapsible “Property History” section with lazy fetch on first expand.
+- **`src/lib/listingEvents/listingEventPresentation.js`** — event_type → icon, headline, description, relative time (sensible defaults for future types).
+- **`src/lib/listingEvents/fetchListingTimeline.js`** — public timeline query gated by `NEXT_PUBLIC_BL_ENABLE_LISTING_EVENTS`.
+
+### Changed
+
+- **`src/pages/listing/[id].js`** — integrates timeline panel between trust strip and listing body content (no layout redesign).
+
 ## [1.5.0] - 2026-06-26
 
 ### Milestone
