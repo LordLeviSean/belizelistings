@@ -4,6 +4,12 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-06-25
+
+### Changed
+
+- **Listing detail desktop polish (Sprint 2.3A)** — refined gallery proportions and thumbnail strip, adaptive “click/tap to expand” hint via pointer capability query, share button alignment in contact row, editorial description typography and measure, increased footer breathing room, and desktop vertical rhythm audit. Mobile layout unchanged (Sprint 2.3B follow-up).
+
 ## [1.3.0] - 2026-06-25
 
 ### Added

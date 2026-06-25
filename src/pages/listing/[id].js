@@ -372,7 +372,12 @@ export default function ListingPage() {
               {index + 1} / {images.length}
             </div>
           ) : null}
-          {hasImages ? <span className={styles.immersiveHint}>Immersive gallery · tap to expand</span> : null}
+          {hasImages ? (
+            <span className={styles.immersiveHint}>
+              <span className={styles.immersiveHintFinePointer}>Immersive gallery · click to expand</span>
+              <span className={styles.immersiveHintCoarsePointer}>Immersive gallery · tap to expand</span>
+            </span>
+          ) : null}
           <div className={styles.imageStage}>
             <div
               className={`${styles.heroImage} ${heroDip ? styles.heroImageFadeChanging : ""}`}

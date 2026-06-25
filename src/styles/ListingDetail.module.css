@@ -996,6 +996,24 @@
   pointer-events: none;
 }
 
+.immersiveHintFinePointer {
+  display: none;
+}
+
+.immersiveHintCoarsePointer {
+  display: inline;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .immersiveHintFinePointer {
+    display: inline;
+  }
+
+  .immersiveHintCoarsePointer {
+    display: none;
+  }
+}
+
 .highlightStrip {
   display: flex;
   flex-wrap: wrap;
@@ -1116,6 +1134,84 @@
   transform: scale(1.021);
 }
 
+/* Sprint 2.3A — desktop / laptop polish (min-width only; mobile blocks above unchanged) */
+@media (min-width: 901px) {
+  .heroColumn {
+    gap: 12px;
+    padding: 16px 18px 14px;
+  }
+
+  .mainImageFrame {
+    aspect-ratio: 16 / 10;
+    max-height: min(72vh, 680px);
+    border-radius: 20px;
+  }
+
+  .thumbRowDesktop {
+    gap: 8px;
+    padding: 6px 8px 7px;
+    justify-content: flex-start;
+    border-radius: 12px;
+  }
+
+  .thumbRowDesktop .thumbCell {
+    width: 76px;
+    height: 57px;
+    border-radius: 9px;
+  }
+
+  .thumbRowDesktop .thumbCellActive {
+    border-color: rgba(166, 220, 210, 0.68);
+    box-shadow:
+      0 0 0 2px rgba(236, 248, 245, 0.72),
+      0 0 18px rgba(166, 220, 210, 0.38),
+      0 3px 8px rgba(0, 0, 0, 0.18);
+    transform: translateY(-1px);
+  }
+
+  .detailTop {
+    padding: 14px 24px 8px;
+  }
+
+  .detailBody {
+    padding: 4px 24px 56px;
+  }
+
+  .container {
+    gap: 10px;
+  }
+
+  .listingHeader {
+    gap: 8px;
+  }
+
+  .highlightStrip {
+    margin: 6px 0 8px;
+    gap: 8px;
+  }
+
+  .infoGrid {
+    gap: 10px 12px;
+    margin-top: 4px;
+  }
+
+  .contactSlot {
+    margin-top: 4px;
+  }
+
+  .description {
+    margin-top: 18px;
+    padding-top: 6px;
+    max-width: 36rem;
+  }
+
+  .storyLead {
+    margin: 0 0 14px;
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mainImageFrame,
   .thumbCell,
@@ -1131,6 +1227,7 @@
 
   .mainImageFrame:hover,
   .thumbCell:hover,
+  .thumbRowDesktop .thumbCellActive,
   .highlightChip:hover,
   .infoBoxInteractive:hover {
     transform: none;

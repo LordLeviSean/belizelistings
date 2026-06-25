@@ -56,3 +56,35 @@
 .inlineLink:hover {
   color: rgba(28, 82, 74, 0.98);
 }
+
+@media (min-width: 901px) {
+  .content {
+    max-width: 36rem;
+  }
+
+  .sectionHeading {
+    margin: 20px 0 10px;
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+  }
+
+  .paragraph {
+    font-size: 1rem;
+    line-height: 1.78;
+  }
+
+  .paragraph + .paragraph,
+  .list + .paragraph,
+  .paragraph + .list {
+    margin-top: 14px;
+  }
+
+  .list {
+    gap: 8px;
+    padding-left: 1.25rem;
+  }
+
+  .listItem {
+    line-height: 1.7;
+  }
+}

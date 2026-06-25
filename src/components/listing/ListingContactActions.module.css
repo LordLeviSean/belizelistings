@@ -139,3 +139,28 @@
     position: static;
   }
 }
+
+@media (min-width: 901px) {
+  .wrap {
+    margin-top: 10px;
+    padding-top: 12px;
+  }
+
+  .row {
+    align-items: center;
+    gap: 12px;
+  }
+
+  .rowLead {
+    gap: 10px;
+    flex: 1 1 auto;
+  }
+
+  .shareBtn {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    align-self: center;
+    margin-left: 4px;
+  }
+}
