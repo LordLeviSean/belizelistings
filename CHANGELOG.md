@@ -9,6 +9,26 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 - **`docs/admin-operations.md`** — verification workflow reference, reusable admin action patterns, migration/audit runbook, dashboard framework vision.
 - **`scripts/apply-supabase-migrations.mjs`** — applies pending migrations via `DATABASE_URL`, Supabase Management API, or linked CLI.
 
+## [1.2.0] - 2026-06-25
+
+### Added
+
+- **Property discovery foundation (Sprint 2.2)** — canonical `src/lib/searchFilters.js` for URL parse/build, client filter apply, sort, and active filter chips.
+- **`FilterBar` on `/search`** — keyword debounce, Enter to search, market/price/beds/baths/sort, advanced verified + property type, reset filters, removable chips.
+- **Discovery docs** — `docs/discovery/search-architecture.md`, `filter-audit.md`, `extension-points.md`.
+- **`discoveryExtensionPoints.js`** — architecture stubs for saved searches, analytics, recommendations, and server-side query builder registration.
+
+### Changed
+
+- Search results use shallow URL updates for filter combos (back/forward safe deep links).
+- Improved skeleton loading pulse and `PremiumEmptyState` reset CTA on zero results.
+- Homepage advanced filters hand off via `buildSearchRouterQuery()` for param consistency.
+- District **Verified only** filter reads `listing.verification_status` via `isListingCardVerified()`.
+
+### Fixed
+
+- Removed duplicated inline filter logic from `search.jsx` in favor of canonical `searchFilters` + `filterListings`.
+
 ## [1.1.3] - 2026-06-25
 
 ### Fixed
@@ -58,7 +78,8 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 - **Homepage v1.0 FROZEN** — editorial map-first homepage, featured and recently-added rails, district exploration, and calm luxury card DNA.
 - Reference tag: [`v1.0-homepage`](https://github.com/belizelistings/belizelistings-frontend/tree/v1.0-homepage) (`691db60`, also `3629a03`).
 
-[Unreleased]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/belizelistings/belizelistings-frontend/compare/v1.1.0...v1.1.1

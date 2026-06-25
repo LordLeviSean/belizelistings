@@ -19,6 +19,7 @@ import {
 } from "../../../constants/geographyLayer";
 import { getListingRegionSlug } from "../../../utils/canonicalListing";
 import { isLandInventoryListing } from "../../../utils/listingPresentation";
+import { isListingCardVerified } from "../../../utils/listingVerification";
 import { listingAmenitiesSearchHaystack } from "../../../constants/listingAmenities";
 import styles from "../../../styles/District.module.css";
 import homeShellStyles from "../../../styles/HomeMapFirst.module.css";
@@ -164,7 +165,7 @@ export default function DistrictListings() {
         if (beds < minBeds) return false;
         if (baths < minBaths) return false;
       }
-      if (verifiedOnly && !listing?.verified && !listing?.is_verified) return false;
+      if (verifiedOnly && !isListingCardVerified(listing)) return false;
       if (featureFilter !== "any" && !featureText.includes(featureFilter)) return false;
       if (amenities !== "any" && !featureText.includes(amenities)) return false;
       if (furnishing !== "any" && !furnishedText.includes(furnishing)) return false;

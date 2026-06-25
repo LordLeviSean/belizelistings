@@ -1,3 +1,9 @@
+import { useId } from "react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  PROPERTY_TYPE_OPTIONS,
+  SEARCH_SORT_OPTIONS,
+} from "../lib/searchFilters";
 import styles from "./FilterBar.module.css";
 
 const MIN_PRICE_OPTIONS = [
@@ -29,78 +35,192 @@ const BED_BATH_OPTIONS = [
 ];
 
 export default function FilterBar({
-  listingType,
-  setListingType,
-  minPrice,
-  setMinPrice,
-  maxPrice,
-  setMaxPrice,
-  beds,
-  setBeds,
-  baths,
-  setBaths,
+  query = "",
+  onQueryChange,
+  onSearchSubmit,
+  searchInputRef,
+  listingType = "all",
+  onListingTypeChange,
+  minPrice = "",
+  onMinPriceChange,
+  maxPrice = "",
+  onMaxPriceChange,
+  beds = "",
+  onBedsChange,
+  baths = "",
+  onBathsChange,
+  sortBy = "newest",
+  onSortChange,
+  propertyType = "",
+  onPropertyTypeChange,
+  verifiedOnly = false,
+  onVerifiedOnlyChange,
+  showAdvanced = false,
+  onToggleAdvanced,
+  onResetFilters,
+  resultCount,
+  activeChips = [],
+  onRemoveChip,
 }) {
+  const advancedPanelId = useId();
+  const marketValue = listingType === "for-sale" ? "for-sale" : listingType;
+
   return (
-    <div className={styles.filterBar} role="region" aria-label="Listing filters">
-      <div className={styles.statusToggle} role="tablist" aria-label="Listing type">
-        {[
-          { label: "All", value: "all" },
-          { label: "For Sale", value: "for-sale" },
-          { label: "For Rent", value: "rent" },
-        ].map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            role="tab"
-            aria-selected={listingType === option.value}
-            className={`${styles.toggleButton} ${
-              listingType === option.value ? styles.toggleButtonActive : ""
-            }`}
-            onClick={() => setListingType(option.value)}
+    <div className={styles.filterShell}>
+      <div className={styles.filterBar} role="region" aria-label="Listing filters">
+        <form className={styles.searchGroup} onSubmit={onSearchSubmit}>
+          <label className={styles.searchInputWrap} htmlFor="search-filter-query">
+            <span className={styles.searchIcon} aria-hidden="true">
+              <Search size={16} strokeWidth={2} />
+            </span>
+            <input
+              id="search-filter-query"
+              ref={searchInputRef}
+              type="search"
+              value={query}
+              onChange={(event) => onQueryChange?.(event.target.value)}
+              placeholder="District, type, or keywords…"
+              aria-label="Search listings; press Enter to apply"
+              enterKeyHint="search"
+            />
+          </label>
+        </form>
+
+        <div className={styles.statusToggle} role="tablist" aria-label="Listing type">
+          {[
+            { label: "All", value: "all" },
+            { label: "For Sale", value: "for-sale" },
+            { label: "For Rent", value: "rent" },
+          ].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="tab"
+              aria-selected={marketValue === option.value}
+              className={`${styles.toggleButton} ${
+                marketValue === option.value ? styles.toggleButtonActive : ""
+              }`}
+              onClick={() => onListingTypeChange?.(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.filterGroup}>
+          <select
+            aria-label="Minimum price"
+            value={minPrice}
+            onChange={(event) => onMinPriceChange?.(event.target.value)}
           >
-            {option.label}
+            {MIN_PRICE_OPTIONS.map((option) => (
+              <option key={option.value || "min-any"} value={option.value}>
+                Min: {option.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            aria-label="Maximum price"
+            value={maxPrice}
+            onChange={(event) => onMaxPriceChange?.(event.target.value)}
+          >
+            {MAX_PRICE_OPTIONS.map((option) => (
+              <option key={option.value || "max-any"} value={option.value}>
+                Max: {option.label}
+              </option>
+            ))}
+          </select>
+
+          <select aria-label="Minimum bedrooms" value={beds} onChange={(event) => onBedsChange?.(event.target.value)}>
+            {BED_BATH_OPTIONS.map((option) => (
+              <option key={option.value || "bed-any"} value={option.value}>
+                Beds: {option.label}
+              </option>
+            ))}
+          </select>
+
+          <select aria-label="Minimum bathrooms" value={baths} onChange={(event) => onBathsChange?.(event.target.value)}>
+            {BED_BATH_OPTIONS.map((option) => (
+              <option key={option.value || "bath-any"} value={option.value}>
+                Baths: {option.label}
+              </option>
+            ))}
+          </select>
+
+          <select aria-label="Sort results" value={sortBy} onChange={(event) => onSortChange?.(event.target.value)}>
+            {SEARCH_SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                Sort: {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          type="button"
+          className={styles.moreFiltersButton}
+          aria-expanded={showAdvanced}
+          aria-controls={advancedPanelId}
+          onClick={onToggleAdvanced}
+        >
+          <SlidersHorizontal size={16} strokeWidth={2} aria-hidden="true" />
+          <span>More Filters</span>
+        </button>
+
+        {onResetFilters ? (
+          <button type="button" className={styles.resetButton} onClick={onResetFilters}>
+            Reset Filters
           </button>
-        ))}
+        ) : null}
       </div>
 
-      <div className={styles.filterGroup}>
-        <select value={minPrice} onChange={(e) => setMinPrice(e.target.value)}>
-          {MIN_PRICE_OPTIONS.map((option) => (
-            <option key={option.value || "min-any"} value={option.value}>
-              Min: {option.label}
-            </option>
-          ))}
-        </select>
+      {showAdvanced ? (
+        <div className={styles.advancedPanel} id={advancedPanelId} role="region" aria-label="Advanced filters">
+          <label className={styles.advancedField}>
+            <span className={styles.advancedLabel}>Property type</span>
+            <select value={propertyType} onChange={(event) => onPropertyTypeChange?.(event.target.value)}>
+              {PROPERTY_TYPE_OPTIONS.map((option) => (
+                <option key={option.value || "type-all"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.advancedCheck}>
+            <input
+              type="checkbox"
+              checked={verifiedOnly}
+              onChange={(event) => onVerifiedOnlyChange?.(event.target.checked)}
+            />
+            <span>Verified listings only</span>
+          </label>
+        </div>
+      ) : null}
 
-        <select value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}>
-          {MAX_PRICE_OPTIONS.map((option) => (
-            <option key={option.value || "max-any"} value={option.value}>
-              Max: {option.label}
-            </option>
-          ))}
-        </select>
+      {typeof resultCount === "number" ? (
+        <p className={styles.resultMeta} aria-live="polite">
+          <span className={styles.resultCount}>{resultCount}</span>
+          {resultCount === 1 ? " result" : " results"}
+        </p>
+      ) : null}
 
-        <select value={beds} onChange={(e) => setBeds(e.target.value)}>
-          {BED_BATH_OPTIONS.map((option) => (
-            <option key={option.value || "bed-any"} value={option.value}>
-              Beds: {option.label}
-            </option>
+      {activeChips.length > 0 ? (
+        <div className={styles.chipRow} aria-label="Active filters">
+          {activeChips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              className={styles.chip}
+              onClick={() => onRemoveChip?.(chip.key)}
+              aria-label={`Remove filter: ${chip.label}`}
+            >
+              <span>{chip.label}</span>
+              <X size={14} strokeWidth={2} aria-hidden="true" />
+            </button>
           ))}
-        </select>
-
-        <select value={baths} onChange={(e) => setBaths(e.target.value)}>
-          {BED_BATH_OPTIONS.map((option) => (
-            <option key={option.value || "bath-any"} value={option.value}>
-              Baths: {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <button type="button" className={styles.moreFiltersButton}>
-        <span aria-hidden="true">⚙</span>
-        <span>More Filters</span>
-      </button>
+        </div>
+      ) : null}
     </div>
   );
 }

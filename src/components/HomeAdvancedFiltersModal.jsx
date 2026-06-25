@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/router";
 import { X } from "lucide-react";
 import { getSelectableRegions } from "../constants/geographyLayer";
+import { buildSearchRouterQuery } from "../lib/searchFilters";
 import styles from "./HomeAdvancedFiltersModal.module.css";
 
 const DISTRICT_ENTRIES = getSelectableRegions();
@@ -13,13 +14,21 @@ export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
   const [market, setMarket] = useState("all");
 
   const handleApply = useCallback(() => {
-    const params = new URLSearchParams();
-    const q = keyword.trim();
-    if (q) params.set("q", q);
-    if (districtSlug) params.set("district", districtSlug);
-    if (market && market !== "all") params.set("market", market);
-    const qs = params.toString();
-    void router.push(qs ? `/search?${qs}` : "/search");
+    const qs = buildSearchRouterQuery({
+      q: keyword.trim(),
+      district: districtSlug,
+      subregion: "",
+      market,
+      minPrice: "",
+      maxPrice: "",
+      beds: "",
+      baths: "",
+      propertyType: "",
+      verifiedOnly: false,
+      sort: "newest",
+    });
+    const queryString = new URLSearchParams(qs).toString();
+    void router.push(queryString ? `/search?${queryString}` : "/search");
     onClose();
   }, [router, keyword, districtSlug, market, onClose]);
 

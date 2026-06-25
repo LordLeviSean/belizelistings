@@ -1,94 +1,59 @@
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import SiteNav from "../components/SiteNav";
 import ListingCard from "../components/ListingCard";
-import {
-  getRegionByAny,
-  getRegionLabel,
-  isChildRegion,
-  normalizeRegionSlug,
-} from "../constants/geographyLayer";
+import FilterBar from "../components/FilterBar";
 import { fetchApprovedListingsWithImages } from "../lib/listingQueries";
 import useFavorites from "../hooks/useFavorites";
 import { useFavoriteSignupPrompt } from "../components/FavoriteSignupPromptProvider";
-import { getListingRegionSlug } from "../utils/canonicalListing";
+import {
+  applySearchFilters,
+  buildSearchRouterQuery,
+  getActiveFilterChips,
+  getDefaultSearchFilters,
+  hasActiveSearchFilters,
+  parseSearchFiltersFromQuery,
+  removeFilterChip,
+  sortSearchResults,
+} from "../lib/searchFilters";
 import styles from "../styles/SearchResults.module.css";
 import PremiumEmptyState from "../components/ui/PremiumEmptyState";
 
-function listingMatchesQuery(listing, query) {
-  const district = getRegionLabel(getListingRegionSlug(listing));
-  const haystack = `${listing?.title || ""} ${district} ${listing?.property_type || ""} ${listing?.status || ""} ${listing?.price || ""}`;
-  return haystack.toLowerCase().includes(query.toLowerCase());
-}
-
-function listingMatchesDistrictSlug(listing, slug) {
-  if (!slug) return true;
-  const listingRegion = normalizeRegionSlug(getListingRegionSlug(listing));
-  const routeRegion = normalizeRegionSlug(slug);
-  return listingRegion === routeRegion || isChildRegion(listingRegion, routeRegion);
-}
-
-function getListingMarketSignals(listing) {
-  return [
-    listing?.listing_type,
-    listing?.market_type,
-    listing?.listing_status,
-    listing?.status,
-    listing?.category,
-  ]
-    .map((value) => String(value || "").toLowerCase().trim())
-    .filter(Boolean)
-    .join(" ");
-}
-
-function getListingMarketKind(listing) {
-  const signals = getListingMarketSignals(listing);
-  if (/(rent|rental|lease|for-rent|for rent)/.test(signals)) return "rent";
-  if (/(sale|sell|for-sale|for sale)/.test(signals)) return "sale";
-  return "sale";
-}
-
-function listingMatchesMarket(listing, market) {
-  if (!market || market === "all") return true;
-  const kind = getListingMarketKind(listing);
-  if (market === "rent") return kind === "rent";
-  if (market === "sale") return kind === "sale";
-  return true;
-}
+const QUERY_DEBOUNCE_MS = 320;
 
 export default function SearchPage() {
   const router = useRouter();
   const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
   const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
+  const searchInputRef = useRef(null);
+  const debounceRef = useRef(null);
+
   const [loading, setLoading] = useState(true);
   const [allListings, setAllListings] = useState([]);
+  const [draftQuery, setDraftQuery] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  function handleFavoriteClick(listingId) {
-    if (!isAuthenticated) {
-      openFavoriteSignupPrompt();
-      return;
-    }
-    void toggleFavorite(listingId);
-  }
-
-  const query = useMemo(
-    () => String(router.query?.q || router.query?.query || "").trim(),
-    [router.query]
+  const filters = useMemo(
+    () => parseSearchFiltersFromQuery(router.query, { isReady: router.isReady }),
+    [router.query, router.isReady]
   );
 
-  const districtSlug = useMemo(
-    () => (router.isReady ? String(router.query?.district ?? "").trim() : ""),
-    [router.isReady, router.query?.district]
+  const activeChips = useMemo(() => getActiveFilterChips(filters), [filters]);
+
+  const handleFavoriteClick = useCallback(
+    (listingId) => {
+      if (!isAuthenticated) {
+        openFavoriteSignupPrompt();
+        return;
+      }
+      void toggleFavorite(listingId);
+    },
+    [isAuthenticated, openFavoriteSignupPrompt, toggleFavorite]
   );
 
-  const marketParam = useMemo(
-    () => (router.isReady ? String(router.query?.market ?? "").toLowerCase().trim() : ""),
-    [router.isReady, router.query?.market]
-  );
-  const subregionParam = useMemo(
-    () => (router.isReady ? String(router.query?.subregion ?? "").toLowerCase().trim() : ""),
-    [router.isReady, router.query?.subregion]
-  );
+  useEffect(() => {
+    if (router.isReady) setDraftQuery(filters.q);
+  }, [router.isReady, filters.q]);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,21 +74,87 @@ export default function SearchPage() {
     };
   }, []);
 
+  const replaceFilters = useCallback(
+    (nextFilters) => {
+      void router.replace(
+        { pathname: "/search", query: buildSearchRouterQuery(nextFilters) },
+        undefined,
+        { shallow: true, scroll: false }
+      );
+    },
+    [router]
+  );
+
+  const patchFilters = useCallback(
+    (patch) => {
+      replaceFilters({ ...filters, ...patch });
+    },
+    [filters, replaceFilters]
+  );
+
+  const scheduleQuerySync = useCallback(
+    (value) => {
+      setDraftQuery(value);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        patchFilters({ q: value.trim() });
+      }, QUERY_DEBOUNCE_MS);
+    },
+    [patchFilters]
+  );
+
+  useEffect(
+    () => () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    },
+    []
+  );
+
+  const handleSearchSubmit = useCallback(
+    (event) => {
+      event.preventDefault();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      patchFilters({ q: draftQuery.trim() });
+      searchInputRef.current?.blur();
+    },
+    [draftQuery, patchFilters]
+  );
+
+  const handleResetFilters = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setDraftQuery("");
+    setShowAdvanced(false);
+    replaceFilters(getDefaultSearchFilters());
+  }, [replaceFilters]);
+
+  const handleRemoveChip = useCallback(
+    (chipKey) => {
+      const next = removeFilterChip(filters, chipKey);
+      if (chipKey === "q") setDraftQuery("");
+      replaceFilters(next);
+    },
+    [filters, replaceFilters]
+  );
+
+  const listingType = useMemo(() => {
+    if (filters.market === "sale") return "for-sale";
+    if (filters.market === "rent") return "rent";
+    return "all";
+  }, [filters.market]);
+
   const filteredListings = useMemo(() => {
-    const normalizedDistrict = normalizeRegionSlug(districtSlug);
-    const normalizedSubregion = normalizeRegionSlug(subregionParam);
-    const useSubregionFilter =
-      normalizedSubregion &&
-      getRegionByAny(normalizedSubregion) &&
-      isChildRegion(normalizedSubregion, normalizedDistrict);
-    return allListings.filter((listing) => {
-      if (!listingMatchesDistrictSlug(listing, districtSlug)) return false;
-      if (useSubregionFilter && normalizeRegionSlug(listing?.district) !== normalizedSubregion) return false;
-      if (!listingMatchesMarket(listing, marketParam || "all")) return false;
-      if (!query) return true;
-      return listingMatchesQuery(listing, query);
-    });
-  }, [allListings, query, districtSlug, marketParam, subregionParam]);
+    if (!router.isReady || loading) return [];
+    const filtered = applySearchFilters(allListings, filters);
+    return sortSearchResults(filtered, filters.sort);
+  }, [allListings, filters, loading, router.isReady]);
+
+  const resultSummary = useMemo(() => {
+    if (loading) return "Loading listings…";
+    const count = filteredListings.length;
+    const noun = count === 1 ? "result" : "results";
+    if (filters.q) return `${count} ${noun} for “${filters.q}”`;
+    return `${count} ${noun}`;
+  }, [filteredListings.length, filters.q, loading]);
 
   return (
     <div className={styles.page}>
@@ -131,17 +162,45 @@ export default function SearchPage() {
       <main className={styles.main}>
         <header className={styles.header}>
           <h1>Search Results</h1>
-          <p>
-            {loading
-              ? "Loading listings..."
-              : `${filteredListings.length} result${filteredListings.length === 1 ? "" : "s"}${query ? ` for "${query}"` : ""}${districtSlug ? " · filtered by region" : ""}${subregionParam ? " · filtered by subregion" : ""}${marketParam ? " · filtered by market" : ""}`}
-          </p>
+          <p>{resultSummary}</p>
         </header>
 
-        <section className={styles.grid}>
+        <FilterBar
+          query={draftQuery}
+          onQueryChange={scheduleQuerySync}
+          onSearchSubmit={handleSearchSubmit}
+          searchInputRef={searchInputRef}
+          listingType={listingType}
+          onListingTypeChange={(value) => {
+            const market = value === "for-sale" ? "sale" : value === "rent" ? "rent" : "all";
+            patchFilters({ market });
+          }}
+          minPrice={filters.minPrice}
+          onMinPriceChange={(value) => patchFilters({ minPrice: value })}
+          maxPrice={filters.maxPrice}
+          onMaxPriceChange={(value) => patchFilters({ maxPrice: value })}
+          beds={filters.beds}
+          onBedsChange={(value) => patchFilters({ beds: value })}
+          baths={filters.baths}
+          onBathsChange={(value) => patchFilters({ baths: value })}
+          sortBy={filters.sort}
+          onSortChange={(value) => patchFilters({ sort: value })}
+          propertyType={filters.propertyType}
+          onPropertyTypeChange={(value) => patchFilters({ propertyType: value })}
+          verifiedOnly={filters.verifiedOnly}
+          onVerifiedOnlyChange={(value) => patchFilters({ verifiedOnly: value })}
+          showAdvanced={showAdvanced}
+          onToggleAdvanced={() => setShowAdvanced((prev) => !prev)}
+          onResetFilters={hasActiveSearchFilters(filters) ? handleResetFilters : undefined}
+          resultCount={loading ? undefined : filteredListings.length}
+          activeChips={activeChips}
+          onRemoveChip={handleRemoveChip}
+        />
+
+        <section className={styles.grid} aria-busy={loading}>
           {loading
             ? Array.from({ length: 6 }).map((_, idx) => (
-                <div key={idx} className={styles.skeleton} />
+                <div key={idx} className={styles.skeleton} aria-hidden="true" />
               ))
             : null}
           {!loading && filteredListings.length === 0 ? (
@@ -149,12 +208,17 @@ export default function SearchPage() {
               variant="search"
               className={styles.searchEmpty}
               primary={{ label: "Explore from homepage", href: "/" }}
-              secondary={{
-                label: "Clear filters & terms",
-                onClick: () => {
-                  void router.push({ pathname: "/search", query: {} });
-                },
-              }}
+              secondary={
+                hasActiveSearchFilters(filters)
+                  ? {
+                      label: "Reset filters",
+                      onClick: handleResetFilters,
+                    }
+                  : {
+                      label: "Browse districts",
+                      href: "/",
+                    }
+              }
             />
           ) : null}
           {!loading &&
@@ -166,6 +230,7 @@ export default function SearchPage() {
                 isFavorited={isFavorite(listing.id)}
                 favoriteBusy={isBusy(listing.id)}
                 onToggleFavorite={handleFavoriteClick}
+                imageSizes="(max-width: 760px) 100vw, (max-width: 980px) 50vw, 33vw"
               />
             ))}
         </section>
