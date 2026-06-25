@@ -8,8 +8,8 @@ import { clearAllFavoritesForListing } from "../lib/favorites";
 import { traceAction, traceLog } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
 import ListingCard from "./ListingCard";
-import ListingTrustStrip from "./ListingTrustStrip";
 import ListingOwnershipMeta from "./ListingOwnershipMeta";
+import AdminListingTrustAction from "./admin/AdminListingTrustAction";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import ArchiveListingModal from "./listing/ArchiveListingModal";
 import { getSelectableRegions } from "../constants/geographyLayer";
@@ -513,7 +513,8 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
           actionKey === `${listing.id}:approve` ||
           actionKey === `${listing.id}:reject` ||
           actionKey === `${listing.id}:archive` ||
-          actionKey === `${listing.id}:resubmit`;
+          actionKey === `${listing.id}:resubmit` ||
+          actionKey === `${listing.id}:verify`;
         const rowIsLand = isLandInventoryListing(listing);
         return (
         <div key={listing.id} className={styles.listingsRow}>
@@ -542,7 +543,19 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
                   <p className={styles.muted}>Edit if needed, then resubmit for review.</p>
                 ) : null}
                 <ListingOwnershipMeta listing={listing} ownerMap={ownerMap} />
-                <ListingTrustStrip listing={listing} variant="admin" mode="single" />
+                <AdminListingTrustAction
+                  listing={listing}
+                  busy={actionKey === `${listing.id}:verify`}
+                  onBusyChange={(next) => setActionKey(next ? `${listing.id}:verify` : "")}
+                  onUpdated={(nextListing) => {
+                    setListings((prev) =>
+                      prev.map((row) =>
+                        String(row.id) === String(listing.id) ? { ...row, ...nextListing } : row
+                      )
+                    );
+                  }}
+                  onAction={(message) => onAction?.(message)}
+                />
               </>
             )}
           </div>
