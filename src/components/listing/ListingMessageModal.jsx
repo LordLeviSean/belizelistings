@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Turnstile } from "@marsidev/react-turnstile";
 import { X } from "lucide-react";
 import { INQUIRY_CHANNEL, scoreInquiryBody } from "@/constants/inquiryModel";
+import { BL_ENABLE_TURNSTILE, TURNSTILE_SITE_KEY } from "@/lib/featureFlags";
 import { submitListingInquiry } from "@/lib/listingInquiries";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -10,7 +12,12 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
   const { showToast } = useToast();
   const [email, setEmail] = useState("");
   const [body, setBody] = useState("");
+  const [companyWebsite, setCompanyWebsite] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [sending, setSending] = useState(false);
+  const turnstileRef = useRef(null);
+  const isGuest = !user?.id;
+  const turnstileRequired = BL_ENABLE_TURNSTILE && isGuest && Boolean(TURNSTILE_SITE_KEY);
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
@@ -23,6 +30,8 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
   useEffect(() => {
     if (!open) {
       setSending(false);
+      setTurnstileToken("");
+      setCompanyWebsite("");
       return;
     }
     const prev = document.body.style.overflow;
@@ -46,6 +55,10 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
       showToast({ type: "error", message: "Valid email required." });
       return;
     }
+    if (turnstileRequired && !turnstileToken) {
+      showToast({ type: "error", message: "Complete the verification check below." });
+      return;
+    }
 
     setSending(true);
     try {
@@ -59,10 +72,14 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
         channel: INQUIRY_CHANNEL.CONTACT,
         body: body.trim(),
         qualityScore: gate.score ?? null,
+        turnstileToken: turnstileRequired ? turnstileToken : null,
+        company_website: companyWebsite,
       });
       if (error) {
         const msg = error.message || "";
-        if (/listing_inquiries|relation|does not exist/i.test(msg)) {
+        if (error.code === "rate_limited_listing" || error.code === "rate_limited_global") {
+          showToast({ type: "error", message: msg || "Too many messages. Try again later." });
+        } else if (/listing_inquiries|relation|does not exist/i.test(msg)) {
           showToast({
             type: "info",
             message: "Messaging is rolling out — try WhatsApp or phone if shown on the listing.",
@@ -74,6 +91,8 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
       }
       showToast({ type: "success", message: "Message sent to the agent." });
       setBody("");
+      setTurnstileToken("");
+      turnstileRef.current?.reset();
       onClose?.();
     } finally {
       setSending(false);
@@ -104,6 +123,17 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
         </div>
         <p className={styles.lede}>Brief and professional — your email is shared with the listing agent only.</p>
         <form className={styles.form} onSubmit={handleSubmit}>
+          <label className={styles.honeypot} aria-hidden="true">
+            Company website
+            <input
+              type="text"
+              name="company_website"
+              tabIndex={-1}
+              autoComplete="off"
+              value={companyWebsite}
+              onChange={(e) => setCompanyWebsite(e.target.value)}
+            />
+          </label>
           <label className={styles.label}>
             Email
             <input
@@ -126,6 +156,17 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
               placeholder="Introduce yourself and what you’re exploring…"
             />
           </label>
+          {turnstileRequired ? (
+            <div className={styles.turnstileWrap}>
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={TURNSTILE_SITE_KEY}
+                onSuccess={setTurnstileToken}
+                onExpire={() => setTurnstileToken("")}
+                options={{ theme: "light", size: "normal" }}
+              />
+            </div>
+          ) : null}
           <button type="submit" className={styles.submit} disabled={sending}>
             {sending ? "Sending…" : "Send"}
           </button>

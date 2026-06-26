@@ -176,6 +176,45 @@ export default function MarketplaceHealthPage() {
               </div>
             </section>
 
+            <section style={{ marginTop: 20 }} aria-label="Security and trust signals">
+              <h2 className={styles.sectionTitle}>Security & trust (24h)</h2>
+              <div className={styles.operationalStatsGrid} style={{ marginTop: 12 }}>
+                <HealthStat label="Spam attempts" value={m.spam_attempts} sublabel="Honeypot + captcha fail" />
+                <HealthStat label="Blocked (honeypot)" value={m.blocked_inquiries} />
+                <HealthStat label="Rate limited" value={m.rate_limited_requests} />
+                <HealthStat label="Captcha failures" value={m.captcha_failures} />
+                <HealthStat
+                  label="Notification latency (avg)"
+                  value={m.notification_avg_latency_sec != null ? `${m.notification_avg_latency_sec}s` : "—"}
+                  sublabel="Last 20 sent queue items"
+                />
+                <HealthStat
+                  label="Inbox backlog (stale)"
+                  value={m.inbox_backlog_stale}
+                  sublabel="Open convos, no message 48h+"
+                />
+              </div>
+            </section>
+
+            <section className={styles.card} style={{ marginTop: 20 }} aria-label="Recent security events">
+              <h3 className={styles.sectionTitle}>Recent security events</h3>
+              <div style={{ display: "grid", gap: 8 }}>
+                {health?.recent_security_events?.length ? (
+                  health.recent_security_events.map((ev) => (
+                    <p key={ev.id} className={styles.muted}>
+                      <span className={styles.liveDot} /> {ev.event_type}
+                      {ev.listing_id ? ` · Listing ${ev.listing_id}` : ""}
+                      {ev.sender_email ? ` · ${ev.sender_email}` : ""}
+                      <br />
+                      <time dateTime={ev.created_at}>{new Date(ev.created_at).toLocaleString()}</time>
+                    </p>
+                  ))
+                ) : (
+                  <PremiumEmptyState variant="activity" compact title="No security events logged yet" />
+                )}
+              </div>
+            </section>
+
             <section className={styles.card} style={{ marginTop: 20 }} aria-label="Recent marketplace activity">
               <h3 className={styles.sectionTitle}>Recent activity</h3>
               <p className={styles.muted} style={{ marginBottom: 12 }}>

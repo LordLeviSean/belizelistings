@@ -4,6 +4,34 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+## [1.6.7] - 2026-06-28 — Milestone 3.7 marketplace security
+
+### Milestone
+
+- **Phase 3 Milestone 3.7 — Marketplace Security & Trust Foundation** — guest lead protection (Turnstile + honeypot), DB inquiry rate limits, secure inquiry API, cron fail-closed, notification RPC hardening, security audit log, marketplace health security cards.
+
+### Added
+
+- **`supabase/migrations/20260628120000_inquiry_rate_limits.sql`** — guest rate limits in `create_inquiry_with_conversation`, `security_events` table, inquiry indexes, revoke notification batch/deliver from `authenticated`.
+- **`POST /api/inquiries/create`** — server-side Turnstile (when flag on), honeypot, listing/agent resolution, RPC error mapping.
+- **`src/lib/security/`** — `verifyTurnstile`, `mapInquiryRpcError`, `logSecurityEvent`, `submitGuestInquiryApi`, `abuseProtectionExtensionPoints`.
+- **Feature flag** `NEXT_PUBLIC_BL_ENABLE_TURNSTILE` (default false) + Turnstile widget in `ListingMessageModal` (guests only).
+- **Marketplace health** — spam/rate-limit/captcha metrics, notification latency, inbox backlog, recent security events.
+- **`docs/platform/marketplace-security-v1.6.7.md`** — threat model, deployment, extension points.
+- Tests: inquiry API (honeypot, captcha, rate limit), cron fail-closed, Turnstile verify, RPC error mapping.
+
+### Changed
+
+- **`process-notifications` cron** — returns 503 when `CRON_SECRET` missing (fail closed).
+- **`submitListingInquiry`** — guests use secure API when Turnstile flag enabled.
+- **`.env.example`** — Turnstile keys, CRON_SECRET required note.
+
+### Deployment
+
+- Apply `20260628120000_inquiry_rate_limits.sql` after v1.6.6 notification migration.
+- Set `CRON_SECRET` before enabling cron schedule.
+- Enable Turnstile flag + keys for guest CAPTCHA path; redeploy.
+
 ## [1.6.6] - 2026-06-27 — Milestone 3.6 notification delivery
 
 ### Milestone

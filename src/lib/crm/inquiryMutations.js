@@ -1,5 +1,6 @@
 import { INQUIRY_CHANNEL, INQUIRY_STATUS as LEGACY_INQUIRY_STATUS } from "../../constants/inquiryModel";
-import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_NOTIFICATIONS } from "../featureFlags";
+import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_NOTIFICATIONS, BL_ENABLE_TURNSTILE } from "../featureFlags";
+import { submitGuestInquiryViaSecureApi } from "../security/submitGuestInquiryApi";
 import { triggerNotificationDelivery } from "../notifications/notificationEvents";
 import { emitListingEventAfterMutation } from "../listingEvents/writeListingEvent";
 import { LISTING_EVENT_TYPES } from "../listingEvents/listingEventTypes";
@@ -110,6 +111,10 @@ export async function createInquiryWithConversation(client, payload) {
  * Backwards-compatible inquiry submit — prefers RPC when BL_ENABLE_CONVERSATIONS.
  */
 export async function submitListingInquiry(client, payload) {
+  if (BL_ENABLE_TURNSTILE && !payload.senderUserId) {
+    return submitGuestInquiryViaSecureApi(payload);
+  }
+
   if (BL_ENABLE_CONVERSATIONS && client?.rpc) {
     const rpcResult = await createInquiryWithConversation(client, {
       listingId: payload.listingId,

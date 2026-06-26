@@ -12,6 +12,49 @@ function startOfUtcDay() {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
 }
 
+function hoursAgoIso(hours) {
+  return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+}
+
+async function countSecurityEvents(adminClient, eventType, sinceIso) {
+  let q = adminClient.from("security_events").select("id", { head: true, count: "exact" });
+  if (eventType) q = q.eq("event_type", eventType);
+  if (sinceIso) q = q.gte("created_at", sinceIso);
+  const { count, error } = await q;
+  return error ? null : count ?? 0;
+}
+
+async function fetchRecentSecurityEvents(adminClient, limit = 10) {
+  const { data, error } = await adminClient
+    .from("security_events")
+    .select("id,event_type,listing_id,sender_email,created_at,metadata")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return error ? [] : data ?? [];
+}
+
+async function notificationLatencySample(adminClient) {
+  const { data } = await adminClient
+    .from("notification_queue")
+    .select("scheduled_at,processed_at,status")
+    .eq("status", "sent")
+    .not("processed_at", "is", null)
+    .order("processed_at", { ascending: false })
+    .limit(20);
+  if (!data?.length) return null;
+  const deltas = data
+    .map((row) => {
+      const scheduled = new Date(row.scheduled_at).getTime();
+      const processed = new Date(row.processed_at).getTime();
+      if (!Number.isFinite(scheduled) || !Number.isFinite(processed)) return null;
+      return processed - scheduled;
+    })
+    .filter((n) => n != null && n >= 0);
+  if (!deltas.length) return null;
+  const avgMs = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+  return Math.round(avgMs / 1000);
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -45,6 +88,7 @@ export default async function handler(req, res) {
   }
 
   const todayStart = startOfUtcDay();
+  const last24h = hoursAgoIso(24);
 
   try {
     const [
@@ -59,6 +103,13 @@ export default async function handler(req, res) {
       inquiriesRes,
       recentEventsRes,
       recentInquiriesRes,
+      honeypotRes,
+      captchaFailRes,
+      rateListingRes,
+      rateGlobalRes,
+      notifLatencySec,
+      recentSecurityEvents,
+      inboxBacklogRes,
     ] = await Promise.all([
       adminClient.from("listings").select("id", { head: true, count: "exact" }),
       adminClient
@@ -100,6 +151,17 @@ export default async function handler(req, res) {
         .select("id,listing_id,inquiry_type,status,created_at,sender_name,sender_email")
         .order("created_at", { ascending: false })
         .limit(10),
+      countSecurityEvents(adminClient, "honeypot_triggered", last24h),
+      countSecurityEvents(adminClient, "captcha_failure", last24h),
+      countSecurityEvents(adminClient, "rate_limited_listing", last24h),
+      countSecurityEvents(adminClient, "rate_limited_global", last24h),
+      notificationLatencySample(adminClient),
+      fetchRecentSecurityEvents(adminClient, 10),
+      adminClient
+        .from("conversations")
+        .select("id", { head: true, count: "exact" })
+        .eq("status", "open")
+        .lt("last_message_at", hoursAgoIso(48)),
     ]);
 
     const countOrZero = (r) => (r.error ? null : r.count ?? 0);
@@ -158,7 +220,14 @@ export default async function handler(req, res) {
         orphan_conversation_refs: orphanConversationRefs,
         orphan_viewing_refs: orphanViewingRefs,
         orphan_records: orphanConversationRefs + orphanViewingRefs,
+        spam_attempts: (honeypotRes ?? 0) + (captchaFailRes ?? 0),
+        blocked_inquiries: honeypotRes,
+        rate_limited_requests: (rateListingRes ?? 0) + (rateGlobalRes ?? 0),
+        captcha_failures: captchaFailRes,
+        notification_avg_latency_sec: notifLatencySec,
+        inbox_backlog_stale: countOrZero(inboxBacklogRes),
       },
+      recent_security_events: recentSecurityEvents,
       recent_activity: recentActivity,
       errors: [
         listingsRes.error,

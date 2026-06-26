@@ -49,3 +49,15 @@ export const BL_ENABLE_VIEWING_PERSIST = readTruthyEnvValue(
 export const BL_ENABLE_NOTIFICATIONS = readTruthyEnvValue(
   process.env.NEXT_PUBLIC_BL_ENABLE_NOTIFICATIONS
 );
+
+/**
+ * `NEXT_PUBLIC_BL_ENABLE_TURNSTILE` — Cloudflare Turnstile for guest inquiry modals
+ * + secure POST /api/inquiries/create path. Default when unset: false.
+ * Requires TURNSTILE_SECRET_KEY + NEXT_PUBLIC_TURNSTILE_SITE_KEY server/client env.
+ */
+export const BL_ENABLE_TURNSTILE = readTruthyEnvValue(
+  process.env.NEXT_PUBLIC_BL_ENABLE_TURNSTILE
+);
+
+/** Site key for Turnstile widget (public). Empty when unset. */
+export const TURNSTILE_SITE_KEY = String(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "").trim();

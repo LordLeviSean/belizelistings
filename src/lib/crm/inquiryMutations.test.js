@@ -3,6 +3,8 @@
 jest.mock("../featureFlags", () => ({
   BL_ENABLE_CONVERSATIONS: true,
   BL_ENABLE_VIEWING_PERSIST: true,
+  BL_ENABLE_TURNSTILE: false,
+  BL_ENABLE_NOTIFICATIONS: false,
 }));
 
 jest.mock("../listingEvents/writeListingEvent", () => ({
