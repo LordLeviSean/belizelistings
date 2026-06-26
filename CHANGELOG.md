@@ -4,6 +4,20 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-06-26 — Sprint 3.1E lifecycle event write-path
+
+### Fixed
+
+- **Event writes:** `writeListingEvent` always attempts `append_listing_event` RPC (no longer gated by build-time `BL_ENABLE_LISTING_EVENTS`); missing table/RPC still skips gracefully. Read path remains flag-gated in `fetchListingTimeline`.
+- **Verification:** `applyListingVerificationAction` always prefers `apply_listing_verification_with_event` RPC when available, regardless of read flag.
+- **Admin bypass:** `ManageUsersPanel.updateListingStatus` routes approve/reject through `applyListingLifecycleAction` so `listing.published` / moderation events emit.
+- **Investigation cleanup:** Removed temporary `fetchListingTimeline` console instrumentation (Sprint 3.1D).
+- **Backfill:** `scripts/backfill-listing-events.mjs` accepts `--listing-id=N` for targeted single-listing backfill.
+
+### Added
+
+- Tests for unflagged write RPC attempts, verification RPC preference, and `safeInsertListing` → `listing.created` emission.
+
 ## [1.5.2] - 2026-06-26 — Sprint 3.1C stabilization
 
 ### Fixed

@@ -6,10 +6,10 @@ import { traceAction } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
 import { fetchAllProfileRows } from "../lib/profileSelectContract";
 import { isMissingColumnError } from "../lib/supabaseCompat";
-import { sanitizeListingMutationPayload } from "../lib/listingPayloadSanitize";
-import { LISTING_MUTATION_FLOW, LISTING_MUTATION_OPERATION } from "../lib/listingMutationDiagnostics";
-import { getLifecycleLabel } from "../constants/operationalModel";
+import { getLifecycleLabel, getModerationStatus } from "../constants/operationalModel";
 import { getLifecycleStatus } from "../utils/canonicalListing";
+import { applyListingLifecycleAction } from "../utils/ownershipAttribution";
+import { OWNERSHIP_ACTIONS } from "../constants/ownershipModel";
 import { normalizeUsername, validateUsernameCandidate } from "../lib/usernameRules";
 import styles from "../styles/Dashboard.module.css";
 import mu from "./ManageUsersPanel.module.css";
@@ -153,11 +153,15 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
       type: "admin_userpanel_update_listing_status",
       payload: { listingId, status },
     });
-    const patch = sanitizeListingMutationPayload(
-      { status },
-      { mutationFlow: LISTING_MUTATION_FLOW.UNSPECIFIED, operation: LISTING_MUTATION_OPERATION.PATCH }
-    );
-    const { error } = await supabase.from("listings").update(patch).eq("id", listingId);
+    const action =
+      status === "approved" ? OWNERSHIP_ACTIONS.APPROVE : OWNERSHIP_ACTIONS.REJECT;
+    const { error } = await applyListingLifecycleAction(supabase, {
+      listingId,
+      action,
+      extraUpdates: {
+        status: getModerationStatus(status === "approved" ? "approved" : "rejected"),
+      },
+    });
     traceAction({
       type: "admin_userpanel_update_listing_status_result",
       payload: { listingId, status },

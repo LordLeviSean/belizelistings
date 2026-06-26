@@ -1,7 +1,6 @@
+import { VERIFICATION_STATUS } from "../constants/trustModel";
 import { sanitizeListingMutationPayload } from "./listingPayloadSanitize";
 import { LISTING_MUTATION_FLOW } from "./listingMutationDiagnostics";
-import { VERIFICATION_STATUS } from "../constants/trustModel";
-import { BL_ENABLE_LISTING_EVENTS } from "./featureFlags";
 import { coerceListingIdForDb } from "./listingEvents/coerceListingId";
 import {
   buildVerificationApprovedPayload,
@@ -77,7 +76,7 @@ async function emitVerificationEvent({
 
 /**
  * Admin-only: update listing.verification_status + metadata via Supabase.
- * When BL_ENABLE_LISTING_EVENTS and RPC exist, uses atomic apply_listing_verification_with_event.
+ * When RPC exists, uses atomic apply_listing_verification_with_event (always attempted).
  * @returns {Promise<{ ok: boolean, data?: object, error?: object, eventEmitted?: boolean }>}
  */
 export async function applyListingVerificationAction({
@@ -95,7 +94,7 @@ export async function applyListingVerificationAction({
     return { ok: false, error: { message: "Missing Supabase client" } };
   }
 
-  if (BL_ENABLE_LISTING_EVENTS && client.rpc) {
+  if (client.rpc) {
     const { data, error } = await client.rpc(RPC_VERIFY_WITH_EVENT, {
       p_listing_id: coerceListingIdForDb(id),
       p_verified: Boolean(verified),
@@ -123,7 +122,7 @@ export async function applyListingVerificationAction({
       );
 
     if (!rpcUnavailable) {
-      return { ok: false, error };
+      return { ok: false, error: error || { message: "Verification RPC returned no data" } };
     }
   }
 

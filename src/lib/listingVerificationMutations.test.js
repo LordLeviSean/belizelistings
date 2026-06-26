@@ -49,9 +49,48 @@ describe("listingVerificationMutations", () => {
     expect(result.ok).toBe(false);
   });
 
-  test("applyListingVerificationAction emits verification approved event after patch", async () => {
+  test("applyListingVerificationAction prefers verification RPC when available", async () => {
     const client = {
-      rpc: jest.fn().mockResolvedValue({ data: null, error: null }),
+      rpc: jest.fn().mockResolvedValue({
+        data: {
+          id: "listing-1",
+          verification_status: "verified",
+          verified_at: "2026-06-26T12:00:00.000Z",
+          verified_by: "admin-uuid",
+          event_id: "event-from-rpc",
+        },
+        error: null,
+      }),
+      from: jest.fn(),
+    };
+
+    const result = await applyListingVerificationAction({
+      listingId: "listing-1",
+      verified: true,
+      adminUserId: "admin-uuid",
+      client,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.eventEmitted).toBe(true);
+    expect(client.rpc).toHaveBeenCalledWith(
+      "apply_listing_verification_with_event",
+      expect.objectContaining({
+        p_listing_id: "listing-1",
+        p_verified: true,
+        p_admin_user_id: "admin-uuid",
+      })
+    );
+    expect(emitListingEventAfterMutation).not.toHaveBeenCalled();
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  test("applyListingVerificationAction emits verification approved event after patch fallback", async () => {
+    const client = {
+      rpc: jest.fn().mockResolvedValue({
+        data: null,
+        error: { message: "could not find the function apply_listing_verification_with_event" },
+      }),
       from: jest.fn(() => ({
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({

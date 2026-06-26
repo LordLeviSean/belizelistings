@@ -38,8 +38,28 @@ describe("buildListingEventPayload", () => {
 });
 
 describe("writeListingEvent", () => {
-  test("skips when feature flag disabled", async () => {
-    const client = { rpc: jest.fn() };
+  test("attempts RPC even when read feature flag is disabled", async () => {
+    const client = {
+      rpc: jest.fn().mockResolvedValue({ data: "event-uuid", error: null }),
+    };
+    const result = await writeListingEvent({
+      client,
+      listingId: "listing-1",
+      eventType: LISTING_EVENT_TYPES.VERIFICATION_APPROVED,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.eventId).toBe("event-uuid");
+    expect(result.skipped).toBeUndefined();
+    expect(client.rpc).toHaveBeenCalledWith("append_listing_event", expect.any(Object));
+  });
+
+  test("skips gracefully when listing_events RPC is unavailable", async () => {
+    const client = {
+      rpc: jest.fn().mockResolvedValue({
+        data: null,
+        error: { message: "could not find the function append_listing_event" },
+      }),
+    };
     const result = await writeListingEvent({
       client,
       listingId: "listing-1",
@@ -47,7 +67,6 @@ describe("writeListingEvent", () => {
     });
     expect(result.ok).toBe(true);
     expect(result.skipped).toBe(true);
-    expect(client.rpc).not.toHaveBeenCalled();
   });
 
   test("calls append_listing_event RPC when forced", async () => {

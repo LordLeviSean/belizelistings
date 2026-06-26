@@ -1,4 +1,3 @@
-import { BL_ENABLE_LISTING_EVENTS } from "../featureFlags";
 import { isMissingColumnError, isMissingRelationshipError, isMissingTableError } from "../supabaseCompat";
 import { coerceListingIdForDb } from "./coerceListingId";
 import { LISTING_EVENT_SOURCES } from "./listingEventTypes";
@@ -32,7 +31,7 @@ function isListingEventsUnavailable(error) {
  * @param {string} [params.source]
  * @param {string} [params.correlationId]
  * @param {string} [params.occurredAt] ISO timestamp
- * @param {boolean} [params.force] bypass feature flag (backfill scripts)
+ * @param {boolean} [params.force] legacy backfill scripts — writes always attempt RPC
  * @returns {Promise<{ ok: boolean, eventId?: string, skipped?: boolean, error?: object }>}
  */
 export async function writeListingEvent({
@@ -46,7 +45,7 @@ export async function writeListingEvent({
   source = LISTING_EVENT_SOURCES.APP,
   correlationId = null,
   occurredAt = null,
-  force = false,
+  force: _force = false,
 }) {
   const id = String(listingId || "").trim();
   const type = String(eventType || "").trim();
@@ -57,9 +56,8 @@ export async function writeListingEvent({
   if (!client?.rpc) {
     return { ok: false, error: { message: "Missing Supabase client" } };
   }
-  if (!force && !BL_ENABLE_LISTING_EVENTS) {
-    return { ok: true, skipped: true };
-  }
+  // Writes always attempt RPC once migration is live; missing table/RPC gracefully skips.
+  // Read path stays gated by BL_ENABLE_LISTING_EVENTS in fetchListingTimeline.
 
   const rpcArgs = {
     p_listing_id: coerceListingIdForDb(id),

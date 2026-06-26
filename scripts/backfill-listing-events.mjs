@@ -123,7 +123,9 @@ async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
   const limitArg = args.find((a) => a.startsWith("--limit="));
+  const listingIdArg = args.find((a) => a.startsWith("--listing-id="));
   const limit = limitArg ? Number(limitArg.split("=")[1]) : null;
+  const listingIdFilter = listingIdArg ? Number(listingIdArg.split("=")[1]) : null;
 
   const env = loadEnvLocal();
   const url = env.NEXT_PUBLIC_SUPABASE_URL;
@@ -147,6 +149,10 @@ async function main() {
     query = query.limit(limit);
   }
 
+  if (listingIdFilter && Number.isFinite(listingIdFilter)) {
+    query = query.eq("id", listingIdFilter);
+  }
+
   const { data: listings, error: listingsError } = await query;
 
   if (listingsError) {
@@ -157,6 +163,7 @@ async function main() {
   const report = {
     generated_at: new Date().toISOString(),
     dry_run: dryRun,
+    listing_id_filter: listingIdFilter,
     listings_scanned: (listings || []).length,
     events_attempted: 0,
     events_inserted: 0,
