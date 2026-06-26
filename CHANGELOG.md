@@ -4,7 +4,16 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
-## [1.5.1] - 2026-06-26
+## [1.5.1] - 2026-06-26 — Production activation
+
+### Milestone 3.1B rollout
+
+- **Database:** `listing_events` migration applied to production Supabase (`listing_id bigint` aligned to production schema).
+- **Backfill:** Historical events seeded for all listings (`listing.created`, `listing.published`, verification where applicable).
+- **Dev flag:** `NEXT_PUBLIC_BL_ENABLE_LISTING_EVENTS=true` in `.env.local`.
+- **Production deploy:** Set `NEXT_PUBLIC_BL_ENABLE_LISTING_EVENTS=true` on Netlify and redeploy.
+- **Docs:** [event-engine-production-activation.md](docs/platform/event-engine-production-activation.md)
+
 
 ### Milestone
 

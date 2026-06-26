@@ -5,7 +5,7 @@
 
 CREATE TABLE IF NOT EXISTS public.listing_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  listing_id uuid NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
+  listing_id bigint NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
   event_type text NOT NULL,
   visibility text NOT NULL DEFAULT 'public'
     CHECK (visibility IN ('public', 'internal')),
@@ -104,7 +104,7 @@ CREATE POLICY "listing_events_select_admin"
 -- No direct INSERT/UPDATE/DELETE for clients — use append_listing_event RPC
 
 CREATE OR REPLACE FUNCTION public.append_listing_event(
-  p_listing_id uuid,
+  p_listing_id bigint,
   p_event_type text,
   p_visibility text DEFAULT 'public',
   p_payload jsonb DEFAULT '{}'::jsonb,
@@ -213,7 +213,7 @@ GRANT EXECUTE ON FUNCTION public.append_listing_event TO service_role;
 
 -- Atomic verification update + event append (admin-only)
 CREATE OR REPLACE FUNCTION public.apply_listing_verification_with_event(
-  p_listing_id uuid,
+  p_listing_id bigint,
   p_verified boolean,
   p_admin_user_id uuid
 )

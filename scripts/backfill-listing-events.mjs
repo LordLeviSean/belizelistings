@@ -37,6 +37,15 @@ const EVENT_TYPES = {
   RENTED: "listing.rented",
 };
 
+function resolvePublishedAt(listing) {
+  if (listing.published_at) return listing.published_at;
+  const status = String(listing.status || listing.lifecycle_status || "").toLowerCase();
+  if (status === "approved" || status === "published") {
+    return listing.reviewed_at || listing.updated_at || null;
+  }
+  return null;
+}
+
 function buildBackfillDescriptors(listing) {
   const rows = [];
 
@@ -49,12 +58,17 @@ function buildBackfillDescriptors(listing) {
     });
   }
 
-  if (listing.published_at) {
+  const publishedAt = resolvePublishedAt(listing);
+  if (publishedAt) {
     rows.push({
       event_type: EVENT_TYPES.PUBLISHED,
       visibility: "public",
-      occurred_at: listing.published_at,
-      payload: { note: "Backfilled from listings.published_at" },
+      occurred_at: publishedAt,
+      payload: {
+        note: listing.published_at
+          ? "Backfilled from listings.published_at"
+          : "Backfilled from listings status + reviewed_at",
+      },
     });
   }
 
@@ -125,7 +139,7 @@ async function main() {
   let query = supabase
     .from("listings")
     .select(
-      "id, created_at, published_at, verification_status, verified_at, verified_by, archived_at, sold_at, rented_at"
+      "id, created_at, updated_at, status, lifecycle_status, reviewed_at, verification_status, verified_at, verified_by"
     )
     .order("created_at", { ascending: true });
 
