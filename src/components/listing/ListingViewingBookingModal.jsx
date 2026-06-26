@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
+import { createViewingRequest } from "@/lib/crm/viewingMutations";
+import { supabase } from "@/lib/supabaseClient";
+import { useToast } from "@/components/ui/ToastProvider";
 import styles from "./ListingViewingBookingModal.module.css";
 
 function buildTimeSlots() {
@@ -67,7 +71,8 @@ function buildMonthCells(year, monthIndex) {
   return cells;
 }
 
-export default function ListingViewingBookingModal({ open, onClose, listing }) {
+export default function ListingViewingBookingModal({ open, onClose, listing, user }) {
+  const { showToast } = useToast();
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState(TIME_SLOTS[0]?.value ?? "07:00");
   const [pending, setPending] = useState(false);
@@ -152,14 +157,47 @@ export default function ListingViewingBookingModal({ open, onClose, listing }) {
     });
   }, []);
 
-  const handleConfirmBooking = useCallback(() => {
-    if (pending || confirmed) return;
+  const handleConfirmBooking = useCallback(async () => {
+    if (pending || confirmed || !listing?.id || !listing?.user_id) return;
+    if (!selectedDate || !selectedTime) return;
+
+    if (!BL_ENABLE_VIEWING_PERSIST) {
+      setPending(true);
+      window.setTimeout(() => {
+        setPending(false);
+        setConfirmed(true);
+      }, 720);
+      return;
+    }
+
     setPending(true);
-    window.setTimeout(() => {
-      setPending(false);
+    try {
+      const { error, unavailable } = await createViewingRequest(supabase, {
+        listingId: listing.id,
+        agentUserId: listing.user_id,
+        requesterId: user?.id ?? null,
+        requesterEmail: user?.email ?? null,
+        requesterName: user?.user_metadata?.full_name ?? null,
+        requestedDate: selectedDate,
+        requestedTime: selectedTime,
+      });
+      if (error) {
+        const msg = error.message || "";
+        if (unavailable || /viewing_requests|relation|does not exist/i.test(msg)) {
+          showToast({
+            type: "info",
+            message: "Viewing booking is rolling out — the agent will confirm separately when live.",
+          });
+        } else {
+          showToast({ type: "error", message: msg || "Could not schedule viewing." });
+        }
+        return;
+      }
       setConfirmed(true);
-    }, 720);
-  }, [pending, confirmed]);
+    } finally {
+      setPending(false);
+    }
+  }, [pending, confirmed, listing, selectedDate, selectedTime, user, showToast]);
 
   const isDaySelectable = useCallback(
     (iso) => iso >= minDate && iso <= maxDate,
@@ -189,8 +227,10 @@ export default function ListingViewingBookingModal({ open, onClose, listing }) {
         {!confirmed && step === "pick" ? (
           <>
             <p className={styles.lede}>
-              Choose a date and a 15-minute window between 7:00 AM and 7:00 PM (local). This is a preview flow —
-              nothing is sent yet.
+              Choose a date and a 15-minute window between 7:00 AM and 7:00 PM (local).
+              {BL_ENABLE_VIEWING_PERSIST
+                ? " Your request is sent to the listing agent for confirmation."
+                : " This is a preview flow — nothing is sent yet."}
             </p>
             <div className={styles.field}>
               <span className={styles.fieldLabel} id="booking-date-label">
@@ -284,8 +324,11 @@ export default function ListingViewingBookingModal({ open, onClose, listing }) {
               <Check className={styles.successIcon} strokeWidth={2.4} />
             </div>
             <p className={styles.confirmCopy}>
-              Your viewing is held locally for <strong>{formatDateLong(selectedDate)}</strong> at{" "}
-              <strong>{slotLabel(selectedTime)}</strong>. An agent will confirm separately when booking goes live.
+              Your viewing request for <strong>{formatDateLong(selectedDate)}</strong> at{" "}
+              <strong>{slotLabel(selectedTime)}</strong>{" "}
+              {BL_ENABLE_VIEWING_PERSIST
+                ? "has been sent to the agent. They will confirm your slot shortly."
+                : "is held locally. An agent will confirm separately when booking goes live."}
             </p>
             <div className={styles.footer}>
               <button type="button" className={styles.primaryBtn} onClick={() => onClose?.()}>

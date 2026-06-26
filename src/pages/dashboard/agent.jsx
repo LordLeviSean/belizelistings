@@ -9,6 +9,7 @@ import AgentBenefitsPanel from "@/components/agent/AgentBenefitsPanel";
 import AgentInventoryPanel from "@/components/agent/AgentInventoryPanel";
 import { AgentActivityFeed } from "@/components/operational";
 import AgentInquiryList from "@/components/inquiry/AgentInquiryList";
+import AgentInboxPanel from "@/components/inquiry/AgentInboxPanel";
 import useUserRole from "@/hooks/useUserRole";
 import { isProfileHydratedForUser } from "@/lib/profileSessionCache";
 import { formatWelcomeGreeting } from "@/lib/dashboardGreeting";
@@ -25,6 +26,8 @@ import {
 import { INQUIRY_STATUS } from "@/constants/inquiryModel";
 import { supabase } from "@/lib/supabaseClient";
 import { updateInquiryStatus } from "@/lib/listingInquiries";
+import { BL_ENABLE_CONVERSATIONS } from "@/lib/featureFlags";
+import { fetchConversationsForAgent } from "@/lib/crm/conversationMutations";
 import { useToast } from "@/components/ui/ToastProvider";
 import styles from "@/styles/Dashboard.module.css";
 import loadingStyles from "@/styles/UserDashboard.module.css";
@@ -43,6 +46,8 @@ export default function AgentDashboard() {
   const { user, role, loading, profile, tier, welcomePhrase } = useUserRole();
   const { showToast } = useToast();
   const [inquiryBusyId, setInquiryBusyId] = useState("");
+  const [conversationRows, setConversationRows] = useState([]);
+  const [conversationsLoading, setConversationsLoading] = useState(false);
   const [lifecycleFilter, setLifecycleFilter] = useState(AGENT_INVENTORY_FILTERS.ALL);
   const storeSessionRef = useRef(null);
   const dashboardPathRef = useRef(null);
@@ -167,6 +172,19 @@ export default function AgentDashboard() {
     }
     return m;
   }, [myListingsRows]);
+
+  const loadConversations = useCallback(async () => {
+    if (!user?.id || !BL_ENABLE_CONVERSATIONS) return;
+    setConversationsLoading(true);
+    const { data, error } = await fetchConversationsForAgent(supabase, user.id);
+    setConversationsLoading(false);
+    if (!error) setConversationRows(data || []);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (activeTab !== AGENT_DASHBOARD_TAB_IDS.INQUIRIES) return;
+    loadConversations();
+  }, [activeTab, loadConversations]);
 
   const markInquiryResponded = async (inquiryId) => {
     if (!user?.id) return;
@@ -317,16 +335,43 @@ export default function AgentDashboard() {
                 {activeTab === AGENT_DASHBOARD_TAB_IDS.INQUIRIES ? (
                   <section aria-label="Lead inbox">
                     <p className={styles.muted} style={{ marginBottom: 16, maxWidth: "62ch" }}>
-                      Buyer messages from listing pages route here. Mark responded when you&apos;ve
-                      replied outside the app.
+                      Buyer messages from listing pages route here.
+                      {BL_ENABLE_CONVERSATIONS
+                        ? " Reply in-thread or manage pipeline groups below."
+                        : " Mark responded when you've replied outside the app."}
                     </p>
-                    <AgentInquiryList
-                      inquiries={inquiriesRows}
-                      listingsById={listingsById}
-                      busyId={inquiryBusyId}
-                      onMarkResponded={markInquiryResponded}
-                      onOpenListing={(listingId) => router.push(`/listing/${listingId}`)}
-                    />
+                    {BL_ENABLE_CONVERSATIONS ? (
+                      conversationsLoading && !conversationRows.length ? (
+                        <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                      ) : (
+                        <AgentInboxPanel
+                          conversations={conversationRows}
+                          listingsById={listingsById}
+                          agentUserId={user.id}
+                          onRefresh={() => {
+                            loadConversations();
+                            useAgentDashboardStore.getState().invalidate({ listings: false });
+                          }}
+                          legacyFallback={
+                            <AgentInquiryList
+                              inquiries={inquiriesRows}
+                              listingsById={listingsById}
+                              busyId={inquiryBusyId}
+                              onMarkResponded={markInquiryResponded}
+                              onOpenListing={(listingId) => router.push(`/listing/${listingId}`)}
+                            />
+                          }
+                        />
+                      )
+                    ) : (
+                      <AgentInquiryList
+                        inquiries={inquiriesRows}
+                        listingsById={listingsById}
+                        busyId={inquiryBusyId}
+                        onMarkResponded={markInquiryResponded}
+                        onOpenListing={(listingId) => router.push(`/listing/${listingId}`)}
+                      />
+                    )}
                   </section>
                 ) : null}
               </div>

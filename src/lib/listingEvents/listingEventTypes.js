@@ -21,6 +21,12 @@ export const LISTING_EVENT_TYPES = Object.freeze({
   UNDER_CONTRACT: "listing.under_contract",
   MODERATION_APPROVED: "listing.moderation.approved",
   MODERATION_REJECTED: "listing.moderation.rejected",
+  /** CRM — public when viewing confirmed */
+  VIEWING_SCHEDULED: "listing.viewing.scheduled",
+  /** CRM — internal pipeline signals */
+  CONVERSATION_CREATED: "listing.crm.conversation_created",
+  AGENT_RESPONDED: "listing.crm.agent_responded",
+  VIEWING_CANCELLED: "listing.crm.viewing_cancelled",
 });
 
 /** Default visibility per event type (public vs internal). */
@@ -41,6 +47,10 @@ export const LISTING_EVENT_VISIBILITY = Object.freeze({
   [LISTING_EVENT_TYPES.UNDER_CONTRACT]: TRUST_VISIBILITY_SCOPE.PUBLIC,
   [LISTING_EVENT_TYPES.MODERATION_APPROVED]: TRUST_VISIBILITY_SCOPE.INTERNAL,
   [LISTING_EVENT_TYPES.MODERATION_REJECTED]: TRUST_VISIBILITY_SCOPE.INTERNAL,
+  [LISTING_EVENT_TYPES.VIEWING_SCHEDULED]: TRUST_VISIBILITY_SCOPE.PUBLIC,
+  [LISTING_EVENT_TYPES.CONVERSATION_CREATED]: TRUST_VISIBILITY_SCOPE.INTERNAL,
+  [LISTING_EVENT_TYPES.AGENT_RESPONDED]: TRUST_VISIBILITY_SCOPE.INTERNAL,
+  [LISTING_EVENT_TYPES.VIEWING_CANCELLED]: TRUST_VISIBILITY_SCOPE.INTERNAL,
 });
 
 export const LISTING_EVENT_SOURCES = Object.freeze({

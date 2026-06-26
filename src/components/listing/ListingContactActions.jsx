@@ -89,7 +89,12 @@ export default function ListingContactActions({ listing, user }) {
         listing={listing}
         user={user}
       />
-      <ListingViewingBookingModal open={viewingOpen} onClose={() => setViewingOpen(false)} listing={listing} />
+      <ListingViewingBookingModal
+        open={viewingOpen}
+        onClose={() => setViewingOpen(false)}
+        listing={listing}
+        user={user}
+      />
     </section>
   );
 }

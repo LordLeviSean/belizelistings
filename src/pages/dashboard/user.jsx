@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useShallow } from "zustand/react/shallow";
@@ -9,6 +9,12 @@ import UserDashboardMetrics from "@/components/user/UserDashboardMetrics";
 import UserMyListingsPanel from "@/components/user/UserMyListingsPanel";
 import UserPendingListingsPanel from "@/components/user/UserPendingListingsPanel";
 import UserArchivedListingsPanel from "@/components/user/UserArchivedListingsPanel";
+import BuyerInquiriesPanel from "@/components/inquiry/BuyerInquiriesPanel";
+import BuyerViewingsPanel from "@/components/inquiry/BuyerViewingsPanel";
+import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
+import { fetchInquiriesForBuyer } from "@/lib/crm/inquiryMutations";
+import { fetchViewingsForBuyer } from "@/lib/crm/viewingMutations";
+import { supabase } from "@/lib/supabaseClient";
 import { isProfileHydratedForUser } from "@/lib/profileSessionCache";
 import useUserRole from "@/hooks/useUserRole";
 import { formatUserDashboardSubtitle } from "@/lib/dashboardGreeting";
@@ -79,6 +85,40 @@ export default function UserDashboard() {
   );
 
   const activeTab = useMemo(() => normalizeUserDashboardTab(router.query.tab), [router.query.tab]);
+
+  const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
+  const visibleTabs = useMemo(
+    () => USER_DASHBOARD_TABS.filter((tab) => !tab.crm || crmTabsEnabled),
+    [crmTabsEnabled]
+  );
+
+  const [buyerInquiries, setBuyerInquiries] = useState([]);
+  const [buyerViewings, setBuyerViewings] = useState([]);
+  const [buyerCrmLoading, setBuyerCrmLoading] = useState(false);
+
+  const loadBuyerCrm = useCallback(async () => {
+    if (!user?.id) return;
+    setBuyerCrmLoading(true);
+    const tasks = [];
+    if (crmTabsEnabled) {
+      tasks.push(fetchInquiriesForBuyer(supabase, user.id).then(({ data }) => setBuyerInquiries(data || [])));
+    }
+    if (BL_ENABLE_VIEWING_PERSIST || BL_ENABLE_CONVERSATIONS) {
+      tasks.push(fetchViewingsForBuyer(supabase, user.id).then(({ data }) => setBuyerViewings(data || [])));
+    }
+    await Promise.all(tasks);
+    setBuyerCrmLoading(false);
+  }, [user?.id, crmTabsEnabled]);
+
+  useEffect(() => {
+    if (
+      activeTab !== USER_DASHBOARD_TAB_IDS.MY_INQUIRIES &&
+      activeTab !== USER_DASHBOARD_TAB_IDS.MY_VIEWINGS
+    ) {
+      return;
+    }
+    loadBuyerCrm();
+  }, [activeTab, loadBuyerCrm]);
 
   const profileHydrated = Boolean(user?.id && isProfileHydratedForUser(user.id));
   const showHydratingShell = loading && profileHydrated && role === "user";
@@ -205,7 +245,7 @@ export default function UserDashboard() {
             >
               <div className={styles.adminWrapper}>
                 <div className={styles.statusToggle} role="tablist" aria-label="Dashboard sections">
-                  {USER_DASHBOARD_TABS.map((tab) => (
+                  {visibleTabs.map((tab) => (
                     <button
                       key={tab.id}
                       type="button"
@@ -337,6 +377,26 @@ export default function UserDashboard() {
                     <Link className={styles.primaryButton} href="/favorites">
                       Open saved favorites
                     </Link>
+                  </section>
+                ) : null}
+
+                {activeTab === USER_DASHBOARD_TAB_IDS.MY_INQUIRIES ? (
+                  <section aria-label="My inquiries">
+                    {buyerCrmLoading && !buyerInquiries.length ? (
+                      <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                    ) : (
+                      <BuyerInquiriesPanel inquiries={buyerInquiries} />
+                    )}
+                  </section>
+                ) : null}
+
+                {activeTab === USER_DASHBOARD_TAB_IDS.MY_VIEWINGS ? (
+                  <section aria-label="My viewings">
+                    {buyerCrmLoading && !buyerViewings.length ? (
+                      <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                    ) : (
+                      <BuyerViewingsPanel viewings={buyerViewings} />
+                    )}
                   </section>
                 ) : null}
               </div>

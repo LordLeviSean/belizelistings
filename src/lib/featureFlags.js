@@ -25,3 +25,19 @@ export const BL_ENABLE_INQUIRIES = readTruthyEnvValue(
 export const BL_ENABLE_LISTING_EVENTS = readTruthyEnvValue(
   process.env.NEXT_PUBLIC_BL_ENABLE_LISTING_EVENTS
 );
+
+/**
+ * `NEXT_PUBLIC_BL_ENABLE_CONVERSATIONS` — CRM conversations + messages + inbox v2.
+ * Default when unset: false.
+ */
+export const BL_ENABLE_CONVERSATIONS = readTruthyEnvValue(
+  process.env.NEXT_PUBLIC_BL_ENABLE_CONVERSATIONS
+);
+
+/**
+ * `NEXT_PUBLIC_BL_ENABLE_VIEWING_PERSIST` — persist ListingViewingBookingModal to viewing_requests.
+ * Default when unset: false.
+ */
+export const BL_ENABLE_VIEWING_PERSIST = readTruthyEnvValue(
+  process.env.NEXT_PUBLIC_BL_ENABLE_VIEWING_PERSIST
+);

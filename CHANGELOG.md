@@ -4,6 +4,34 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-06-26 — Milestone 3.2 CRM foundation
+
+### Milestone
+
+- **Phase 3 Milestone 3.2 — CRM Foundation & Inquiry Platform** — formalized `listing_inquiries`, conversations/messages, viewing persistence, agent inbox v2, buyer inquiry/viewing panels, notification queue infrastructure, and CRM listing event types.
+
+### Added
+
+- **`supabase/migrations/20260626160000_crm_foundation.sql`** — extended `listing_inquiries`, `conversations`, `messages`, `viewing_requests`, `notification_queue`, RPC `create_inquiry_with_conversation`.
+- **`src/lib/crm/`** — `crmConstants`, `inquiryMutations`, `conversationMutations`, `viewingMutations`.
+- **`src/lib/notifications/notificationEvents.js`** — structured enqueue stub (no UI).
+- **`AgentInboxPanel`**, **`BuyerInquiriesPanel`**, **`BuyerViewingsPanel`** — dashboard extension points.
+- **Feature flags** `NEXT_PUBLIC_BL_ENABLE_CONVERSATIONS`, `NEXT_PUBLIC_BL_ENABLE_VIEWING_PERSIST`.
+- **Listing event types** — `listing.viewing.scheduled` (public), `listing.crm.*` (internal).
+- **`docs/platform/crm-foundation-v1.6.md`** — activation and schema reference.
+- Unit tests for CRM mutations, viewing persist, notification enqueue.
+
+### Changed
+
+- **`ListingMessageModal`** / **`submitListingInquiry`** — prefers RPC when conversations flag enabled (backwards-compatible fallback).
+- **`ListingViewingBookingModal`** — persists viewing requests when `BL_ENABLE_VIEWING_PERSIST`.
+- **Agent dashboard** — inbox tab uses `AgentInboxPanel` when conversations enabled.
+- **User dashboard** — My Inquiries / My Viewings tabs (flag-gated).
+
+### Deferred
+
+- Notification center UI, email edge functions, broker pipeline board, Activity Engine (3.5).
+
 ## [1.5.3] - 2026-06-26 — Sprint 3.1E lifecycle event write-path
 
 ### Fixed

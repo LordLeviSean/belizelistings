@@ -1,6 +1,7 @@
 import {
   Archive,
   BadgeCheck,
+  Calendar,
   Camera,
   CircleDot,
   FileText,
@@ -179,6 +180,16 @@ export const LISTING_EVENT_PRESENTATION = Object.freeze({
     buildDescription: (event) => {
       const from = event?.payload?.from_status;
       return from ? `Previously ${String(from).replace(/_/g, " ")}` : null;
+    },
+  },
+  [LISTING_EVENT_TYPES.VIEWING_SCHEDULED]: {
+    icon: Calendar,
+    buildHeadline: () => "Viewing scheduled",
+    buildDescription: (event) => {
+      const date = event?.payload?.requested_date;
+      if (!date) return null;
+      const time = event?.payload?.requested_time;
+      return time ? `${date} at ${String(time).slice(0, 5)}` : String(date);
     },
   },
 });

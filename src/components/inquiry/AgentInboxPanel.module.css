@@ -1,0 +1,157 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.groupNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.groupBtn {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(110, 185, 178, 0.22);
+  background: rgba(14, 32, 38, 0.35);
+  color: rgba(210, 228, 224, 0.82);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color var(--dur-3) var(--ease-out-soft), background var(--dur-3) var(--ease-out-soft);
+}
+
+.groupBtn:hover {
+  border-color: rgba(130, 190, 185, 0.32);
+}
+
+.groupBtnActive {
+  border-color: rgba(212, 175, 122, 0.42);
+  background: rgba(212, 175, 122, 0.08);
+  color: rgba(235, 220, 195, 0.95);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.convBtn {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.convBtnSelected {
+  border-color: rgba(212, 175, 122, 0.55) !important;
+}
+
+.detail {
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(14, 32, 38, 0.42);
+  border: 1px solid rgba(110, 185, 178, 0.18);
+  min-height: 280px;
+}
+
+.detailHead {
+  margin-bottom: 12px;
+}
+
+.detailTitle {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: rgba(235, 245, 243, 0.95);
+}
+
+.detailMeta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(170, 220, 212, 0.72);
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 16px 0;
+  padding-right: 4px;
+}
+
+.threadMuted {
+  margin: 0;
+  font-size: 0.88rem;
+  color: rgba(170, 220, 212, 0.62);
+}
+
+.bubble {
+  padding: 10px 12px;
+  border-radius: 12px;
+  max-width: 92%;
+}
+
+.bubbleBuyer {
+  align-self: flex-start;
+  background: rgba(20, 48, 54, 0.55);
+  border: 1px solid rgba(110, 185, 178, 0.16);
+}
+
+.bubbleAgent {
+  align-self: flex-end;
+  background: rgba(212, 175, 122, 0.1);
+  border: 1px solid rgba(212, 175, 122, 0.22);
+}
+
+.bubbleBody {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(230, 242, 240, 0.92);
+}
+
+.bubbleTime {
+  font-size: 0.72rem;
+  color: rgba(170, 220, 212, 0.55);
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.composerLabel {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(170, 220, 212, 0.65);
+}
+
+.composerInput {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(110, 185, 178, 0.22);
+  background: rgba(8, 22, 26, 0.45);
+  color: rgba(235, 245, 243, 0.95);
+  font: inherit;
+  resize: vertical;
+}
+
+.composerInput:focus {
+  outline: none;
+  border-color: rgba(130, 190, 185, 0.42);
+}
