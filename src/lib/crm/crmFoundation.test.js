@@ -18,8 +18,12 @@ describe("notificationEvents", () => {
   test("enqueueNotificationEvent skips gracefully when table missing", async () => {
     const client = {
       from: jest.fn().mockReturnValue({
-        insert: jest.fn().mockResolvedValue({
-          error: { message: "relation notification_queue does not exist" },
+        insert: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              error: { message: "relation notification_queue does not exist" },
+            }),
+          }),
         }),
       }),
     };
@@ -32,7 +36,11 @@ describe("notificationEvents", () => {
   });
 
   test("enqueueNotificationEvent inserts pending row", async () => {
-    const insert = jest.fn().mockResolvedValue({ error: null });
+    const insert = jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        single: jest.fn().mockResolvedValue({ data: { id: "q1" }, error: null }),
+      }),
+    });
     const client = { from: jest.fn().mockReturnValue({ insert }) };
     const result = await enqueueNotificationEvent(client, {
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
@@ -40,6 +48,7 @@ describe("notificationEvents", () => {
       payload: { viewing_id: "v1" },
     });
     expect(result.ok).toBe(true);
+    expect(result.queueId).toBe("q1");
     expect(insert).toHaveBeenCalledWith(
       expect.objectContaining({ event_type: "viewing_confirmed", status: "pending" })
     );

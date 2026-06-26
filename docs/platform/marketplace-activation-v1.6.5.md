@@ -53,8 +53,9 @@ Flags are **build-time** (`NEXT_PUBLIC_*`). Redeploy after each stage.
 | **1** | `NEXT_PUBLIC_BL_ENABLE_INQUIRIES=true` | Buyer inquiry tab, inquiry fetch/count, legacy insert path | Migration applied |
 | **2** | `NEXT_PUBLIC_BL_ENABLE_CONVERSATIONS=true` | RPC lead create, `AgentInboxPanel`, threading, conversation events | Stage 1 |
 | **3** | `NEXT_PUBLIC_BL_ENABLE_VIEWING_PERSIST=true` | `ListingViewingBookingModal` → `viewing_requests`, viewing timeline events | Stage 2 |
+| **4** | `NEXT_PUBLIC_BL_ENABLE_NOTIFICATIONS=true` | Durable inbox in NotificationCenter, queue → notifications delivery | Stage 3 + [notification migration](./notification-delivery-v1.6.6.md) |
 
-**Recommended production order:** Stage 1 → monitor 24h → Stage 2 → monitor → Stage 3 → full redeploy.
+**Recommended production order:** Stage 1 → monitor 24h → Stage 2 → monitor → Stage 3 → apply notification migration → Stage 4 → full redeploy.
 
 ### Local dev (all stages on)
 

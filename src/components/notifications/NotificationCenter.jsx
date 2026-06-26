@@ -15,6 +15,9 @@ import {
   formatAdminAgentUpgradeNotification,
 } from "@/constants/agentUpgradeNotifications";
 import { fetchPendingAgentUpgradeRequestForUser, fetchPendingAgentUpgradeRequests } from "@/lib/agentUpgradeRequests";
+import { BL_ENABLE_NOTIFICATIONS } from "@/lib/featureFlags";
+import { fetchNotifications, mapNotificationsForCenter } from "@/lib/notifications/fetchNotifications";
+import { markNotificationRead } from "@/lib/notifications/markNotificationRead";
 import nav from "../SiteNavUnified.module.css";
 import styles from "./NotificationCenter.module.css";
 
@@ -57,22 +60,35 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
     const next = [];
 
     try {
-      if (role === "agent") {
-        const { data: inq } = await fetchInquiriesForAgent(supabase, user.id, { limit: 10 });
-        const inquiryItems = [];
-        for (const row of inq || []) {
-          const unread = !row.read_at && row.status === INQUIRY_STATUS.NEW;
-          inquiryItems.push({
-            id: `inq-${row.id}`,
-            category: "inquiry",
-            title: unread ? "New inquiry received" : "Inquiry update",
-            detail: String(row.body || "A buyer left a note on your listing.").slice(0, 96),
-            href: "/dashboard/agent",
-            when: formatWhen(row.created_at),
-            unread,
-          });
+      let durableItems = [];
+      if (BL_ENABLE_NOTIFICATIONS) {
+        const { data: notifRows, skipped } = await fetchNotifications(supabase, user.id, { limit: 12 });
+        if (!skipped && notifRows?.length) {
+          durableItems = mapNotificationsForCenter(notifRows).map((item) => ({
+            ...item,
+            when: formatWhen(item.when),
+          }));
         }
-        inquiryItems.sort((a, b) => Number(b.unread) - Number(a.unread));
+      }
+
+      if (role === "agent") {
+        const inquiryItems = [];
+        if (!BL_ENABLE_NOTIFICATIONS) {
+          const { data: inq } = await fetchInquiriesForAgent(supabase, user.id, { limit: 10 });
+          for (const row of inq || []) {
+            const unread = !row.read_at && row.status === INQUIRY_STATUS.NEW;
+            inquiryItems.push({
+              id: `inq-${row.id}`,
+              category: "inquiry",
+              title: unread ? "New inquiry received" : "Inquiry update",
+              detail: String(row.body || "A buyer left a note on your listing.").slice(0, 96),
+              href: "/dashboard/agent",
+              when: formatWhen(row.created_at),
+              unread,
+            });
+          }
+          inquiryItems.sort((a, b) => Number(b.unread) - Number(a.unread));
+        }
 
         const { data: listingRows } = await supabase
           .from("listings")
@@ -114,7 +130,7 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
             unread: false,
           });
         }
-        next.push(...summaries, ...inquiryItems.slice(0, 8));
+        next.push(...summaries, ...durableItems, ...inquiryItems.slice(0, 8));
       } else if (role === "admin") {
         const [{ count, error }, upgradeResult] = await Promise.all([
           supabase.from("listings").select("id", { count: "exact", head: true }).or(PENDING_OR),
@@ -156,6 +172,9 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
           unread: false,
         });
       } else if (user) {
+        if (durableItems.length) {
+          next.push(...durableItems);
+        }
         const { data: listingRows } = await supabase
           .from("listings")
           .select("id,title,updated_at,lifecycle_status,status,moderation_status")
@@ -335,7 +354,7 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
   }, [user?.id, role, load]);
 
   useEffect(() => {
-    if (!user?.id || role !== "agent") return;
+    if (!user?.id || role !== "agent" || BL_ENABLE_NOTIFICATIONS) return;
     const ch = supabase
       .channel(`nav-notify-${user.id}`)
       .on(
@@ -348,6 +367,26 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
       void supabase.removeChannel(ch);
     };
   }, [user?.id, role, load]);
+
+  useEffect(() => {
+    if (!user?.id || !BL_ENABLE_NOTIFICATIONS) return;
+    const ch = supabase
+      .channel(`nav-notify-inbox-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_user_id=eq.${user.id}` },
+        () => void load()
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "notifications", filter: `recipient_user_id=eq.${user.id}` },
+        () => void load()
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [user?.id, load]);
 
   useEffect(() => {
     const onDoc = (e) => {
@@ -451,6 +490,12 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
                         onClick={() => {
                           setOpen(false);
                           onNavigate?.();
+                          if (item.notificationId && item.unread) {
+                            void markNotificationRead(supabase, {
+                              notificationId: item.notificationId,
+                              userId: user.id,
+                            });
+                          }
                           if (item.href.startsWith("/dashboard") || item.href.startsWith("/admin")) {
                             router.prefetch(item.href);
                           }

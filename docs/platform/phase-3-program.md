@@ -1,7 +1,7 @@
 # Phase 3 — Marketplace Infrastructure Program
 
 **Baseline:** Platform Foundation v1.4.0 (`v1.4.0-platform-foundation`, commit `36f2302`)  
-**Current milestone:** 3.2 — CRM Foundation (`v1.6.0-crm-foundation`)  
+**Current milestone:** 3.6 — Notification Delivery (`v1.6.6-notification-delivery`)  
 **Parent doc:** [marketplace-infrastructure-phase.md](./marketplace-infrastructure-phase.md)
 
 ---
@@ -32,7 +32,7 @@ Phase 3 adds marketplace infrastructure — trust history, lead conversion, acti
 3.1B Public ListingTimelinePanel                                      ✅ v1.5.1
 3.2  CRM foundation (inquiries + conversations + viewing + inbox)     ✅ v1.6.0 ← THIS RELEASE
 3.5  Activity Engine implementation (replace deriveAgentActivityFeed)
-3.6  Notification framework MVP (in-app + email edge function)
+3.6  Notification framework MVP (in-app + email edge function)     ✅ v1.6.6
 3.7  Price/lifecycle event emit on listingWriteContract paths
 3.8  Broker pipeline board + buyer dashboard tracker
 ```
@@ -94,6 +94,7 @@ Each milestone must:
 | `NEXT_PUBLIC_BL_ENABLE_INQUIRIES` | false | existing / 3.2 |
 | `NEXT_PUBLIC_BL_ENABLE_VIEWING_PERSIST` | false | 3.3 |
 | `NEXT_PUBLIC_BL_ENABLE_CONVERSATIONS` | false | 3.4 |
+| `NEXT_PUBLIC_BL_ENABLE_NOTIFICATIONS` | false | 3.6 |
 
 ---
 

@@ -1,4 +1,5 @@
-import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_VIEWING_PERSIST } from "../featureFlags";
+import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_NOTIFICATIONS, BL_ENABLE_VIEWING_PERSIST } from "../featureFlags";
+import { triggerNotificationDelivery } from "../notifications/notificationEvents";
 import { emitListingEventAfterMutation } from "../listingEvents/writeListingEvent";
 import { LISTING_EVENT_TYPES } from "../listingEvents/listingEventTypes";
 import { enqueueNotificationEvent, NOTIFICATION_EVENT_TYPES } from "../notifications/notificationEvents";
@@ -97,16 +98,20 @@ export async function confirmViewing(client, { viewingId, agentUserId, notes }) 
   }
 
   if (data?.requester_id) {
-    await enqueueNotificationEvent(client, {
-      eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
-      recipientId: data.requester_id,
-      payload: {
-        viewing_id: viewingId,
-        listing_id: data.listing_id,
-        requested_date: data.requested_date,
-        requested_time: data.requested_time,
+    await enqueueNotificationEvent(
+      client,
+      {
+        eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
+        recipientId: data.requester_id,
+        payload: {
+          viewing_id: viewingId,
+          listing_id: data.listing_id,
+          requested_date: data.requested_date,
+          requested_time: data.requested_time,
+        },
       },
-    });
+      { deliver: BL_ENABLE_NOTIFICATIONS }
+    );
   }
 
   if (data?.listing_id) {
@@ -138,10 +143,22 @@ export async function cancelViewing(client, { viewingId, agentUserId, cancelledB
     })
     .eq("id", viewingId)
     .eq(cancelledByAgent ? "agent_user_id" : "requester_id", agentUserId)
-    .select("id,listing_id")
+    .select("id,listing_id,requester_id")
     .single();
 
   if (error) return { data: null, error };
+
+  if (data?.requester_id && cancelledByAgent) {
+    await enqueueNotificationEvent(
+      client,
+      {
+        eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CANCELLED,
+        recipientId: data.requester_id,
+        payload: { viewing_id: viewingId, listing_id: data.listing_id },
+      },
+      { deliver: BL_ENABLE_NOTIFICATIONS }
+    );
+  }
 
   if (data?.listing_id) {
     await emitListingEventAfterMutation({

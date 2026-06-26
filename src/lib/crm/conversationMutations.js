@@ -1,6 +1,7 @@
 import { emitListingEventAfterMutation } from "../listingEvents/writeListingEvent";
 import { LISTING_EVENT_TYPES } from "../listingEvents/listingEventTypes";
 import { enqueueNotificationEvent, NOTIFICATION_EVENT_TYPES } from "../notifications/notificationEvents";
+import { BL_ENABLE_NOTIFICATIONS } from "../featureFlags";
 import {
   CRM_PIPELINE_STAGE,
   INQUIRY_STATUS,
@@ -92,11 +93,15 @@ export async function sendAgentReply(client, { conversationId, agentUserId, body
   }
 
   if (conv?.buyer_id) {
-    await enqueueNotificationEvent(client, {
-      eventType: NOTIFICATION_EVENT_TYPES.AGENT_REPLIED,
-      recipientId: conv.buyer_id,
-      payload: { conversation_id: conversationId, message_id: message?.id },
-    });
+    await enqueueNotificationEvent(
+      client,
+      {
+        eventType: NOTIFICATION_EVENT_TYPES.AGENT_REPLIED,
+        recipientId: conv.buyer_id,
+        payload: { conversation_id: conversationId, message_id: message?.id },
+      },
+      { deliver: BL_ENABLE_NOTIFICATIONS }
+    );
   }
 
   const resolvedListingId = listingId ?? conv?.listing_id;

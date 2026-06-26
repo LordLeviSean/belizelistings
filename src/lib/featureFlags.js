@@ -41,3 +41,11 @@ export const BL_ENABLE_CONVERSATIONS = readTruthyEnvValue(
 export const BL_ENABLE_VIEWING_PERSIST = readTruthyEnvValue(
   process.env.NEXT_PUBLIC_BL_ENABLE_VIEWING_PERSIST
 );
+
+/**
+ * `NEXT_PUBLIC_BL_ENABLE_NOTIFICATIONS` — durable in-app notifications inbox + queue delivery.
+ * Default when unset: false. Enable after notification delivery migration (Stage 4).
+ */
+export const BL_ENABLE_NOTIFICATIONS = readTruthyEnvValue(
+  process.env.NEXT_PUBLIC_BL_ENABLE_NOTIFICATIONS
+);

@@ -1,5 +1,6 @@
 import { INQUIRY_CHANNEL, INQUIRY_STATUS as LEGACY_INQUIRY_STATUS } from "../../constants/inquiryModel";
-import { BL_ENABLE_CONVERSATIONS } from "../featureFlags";
+import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_NOTIFICATIONS } from "../featureFlags";
+import { triggerNotificationDelivery } from "../notifications/notificationEvents";
 import { emitListingEventAfterMutation } from "../listingEvents/writeListingEvent";
 import { LISTING_EVENT_TYPES } from "../listingEvents/listingEventTypes";
 import {
@@ -88,6 +89,10 @@ export async function createInquiryWithConversation(client, payload) {
     },
     correlationId: result.inquiry_id,
   });
+
+  if (BL_ENABLE_NOTIFICATIONS) {
+    await triggerNotificationDelivery(client, { limit: 5 });
+  }
 
   return {
     data: {

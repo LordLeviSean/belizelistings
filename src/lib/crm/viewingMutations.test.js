@@ -3,6 +3,7 @@
 jest.mock("../featureFlags", () => ({
   BL_ENABLE_CONVERSATIONS: true,
   BL_ENABLE_VIEWING_PERSIST: true,
+  BL_ENABLE_NOTIFICATIONS: false,
 }));
 
 jest.mock("../listingEvents/writeListingEvent", () => ({
@@ -71,7 +72,15 @@ describe("viewingMutations", () => {
     const from = jest.fn((table) => {
       if (table === "viewing_requests") return { update };
       if (table === "conversations") return { update: jest.fn().mockReturnValue({ eq: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ error: null }) }) }) };
-      if (table === "notification_queue") return { insert: jest.fn().mockResolvedValue({ error: null }) };
+      if (table === "notification_queue") {
+        return {
+          insert: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({ data: { id: "q1" }, error: null }),
+            }),
+          }),
+        };
+      }
       return { update };
     });
     const client = { from };

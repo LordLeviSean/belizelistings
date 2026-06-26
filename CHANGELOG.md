@@ -4,6 +4,35 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+## [1.6.6] - 2026-06-27 — Milestone 3.6 notification delivery
+
+### Milestone
+
+- **Phase 3 Milestone 3.6 — Notification Delivery System** — durable `notifications` inbox, queue processor RPCs, hybrid NotificationCenter, delivery wiring after CRM mutations, verification script, and staged `NEXT_PUBLIC_BL_ENABLE_NOTIFICATIONS` flag.
+
+### Added
+
+- **`supabase/migrations/20260627120000_notification_delivery.sql`** — `notifications` table, RLS, dedupe index, `deliver_notification` + `process_notification_queue_batch` RPCs, realtime publication.
+- **`src/lib/notifications/`** — `notificationCopyRegistry`, `deliverNotifications`, `fetchNotifications`, `markNotificationRead`; extended `notificationEvents`.
+- **`POST /api/notifications/process-queue`** — admin batch drain (service role).
+- **`/api/cron/process-notifications`** — cron batch processor (`CRON_SECRET` optional).
+- **`scripts/verify-notification-delivery.mjs`** — enqueue → process → verify dedupe.
+- **`docs/platform/notification-delivery-v1.6.6.md`** — architecture, rollout Stage 4, ops.
+- Unit/integration tests for copy registry, deliver dedupe, fetch, enqueue → deliver path.
+
+### Changed
+
+- **`NotificationCenter`** — when `BL_ENABLE_NOTIFICATIONS`, primary source is `notifications` table; legacy moderation/upgrade polls retained; mark read on click; realtime on notifications insert.
+- **`inquiryMutations`**, **`conversationMutations`**, **`viewingMutations`** — trigger delivery after enqueue when flag on.
+- **Feature flag** `NEXT_PUBLIC_BL_ENABLE_NOTIFICATIONS` (default false).
+- **`.env.example`** — documents Stage 4 notification flag + `CRON_SECRET`.
+
+### Deployment
+
+- Apply `20260627120000_notification_delivery.sql` after CRM foundation migration.
+- Enable CRM Stages 1–3 first (v1.6.5), then Stage 4 `NEXT_PUBLIC_BL_ENABLE_NOTIFICATIONS=true` and redeploy.
+- Schedule cron to `/api/cron/process-notifications` for backlog drain.
+
 ## [1.6.5] - 2026-06-26 — Milestone 3.3 marketplace activation
 
 ### Milestone
