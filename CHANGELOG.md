@@ -4,6 +4,13 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-06-26 — Sprint 3.1C stabilization
+
+### Fixed
+
+- **Event engine:** Emit `listing.created` on every successful listing insert; coerce `listing_id` to bigint for RPC/query; set `listing.created` visibility to public for Property History; document Netlify `NEXT_PUBLIC_BL_ENABLE_LISTING_EVENTS=true` before build.
+- **Media studio:** Remove blocking upload modal; background uploads with thumbnail progress/retry; persist photo order on reorder/autosave/continue; position 0 = cover across admin panels via `getListingCoverImageUrl`.
+
 ## [1.5.1] - 2026-06-26 — Production activation
 
 ### Milestone 3.1B rollout

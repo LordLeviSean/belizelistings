@@ -77,6 +77,22 @@ describe("writeListingEvent", () => {
     );
   });
 
+  test("coerces numeric listing id for bigint RPC", async () => {
+    const client = {
+      rpc: jest.fn().mockResolvedValue({ data: "event-uuid", error: null }),
+    };
+    await writeListingEvent({
+      client,
+      listingId: "12345",
+      eventType: LISTING_EVENT_TYPES.CREATED,
+      force: true,
+    });
+    expect(client.rpc).toHaveBeenCalledWith(
+      "append_listing_event",
+      expect.objectContaining({ p_listing_id: 12345 })
+    );
+  });
+
   test("rejects missing listingId", async () => {
     const result = await writeListingEvent({
       client: { rpc: jest.fn() },

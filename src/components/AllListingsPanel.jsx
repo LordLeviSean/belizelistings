@@ -40,6 +40,7 @@ import PremiumEmptyState, { getPremiumEmptyForRegistryFilter } from "./ui/Premiu
 import ListingMediaImage from "./listing/ListingMediaImage";
 import { IMAGE_QUALITY_THUMB, IMAGE_SIZES_ADMIN_ROW_THUMB } from "../constants/imageQuality";
 import { formatProfileDisplayLabel } from "../lib/profileDisplayName";
+import { getListingCoverImageUrl } from "../utils/listingImage";
 
 const EDITOR_STEPS = [
   { id: "basic", label: "Basic" },
@@ -587,7 +588,7 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
         <span>Actions</span>
       </div>
       {filteredListings.map((listing) => {
-        const imageUrl = listing?.listing_images?.[0]?.image_url || "/placeholder.jpg";
+        const imageUrl = getListingCoverImageUrl(listing) || "/placeholder.jpg";
         const effectiveLifecycle = getLifecycleStatus(listing);
         const isArchived = effectiveLifecycle === LISTING_LIFECYCLE.ARCHIVED;
         const isRejected = effectiveLifecycle === LISTING_LIFECYCLE.REJECTED;

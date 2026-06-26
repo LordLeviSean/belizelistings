@@ -23,11 +23,15 @@ import {
 import {
   LISTING_INSERT_RETURN_TIERS,
   buildModerationArchivePatch,
-  buildSubmitForReviewMinimalFallback,
   buildSubmitForReviewStatusPatch,
   executeListingInsert,
   executeListingUpdate,
 } from "./listingWriteContract";
+import {
+  buildCreatedPayload,
+  emitListingEventAfterMutation,
+  LISTING_EVENT_TYPES,
+} from "./listingEvents";
 
 const isProd =
   typeof process !== "undefined" && process.env.NODE_ENV === "production";
@@ -365,6 +369,35 @@ function buildInsertSuccessMeta({ strippedKeys, attempts, usedMinimalFinalSafe }
   };
 }
 
+async function emitListingCreatedAfterInsert(supabase, listingRow, appliedPayload, mutationFlow) {
+  const listingId = listingRow?.id;
+  if (!listingId) return;
+
+  let actorId = appliedPayload?.user_id || appliedPayload?.listed_by || null;
+  if (!actorId && supabase?.auth?.getUser) {
+    const { data } = await supabase.auth.getUser();
+    actorId = data?.user?.id || null;
+  }
+
+  const lifecycleStatus =
+    getLifecycleStatus(listingRow) ||
+    appliedPayload?.lifecycle_status ||
+    appliedPayload?.status ||
+    null;
+
+  await emitListingEventAfterMutation({
+    client: supabase,
+    listingId: String(listingId),
+    eventType: LISTING_EVENT_TYPES.CREATED,
+    payload: buildCreatedPayload({
+      lifecycleStatus,
+      title: appliedPayload?.title || listingRow?.title,
+    }),
+    actorId: actorId ? String(actorId) : null,
+    actorRole: actorId ? "agent" : null,
+  });
+}
+
 export async function safeInsertListing(supabase, payload, options = {}) {
   const mutationFlow = options.mutationFlow ?? LISTING_MUTATION_FLOW.UNSPECIFIED;
   const insertResult = await executeListingInsert(supabase, payload, {
@@ -388,6 +421,7 @@ export async function safeInsertListing(supabase, payload, options = {}) {
       skipOwnershipEnrichment: meta.skipOwnershipEnrichment,
       usedMinimalFinalSafe,
     });
+    await emitListingCreatedAfterInsert(supabase, data, appliedPayload, mutationFlow);
     return {
       data,
       error: null,

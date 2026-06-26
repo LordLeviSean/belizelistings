@@ -20,7 +20,7 @@ import {
   PLATFORM_TIERS,
   resolveActiveListingCapForTier,
 } from "../../constants/operationalModel";
-import { uploadListingImageFiles, persistListingImageOrder, uploadOptimizedListingImage } from "../../lib/createListingUploads";
+import { uploadListingImageFiles, persistListingImageOrder, normalizeOrderedImageRows, uploadOptimizedListingImage } from "../../lib/createListingUploads";
 import { LISTING_MODERATION_TOAST } from "../../constants/listingModerationNotifications";
 import {
   LISTING_MUTATION_FLOW,
@@ -235,12 +235,8 @@ export default function DashboardCreatePage() {
   const [dropActive, setDropActive] = useState(false);
   const [previewCarouselIndex, setPreviewCarouselIndex] = useState(0);
   const mediaPickId = useId();
-  const [mediaStudioBusy, setMediaStudioBusy] = useState({
-    active: false,
-    phase: "idle",
-    done: 0,
-    total: 0,
-  });
+  const [uploadsInFlight, setUploadsInFlight] = useState(0);
+  const imageOrderDirtyRef = useRef(false);
 
   const targetProgressRef = useRef(0);
   const visualProgressRef = useRef(0);
@@ -424,6 +420,7 @@ export default function DashboardCreatePage() {
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
       if (imgs.length > 0 && imgs.every((img) => img?.id)) {
         setRemoteImages(imgs);
+        imageOrderDirtyRef.current = false;
       } else {
         const { data: imageRows } = await supabase
           .from("listing_images")
@@ -431,6 +428,7 @@ export default function DashboardCreatePage() {
           .eq("listing_id", queryDraftId)
           .order("position", { ascending: true });
         setRemoteImages((imageRows || []).filter(Boolean).map((row) => ({ ...row })));
+      imageOrderDirtyRef.current = false;
       }
       setDirty(false);
       setLegacyDraftBlocked(assessment.needsRefresh);
@@ -454,16 +452,36 @@ export default function DashboardCreatePage() {
   }, [legacyDraftBlocked, form]);
 
   const refetchRemoteImages = useCallback(
-    async (listingId) => {
+    async (listingId, { preserveOrder = false } = {}) => {
       const { data } = await supabase
         .from("listing_images")
         .select("*")
         .eq("listing_id", listingId)
         .order("position", { ascending: true });
       const rows = (data || []).filter(Boolean).map((row) => ({ ...row }));
+      if (preserveOrder && imageOrderDirtyRef.current) {
+        return rows;
+      }
       setRemoteImages(rows);
+      return rows;
     },
     []
+  );
+
+  const persistRemoteImageOrder = useCallback(
+    async (listingId, rows = null) => {
+      const ordered = rows ?? remoteImages;
+      const rowsWithIds = ordered.filter((row) => row?.id);
+      if (!rowsWithIds.length || rowsWithIds.length !== ordered.length) {
+        return { ok: true, skipped: true };
+      }
+      const { error, rows: normalized } = await persistListingImageOrder(supabase, ordered);
+      if (error) return { ok: false, error };
+      imageOrderDirtyRef.current = false;
+      setRemoteImages(normalized || normalizeOrderedImageRows(ordered));
+      return { ok: true };
+    },
+    [remoteImages]
   );
 
   const ensureDraftListingIdForMedia = useCallback(async () => {
@@ -541,7 +559,10 @@ export default function DashboardCreatePage() {
       }
 
       const totalFiles = filesOnly.length;
-      setMediaStudioBusy({ active: true, phase: "uploading", done: 0, total: totalFiles });
+      setUploadsInFlight((n) => n + 1);
+      setPendingUploads((prev) =>
+        prev.map((p) => (entryKeys.has(p.key) ? { ...p, uploading: true, uploadFailed: false } : p))
+      );
       try {
         const { failures, insertedRows } = await uploadListingImageFiles(supabase, {
           listingId: activeId,
@@ -549,13 +570,13 @@ export default function DashboardCreatePage() {
           files: filesOnly,
           startPosition: startPos,
           onProgress: (done, total) => {
-            setMediaStudioBusy((prev) => ({
-              ...prev,
-              active: true,
-              phase: "uploading",
-              done,
-              total,
-            }));
+            setPendingUploads((prev) =>
+              prev.map((p) =>
+                entryKeys.has(p.key)
+                  ? { ...p, uploadProgress: total > 0 ? Math.round((done / total) * 100) : 0 }
+                  : p
+              )
+            );
           },
         });
 
@@ -567,6 +588,13 @@ export default function DashboardCreatePage() {
                 ? "No images uploaded — check your connection and try again."
                 : `${failures.length} of ${totalFiles} image(s) did not upload.`,
           });
+          setPendingUploads((prev) =>
+            prev.map((p) =>
+              entryKeys.has(p.key) && failures.includes(p.file?.name)
+                ? { ...p, uploading: false, uploadFailed: true }
+                : p
+            )
+          );
         }
 
         if (insertedRows?.length) {
@@ -579,22 +607,26 @@ export default function DashboardCreatePage() {
               seen.add(key);
               merged.push(row);
             }
-            return merged.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+            return normalizeOrderedImageRows(merged);
           });
+          if (imageOrderDirtyRef.current) {
+            await persistRemoteImageOrder(activeId);
+          }
         }
-        await refetchRemoteImages(activeId);
         setPendingUploads((prev) => {
           prev.forEach((p) => {
-            if (entryKeys.has(p.key) && p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+            if (entryKeys.has(p.key) && !failures.includes(p.file?.name) && p.previewUrl) {
+              URL.revokeObjectURL(p.previewUrl);
+            }
           });
-          return prev.filter((p) => !entryKeys.has(p.key));
+          return prev.filter((p) => !entryKeys.has(p.key) || failures.includes(p.file?.name));
         });
         setDirty(true);
       } finally {
-        setMediaStudioBusy({ active: false, phase: "idle", done: 0, total: 0 });
+        setUploadsInFlight((n) => Math.max(0, n - 1));
       }
     },
-    [ensureDraftListingIdForMedia, user?.id, remoteImages.length, refetchRemoteImages, showToast]
+    [ensureDraftListingIdForMedia, user?.id, remoteImages.length, persistRemoteImageOrder, showToast]
   );
 
   const runAutosave = useCallback(async (opts = {}) => {
@@ -684,8 +716,15 @@ export default function DashboardCreatePage() {
         }
       }
 
+      if (activeId && imageOrderDirtyRef.current) {
+        const orderResult = await persistRemoteImageOrder(activeId);
+        if (!orderResult.ok && !orderResult.skipped) {
+          throw orderResult.error || new Error("Could not save photo order.");
+        }
+      }
+
       if (pendingUploads.length > 0 && activeId) {
-        const filesOnly = pendingUploads.map((p) => p.file);
+        const filesOnly = pendingUploads.map((p) => p.file).filter(Boolean);
         let startPos = remoteImages.length;
         if (startPos === 0) {
           const { count } = await supabase
@@ -695,26 +734,13 @@ export default function DashboardCreatePage() {
           startPos = Number(count || 0);
         }
         const totalFiles = filesOnly.length;
-        setMediaStudioBusy({ active: true, phase: "optimizing", done: 0, total: totalFiles });
-        await new Promise((r) => {
-          requestAnimationFrame(() => r());
-        });
+        setUploadsInFlight((n) => n + 1);
         try {
-          setMediaStudioBusy((s) => ({ ...s, phase: "uploading", done: 0, total: totalFiles }));
           const { failures, insertedRows } = await uploadListingImageFiles(supabase, {
             listingId: activeId,
             userId: user.id,
             files: filesOnly,
             startPosition: startPos,
-            onProgress: (done, total) => {
-              setMediaStudioBusy((prev) => ({
-                ...prev,
-                active: true,
-                phase: "uploading",
-                done,
-                total,
-              }));
-            },
           });
           const allFailed = failures.length > 0 && failures.length >= totalFiles;
           if (failures.length) {
@@ -726,7 +752,6 @@ export default function DashboardCreatePage() {
             });
           }
           if (!allFailed) {
-            setMediaStudioBusy((s) => ({ ...s, phase: "syncing", done: totalFiles, total: totalFiles }));
             if (insertedRows?.length) {
               setRemoteImages((prev) => {
                 const seen = new Set(prev.map((row) => String(row.id || row.image_url || "")));
@@ -737,10 +762,9 @@ export default function DashboardCreatePage() {
                   seen.add(key);
                   merged.push(row);
                 }
-                return merged.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+                return normalizeOrderedImageRows(merged);
               });
             }
-            await refetchRemoteImages(activeId);
             setPendingUploads((prev) => {
               prev.forEach((p) => {
                 if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
@@ -749,7 +773,7 @@ export default function DashboardCreatePage() {
             });
           }
         } finally {
-          setMediaStudioBusy({ active: false, phase: "idle", done: 0, total: 0 });
+          setUploadsInFlight((n) => Math.max(0, n - 1));
         }
       }
 
@@ -798,7 +822,7 @@ export default function DashboardCreatePage() {
     linkedUnitId,
     router,
     remoteImages.length,
-    refetchRemoteImages,
+    persistRemoteImageOrder,
     showToast,
     legacyDraftBlocked,
   ]);
@@ -1118,22 +1142,29 @@ export default function DashboardCreatePage() {
   const moveRemote = useCallback(
     async (from, to) => {
       if (to < 0 || to >= remoteImages.length || from === to) return;
-      const next = [...remoteImages];
-      const [it] = next.splice(from, 1);
-      next.splice(to, 0, it);
+      const next = normalizeOrderedImageRows(
+        (() => {
+          const copy = [...remoteImages];
+          const [it] = copy.splice(from, 1);
+          copy.splice(to, 0, it);
+          return copy;
+        })()
+      );
       setRemoteImages(next);
+      imageOrderDirtyRef.current = true;
       const rowsWithIds = next.filter((row) => row?.id);
       if (rowsWithIds.length !== next.length) {
-        if (draftListingId) await refetchRemoteImages(draftListingId);
         showToast({ type: "info", message: "Syncing image order… try again in a moment." });
         return;
       }
-      const { error } = await persistListingImageOrder(supabase, next);
+      const { error, rows: normalized } = await persistListingImageOrder(supabase, next);
       if (error) {
         showToast({ type: "error", message: "Could not reorder images" });
         if (draftListingId) await refetchRemoteImages(draftListingId);
         return;
       }
+      imageOrderDirtyRef.current = false;
+      setRemoteImages(normalized || next);
       setDirty(true);
     },
     [remoteImages, draftListingId, refetchRemoteImages, showToast]
@@ -1983,7 +2014,7 @@ export default function DashboardCreatePage() {
                           type="button"
                           className={cw.mediaBtn}
                           onClick={() => moveRemote(idx, idx - 1)}
-                          disabled={idx === 0 || mediaStudioBusy.active}
+                          disabled={idx === 0}
                           aria-label="Move left"
                         >
                           ←
@@ -1992,7 +2023,7 @@ export default function DashboardCreatePage() {
                           type="button"
                           className={cw.mediaBtn}
                           onClick={() => moveRemote(idx, idx + 1)}
-                          disabled={idx >= remoteImages.length - 1 || mediaStudioBusy.active}
+                          disabled={idx >= remoteImages.length - 1}
                           aria-label="Move right"
                         >
                           →
@@ -2001,7 +2032,7 @@ export default function DashboardCreatePage() {
                           type="button"
                           className={cw.mediaBtn}
                           onClick={() => moveRemoteToFront(idx)}
-                          disabled={idx === 0 || mediaStudioBusy.active}
+                          disabled={idx === 0}
                           aria-label="Move to front"
                         >
                           Front
@@ -2010,7 +2041,7 @@ export default function DashboardCreatePage() {
                           type="button"
                           className={cw.mediaBtn}
                           onClick={() => moveRemoteToBack(idx)}
-                          disabled={idx >= remoteImages.length - 1 || mediaStudioBusy.active}
+                          disabled={idx >= remoteImages.length - 1}
                           aria-label="Move to back"
                         >
                           Back
@@ -2019,7 +2050,6 @@ export default function DashboardCreatePage() {
                           type="button"
                           className={cw.mediaBtn}
                           onClick={() => removeRemoteAt(img)}
-                          disabled={mediaStudioBusy.active}
                           aria-label="Remove photo"
                         >
                           Remove
@@ -2035,14 +2065,30 @@ export default function DashboardCreatePage() {
                         {remoteImages.length + idx + 1}
                       </span>
                       <span className={cw.uploadingBadge} aria-live="polite">
-                        Uploading…
+                        {p.uploadFailed
+                          ? "Upload failed"
+                          : p.uploading
+                            ? p.uploadProgress != null && p.uploadProgress > 0
+                              ? `Uploading ${p.uploadProgress}%`
+                              : "Uploading…"
+                            : "Queued"}
                       </span>
                       <div className={cw.mediaActions}>
+                        {p.uploadFailed ? (
+                          <button
+                            type="button"
+                            className={cw.mediaBtn}
+                            onClick={() => void uploadPendingFilesImmediately([p])}
+                            aria-label="Retry upload"
+                          >
+                            Retry
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           className={cw.mediaBtn}
                           onClick={() => removePendingAt(p.key)}
-                          disabled={p.uploading}
+                          disabled={p.uploading && !p.uploadFailed}
                           aria-label="Cancel upload"
                         >
                           Remove
@@ -2131,7 +2177,7 @@ export default function DashboardCreatePage() {
                     type="button"
                     className={cw.footerBack}
                     onClick={() => void handleBack()}
-                    disabled={saveUi === "saving" || hydratingDraft || mediaStudioBusy.active}
+                    disabled={saveUi === "saving" || hydratingDraft}
                   >
                     Back
                   </button>
@@ -2144,7 +2190,7 @@ export default function DashboardCreatePage() {
                   type="button"
                   className={cw.saveDraftBtn}
                   onClick={() => void handleSaveDraft()}
-                  disabled={saveUi === "saving" || hydratingDraft || mediaStudioBusy.active}
+                  disabled={saveUi === "saving" || hydratingDraft}
                 >
                   Save draft
                 </button>
@@ -2152,7 +2198,7 @@ export default function DashboardCreatePage() {
                   type="button"
                   className={cw.saveAndExitBtn}
                   onClick={() => void handleSaveAndExit()}
-                  disabled={saveUi === "saving" || hydratingDraft || mediaStudioBusy.active}
+                  disabled={saveUi === "saving" || hydratingDraft}
                 >
                   Save &amp; exit
                 </button>
@@ -2161,7 +2207,7 @@ export default function DashboardCreatePage() {
                     type="button"
                     className={`${styles.primaryButton} ${cw.footerPrimaryCta}`}
                     onClick={() => void handleContinue()}
-                    disabled={saveUi === "saving" || hydratingDraft || mediaStudioBusy.active}
+                    disabled={saveUi === "saving" || hydratingDraft}
                   >
                     Continue
                   </button>
@@ -2180,41 +2226,10 @@ export default function DashboardCreatePage() {
             </div>
           </form>
 
-          {mediaStudioBusy.active ? (
-            <div
-              className={cw.mediaUploadOverlayRoot}
-              role="alertdialog"
-              aria-modal="true"
-              aria-live="polite"
-              aria-busy="true"
-              aria-labelledby="create-media-upload-title"
-            >
-              <div className={cw.mediaUploadOverlayBackdrop} aria-hidden />
-              <div className={cw.mediaUploadOverlayPanel}>
-                <p id="create-media-upload-title" className={cw.mediaUploadTitle}>
-                  Uploading photos…
-                </p>
-                <p className={cw.mediaUploadSub}>
-                  {mediaStudioBusy.phase === "syncing"
-                    ? "Please wait while your media studio syncs."
-                    : "Your inventory gallery is being prepared with care."}
-                </p>
-                <p className={cw.mediaUploadTertiary}>
-                  {mediaStudioBusy.phase === "optimizing"
-                    ? "Optimizing images"
-                    : mediaStudioBusy.phase === "uploading" && mediaStudioBusy.total > 0
-                      ? mediaStudioBusy.done === 0
-                        ? "Preparing uploads…"
-                        : `Uploading ${mediaStudioBusy.done} of ${mediaStudioBusy.total}`
-                      : mediaStudioBusy.phase === "syncing"
-                        ? "Preparing gallery"
-                        : ""}
-                </p>
-                <div className={cw.mediaUploadShimmerBar} aria-hidden>
-                  <div className={cw.mediaUploadShimmerFill} />
-                </div>
-              </div>
-            </div>
+          {uploadsInFlight > 0 ? (
+            <p className={cw.dropMuted} aria-live="polite">
+              {uploadsInFlight === 1 ? "Uploading photo in background…" : `Uploading ${uploadsInFlight} photos in background…`}
+            </p>
           ) : null}
 
           {isDebug && (

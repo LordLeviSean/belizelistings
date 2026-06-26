@@ -47,7 +47,7 @@ node scripts/apply-supabase-migrations.mjs 20260626120000_listing_events.sql
 | Local dev | `.env.local` | `NEXT_PUBLIC_BL_ENABLE_LISTING_EVENTS=true` |
 | **Netlify production** | Site env | `NEXT_PUBLIC_BL_ENABLE_LISTING_EVENTS=true` |
 
-Rebuild/redeploy after setting the Netlify variable (`NEXT_PUBLIC_*` is inlined at build time).
+Rebuild/redeploy after setting the Netlify variable (`NEXT_PUBLIC_*` is inlined at build time). **The flag must be present before `npm run build` — changing it after deploy without rebuild leaves events disabled in the client bundle.**
 
 Default when unset: **false** (safe when migration not applied). See `src/lib/featureFlags.js`.
 

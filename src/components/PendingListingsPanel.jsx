@@ -13,6 +13,7 @@ import { formatOperationalTimestamp } from "../utils/listingOperationalMeta";
 import ListingTrustStrip from "./ListingTrustStrip";
 import AgentOperationalStrip from "./AgentOperationalStrip";
 import { buildAgentOperationalSnapshotMap } from "../utils/trustSignals";
+import { getListingCoverImageUrl } from "../utils/listingImage";
 import ListingOwnershipMeta from "./ListingOwnershipMeta";
 import { isMissingColumnError } from "../lib/supabaseCompat";
 import {
@@ -212,7 +213,7 @@ export default function PendingListingsPanel({ onAction, profilesRevision = 0 })
   return (
     <div className={styles.pendingGrid}>
       {listings.map((listing) => {
-        const firstImage = listing?.listing_images?.[0]?.image_url || "/placeholder.jpg";
+        const firstImage = getListingCoverImageUrl(listing) || "/placeholder.jpg";
         const listingKey = String(listing.id);
         return (
           <div

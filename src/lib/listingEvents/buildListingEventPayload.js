@@ -25,6 +25,13 @@ export function buildVerificationRemovedPayload({
   };
 }
 
+export function buildCreatedPayload({ lifecycleStatus, title } = {}) {
+  const payload = {};
+  if (lifecycleStatus) payload.lifecycle_status = lifecycleStatus;
+  if (title) payload.title = String(title).trim();
+  return payload;
+}
+
 export function buildStatusChangedPayload({ fromStatus, toStatus, action }) {
   const payload = {};
   if (fromStatus) payload.from_status = fromStatus;

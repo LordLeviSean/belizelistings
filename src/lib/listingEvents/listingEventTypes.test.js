@@ -7,6 +7,7 @@ import {
 
 describe("listingEventTypes", () => {
   test("verification events have expected visibility", () => {
+    expect(LISTING_EVENT_VISIBILITY[LISTING_EVENT_TYPES.CREATED]).toBe("public");
     expect(LISTING_EVENT_VISIBILITY[LISTING_EVENT_TYPES.VERIFICATION_APPROVED]).toBe("public");
     expect(LISTING_EVENT_VISIBILITY[LISTING_EVENT_TYPES.VERIFICATION_REMOVED]).toBe("internal");
   });

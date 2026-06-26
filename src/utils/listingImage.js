@@ -111,8 +111,14 @@ export function resolveListingImageUrl(url) {
 
 /** Primary image for cards: first valid image_url in images[], or null. */
 export function getListingPrimaryImageSrc(listing) {
-  const first = listing?.images?.[0];
-  return first?.image_url ? resolveListingImageUrl(first.image_url) : null;
+  return getListingCoverImageUrl(listing) || null;
+}
+
+/** Cover/hero URL — first image by position (0 = cover). */
+export function getListingCoverImageUrl(listing) {
+  const gallery = getListingGalleryImages(listing);
+  const first = gallery[0];
+  return first?.image_url ? resolveListingImageUrl(first.image_url) : "";
 }
 
 /** All non-empty image URLs (for listing detail gallery). */

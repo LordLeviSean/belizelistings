@@ -2,6 +2,7 @@ import { sanitizeListingMutationPayload } from "./listingPayloadSanitize";
 import { LISTING_MUTATION_FLOW } from "./listingMutationDiagnostics";
 import { VERIFICATION_STATUS } from "../constants/trustModel";
 import { BL_ENABLE_LISTING_EVENTS } from "./featureFlags";
+import { coerceListingIdForDb } from "./listingEvents/coerceListingId";
 import {
   buildVerificationApprovedPayload,
   buildVerificationRemovedPayload,
@@ -96,7 +97,7 @@ export async function applyListingVerificationAction({
 
   if (BL_ENABLE_LISTING_EVENTS && client.rpc) {
     const { data, error } = await client.rpc(RPC_VERIFY_WITH_EVENT, {
-      p_listing_id: id,
+      p_listing_id: coerceListingIdForDb(id),
       p_verified: Boolean(verified),
       p_admin_user_id: actorId,
     });

@@ -1,5 +1,6 @@
 import { BL_ENABLE_LISTING_EVENTS } from "../featureFlags";
 import { isMissingColumnError, isMissingRelationshipError, isMissingTableError } from "../supabaseCompat";
+import { coerceListingIdForDb } from "./coerceListingId";
 import { LISTING_EVENT_SOURCES } from "./listingEventTypes";
 
 const RPC_APPEND = "append_listing_event";
@@ -61,7 +62,7 @@ export async function writeListingEvent({
   }
 
   const rpcArgs = {
-    p_listing_id: id,
+    p_listing_id: coerceListingIdForDb(id),
     p_event_type: type,
     p_visibility: visibility,
     p_payload: payload,

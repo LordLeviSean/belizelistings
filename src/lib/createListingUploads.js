@@ -4,6 +4,13 @@ import {
 } from "./optimizeListingUploadFile";
 export { safeFileSlug } from "./listingUploadSlug";
 
+/** Apply contiguous 0-based positions; position 0 is cover/hero everywhere. */
+export function normalizeOrderedImageRows(orderedRows) {
+  return (orderedRows || [])
+    .filter(Boolean)
+    .map((row, index) => ({ ...row, position: index }));
+}
+
 /**
  * Upload local files to listing-images bucket and insert listing_images rows.
  * Images are resized (max 1920px longest side) and encoded as WebP before upload.
@@ -60,14 +67,21 @@ export async function uploadListingImageFiles(
   return { failures, insertedRows };
 }
 
+/**
+ * Persist display order for listing_images rows (position 0 = cover/hero).
+ * @returns {{ error: object|null, rows: object[] }}
+ */
 export async function persistListingImageOrder(supabase, orderedRows) {
-  for (let i = 0; i < orderedRows.length; i++) {
-    const row = orderedRows[i];
+  const normalized = normalizeOrderedImageRows(orderedRows);
+  for (const row of normalized) {
     if (!row?.id) continue;
-    const { error } = await supabase.from("listing_images").update({ position: i }).eq("id", row.id);
-    if (error) return { error };
+    const { error } = await supabase
+      .from("listing_images")
+      .update({ position: row.position })
+      .eq("id", row.id);
+    if (error) return { error, rows: null };
   }
-  return { error: null };
+  return { error: null, rows: normalized };
 }
 
 export async function deleteListingImageRow(supabase, imageRowId) {

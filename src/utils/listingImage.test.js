@@ -10,6 +10,7 @@ afterAll(() => {
 
 const {
   resolveListingImageUrl,
+  getListingCoverImageUrl,
   getListingGalleryImages,
   mapListingWithImages,
   normalizeListingImageEntry,
@@ -97,6 +98,17 @@ describe("listingImage gallery normalization", () => {
     for (const row of rows) {
       expect(row.image_url).toMatch(/^https:\/\//);
     }
+  });
+
+  test("getListingCoverImageUrl returns lowest position image", () => {
+    const url = getListingCoverImageUrl({
+      listing_images: [
+        { image_url: "/listings/second", position: 2 },
+        { image_url: "/listings/cover", position: 0 },
+        { image_url: "/listings/middle", position: 1 },
+      ],
+    });
+    expect(url).toBe("/listings/cover.png");
   });
 
   test("cover vs gallery image 2 share the same normalized Supabase public URL shape", () => {

@@ -82,6 +82,14 @@ const DEFAULT_PRESENTATION = {
 
 /** Central registry: event_type → presentation builders. */
 export const LISTING_EVENT_PRESENTATION = Object.freeze({
+  [LISTING_EVENT_TYPES.CREATED]: {
+    icon: Home,
+    buildHeadline: () => "Added to BelizeListings",
+    buildDescription: (event) => {
+      const title = event?.payload?.title;
+      return title ? String(title) : null;
+    },
+  },
   [LISTING_EVENT_TYPES.PUBLISHED]: {
     icon: Home,
     buildHeadline: () => "Listed on BelizeListings",

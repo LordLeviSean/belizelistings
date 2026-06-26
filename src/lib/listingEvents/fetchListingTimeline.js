@@ -1,6 +1,7 @@
 import { BL_ENABLE_LISTING_EVENTS } from "../featureFlags";
 import { isMissingRelationshipError, isMissingTableError } from "../supabaseCompat";
 import { supabase } from "../supabaseClient";
+import { coerceListingIdForDb } from "./coerceListingId";
 
 const TIMELINE_SELECT =
   "id, event_type, occurred_at, payload, visibility, source";
@@ -33,7 +34,7 @@ export async function fetchListingTimeline(listingId, { limit = 50 } = {}) {
   const { data, error } = await supabase
     .from("listing_events")
     .select(TIMELINE_SELECT)
-    .eq("listing_id", id)
+    .eq("listing_id", coerceListingIdForDb(id))
     .eq("visibility", "public")
     .order("occurred_at", { ascending: false })
     .limit(limit);
