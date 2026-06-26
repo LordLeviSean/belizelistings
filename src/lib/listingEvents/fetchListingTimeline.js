@@ -28,6 +28,13 @@ export async function fetchListingTimeline(listingId, { limit = 50 } = {}) {
     return { events: [], error: { message: "Missing listingId" } };
   }
   if (!BL_ENABLE_LISTING_EVENTS) {
+    console.log("[fetchListingTimeline]", {
+      listingId: id,
+      data: null,
+      error: null,
+      count: 0,
+      skipped: true,
+    });
     return { events: [], error: null, skipped: true };
   }
 
@@ -41,10 +48,31 @@ export async function fetchListingTimeline(listingId, { limit = 50 } = {}) {
 
   if (error) {
     if (isTimelineUnavailable(error)) {
+      console.log("[fetchListingTimeline]", {
+        listingId: id,
+        data: null,
+        error,
+        count: 0,
+        skipped: true,
+      });
       return { events: [], error: null, skipped: true };
     }
+    console.log("[fetchListingTimeline]", {
+      listingId: id,
+      data: null,
+      error,
+      count: 0,
+      skipped: false,
+    });
     return { events: [], error };
   }
 
+  console.log("[fetchListingTimeline]", {
+    listingId: id,
+    data,
+    error,
+    count: data?.length ?? 0,
+    skipped: false,
+  });
   return { events: data || [], error: null };
 }
