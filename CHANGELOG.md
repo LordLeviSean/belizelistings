@@ -4,6 +4,35 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-06-26 — Phase 3 Final platform stabilization
+
+### Milestone
+
+- **Phase 3 Final — Platform Stabilization & Production Readiness** — repository cleanup, safe performance optimizations, targeted a11y fixes, production checklist, platform freeze report. No new features or UI redesign.
+
+### Added
+
+- **`docs/platform/platform-freeze-v1.7.0.md`** — maturity assessment, health audits, files removed, Private Beta recommendation.
+- **`docs/platform/production-readiness-checklist.md`** — migrations, env vars, Netlify/Supabase steps, RPC permission summary.
+- **`docs/platform/README.md`** — platform doc index and cross-links.
+- **Feature flag inlining regression test** in `featureFlags.test.js`.
+
+### Changed
+
+- **`ListingContactActions`** — dynamic imports for contact/message/viewing modals (defer Turnstile bundle until modal open).
+- **`AgentInboxPanel`** — `aria-selected` on conversation list items.
+- **`NotificationCenter`** — `aria-busy` on panel body during load.
+- **`README.md`** — platform overview, milestone tags, deployment pointers.
+- **`docs/platform/phase-3-program.md`** — v1.7.0 freeze milestone, Turnstile flag row.
+
+### Removed
+
+- 19 confirmed-unused one-off scripts (`debug-drawer-*`, `repro-*`, `investigate-timeline-*`, mobile polish captures, timeline audit untracked files). See platform-freeze doc for full list.
+
+### Deployment
+
+- No new migrations. Follow [production-readiness-checklist.md](./docs/platform/production-readiness-checklist.md) before enabling marketplace flags in production.
+
 ## [1.6.7] - 2026-06-28 — Milestone 3.7 marketplace security
 
 ### Milestone

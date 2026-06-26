@@ -1,7 +1,8 @@
 # Phase 3 — Marketplace Infrastructure Program
 
 **Baseline:** Platform Foundation v1.4.0 (`v1.4.0-platform-foundation`, commit `36f2302`)  
-**Current milestone:** 3.6 — Notification Delivery (`v1.6.6-notification-delivery`)  
+**Current milestone:** 3.7 — Marketplace Security (`v1.6.7-marketplace-security`)  
+**Platform freeze:** v1.7.0 (`v1.7.0-platform-freeze`) — [platform-freeze-v1.7.0.md](./platform-freeze-v1.7.0.md)  
 **Parent doc:** [marketplace-infrastructure-phase.md](./marketplace-infrastructure-phase.md)
 
 ---
@@ -30,11 +31,13 @@ Phase 3 adds marketplace infrastructure — trust history, lead conversion, acti
 ```
 3.1  Timeline foundation (schema + writer + verify/lifecycle emit)     ✅ v1.5.x
 3.1B Public ListingTimelinePanel                                      ✅ v1.5.1
-3.2  CRM foundation (inquiries + conversations + viewing + inbox)     ✅ v1.6.0 ← THIS RELEASE
-3.5  Activity Engine implementation (replace deriveAgentActivityFeed)
-3.6  Notification framework MVP (in-app + email edge function)     ✅ v1.6.6
-3.7  Price/lifecycle event emit on listingWriteContract paths
-3.8  Broker pipeline board + buyer dashboard tracker
+3.2  CRM foundation (inquiries + conversations + viewing + inbox)     ✅ v1.6.0
+3.3  Marketplace activation + health dashboard                          ✅ v1.6.5
+3.6  Notification framework MVP (in-app + cron)                         ✅ v1.6.6
+3.7  Marketplace security (Turnstile, rate limits, RPC hardening)       ✅ v1.6.7
+3.7F Platform stabilization & production readiness                      ✅ v1.7.0
+3.5  Activity Engine implementation (replace deriveAgentActivityFeed)   ⏸ Phase 4
+3.8  SEO + broker pipeline + buyer dashboard tracker                    ⏸ Phase 4
 ```
 
 ### Dependencies
@@ -95,6 +98,7 @@ Each milestone must:
 | `NEXT_PUBLIC_BL_ENABLE_VIEWING_PERSIST` | false | 3.3 |
 | `NEXT_PUBLIC_BL_ENABLE_CONVERSATIONS` | false | 3.4 |
 | `NEXT_PUBLIC_BL_ENABLE_NOTIFICATIONS` | false | 3.6 |
+| `NEXT_PUBLIC_BL_ENABLE_TURNSTILE` | false | 3.7 |
 
 ---
 
@@ -121,5 +125,7 @@ Each milestone must:
 ## Related
 
 - [CHANGELOG.md](../../CHANGELOG.md)
+- [platform-freeze-v1.7.0.md](./platform-freeze-v1.7.0.md)
+- [production-readiness-checklist.md](./production-readiness-checklist.md)
 - [milestone-platform-foundation-complete.md](./milestone-platform-foundation-complete.md)
 - [property-timeline-architecture.md](./proposals/property-timeline-architecture.md)

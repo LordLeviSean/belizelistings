@@ -1,8 +1,10 @@
+import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { CalendarClock, MessageCircle, Share2 } from "lucide-react";
-import ContactAgentModal from "./ContactAgentModal";
-import ListingMessageModal from "./ListingMessageModal";
-import ListingViewingBookingModal from "./ListingViewingBookingModal";
+
+const ContactAgentModal = dynamic(() => import("./ContactAgentModal"), { ssr: false });
+const ListingMessageModal = dynamic(() => import("./ListingMessageModal"), { ssr: false });
+const ListingViewingBookingModal = dynamic(() => import("./ListingViewingBookingModal"), { ssr: false });
 import { useToast } from "@/components/ui/ToastProvider";
 import styles from "./ListingContactActions.module.css";
 

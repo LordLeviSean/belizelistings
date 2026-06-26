@@ -475,7 +475,7 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
               {busy ? <Loader2 className={`${nav.navIconSpin} ${styles.headSpinner}`} strokeWidth={1.85} aria-hidden /> : null}
             </header>
 
-            <div className={styles.panelBody}>
+            <div className={styles.panelBody} aria-busy={busy || undefined}>
               {items.length === 0 ? (
                 <p className={styles.empty}>
                   You&apos;re caught up — BelizeListings stays quiet until the next operational pulse.

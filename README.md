@@ -1,52 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# BelizeListings Frontend
 
-## Environment Setup
+Next.js marketplace frontend for [BelizeListings.BZ](https://belizelistings.bz) — property discovery, listing detail, agent dashboards, and admin trust workflows. Data layer: Supabase (Auth, Postgres, Storage, Realtime).
+
+---
+
+## Platform overview
+
+| Phase | Status | Doc |
+|-------|--------|-----|
+| Foundation (v1.4.0) | ✅ Frozen | [Platform Foundation](./docs/platform/milestone-platform-foundation-complete.md) |
+| Phase 3 marketplace | ✅ v1.7.0 freeze | [Platform freeze v1.7.0](./docs/platform/platform-freeze-v1.7.0.md) |
+| Production checklist | 📋 | [Production readiness](./docs/platform/production-readiness-checklist.md) |
+
+**Frozen public surfaces:** Homepage, ListingCard DNA, listing detail (desktop + mobile). Marketplace features (CRM, notifications, timeline, security) ship behind `NEXT_PUBLIC_BL_*` feature flags.
+
+Full platform doc index: [docs/platform/README.md](./docs/platform/README.md)
+
+---
+
+## Environment setup
 
 1. Copy the template: `cp .env.example .env.local` (Windows: copy `.env.example` to `.env.local`).
 2. In the [Supabase dashboard](https://supabase.com/dashboard) → **Project Settings → API**, copy:
    - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
    - **anon public** key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - **service_role** key → `SUPABASE_SERVICE_ROLE_KEY` (server-only; required for admin API routes and some scripts)
-3. **Public vs server-only:** Variables prefixed with `NEXT_PUBLIC_` are embedded in the client bundle at build time. Never put the service role key or database credentials in a `NEXT_PUBLIC_` variable.
-4. **Never commit** `.env.local` or other env files with real secrets — they are listed in `.gitignore`. Use `.env.example` as the documented template only.
+   - **service_role** key → `SUPABASE_SERVICE_ROLE_KEY` (server-only)
+3. **Public vs server-only:** Variables prefixed with `NEXT_PUBLIC_` are embedded in the client bundle at build time. Never put the service role key in a `NEXT_PUBLIC_` variable.
+4. **Never commit** `.env.local` — use `.env.example` as the documented template.
 
-Optional variables (QA automation, migrations, feature flags) are documented in `.env.example`.
+Optional variables (feature flags, QA, Turnstile, cron) are documented in `.env.example` and [production-readiness-checklist.md](./docs/platform/production-readiness-checklist.md).
 
-## Getting Started
+---
 
-First, run the development server:
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+---
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+## Scripts
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+| Command | Purpose |
+|---------|---------|
+| `npm test` | Jest unit tests |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run qa` | Full QA (mobile, desktop, screenshots, optional lighthouse) |
+| `npm run qa:mobile` | Mobile viewport checks |
+| `npm run qa:desktop` | Desktop viewport checks |
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Migrations:** `node scripts/apply-supabase-migrations.mjs` — see [admin-operations.md](./docs/admin-operations.md).
 
-## Learn More
+**Marketplace verification:** See [marketplace-activation-v1.6.5.md](./docs/platform/marketplace-activation-v1.6.5.md).
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+## Milestone tags
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Tag | Milestone |
+|-----|-----------|
+| `v1.4.0-platform-foundation` | Frozen public surfaces |
+| `v1.6.0-crm-foundation` | CRM schema + inbox |
+| `v1.6.5-marketplace-activation` | Staged flags + health dashboard |
+| `v1.6.6-notification-delivery` | Notifications inbox + cron |
+| `v1.6.7-marketplace-security` | Turnstile, rate limits, RPC hardening |
+| `v1.7.0-platform-freeze` | Phase 3 Final stabilization |
 
-## Deploy on Vercel
+See [CHANGELOG.md](./CHANGELOG.md) for release notes.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+## Architecture
+
+- [BELIZELISTINGS_ARCHITECTURE.md](./docs/BELIZELISTINGS_ARCHITECTURE.md)
+- [Phase 3 program](./docs/platform/phase-3-program.md)
+
+---
+
+## Deploy
+
+Production deploys via Netlify. After env changes (especially feature flags), trigger a redeploy. Schedule cron for `/api/cron/process-notifications` when notifications are enabled — see [production-readiness-checklist.md](./docs/platform/production-readiness-checklist.md).

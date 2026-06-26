@@ -155,6 +155,7 @@ export default function AgentInboxPanel({
                   key={conv.id}
                   type="button"
                   role="listitem"
+                  aria-selected={isSelected}
                   className={`${listStyles.card} ${styles.convBtn} ${unread ? listStyles.cardUnread : ""} ${
                     isSelected ? styles.convBtnSelected : ""
                   }`}
