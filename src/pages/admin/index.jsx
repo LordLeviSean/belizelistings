@@ -31,6 +31,7 @@ import { DashboardShell } from "../../components/dashboard";
 import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "../../constants/dashboardRoles";
 import styles from "../../styles/Dashboard.module.css";
 import PremiumEmptyState from "../../components/ui/PremiumEmptyState";
+import Link from "next/link";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -351,7 +352,10 @@ export default function AdminPage() {
             </section>
             <aside className={styles.card}>
               <h3 className={styles.sectionTitle}>Quick Actions</h3>
-              <button type="button" className={styles.primaryButton} onClick={() => router.push("/dashboard/create")}>Create Listing</button>
+              <Link className={styles.primaryButton} href="/admin/marketplace-health" style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}>
+                Marketplace Health
+              </Link>
+              <button type="button" className={styles.primaryButton} style={{ marginTop: 8 }} onClick={() => router.push("/dashboard/create")}>Create Listing</button>
               <button type="button" className={styles.primaryButton} style={{ marginTop: 8 }} onClick={() => setActiveTab("users")}>
                 Create User
               </button>

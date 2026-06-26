@@ -151,6 +151,33 @@
   color: rgba(210, 235, 228, 0.85);
 }
 
+@media (max-width: 640px) {
+  .list {
+    gap: 12px;
+  }
+
+  .card {
+    padding: 14px 14px 12px;
+  }
+
+  .cardHead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .secondary,
+  .primary {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card:hover {
     transform: none;

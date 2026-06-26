@@ -208,7 +208,7 @@ export default function AgentInboxPanel({
                 ) : null}
               </dl>
 
-              <div className={styles.thread} aria-live="polite">
+              <div className={styles.thread} aria-live="polite" aria-busy={messagesLoading}>
                 {messagesLoading ? (
                   <p className={styles.threadMuted}>Loading messages…</p>
                 ) : messages.length === 0 ? (

@@ -4,6 +4,31 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+## [1.6.5] - 2026-06-26 — Milestone 3.3 marketplace activation
+
+### Milestone
+
+- **Phase 3 Milestone 3.3 — Marketplace Activation** — CRM migration rollout, staged feature-flag activation, verification/audit scripts, admin marketplace health dashboard, and E2E workflow validation.
+
+### Added
+
+- **`docs/platform/marketplace-activation-v1.6.5.md`** — staged flag rollout, Netlify env checklist, E2E transition doc.
+- **Verification scripts** — `verify-crm-activation.mjs`, `validate-marketplace-workflow.mjs`, `audit-notification-queue.mjs`, `audit-crm-timeline-events.mjs`, `audit-crm-integrity.mjs`, `repair-crm-integrity.mjs`.
+- **`/admin/marketplace-health`** — admin CRM/marketplace metrics panel.
+- **`GET /api/admin/marketplace-health`** — service-role aggregates (admin JWT required).
+
+### Changed
+
+- **`.env.example`** — documents Stage 1–3 CRM flags.
+- **Admin Control Center** — link to Marketplace Health.
+- **Buyer inquiry cards** — mobile spacing/actions polish (`AgentInquiryList.module.css`).
+- **`AgentInboxPanel`** — `aria-busy` on message thread loading.
+
+### Deployment
+
+- Apply `20260626160000_crm_foundation.sql` before enabling flags.
+- Netlify: set `NEXT_PUBLIC_BL_ENABLE_INQUIRIES`, `NEXT_PUBLIC_BL_ENABLE_CONVERSATIONS`, `NEXT_PUBLIC_BL_ENABLE_VIEWING_PERSIST` (staged or together) and redeploy.
+
 ## [1.6.0] - 2026-06-26 — Milestone 3.2 CRM foundation
 
 ### Milestone
