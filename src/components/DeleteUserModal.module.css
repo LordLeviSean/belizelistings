@@ -25,8 +25,8 @@
 .modal {
   display: flex;
   flex-direction: column;
-  width: min(660px, 100%);
-  max-height: 85vh;
+  width: min(640px, 100%);
+  max-height: 88vh;
   overflow: hidden;
   border-radius: calc(var(--radius) + 2px);
   background: var(--glass-bg-strong);
@@ -47,34 +47,63 @@
   }
 }
 
-.body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 18px 20px 10px;
-}
-
-.footer {
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   flex-shrink: 0;
-  padding: 12px 20px 16px;
-  border-top: 1px solid rgba(120, 168, 158, 0.22);
-  background: var(--glass-bg-strong);
+  padding: 20px 24px 0;
 }
 
 .title {
-  margin: 0 0 12px;
-  font-size: 1.18rem;
+  margin: 0;
+  font-size: 1.22rem;
   font-weight: 650;
   letter-spacing: 0.01em;
   line-height: 1.3;
   color: rgba(26, 56, 52, 0.98);
 }
 
+.close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin: -4px -6px 0 0;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 178, 164, 0.35);
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(42, 72, 66, 0.88);
+  cursor: pointer;
+  transition: var(--transition-surface), transform var(--dur-2) var(--ease-out-soft);
+}
+
+.close:hover:not(:disabled) {
+  transform: translateY(var(--hover-lift-xs));
+  border-color: rgba(72, 140, 128, 0.42);
+}
+
+.close:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: visible;
+  padding: 16px 24px 12px;
+}
+
 .identityBlock {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  margin-bottom: 13px;
+  margin-bottom: 16px;
 }
 
 .identity {
@@ -89,7 +118,7 @@
 
 .identityLabel {
   display: block;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: rgba(72, 102, 93, 0.72);
@@ -104,34 +133,40 @@
   white-space: nowrap;
 }
 
-.warning {
-  margin: 0 0 7px;
+.removalSection {
+  margin-bottom: 16px;
+}
+
+.removalHeading {
+  margin: 0 0 10px;
   font-size: 0.9rem;
   line-height: 1.45;
   color: rgba(52, 82, 76, 0.88);
 }
 
-.checklist {
-  margin: 0 0 14px;
+.removalGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+  margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.removalItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
   font-size: 0.84rem;
   line-height: 1.45;
   color: rgba(72, 102, 93, 0.86);
 }
 
-.checklist li {
-  position: relative;
-  padding-left: 1.15em;
-  margin-bottom: 2px;
-}
-
-.checklist li::before {
-  content: "✓";
-  position: absolute;
-  left: 0;
+.removalIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
   color: rgba(72, 120, 108, 0.78);
-  font-weight: 600;
 }
 
 .formFields {
@@ -173,19 +208,51 @@
 
 .textarea {
   min-height: 52px;
+  max-height: 4.5rem;
   resize: vertical;
+}
+
+.footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 24px 20px;
+  border-top: 1px solid rgba(120, 168, 158, 0.22);
+  background: var(--glass-bg-strong);
+}
+
+.undoNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  flex: 1 1 180px;
+  min-width: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: rgba(88, 108, 102, 0.78);
+}
+
+.undoIcon {
+  flex-shrink: 0;
+  color: rgba(88, 108, 102, 0.68);
 }
 
 .actions {
   display: flex;
   flex-direction: column-reverse;
   gap: 8px;
+  flex: 1 1 auto;
+  justify-content: flex-end;
 }
 
 @media (min-width: 400px) {
   .actions {
     flex-direction: row;
-    justify-content: flex-end;
+    flex: 0 0 auto;
   }
 }
 
@@ -193,6 +260,10 @@
 .deleteButton {
   flex: 1;
   min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   border-radius: 12px;
   padding: 11px 16px;
   cursor: pointer;
@@ -238,15 +309,43 @@
   cursor: not-allowed;
 }
 
+@media (max-width: 767px) {
+  .modal {
+    max-height: 90vh;
+  }
+
+  .body {
+    overflow-y: auto;
+  }
+
+  .removalGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .body {
+    overflow-y: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .body {
+    overflow-y: visible;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .backdrop,
   .modal,
+  .close,
   .cancelButton,
   .deleteButton {
     animation: none !important;
     transition-duration: 0.01ms !important;
   }
 
+  .close:hover:not(:disabled),
   .cancelButton:hover:not(:disabled),
   .deleteButton:hover:not(:disabled) {
     transform: none;
