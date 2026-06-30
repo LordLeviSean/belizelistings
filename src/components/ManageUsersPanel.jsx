@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
+import { Trash2 } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
+import { permanentlyDeleteUserViaApi } from "../lib/userPermanentDelete";
+import DeleteUserModal from "./DeleteUserModal";
 import { clearAllFavoritesForListing } from "../lib/favorites";
 import { traceAction } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
@@ -57,6 +60,9 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [roleUnlocked, setRoleUnlocked] = useState({});
   const [listingsUnlocked, setListingsUnlocked] = useState({});
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState("");
   const listingsUnlockedRef = useRef({});
 
   useEffect(() => {
@@ -84,6 +90,16 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
   useEffect(() => {
     void loadUsers();
   }, [loadUsers, profilesRevision]);
+
+  useEffect(() => {
+    let active = true;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (active) setCurrentUserId(String(data?.user?.id || ""));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let debounceL;
@@ -275,6 +291,90 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
     void fetchListingsForUser(id);
   };
 
+  const permanentlyDeleteUser = async ({ reason = "" } = {}) => {
+    if (!deleteTarget?.id || !isRoleUnlocked(deleteTarget.id)) return;
+    setDeleteBusy(true);
+    traceAction({
+      type: "admin_permanent_delete_user",
+      payload: { userId: deleteTarget.id },
+    });
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token || "";
+      const result = await permanentlyDeleteUserViaApi({
+        userId: deleteTarget.id,
+        reason,
+        accessToken: token,
+      });
+      traceAction({
+        type: "admin_permanent_delete_user_result",
+        payload: { userId: deleteTarget.id },
+        result: { ok: result.ok, error: result.error?.message ?? null },
+      });
+      if (!result.ok) {
+        if (result.dataRemoved) {
+          const removedId = String(deleteTarget.id);
+          setUsers((prev) => prev.filter((row) => String(row.id) !== removedId));
+          setListingsByUserId((prev) => {
+            const next = { ...prev };
+            delete next[removedId];
+            return next;
+          });
+          setRoleUnlocked((prev) => {
+            const next = { ...prev };
+            delete next[removedId];
+            return next;
+          });
+          setListingsUnlocked((prev) => {
+            const next = { ...prev };
+            delete next[removedId];
+            return next;
+          });
+          await loadUsers();
+          onAction?.("Permanently deleted user (auth cleanup pending)");
+        }
+        showToast({
+          type: "error",
+          message: result.error?.message || "Unable to permanently delete user",
+        });
+        if (result.dataRemoved) {
+          setDeleteTarget(null);
+        }
+        setDeleteBusy(false);
+        return;
+      }
+      const removedId = String(deleteTarget.id);
+      setUsers((prev) => prev.filter((row) => String(row.id) !== removedId));
+      setListingsByUserId((prev) => {
+        const next = { ...prev };
+        delete next[removedId];
+        return next;
+      });
+      setRoleUnlocked((prev) => {
+        const next = { ...prev };
+        delete next[removedId];
+        return next;
+      });
+      setListingsUnlocked((prev) => {
+        const next = { ...prev };
+        delete next[removedId];
+        return next;
+      });
+      await loadUsers();
+      onAction?.("Permanently deleted user");
+      showToast({ type: "success", message: "User permanently deleted" });
+      setDeleteTarget(null);
+    } catch (error) {
+      console.error("[manage-users-panel] permanent user delete error", error);
+      showToast({
+        type: "error",
+        message: error?.message || "Unable to permanently delete user",
+      });
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   const lockListings = (userId) => {
     const id = String(userId);
     setListingsUnlocked((prev) => ({ ...prev, [id]: false }));
@@ -313,6 +413,9 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
         const archived = userListings.filter((l) => getLifecycleStatus(l) === "archived").length;
         const roleOk = isRoleUnlocked(user.id);
         const listOk = isListingsUnlocked(user.id);
+        const isSelf = currentUserId && uid === currentUserId;
+        const isAdminUser = String(user.role || "").toLowerCase() === "admin";
+        const canDeleteUser = roleOk && !isSelf && !isAdminUser;
         const displayUsername = formatProfileDisplayLabel({
           username: user.username,
           full_name: user.full_name,
@@ -393,6 +496,28 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
                 )}
               </div>
             </div>
+
+            {roleOk ? (
+              <div className={mu.dangerSection}>
+                <p className={mu.dangerHeading}>Danger Zone</p>
+                <button
+                  type="button"
+                  className={mu.deleteUserBtn}
+                  disabled={!canDeleteUser || deleteBusy}
+                  onClick={() => setDeleteTarget(user)}
+                  title={
+                    isSelf
+                      ? "You cannot delete your own account"
+                      : isAdminUser
+                        ? "Admin accounts cannot be deleted here"
+                        : "Permanently delete this user"
+                  }
+                >
+                  <Trash2 size={15} aria-hidden />
+                  Delete User
+                </button>
+              </div>
+            ) : null}
 
             {listOk ? (
               <div className={mu.listingsPanel}>
@@ -478,6 +603,15 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
           </div>
         );
       })}
+      <DeleteUserModal
+        open={Boolean(deleteTarget)}
+        user={deleteTarget}
+        busy={deleteBusy}
+        onClose={() => {
+          if (!deleteBusy) setDeleteTarget(null);
+        }}
+        onConfirm={permanentlyDeleteUser}
+      />
       {showCreateUserModal ? (
         <div className={styles.modalBackdrop} onClick={() => setShowCreateUserModal(false)}>
           <div className={styles.modalCard} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">

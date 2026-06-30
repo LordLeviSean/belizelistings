@@ -324,6 +324,10 @@ export default function AdminPage() {
                   profilesRevision={profilesRevision}
                   onAction={async (message) => {
                     pushActivity(message);
+                    setProfilesRevision((r) => r + 1);
+                    if (/listing|deleted user|permanently deleted/i.test(String(message || ""))) {
+                      setListingsRevision((r) => r + 1);
+                    }
                     await refreshStats();
                   }}
                 />
