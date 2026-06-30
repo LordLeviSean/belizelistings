@@ -419,6 +419,10 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
     });
     if (error) {
       console.error("[all-listings-panel] permanent delete error", error);
+      showToast({
+        type: "error",
+        message: error.message || "Unable to permanently delete listing",
+      });
       setActionKey("");
       return;
     }

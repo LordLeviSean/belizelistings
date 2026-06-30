@@ -25,6 +25,11 @@ import {
   lifecycleActionToEventDescriptor,
   resolveEventWriteParams,
 } from "../lib/listingEvents";
+import { coerceListingIdForDb } from "../lib/listingEvents/coerceListingId";
+import {
+  bestEffortRemoveListingImageStorage,
+  invokePermanentDeleteListingRpc,
+} from "../lib/listingPermanentDelete";
 const isProd =
   typeof process !== "undefined" && process.env.NODE_ENV === "production";
 
@@ -311,9 +316,12 @@ async function loadListingRowForPermanentDelete(supabase, listingId) {
 export async function permanentlyDeleteArchivedListing(supabase, { listingId, statusHint = "" }) {
   void statusHint;
 
+  const normalizedId = String(listingId || "").trim();
+  if (!normalizedId) return { error: new Error("Listing id is required.") };
+
   const { data: listingRow, error: listingLoadError } = await loadListingRowForPermanentDelete(
     supabase,
-    listingId
+    normalizedId
   );
   if (listingLoadError) return { error: listingLoadError };
   if (!listingRow) return { error: new Error("Listing no longer exists.") };
@@ -321,11 +329,29 @@ export async function permanentlyDeleteArchivedListing(supabase, { listingId, st
     return { error: new Error("Permanent deletion is restricted to archived listings.") };
   }
 
+  const dbListingId = coerceListingIdForDb(normalizedId);
+  const { data: imageRows } = await supabase
+    .from("listing_images")
+    .select("image_url")
+    .eq("listing_id", dbListingId);
+
+  const rpcResult = await invokePermanentDeleteListingRpc(supabase, normalizedId);
+  if (rpcResult.ok) {
+    await bestEffortRemoveListingImageStorage(supabase, imageRows || []);
+    logMutationSuccess("permanent-delete", "success-rpc-deleted", { listingId: normalizedId }, {
+      via: "rpc",
+    });
+    return { error: null };
+  }
+  if (!rpcResult.unavailable) {
+    return { error: rpcResult.error };
+  }
+
   const actorId = await getCurrentActorId(supabase);
   const nowIso = new Date().toISOString();
   const stamp = await updateListingSafe(
     supabase,
-    listingId,
+    normalizedId,
     {
       deleted_by: actorId || null,
       deleted_at: nowIso,
@@ -339,12 +365,14 @@ export async function permanentlyDeleteArchivedListing(supabase, { listingId, st
     });
   }
 
-  await supabase.from("favorites").delete().eq("listing_id", String(listingId));
-  await supabase.from("listing_images").delete().eq("listing_id", listingId);
-  const { error: deleteError } = await supabase.from("listings").delete().eq("id", listingId);
+  await supabase.from("favorites").delete().eq("listing_id", String(normalizedId));
+  await supabase.from("listing_images").delete().eq("listing_id", dbListingId);
+  const { error: deleteError } = await supabase.from("listings").delete().eq("id", dbListingId);
   if (deleteError) return { error: deleteError };
-  logMutationSuccess("permanent-delete", "success-row-deleted", { listingId }, {
+  await bestEffortRemoveListingImageStorage(supabase, imageRows || []);
+  logMutationSuccess("permanent-delete", "success-row-deleted", { listingId: normalizedId }, {
     stampApplied: !stamp.error,
+    via: "client-fallback",
   });
   return { error: null };
 }

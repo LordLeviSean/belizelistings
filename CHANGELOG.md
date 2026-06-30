@@ -4,6 +4,20 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+### Fixed
+
+- **Admin archive permanent delete (Phase 3.7)** — `permanently_delete_archived_listing` SECURITY DEFINER RPC hard-deletes archived listings (favorites + listing_images + listing row), bypassing child-table RLS and `listing_events` append-only trigger during CASCADE; admin/operator panels show error toasts and optimistic list refresh on success.
+
+### Added
+
+- **`supabase/migrations/20260629120000_permanent_listing_delete.sql`** — RPC, `listing_events_deny_mutation` CASCADE bypass, listings admin policy aligned to `is_admin()`.
+- **`src/lib/listingPermanentDelete.js`** — RPC invoke helper, error mapping, optional storage cleanup.
+- **Tests** — RPC error mapping (`listingPermanentDelete.test.js`) and delete handler guards (`permanentListingDelete.test.js`).
+
+### Deployment
+
+- Apply `20260629120000_permanent_listing_delete.sql` before using permanent delete in production.
+
 ## [1.7.0] - 2026-06-26 — Phase 3 Final platform stabilization
 
 ### Milestone

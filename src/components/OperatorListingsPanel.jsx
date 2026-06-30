@@ -300,6 +300,7 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
       showToast({ type: "error", message: error.message || "Unable to permanently delete listing" });
       return;
     }
+    setListings((prev) => prev.filter((listing) => String(listing.id) !== String(deleteTarget.id)));
     await loadListings();
     onAction?.("Permanently deleted archived listing");
     showToast({ type: "info", message: "Listing permanently deleted" });
