@@ -3,6 +3,10 @@ import { coerceListingIdForDb } from "./listingEvents/coerceListingId";
 
 export const RPC_PERMANENT_DELETE = "permanently_delete_archived_listing";
 
+/** Shown when `permanently_delete_archived_listing` RPC is not deployed yet. */
+export const PERMANENT_DELETE_MIGRATION_REQUIRED_MESSAGE =
+  "Permanent delete requires database migration 20260629120000 — apply in Supabase SQL editor";
+
 const LISTING_IMAGES_BUCKET = "listing-images";
 const STORAGE_PUBLIC_MARKER = "/storage/v1/object/public/";
 
@@ -42,11 +46,22 @@ export function mapPermanentDeleteRpcError(error) {
 export function isPermanentDeleteRpcUnavailable(error) {
   if (!error) return false;
   const msg = String(error.message || "").toLowerCase();
+  const code = String(error.code || "").toLowerCase();
   return (
     msg.includes("permanently_delete_archived_listing") ||
     msg.includes("permanently_delete_listing") ||
-    msg.includes("could not find the function")
+    msg.includes("could not find the function") ||
+    msg.includes("function public.permanently_delete") ||
+    code === "42883" ||
+    code === "pgrst202"
   );
+}
+
+/**
+ * @returns {Error}
+ */
+export function permanentDeleteMigrationRequiredError() {
+  return new Error(PERMANENT_DELETE_MIGRATION_REQUIRED_MESSAGE);
 }
 
 /**
@@ -103,7 +118,7 @@ export async function invokePermanentDeleteListingRpc(supabase, listingId) {
     return { ok: false, error: new Error("Listing id is required.") };
   }
   if (!supabase?.rpc) {
-    return { ok: false, unavailable: true, error: new Error("Missing Supabase client.") };
+    return { ok: false, unavailable: true, error: permanentDeleteMigrationRequiredError() };
   }
 
   const { error } = await supabase.rpc(RPC_PERMANENT_DELETE, {
@@ -112,7 +127,7 @@ export async function invokePermanentDeleteListingRpc(supabase, listingId) {
 
   if (error) {
     if (isPermanentDeleteRpcUnavailable(error)) {
-      return { ok: false, unavailable: true, error: mapPermanentDeleteRpcError(error) };
+      return { ok: false, unavailable: true, error: permanentDeleteMigrationRequiredError() };
     }
     return { ok: false, error: mapPermanentDeleteRpcError(error) };
   }

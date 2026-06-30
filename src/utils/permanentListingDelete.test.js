@@ -1,6 +1,9 @@
 import { LISTING_LIFECYCLE } from "../constants/operationalModel";
 import { permanentlyDeleteArchivedListing } from "./ownershipAttribution";
-import { RPC_PERMANENT_DELETE } from "../lib/listingPermanentDelete";
+import {
+  PERMANENT_DELETE_MIGRATION_REQUIRED_MESSAGE,
+  RPC_PERMANENT_DELETE,
+} from "../lib/listingPermanentDelete";
 
 jest.mock("../lib/listingPermanentDelete", () => {
   const actual = jest.requireActual("../lib/listingPermanentDelete");
@@ -106,6 +109,25 @@ describe("permanentlyDeleteArchivedListing", () => {
     expect(error).toBeNull();
     expect(invokePermanentDeleteListingRpc).toHaveBeenCalledWith(supabase, "12");
     expect(bestEffortRemoveListingImageStorage).toHaveBeenCalledWith(supabase, imageRows);
+  });
+
+  test("returns migration message when RPC is not deployed (no client fallback)", async () => {
+    const supabase = mockSupabaseForPermanentDelete({
+      listingRow: {
+        id: 12,
+        status: LISTING_LIFECYCLE.ARCHIVED,
+      },
+    });
+
+    invokePermanentDeleteListingRpc.mockResolvedValue({
+      ok: false,
+      unavailable: true,
+      error: new Error(PERMANENT_DELETE_MIGRATION_REQUIRED_MESSAGE),
+    });
+
+    const { error } = await permanentlyDeleteArchivedListing(supabase, { listingId: "12" });
+    expect(error?.message).toBe(PERMANENT_DELETE_MIGRATION_REQUIRED_MESSAGE);
+    expect(bestEffortRemoveListingImageStorage).not.toHaveBeenCalled();
   });
 
   test("RPC constant matches migration function name", () => {

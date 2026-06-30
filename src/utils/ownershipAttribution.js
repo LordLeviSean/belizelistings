@@ -343,37 +343,7 @@ export async function permanentlyDeleteArchivedListing(supabase, { listingId, st
     });
     return { error: null };
   }
-  if (!rpcResult.unavailable) {
-    return { error: rpcResult.error };
-  }
 
-  const actorId = await getCurrentActorId(supabase);
-  const nowIso = new Date().toISOString();
-  const stamp = await updateListingSafe(
-    supabase,
-    normalizedId,
-    {
-      deleted_by: actorId || null,
-      deleted_at: nowIso,
-    },
-    { logTag: "permanent-delete-stamp" }
-  );
-  if (stamp.error) {
-    console.warn("[permanent-delete] optional deleted_by/deleted_at stamp failed; proceeding with row delete", {
-      message: stamp.error?.message,
-      appliedPayload: stamp.appliedPayload,
-    });
-  }
-
-  await supabase.from("favorites").delete().eq("listing_id", String(normalizedId));
-  await supabase.from("listing_images").delete().eq("listing_id", dbListingId);
-  const { error: deleteError } = await supabase.from("listings").delete().eq("id", dbListingId);
-  if (deleteError) return { error: deleteError };
-  await bestEffortRemoveListingImageStorage(supabase, imageRows || []);
-  logMutationSuccess("permanent-delete", "success-row-deleted", { listingId: normalizedId }, {
-    stampApplied: !stamp.error,
-    via: "client-fallback",
-  });
-  return { error: null };
+  return { error: rpcResult.error };
 }
 

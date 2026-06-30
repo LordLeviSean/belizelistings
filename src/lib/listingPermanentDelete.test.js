@@ -1,9 +1,11 @@
 import {
+  PERMANENT_DELETE_MIGRATION_REQUIRED_MESSAGE,
   RPC_PERMANENT_DELETE,
   extractListingImageStoragePaths,
   invokePermanentDeleteListingRpc,
   isPermanentDeleteRpcUnavailable,
   mapPermanentDeleteRpcError,
+  permanentDeleteMigrationRequiredError,
 } from "./listingPermanentDelete";
 
 describe("listingPermanentDelete", () => {
@@ -32,7 +34,14 @@ describe("listingPermanentDelete", () => {
         message: "Could not find the function permanently_delete_archived_listing",
       })
     ).toBe(true);
+    expect(isPermanentDeleteRpcUnavailable({ code: "PGRST202" })).toBe(true);
     expect(isPermanentDeleteRpcUnavailable({ message: "not authorized" })).toBe(false);
+  });
+
+  test("permanentDeleteMigrationRequiredError returns actionable message", () => {
+    expect(permanentDeleteMigrationRequiredError().message).toBe(
+      PERMANENT_DELETE_MIGRATION_REQUIRED_MESSAGE
+    );
   });
 
   test("extractListingImageStoragePaths parses public URLs", () => {
@@ -69,5 +78,19 @@ describe("listingPermanentDelete", () => {
     const result = await invokePermanentDeleteListingRpc(client, "12");
     expect(result.ok).toBe(false);
     expect(result.error.message).toBe("You are not allowed to permanently delete this listing.");
+  });
+
+  test("invokePermanentDeleteListingRpc surfaces migration message when RPC missing", async () => {
+    const client = {
+      rpc: jest.fn().mockResolvedValue({
+        data: null,
+        error: { code: "PGRST202", message: "Could not find the function" },
+      }),
+    };
+
+    const result = await invokePermanentDeleteListingRpc(client, "12");
+    expect(result.ok).toBe(false);
+    expect(result.unavailable).toBe(true);
+    expect(result.error.message).toBe(PERMANENT_DELETE_MIGRATION_REQUIRED_MESSAGE);
   });
 });

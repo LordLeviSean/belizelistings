@@ -7,6 +7,7 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 ### Fixed
 
 - **Admin archive permanent delete (Phase 3.7)** — `permanently_delete_archived_listing` SECURITY DEFINER RPC hard-deletes archived listings (favorites + listing_images + listing row), bypassing child-table RLS and `listing_events` append-only trigger during CASCADE; admin/operator panels show error toasts and optimistic list refresh on success.
+- **Permanent delete client fallback removed** — when the RPC is not deployed, the app no longer falls back to direct `DELETE` on `listings` (which hit `listing_events is append-only; DELETE is not permitted`). Users see an actionable toast pointing at migration `20260629120000`.
 
 ### Added
 
