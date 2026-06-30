@@ -23,6 +23,7 @@ import {
 import {
   LISTING_INSERT_RETURN_TIERS,
   buildModerationArchivePatch,
+  buildSubmitForReviewMinimalFallback,
   buildSubmitForReviewStatusPatch,
   executeListingInsert,
   executeListingUpdate,
