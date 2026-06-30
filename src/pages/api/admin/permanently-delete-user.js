@@ -1,10 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import {
   extractStoragePathsFromUserDeleteResult,
+  formatPermanentUserDeleteServerConfigError,
   invokePermanentDeleteUserRpc,
   PARTIAL_AUTH_DELETE_CODE,
   PARTIAL_AUTH_DELETE_MESSAGE,
   permanentUserDeleteMigrationRequiredError,
+  SUPABASE_SERVICE_ROLE_CONFIG_MISSING_CODE,
 } from "../../../lib/userPermanentDelete";
 import { fetchProfileRowWithTiers, PROFILE_ROLE_ONLY_SELECT } from "../../../lib/profileSelectContract";
 
@@ -30,7 +32,14 @@ export default async function handler(req, res) {
   }
 
   if (!url || !serviceRole) {
-    return res.status(500).json({ error: "Missing Supabase service role configuration" });
+    /** @type {string[]} */
+    const missingEnvVars = [];
+    if (!url) missingEnvVars.push("NEXT_PUBLIC_SUPABASE_URL");
+    if (!serviceRole) missingEnvVars.push("SUPABASE_SERVICE_ROLE_KEY");
+    return res.status(503).json({
+      error: formatPermanentUserDeleteServerConfigError(missingEnvVars),
+      code: SUPABASE_SERVICE_ROLE_CONFIG_MISSING_CODE,
+    });
   }
 
   const authHeader = req.headers.authorization || "";

@@ -14,6 +14,36 @@ export const PARTIAL_AUTH_DELETE_CODE = "AUTH_DELETE_FAILED_AFTER_RPC";
 export const PARTIAL_AUTH_DELETE_MESSAGE =
   "User data was successfully removed, but the authentication account could not be deleted. Please retry cleanup.";
 
+/** API route cannot call auth.admin.deleteUser or storage cleanup without service role. */
+export const SUPABASE_SERVICE_ROLE_CONFIG_MISSING_CODE = "SUPABASE_SERVICE_ROLE_CONFIG_MISSING";
+export const PERMANENT_USER_DELETE_SERVICE_ROLE_REQUIRED_MESSAGE =
+  "Permanent user delete requires SUPABASE_SERVICE_ROLE_KEY on the server. Add it in Netlify environment settings (Site settings → Environment variables).";
+
+/**
+ * @param {string[]} [missingEnvVars]
+ * @returns {string}
+ */
+export function formatPermanentUserDeleteServerConfigError(missingEnvVars = []) {
+  const missing = (missingEnvVars || []).filter(Boolean);
+  if (missing.length === 1 && missing[0] === "SUPABASE_SERVICE_ROLE_KEY") {
+    return PERMANENT_USER_DELETE_SERVICE_ROLE_REQUIRED_MESSAGE;
+  }
+  if (missing.length === 1 && missing[0] === "NEXT_PUBLIC_SUPABASE_URL") {
+    return "Permanent user delete requires NEXT_PUBLIC_SUPABASE_URL on the server. Add it in Netlify environment settings (Site settings → Environment variables).";
+  }
+  if (missing.length) {
+    return `Permanent user delete requires ${missing.join(" and ")} on the server. Add them in Netlify environment settings (Site settings → Environment variables).`;
+  }
+  return PERMANENT_USER_DELETE_SERVICE_ROLE_REQUIRED_MESSAGE;
+}
+
+/**
+ * @returns {Error}
+ */
+export function permanentUserDeleteServiceRoleRequiredError() {
+  return new Error(PERMANENT_USER_DELETE_SERVICE_ROLE_REQUIRED_MESSAGE);
+}
+
 /** Expected audit metadata count keys (pre-delete snapshot). */
 export const USER_DELETE_AUDIT_COUNT_KEYS = [
   "listings",
@@ -71,6 +101,9 @@ export function mapPermanentUserDeleteApiError(payload, status) {
   if (payload?.partial || code === PARTIAL_AUTH_DELETE_CODE) {
     return new Error(payload?.error || PARTIAL_AUTH_DELETE_MESSAGE);
   }
+  if (code === SUPABASE_SERVICE_ROLE_CONFIG_MISSING_CODE) {
+    return permanentUserDeleteServiceRoleRequiredError();
+  }
 
   const msg = String(payload?.error || "").trim();
   if (msg) {
@@ -89,8 +122,12 @@ export function mapPermanentUserDeleteApiError(payload, status) {
     if (/profile still exists/i.test(msg)) {
       return new Error("User profile still exists. Run full delete first.");
     }
-    if (/missing supabase service role/i.test(msg)) {
-      return new Error("Server configuration error. Contact support.");
+    if (
+      /missing supabase service role/i.test(msg) ||
+      /requires supabase_service_role_key on the server/i.test(msg) ||
+      /requires next_public_supabase_url on the server/i.test(msg)
+    ) {
+      return new Error(formatPermanentUserDeleteServerConfigError());
     }
     return new Error(msg);
   }
