@@ -9,6 +9,7 @@ import SiteNav from "../components/SiteNav";
 import useUserRole from "../hooks/useUserRole";
 import { useAuthGate } from "../components/auth/AuthGateProvider";
 import { validateSignupUsername } from "../lib/usernameRules";
+import { getAuthRedirectUrl } from "../lib/siteUrl";
 import styles from "../styles/Auth.module.css";
 
 const USERNAME_TAKEN_MSG = "Username already taken, try a new username";
@@ -60,6 +61,14 @@ export default function Login() {
       mode === "signup";
     if (wantSignup) setIsSignup(true);
   }, [router.isReady, router.query.signup, router.query.mode]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (router.query.verified !== "0") return;
+    setMessage("That verification link expired or is invalid. Sign in or request a new verification email.");
+    setMessageType("error");
+    setIsSignup(false);
+  }, [router.isReady, router.query.verified]);
 
   useEffect(() => {
     if (!router.isReady || authLoading) return;
@@ -228,6 +237,9 @@ export default function Login() {
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: signupSuccessEmail.trim(),
+      options: {
+        emailRedirectTo: getAuthRedirectUrl(),
+      },
     });
     if (error) {
       setSignupModalNotice(error.message);
@@ -308,6 +320,7 @@ export default function Login() {
         password,
         options: {
           data: { username: signupUsername },
+          emailRedirectTo: getAuthRedirectUrl(),
         },
       });
 
@@ -397,7 +410,6 @@ export default function Login() {
     if (!submitting) void handleSubmit();
   };
 
-  const mailtoHref = signupSuccessEmail.trim() ? `mailto:${signupSuccessEmail.trim()}` : "mailto:";
 
   if (authLoading) {
     return (
@@ -613,9 +625,6 @@ export default function Login() {
                   Check spam or promotions if you don&apos;t see it.
                 </p>
                 <div className={styles.successModalActions}>
-                  <a className={styles.successPrimaryLink} href={mailtoHref}>
-                    Open Email
-                  </a>
                   <button type="button" className={styles.successSecondaryBtn} onClick={closeSuccessModalToSignIn}>
                     Back to Sign In
                   </button>

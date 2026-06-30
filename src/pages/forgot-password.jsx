@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { getAuthRedirectUrl } from "../lib/siteUrl";
 import SiteNav from "../components/SiteNav";
 import styles from "../styles/Auth.module.css";
 
@@ -23,7 +24,7 @@ export default function ForgotPassword() {
 
     setSubmitting(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "http://localhost:3000/reset-password",
+      redirectTo: getAuthRedirectUrl(),
     });
 
     if (error) {

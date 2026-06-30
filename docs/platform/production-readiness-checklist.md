@@ -44,6 +44,7 @@ Copy `.env.example` → `.env.local` (dev) or Netlify env (production). See `.en
 | `NEXT_PUBLIC_SUPABASE_URL` | Client |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only |
+| `NEXT_PUBLIC_SITE_URL` | Client — **required in production** for auth email redirects ([auth-production-config.md](./auth-production-config.md)) |
 
 ### Required in production (marketplace enabled)
 
@@ -82,6 +83,7 @@ When Turnstile enabled, also set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_S
 - [ ] Enable Realtime on `notifications` if using Stage 4 (migration adds publication)
 - [ ] Review RLS policies in Supabase dashboard for `listing_inquiries`, `conversations`, `notifications`
 - [ ] Service role key stored only in Netlify server env — never `NEXT_PUBLIC_*`
+- [ ] **Authentication → URL Configuration:** Site URL `https://belizelistings.bz`; allow redirect URLs per [auth-production-config.md](./auth-production-config.md)
 
 ---
 

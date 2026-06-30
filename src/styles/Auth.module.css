@@ -282,9 +282,10 @@
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 3;
-  width: min(100%, 360px);
-  padding: 22px 20px 20px;
+  width: min(calc(100% - 24px), 340px);
+  padding: 20px 18px 18px;
   border-radius: 14px;
+  text-align: center;
   border: 1px solid rgba(154, 210, 200, 0.38);
   background:
     linear-gradient(165deg, rgba(255, 255, 255, 0.94), rgba(241, 250, 246, 0.9)),
@@ -316,7 +317,7 @@
 }
 
 .successModalFine {
-  margin: 0 0 18px;
+  margin: 0 0 14px;
   font-size: 12.5px;
   line-height: 1.45;
   color: rgba(90, 118, 110, 0.82);
@@ -324,32 +325,13 @@
 
 .successModalActions {
   display: grid;
-  gap: 10px;
-}
-
-.successPrimaryLink {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  text-decoration: none;
-  border-radius: 10px;
-  padding: 11px 14px;
-  font-size: 14px;
-  font-weight: 650;
-  color: #f7fcfa;
-  background: linear-gradient(180deg, rgba(var(--glow-rgb), 0.38), rgba(var(--glow-rgb), 0.26));
-  border: 1px solid rgba(var(--glow-rgb), 0.55);
-  box-shadow: 0 4px 18px rgba(110, 170, 155, 0.2);
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.successPrimaryLink:hover {
-  background: linear-gradient(180deg, rgba(var(--glow-rgb), 0.46), rgba(var(--glow-rgb), 0.32));
-  border-color: rgba(var(--glow-rgb), 0.68);
+  gap: 8px;
+  justify-items: center;
+  width: 100%;
 }
 
 .successSecondaryBtn {
+  width: min(100%, 240px);
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 14px;
@@ -367,8 +349,6 @@
 }
 
 .successTertiaryBtn {
-  margin-top: 4px;
-  align-self: center;
   background: none;
   border: none;
   padding: 6px 4px;

@@ -31,6 +31,7 @@ Central index for BelizeListings platform milestones, deployment, and production
 | Doc | Purpose |
 |-----|---------|
 | [production-readiness-checklist.md](./production-readiness-checklist.md) | Pre-launch checklist — migrations, env, Netlify, Supabase |
+| [auth-production-config.md](./auth-production-config.md) | Auth email redirects, Supabase URL config, Netlify `NEXT_PUBLIC_SITE_URL` |
 | [../admin-operations.md](../admin-operations.md) | Admin verification workflow, migration runner |
 | [marketplace-infrastructure-phase.md](./marketplace-infrastructure-phase.md) | Phase 3 scope and frozen-surface rules |
 
