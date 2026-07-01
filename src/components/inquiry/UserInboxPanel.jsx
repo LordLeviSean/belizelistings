@@ -2,32 +2,29 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import { BL_ENABLE_CONVERSATIONS } from "@/lib/featureFlags";
 import { inquiryTypeLabel } from "@/lib/crm/crmConstants";
-import { fetchConversationMessages, sendBuyerReply } from "@/lib/crm/conversationMutations";
+import {
+  conversationPreviewText,
+  fetchConversationMessages,
+  isBuyerConversationUnread,
+  markConversationReadByBuyer,
+  sendBuyerReply,
+} from "@/lib/crm/conversationMutations";
+import { formatRelativeTime } from "@/lib/formatRelativeTime";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
 import listStyles from "./AgentInquiryList.module.css";
 import inboxStyles from "./AgentInboxPanel.module.css";
 import styles from "./UserInboxPanel.module.css";
 
-function formatDateTime(iso) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleString();
-}
-
-function conversationPreview(conv) {
-  const inquiry = conv?.listing_inquiries;
-  const row = Array.isArray(inquiry) ? inquiry[0] : inquiry;
-  return row?.message || row?.body || "Conversation";
-}
-
 export default function UserInboxPanel({
   conversations = [],
   listingsById = {},
   buyerUserId,
   onRefresh,
+  initialConversationId = null,
 }) {
   const { showToast } = useToast();
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedId, setSelectedId] = useState(initialConversationId);
   const [messages, setMessages] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [replyBody, setReplyBody] = useState("");
@@ -43,7 +40,16 @@ export default function UserInboxPanel({
     [conversations]
   );
 
+  useEffect(() => {
+    if (initialConversationId) setSelectedId(initialConversationId);
+  }, [initialConversationId]);
+
   const selected = sorted.find((c) => c.id === selectedId) || sorted[0] || null;
+
+  const unreadCount = useMemo(
+    () => sorted.filter((conv) => isBuyerConversationUnread(conv)).length,
+    [sorted]
+  );
 
   const loadMessages = useCallback(async (conversationId) => {
     if (!conversationId) {
@@ -61,8 +67,18 @@ export default function UserInboxPanel({
   }, []);
 
   useEffect(() => {
-    if (selected?.id) loadMessages(selected.id);
+    if (selected?.id) void loadMessages(selected.id);
   }, [selected?.id, loadMessages]);
+
+  useEffect(() => {
+    if (!selected?.id || !buyerUserId) return;
+    const conv = sorted.find((c) => c.id === selected.id);
+    if (!conv || !isBuyerConversationUnread(conv)) return;
+    void markConversationReadByBuyer(supabase, {
+      conversationId: selected.id,
+      buyerUserId,
+    }).then(() => onRefresh?.());
+  }, [selected?.id, buyerUserId, sorted, onRefresh]);
 
   const handleSendReply = async () => {
     if (!selected?.id || !buyerUserId || replyBusy) return;
@@ -81,7 +97,7 @@ export default function UserInboxPanel({
       return;
     }
     setReplyBody("");
-    showToast({ type: "success", message: "Message sent." });
+    showToast({ type: "success", message: "Your message has been delivered to the listing agent." });
     await loadMessages(selected.id);
     onRefresh?.();
   };
@@ -117,10 +133,17 @@ export default function UserInboxPanel({
         Messages you send from listing pages appear here. Replies from agents land in the same thread.
       </p>
 
+      {unreadCount > 0 ? (
+        <p className={styles.unreadBanner} aria-live="polite">
+          {unreadCount} unread repl{unreadCount === 1 ? "y" : "ies"}
+        </p>
+      ) : null}
+
       <div className={inboxStyles.split}>
         <div className={listStyles.list} role="list" aria-label="Your conversations">
           {sorted.map((conv) => {
             const isSelected = selected?.id === conv.id;
+            const unread = isBuyerConversationUnread(conv);
             const inquiry = conv?.listing_inquiries;
             const row = Array.isArray(inquiry) ? inquiry[0] : inquiry;
             return (
@@ -129,7 +152,7 @@ export default function UserInboxPanel({
                 type="button"
                 role="listitem"
                 aria-selected={isSelected}
-                className={`${listStyles.card} ${inboxStyles.convBtn} ${
+                className={`${listStyles.card} ${inboxStyles.convBtn} ${unread ? listStyles.cardUnread : ""} ${
                   isSelected ? inboxStyles.convBtnSelected : ""
                 }`}
                 onClick={() => setSelectedId(conv.id)}
@@ -137,15 +160,21 @@ export default function UserInboxPanel({
                 <header className={listStyles.cardHead}>
                   <span className={listStyles.channel}>
                     {inquiryTypeLabel(row?.inquiry_type || conv.inquiry_type || "general")}
+                    {unread ? (
+                      <span className={inboxStyles.unreadDot} aria-label="Unread">
+                        {" "}
+                        · New
+                      </span>
+                    ) : null}
                   </span>
                   <time className={listStyles.time} dateTime={conv.updated_at}>
-                    {formatDateTime(conv.updated_at || conv.created_at)}
+                    {formatRelativeTime(conv.updated_at || conv.created_at)}
                   </time>
                 </header>
                 <p className={listStyles.listingRef}>
                   {listingsById?.[conv.listing_id]?.title || `Listing ${conv.listing_id}`}
                 </p>
-                <p className={listStyles.body}>{conversationPreview(conv)}</p>
+                <p className={listStyles.body}>{conversationPreviewText(conv)}</p>
               </button>
             );
           })}
@@ -176,7 +205,7 @@ export default function UserInboxPanel({
                     >
                       <p className={inboxStyles.bubbleBody}>{msg.body}</p>
                       <time className={inboxStyles.bubbleTime} dateTime={msg.created_at}>
-                        {formatDateTime(msg.created_at)}
+                        {formatRelativeTime(msg.created_at)}
                       </time>
                     </div>
                   ))

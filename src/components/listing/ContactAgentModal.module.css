@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   box-sizing: border-box;
   background: rgba(28, 48, 44, 0.26);
   backdrop-filter: blur(10px);
@@ -23,7 +23,9 @@
 }
 
 .modal {
-  width: min(420px, 100%);
+  width: min(580px, 94vw);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
   border-radius: var(--radius);
   padding: 22px 22px 20px;
   background: var(--glass-bg-strong);
@@ -87,7 +89,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   padding: 12px 14px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.55);
@@ -131,129 +133,180 @@
   line-height: 1.35;
 }
 
-.lede {
-  margin: 0 0 16px;
-  font-size: 0.88rem;
-  line-height: 1.55;
-  color: rgba(52, 82, 76, 0.86);
-}
-
-.pathGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-@media (min-width: 400px) {
-  .pathGrid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.pathCard {
+.contactCard {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  min-height: 112px;
-  padding: 14px 14px 16px;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.contactRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(120, 178, 164, 0.28);
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: var(--elev-0);
+  border: 1px solid rgba(120, 178, 164, 0.22);
+  background: rgba(255, 255, 255, 0.62);
   text-decoration: none;
   color: inherit;
-  cursor: pointer;
-  transition: var(--transition-hover-lift), border-color var(--dur-2) var(--ease-out-soft);
+  transition: border-color var(--dur-2) var(--ease-out-soft), transform var(--dur-2) var(--ease-out-soft);
 }
 
-.pathCard:hover {
-  border-color: rgba(52, 130, 118, 0.38);
-  transform: translateY(var(--hover-lift-xs));
-  box-shadow: var(--elev-1);
+.contactRow:hover {
+  border-color: rgba(52, 130, 118, 0.32);
 }
 
-.pathCardDisabled {
-  cursor: not-allowed;
+.contactRowDisabled {
   opacity: 0.72;
+  cursor: not-allowed;
 }
 
-.pathCardDisabled:hover {
-  transform: none;
-  box-shadow: var(--elev-0);
+.contactRowDisabled:hover {
   border-color: rgba(120, 178, 164, 0.22);
 }
 
-.pathIcon {
+.contactIcon {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
   background: rgba(244, 252, 249, 0.95);
   border: 1px solid rgba(110, 185, 178, 0.22);
   color: rgba(52, 130, 118, 0.92);
 }
 
-.pathLabel {
-  font-size: 0.95rem;
+.contactMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.contactLabel {
+  font-size: 0.68rem;
   font-weight: 650;
-  color: rgba(22, 56, 52, 0.96);
-}
-
-.pathHint {
-  font-size: 0.78rem;
-  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: rgba(72, 104, 96, 0.72);
-  line-height: 1.35;
 }
 
-.pathHintMuted {
+.contactValue {
+  font-size: 0.9rem;
+  font-weight: 550;
+  color: rgba(22, 56, 52, 0.96);
+  word-break: break-word;
+}
+
+.contactHintMuted {
   font-size: 0.78rem;
-  font-weight: 500;
-  line-height: 1.35;
   color: rgba(72, 104, 96, 0.62);
+  line-height: 1.35;
 }
 
-.inboxRow {
-  margin: 16px 0 0;
-  text-align: center;
+.contactActions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 
-.inboxLink {
-  border: none;
-  background: none;
-  padding: 0;
-  font-size: 0.84rem;
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 178, 164, 0.32);
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(42, 72, 66, 0.88);
+  cursor: pointer;
+  transition: var(--transition-surface);
+}
+
+.copyBtn:hover {
+  border-color: rgba(52, 130, 118, 0.38);
+}
+
+.waWebLink {
+  font-size: 0.72rem;
   font-weight: 600;
   color: rgba(52, 130, 118, 0.92);
   text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-  transition: color var(--dur-2) var(--ease-out-soft);
+  text-underline-offset: 2px;
 }
 
-.inboxLink:hover {
-  color: rgba(22, 86, 74, 0.95);
+.lede {
+  margin: 0 0 14px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: rgba(52, 82, 76, 0.86);
+}
+
+.siteMessageBtn {
+  width: 100%;
+  appearance: none;
+  border: 1px solid rgba(72, 140, 128, 0.32);
+  border-radius: 12px;
+  padding: 13px 16px;
+  font-size: 0.92rem;
+  font-weight: 650;
+  cursor: pointer;
+  color: rgba(10, 36, 34, 0.94);
+  background: rgba(236, 252, 248, 0.95);
+  box-shadow: var(--elev-0);
+  transition: var(--transition-hover-lift), border-color var(--dur-2) var(--ease-out-soft);
+}
+
+.siteMessageBtn:hover {
+  transform: translateY(var(--hover-lift-xs));
+  border-color: rgba(52, 130, 118, 0.42);
 }
 
 .inboxDisabled {
+  margin: 0;
+  text-align: center;
   font-size: 0.84rem;
   color: rgba(42, 72, 66, 0.55);
+}
+
+@media (max-width: 640px) {
+  .contactActions {
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    margin-top: 4px;
+  }
+
+  .contactRow {
+    flex-wrap: wrap;
+  }
+
+  .siteMessageBtn {
+    width: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .backdrop,
   .modal,
-  .pathCard,
-  .close {
+  .contactRow,
+  .close,
+  .siteMessageBtn {
     animation: none !important;
     transition-duration: 0.01ms !important;
   }
 
-  .pathCard:hover,
-  .close:hover {
+  .contactRow:hover,
+  .close:hover,
+  .siteMessageBtn:hover {
     transform: none;
   }
 }

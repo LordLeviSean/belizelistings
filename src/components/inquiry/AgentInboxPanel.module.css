@@ -4,6 +4,18 @@
   gap: 16px;
 }
 
+.unreadBanner {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(235, 220, 195, 0.92);
+}
+
+.unreadDot {
+  color: rgba(212, 175, 122, 0.95);
+  font-weight: 650;
+}
+
 .groupNav {
   display: flex;
   flex-wrap: wrap;

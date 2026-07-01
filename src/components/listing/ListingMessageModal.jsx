@@ -1,23 +1,44 @@
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/router";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { X } from "lucide-react";
 import { INQUIRY_CHANNEL, scoreInquiryBody } from "@/constants/inquiryModel";
-import { BL_ENABLE_TURNSTILE, TURNSTILE_SITE_KEY } from "@/lib/featureFlags";
+import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_TURNSTILE, TURNSTILE_SITE_KEY } from "@/lib/featureFlags";
+import {
+  isInquiryEmailReadOnly,
+  resolveInquirySenderEmail,
+} from "@/lib/inquiryEmailPrefill";
 import { submitListingInquiry } from "@/lib/listingInquiries";
 import { supabase } from "@/lib/supabaseClient";
+import useUserRole from "@/hooks/useUserRole";
 import { useToast } from "@/components/ui/ToastProvider";
 import styles from "./ListingMessageModal.module.css";
 
-export default function ListingMessageModal({ open, onClose, listing, user }) {
+const MESSAGE_PLACEHOLDER =
+  "Introduce yourself, ask a question about the property, request a viewing, or inquire about pricing...";
+
+export default function ListingMessageModal({ open, onClose, listing, user: userProp }) {
+  const router = useRouter();
   const { showToast } = useToast();
+  const { user: sessionUser, profile } = useUserRole();
+  const user = userProp ?? sessionUser;
+
   const [email, setEmail] = useState("");
   const [body, setBody] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
   const [sending, setSending] = useState(false);
   const turnstileRef = useRef(null);
+
   const isGuest = !user?.id;
+  const emailReadOnly = isInquiryEmailReadOnly(user);
   const turnstileRequired = BL_ENABLE_TURNSTILE && isGuest && Boolean(TURNSTILE_SITE_KEY);
+
+  useEffect(() => {
+    if (!open) return;
+    setEmail(resolveInquirySenderEmail(user, profile));
+  }, [open, user, profile]);
+
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
@@ -32,16 +53,28 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
       setSending(false);
       setTurnstileToken("");
       setCompanyWebsite("");
-      return;
+      return undefined;
     }
-    const prev = document.body.style.overflow;
+    const prevOverflow = document.body.style.overflow;
+    const prevPaddingRight = document.body.style.paddingRight;
+    const gap = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = "hidden";
+    if (gap > 0) document.body.style.paddingRight = `${gap}px`;
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
     };
   }, [open]);
 
   if (!open) return null;
+
+  const emailHelper = emailReadOnly
+    ? "This email will only be shared with the listing agent for this conversation."
+    : "We'll share this only with the listing agent.";
+
+  const emailPlaceholder = emailReadOnly
+    ? ""
+    : "Enter the email you'd like the agent to reply to";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,7 +95,7 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
 
     setSending(true);
     try {
-      const { error } = await submitListingInquiry(supabase, {
+      const { data, error } = await submitListingInquiry(supabase, {
         listingId: listing.id,
         agentUserId: listing.user_id,
         senderUserId: user?.id ?? null,
@@ -89,11 +122,20 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
         }
         return;
       }
-      showToast({ type: "success", message: "Message sent to the agent." });
+
+      showToast({
+        type: "success",
+        message: "Your message has been delivered to the listing agent.",
+      });
       setBody("");
       setTurnstileToken("");
       turnstileRef.current?.reset();
       onClose?.();
+
+      const conversationId = data?.conversationId ?? data?.conversation_id ?? null;
+      if (user?.id && BL_ENABLE_CONVERSATIONS && conversationId) {
+        void router.push(`/dashboard/user?tab=messages&conversation=${conversationId}`);
+      }
     } finally {
       setSending(false);
     }
@@ -121,7 +163,11 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
             <X size={18} aria-hidden />
           </button>
         </div>
-        <p className={styles.lede}>Brief and professional — your email is shared with the listing agent only.</p>
+
+        <p className={styles.lede}>
+          Your message will be delivered securely through BelizeListings.
+        </p>
+
         <form className={styles.form} onSubmit={handleSubmit}>
           <label className={styles.honeypot} aria-hidden="true">
             Company website
@@ -134,17 +180,22 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
               onChange={(e) => setCompanyWebsite(e.target.value)}
             />
           </label>
+
           <label className={styles.label}>
-            Email
+            Your Email Address
             <input
               type="email"
               required
-              className={styles.input}
+              readOnly={emailReadOnly}
+              className={`${styles.input}${emailReadOnly ? ` ${styles.inputReadOnly}` : ""}`}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
+              placeholder={emailPlaceholder}
             />
+            <span className={styles.helper}>{emailHelper}</span>
           </label>
+
           <label className={styles.label}>
             Message
             <textarea
@@ -153,9 +204,10 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
               rows={4}
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Introduce yourself and what you’re exploring…"
+              placeholder={MESSAGE_PLACEHOLDER}
             />
           </label>
+
           {turnstileRequired ? (
             <div className={styles.turnstileWrap}>
               <Turnstile
@@ -167,8 +219,9 @@ export default function ListingMessageModal({ open, onClose, listing, user }) {
               />
             </div>
           ) : null}
+
           <button type="submit" className={styles.submit} disabled={sending}>
-            {sending ? "Sending…" : "Send"}
+            {sending ? "Sending…" : "Send message"}
           </button>
         </form>
       </div>

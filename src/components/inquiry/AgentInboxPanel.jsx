@@ -3,26 +3,21 @@ import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import { BL_ENABLE_CONVERSATIONS } from "@/lib/featureFlags";
 import {
   AGENT_INBOX_GROUPS,
-  CRM_PIPELINE_STAGE,
   inquiryTypeLabel,
   resolveInboxGroupId,
 } from "@/lib/crm/crmConstants";
-import { fetchConversationMessages, sendAgentReply } from "@/lib/crm/conversationMutations";
+import {
+  conversationPreviewText,
+  fetchConversationMessages,
+  isAgentConversationUnread,
+  markConversationReadByAgent,
+  sendAgentReply,
+} from "@/lib/crm/conversationMutations";
+import { formatRelativeTime } from "@/lib/formatRelativeTime";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
 import listStyles from "./AgentInquiryList.module.css";
 import styles from "./AgentInboxPanel.module.css";
-
-function formatDateTime(iso) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleString();
-}
-
-function conversationPreview(conv) {
-  const inquiry = conv?.listing_inquiries;
-  const row = Array.isArray(inquiry) ? inquiry[0] : inquiry;
-  return row?.message || row?.body || conv?.buyer_email || "New inquiry";
-}
 
 export default function AgentInboxPanel({
   conversations = [],
@@ -53,11 +48,23 @@ export default function AgentInboxPanel({
       if (map[gid]) map[gid].push(enriched);
       else map.new.push(enriched);
     }
+    for (const group of AGENT_INBOX_GROUPS) {
+      map[group.id]?.sort(
+        (a, b) =>
+          new Date(b.updated_at || b.created_at).getTime() -
+          new Date(a.updated_at || a.created_at).getTime()
+      );
+    }
     return map;
   }, [conversations]);
 
   const visibleList = grouped[activeGroup] || [];
   const selected = visibleList.find((c) => c.id === selectedId) || visibleList[0] || null;
+
+  const unreadCount = useMemo(
+    () => (conversations || []).filter((conv) => isAgentConversationUnread(conv)).length,
+    [conversations]
+  );
 
   const loadMessages = useCallback(async (conversationId) => {
     if (!conversationId) {
@@ -75,8 +82,18 @@ export default function AgentInboxPanel({
   }, []);
 
   useEffect(() => {
-    if (selected?.id) loadMessages(selected.id);
+    if (selected?.id) void loadMessages(selected.id);
   }, [selected?.id, loadMessages]);
+
+  useEffect(() => {
+    if (!selected?.id || !agentUserId) return;
+    const conv = conversations.find((c) => c.id === selected.id);
+    if (!conv || !isAgentConversationUnread(conv)) return;
+    void markConversationReadByAgent(supabase, {
+      conversationId: selected.id,
+      agentUserId,
+    }).then(() => onRefresh?.());
+  }, [selected?.id, agentUserId, conversations, onRefresh]);
 
   const handleSendReply = async () => {
     if (!selected?.id || !agentUserId || replyBusy) return;
@@ -121,9 +138,16 @@ export default function AgentInboxPanel({
 
   return (
     <div className={styles.shell}>
+      {unreadCount > 0 ? (
+        <p className={styles.unreadBanner} aria-live="polite">
+          {unreadCount} unread conversation{unreadCount === 1 ? "" : "s"}
+        </p>
+      ) : null}
+
       <nav className={styles.groupNav} aria-label="Inbox groups">
         {AGENT_INBOX_GROUPS.map((group) => {
           const count = grouped[group.id]?.length || 0;
+          const groupUnread = (grouped[group.id] || []).filter((c) => isAgentConversationUnread(c)).length;
           return (
             <button
               key={group.id}
@@ -136,7 +160,7 @@ export default function AgentInboxPanel({
               }}
             >
               {group.label}
-              {count > 0 ? ` (${count})` : ""}
+              {count > 0 ? ` (${count}${groupUnread ? ` · ${groupUnread} new` : ""})` : ""}
             </button>
           );
         })}
@@ -148,7 +172,7 @@ export default function AgentInboxPanel({
             <p className={listStyles.empty}>No conversations in this group.</p>
           ) : (
             visibleList.map((conv) => {
-              const unread = conv.pipeline_stage === CRM_PIPELINE_STAGE.NEW_INQUIRY;
+              const unread = isAgentConversationUnread(conv);
               const isSelected = selected?.id === conv.id;
               return (
                 <button
@@ -164,15 +188,21 @@ export default function AgentInboxPanel({
                   <header className={listStyles.cardHead}>
                     <span className={listStyles.channel}>
                       {inquiryTypeLabel(conv.inquiry_type || "general")}
+                      {unread ? (
+                        <span className={styles.unreadDot} aria-label="Unread">
+                          {" "}
+                          · New
+                        </span>
+                      ) : null}
                     </span>
-                    <time className={listStyles.time} dateTime={conv.updated_at}>
-                      {formatDateTime(conv.updated_at || conv.created_at)}
+                    <time className={listStyles.time} dateTime={conv.updated_at || conv.created_at}>
+                      {formatRelativeTime(conv.updated_at || conv.created_at)}
                     </time>
                   </header>
                   <p className={listStyles.listingRef}>
                     {listingsById?.[conv.listing_id]?.title || `Listing ${conv.listing_id}`}
                   </p>
-                  <p className={listStyles.body}>{conversationPreview(conv)}</p>
+                  <p className={listStyles.body}>{conversationPreviewText(conv)}</p>
                 </button>
               );
             })
@@ -194,11 +224,7 @@ export default function AgentInboxPanel({
                 {selected.buyer_email ? (
                   <div>
                     <dt>Email</dt>
-                    <dd>
-                      <a href={`mailto:${encodeURIComponent(selected.buyer_email)}`}>
-                        {selected.buyer_email}
-                      </a>
-                    </dd>
+                    <dd>{selected.buyer_email}</dd>
                   </div>
                 ) : null}
                 {selected.buyer_phone ? (
@@ -224,7 +250,7 @@ export default function AgentInboxPanel({
                     >
                       <p className={styles.bubbleBody}>{msg.body}</p>
                       <time className={styles.bubbleTime} dateTime={msg.created_at}>
-                        {formatDateTime(msg.created_at)}
+                        {formatRelativeTime(msg.created_at)}
                       </time>
                     </div>
                   ))
@@ -247,7 +273,7 @@ export default function AgentInboxPanel({
                   type="button"
                   className={listStyles.primary}
                   disabled={replyBusy || !replyBody.trim()}
-                  onClick={handleSendReply}
+                  onClick={() => void handleSendReply()}
                 >
                   {replyBusy ? "Sending…" : "Send reply"}
                 </button>

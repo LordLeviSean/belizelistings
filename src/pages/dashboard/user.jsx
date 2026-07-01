@@ -411,6 +411,13 @@ export default function UserDashboard() {
                         conversations={buyerConversations}
                         buyerUserId={user?.id}
                         onRefresh={loadBuyerCrm}
+                        initialConversationId={
+                          typeof router.query.conversation === "string"
+                            ? router.query.conversation
+                            : Array.isArray(router.query.conversation)
+                              ? router.query.conversation[0]
+                              : null
+                        }
                       />
                     )}
                   </section>

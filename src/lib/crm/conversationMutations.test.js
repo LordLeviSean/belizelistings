@@ -1,0 +1,160 @@
+/** @jest-environment node */
+
+jest.mock("../featureFlags", () => ({
+  BL_ENABLE_NOTIFICATIONS: true,
+}));
+
+jest.mock("../listingEvents/writeListingEvent", () => ({
+  emitListingEventAfterMutation: jest.fn().mockResolvedValue({ ok: true }),
+}));
+
+jest.mock("../notifications/notificationEvents", () => ({
+  enqueueNotificationEvent: jest.fn().mockResolvedValue({ ok: true, queueId: "q1" }),
+  triggerNotificationDelivery: jest.fn().mockResolvedValue({ ok: true }),
+  NOTIFICATION_EVENT_TYPES: {
+    NEW_INQUIRY: "new_inquiry",
+    AGENT_REPLIED: "agent_replied",
+  },
+}));
+
+import {
+  conversationPreviewText,
+  isAgentConversationUnread,
+  isBuyerConversationUnread,
+  sendAgentReply,
+  sendBuyerReply,
+} from "./conversationMutations";
+import { enqueueNotificationEvent, triggerNotificationDelivery } from "../notifications/notificationEvents";
+import { CRM_PIPELINE_STAGE, INQUIRY_STATUS } from "./crmConstants";
+
+describe("conversationMutations", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("conversationPreviewText prefers last_message_body", () => {
+    expect(
+      conversationPreviewText({
+        last_message_body: "Latest note",
+        listing_inquiries: { message: "Original inquiry" },
+      })
+    ).toBe("Latest note");
+  });
+
+  test("isAgentConversationUnread respects inquiry read_at", () => {
+    expect(
+      isAgentConversationUnread({
+        pipeline_stage: CRM_PIPELINE_STAGE.NEW_INQUIRY,
+        listing_inquiries: { status: INQUIRY_STATUS.NEW, read_at: null },
+      })
+    ).toBe(true);
+    expect(
+      isAgentConversationUnread({
+        pipeline_stage: CRM_PIPELINE_STAGE.NEW_INQUIRY,
+        listing_inquiries: { status: INQUIRY_STATUS.OPENED, read_at: "2026-01-01" },
+      })
+    ).toBe(false);
+  });
+
+  test("isBuyerConversationUnread uses buyer_unread flag", () => {
+    expect(isBuyerConversationUnread({ buyer_unread: true })).toBe(true);
+    expect(isBuyerConversationUnread({ buyer_unread: false })).toBe(false);
+  });
+
+  test("sendBuyerReply notifies agent and triggers delivery", async () => {
+    const insert = jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        single: jest.fn().mockResolvedValue({ data: { id: "msg-1" }, error: null }),
+      }),
+    });
+    const maybeSingle = jest.fn().mockResolvedValue({
+      data: { agent_id: "agent-1", listing_id: 42, inquiry_id: "inq-1" },
+    });
+    const update = jest.fn().mockReturnValue({ eq: jest.fn().mockReturnThis() });
+    const client = {
+      from: jest.fn((table) => {
+        if (table === "messages") return { insert };
+        if (table === "conversations") {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({ maybeSingle }),
+              }),
+            }),
+            update: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({ eq: update }),
+            }),
+          };
+        }
+        return {};
+      }),
+    };
+
+    const result = await sendBuyerReply(client, {
+      conversationId: "conv-1",
+      buyerUserId: "buyer-1",
+      body: "Follow up question",
+      listingId: 42,
+    });
+
+    expect(result.error).toBeNull();
+    expect(enqueueNotificationEvent).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({
+        eventType: "new_inquiry",
+        recipientId: "agent-1",
+      }),
+      expect.any(Object)
+    );
+    expect(triggerNotificationDelivery).toHaveBeenCalled();
+  });
+
+  test("sendAgentReply notifies buyer", async () => {
+    const insert = jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        single: jest.fn().mockResolvedValue({ data: { id: "msg-2" }, error: null }),
+      }),
+    });
+    const maybeSingle = jest.fn().mockResolvedValue({
+      data: { inquiry_id: "inq-1", buyer_id: "buyer-1", listing_id: 42 },
+    });
+    const client = {
+      from: jest.fn((table) => {
+        if (table === "messages") return { insert };
+        if (table === "conversations") {
+          return {
+            update: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({}) }),
+            }),
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({ maybeSingle }),
+            }),
+          };
+        }
+        if (table === "listing_inquiries") {
+          return {
+            update: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({}),
+            }),
+          };
+        }
+        return {};
+      }),
+    };
+
+    await sendAgentReply(client, {
+      conversationId: "conv-1",
+      agentUserId: "agent-1",
+      body: "Thanks for reaching out",
+    });
+
+    expect(enqueueNotificationEvent).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({
+        eventType: "agent_replied",
+        recipientId: "buyer-1",
+      }),
+      expect.any(Object)
+    );
+  });
+});
