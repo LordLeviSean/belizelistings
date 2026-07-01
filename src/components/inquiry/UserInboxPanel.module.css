@@ -1,0 +1,7 @@
+.lede {
+  margin: 0 0 12px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: rgba(170, 220, 212, 0.78);
+  max-width: 62ch;
+}

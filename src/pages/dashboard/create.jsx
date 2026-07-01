@@ -7,6 +7,7 @@ import BackButton from "../../components/BackButton";
 import AgentAccessGate from "../../components/AgentAccessGate";
 import useAuth from "../../hooks/useAuth";
 import useRoleAccess from "../../hooks/useRoleAccess";
+import useUserRole from "../../hooks/useUserRole";
 import { supabase } from "../../lib/supabaseClient";
 import { traceAction, traceLog } from "../../lib/trace";
 import { useToast } from "../../components/ui/ToastProvider";
@@ -53,6 +54,8 @@ import useUserDashboardStore from "@/stores/useUserDashboardStore";
 import { isCreateWorkspaceEditableListing } from "@/lib/userDashboardListingTruth";
 import { emitUserDashboardMetricsInvalidationAfterNavigation } from "@/lib/userDashboardMetricsBus";
 import { resolveCreateWorkspaceDashboardHref } from "@/lib/createWorkspaceDashboardRoutes";
+import { isProfileComplete, profileCompletionMissingReason } from "@/lib/isProfileComplete";
+import ProfileCompletionGateModal from "@/components/profile/ProfileCompletionGateModal";
 import { getLifecycleStatus } from "../../utils/canonicalListing";
 import {
   CREATE_FORM_INITIAL,
@@ -190,6 +193,13 @@ export default function DashboardCreatePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { roleLoading, canCreateListings, tier, isAdmin, isRegularUser, role } = useRoleAccess(user?.id);
+  const { profile } = useUserRole();
+  const [profileGateOpen, setProfileGateOpen] = useState(false);
+  const profileHref = useMemo(() => {
+    if (isRegularUser) return "/dashboard/user?tab=profile";
+    if (role === "agent") return "/dashboard/agent?tab=profile";
+    return "/dashboard/user?tab=profile";
+  }, [isRegularUser, role]);
   const listingQuotaApplies = useMemo(
     () => tier === PLATFORM_TIERS.AGENT_FREE || tier === PLATFORM_TIERS.PUBLIC,
     [tier]
@@ -1243,6 +1253,13 @@ export default function DashboardCreatePage() {
       return;
     }
 
+    if (!isProfileComplete(profile)) {
+      const reason = profileCompletionMissingReason(profile);
+      showToast({ type: "info", message: reason || "Complete your profile before submitting." });
+      setProfileGateOpen(true);
+      return;
+    }
+
     let createSucceeded = false;
     submitInFlight.current = true;
     try {
@@ -2251,6 +2268,11 @@ export default function DashboardCreatePage() {
           )}
         </div>
       </main>
+      <ProfileCompletionGateModal
+        open={profileGateOpen}
+        onClose={() => setProfileGateOpen(false)}
+        profileHref={profileHref}
+      />
     </div>
   );
 }

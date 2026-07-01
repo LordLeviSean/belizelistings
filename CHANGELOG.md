@@ -4,6 +4,13 @@ All notable changes to BelizeListings follow [Semantic Versioning](https://semve
 
 ## [Unreleased]
 
+### Added
+
+- **Phase 4.0 — Communication layer & profile completion** — dedicated profile contact fields (phone required, optional WhatsApp/brokerage), profile tab on user/agent dashboards, submit-for-review gate, listing contact resolution from owner profile via RPC, updated `ContactAgentModal`, buyer `UserInboxPanel` when conversations flag is on.
+- **`supabase/migrations/20260701120000_profile_contact_and_completion.sql`** — profile contact columns + `get_listing_owner_public_contact` RPC.
+- **`docs/platform/phase-4-communication-v1.md`** — deployment, flags, v1 scope.
+- **Tests** — `isProfileComplete`, `listingContactResolver`, profile completion submit gate.
+
 ### Fixed
 
 - **Admin archive permanent delete (Phase 3.7)** — `permanently_delete_archived_listing` SECURITY DEFINER RPC hard-deletes archived listings (favorites + listing_images + listing row), bypassing child-table RLS and `listing_events` append-only trigger during CASCADE; admin/operator panels show error toasts and optimistic list refresh on success.

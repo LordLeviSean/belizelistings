@@ -1,0 +1,62 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: rgba(28, 48, 44, 0.28);
+  backdrop-filter: blur(8px);
+}
+
+.modal {
+  width: min(420px, 100%);
+  padding: 22px;
+  border-radius: var(--radius);
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border-mint);
+  box-shadow: var(--elev-3);
+}
+
+.title {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+  font-weight: 620;
+  color: rgba(26, 56, 52, 0.98);
+}
+
+.body {
+  margin: 0 0 18px;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: rgba(42, 72, 66, 0.82);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(95, 161, 145, 0.46);
+  background: linear-gradient(160deg, rgba(118, 189, 170, 0.98), rgba(101, 171, 153, 0.96));
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.secondary {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(120, 178, 164, 0.35);
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(42, 72, 66, 0.88);
+  cursor: pointer;
+}

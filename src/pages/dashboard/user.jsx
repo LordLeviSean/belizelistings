@@ -11,8 +11,12 @@ import UserPendingListingsPanel from "@/components/user/UserPendingListingsPanel
 import UserArchivedListingsPanel from "@/components/user/UserArchivedListingsPanel";
 import BuyerInquiriesPanel from "@/components/inquiry/BuyerInquiriesPanel";
 import BuyerViewingsPanel from "@/components/inquiry/BuyerViewingsPanel";
+import UserInboxPanel from "@/components/inquiry/UserInboxPanel";
+import ProfileCompletionPanel from "@/components/profile/ProfileCompletionPanel";
+import ProfileCompletionBanner from "@/components/profile/ProfileCompletionBanner";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
 import { fetchInquiriesForBuyer } from "@/lib/crm/inquiryMutations";
+import { fetchConversationsForBuyer } from "@/lib/crm/conversationMutations";
 import { fetchViewingsForBuyer } from "@/lib/crm/viewingMutations";
 import { supabase } from "@/lib/supabaseClient";
 import { isProfileHydratedForUser } from "@/lib/profileSessionCache";
@@ -88,12 +92,18 @@ export default function UserDashboard() {
 
   const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
   const visibleTabs = useMemo(
-    () => USER_DASHBOARD_TABS.filter((tab) => !tab.crm || crmTabsEnabled),
+    () =>
+      USER_DASHBOARD_TABS.filter((tab) => {
+        if (tab.conversations && !BL_ENABLE_CONVERSATIONS) return false;
+        if (tab.crm && !crmTabsEnabled) return false;
+        return true;
+      }),
     [crmTabsEnabled]
   );
 
   const [buyerInquiries, setBuyerInquiries] = useState([]);
   const [buyerViewings, setBuyerViewings] = useState([]);
+  const [buyerConversations, setBuyerConversations] = useState([]);
   const [buyerCrmLoading, setBuyerCrmLoading] = useState(false);
 
   const loadBuyerCrm = useCallback(async () => {
@@ -102,6 +112,11 @@ export default function UserDashboard() {
     const tasks = [];
     if (crmTabsEnabled) {
       tasks.push(fetchInquiriesForBuyer(supabase, user.id).then(({ data }) => setBuyerInquiries(data || [])));
+    }
+    if (BL_ENABLE_CONVERSATIONS) {
+      tasks.push(
+        fetchConversationsForBuyer(supabase, user.id).then(({ data }) => setBuyerConversations(data || []))
+      );
     }
     if (BL_ENABLE_VIEWING_PERSIST || BL_ENABLE_CONVERSATIONS) {
       tasks.push(fetchViewingsForBuyer(supabase, user.id).then(({ data }) => setBuyerViewings(data || [])));
@@ -113,7 +128,8 @@ export default function UserDashboard() {
   useEffect(() => {
     if (
       activeTab !== USER_DASHBOARD_TAB_IDS.MY_INQUIRIES &&
-      activeTab !== USER_DASHBOARD_TAB_IDS.MY_VIEWINGS
+      activeTab !== USER_DASHBOARD_TAB_IDS.MY_VIEWINGS &&
+      activeTab !== USER_DASHBOARD_TAB_IDS.MESSAGES
     ) {
       return;
     }
@@ -244,6 +260,8 @@ export default function UserDashboard() {
               subtitle={subtitle}
             >
               <div className={styles.adminWrapper}>
+                <ProfileCompletionBanner profileTabHref="/dashboard/user?tab=profile" />
+
                 <div className={styles.statusToggle} role="tablist" aria-label="Dashboard sections">
                   {visibleTabs.map((tab) => (
                     <button
@@ -377,6 +395,24 @@ export default function UserDashboard() {
                     <Link className={styles.primaryButton} href="/favorites">
                       Open saved favorites
                     </Link>
+                  </section>
+                ) : null}
+
+                {activeTab === USER_DASHBOARD_TAB_IDS.PROFILE ? (
+                  <ProfileCompletionPanel />
+                ) : null}
+
+                {activeTab === USER_DASHBOARD_TAB_IDS.MESSAGES ? (
+                  <section aria-label="Messages">
+                    {buyerCrmLoading && !buyerConversations.length ? (
+                      <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                    ) : (
+                      <UserInboxPanel
+                        conversations={buyerConversations}
+                        buyerUserId={user?.id}
+                        onRefresh={loadBuyerCrm}
+                      />
+                    )}
                   </section>
                 ) : null}
 

@@ -1,5 +1,10 @@
 import { useEffect, useMemo } from "react";
-import { Mail, MessageCircle, X } from "lucide-react";
+import { Mail, MessageCircle, Phone, X } from "lucide-react";
+import { BL_ENABLE_CONVERSATIONS } from "@/lib/featureFlags";
+import {
+  resolveListingContact,
+  resolveListingContactFromListingFields,
+} from "@/lib/listingContactResolver";
 import styles from "./ContactAgentModal.module.css";
 
 function digitsOnly(s = "") {
@@ -11,11 +16,33 @@ function looksLikeEmail(s) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
 }
 
-export default function ContactAgentModal({ open, onClose, listing, onOpenSiteMessage }) {
+export default function ContactAgentModal({
+  open,
+  onClose,
+  listing,
+  contact: contactProp,
+  onOpenSiteMessage,
+}) {
   const listingUrl =
     typeof window !== "undefined" ? `${window.location.origin}/listing/${listing?.id}` : "";
 
-  const waDigits = digitsOnly(listing?.agent_phone || "");
+  const contact = useMemo(() => {
+    if (contactProp) return contactProp;
+    return (
+      resolveListingContact(listing, null) ||
+      resolveListingContactFromListingFields(listing) ||
+      null
+    );
+  }, [contactProp, listing]);
+
+  const displayName = contact?.displayName || "Your listing agent";
+  const brokerageLabel = contact?.brokerageName || "";
+
+  const phoneDigits = digitsOnly(contact?.phone || "");
+  const hasPhone = phoneDigits.length >= 7;
+  const phoneHref = hasPhone ? `tel:+${phoneDigits.replace(/^0+/, "")}` : "";
+
+  const waDigits = digitsOnly(contact?.whatsapp || contact?.phone || "");
   const hasWhatsApp = waDigits.length >= 7;
   const waHref = hasWhatsApp
     ? `https://wa.me/${waDigits}?text=${encodeURIComponent(
@@ -23,23 +50,18 @@ export default function ContactAgentModal({ open, onClose, listing, onOpenSiteMe
       )}`
     : "";
 
-  const agentEmail = String(listing?.agent_email || "").trim();
+  const agentEmail = String(contact?.email || "").trim();
   const hasEmail = looksLikeEmail(agentEmail);
-  const mailHref = hasEmail ? `mailto:${agentEmail}?subject=${encodeURIComponent(`Listing: ${listing?.title || ""}`)}&body=${encodeURIComponent(`Hi,\n\nI'm interested in this property on BelizeListings:\n${listingUrl}\n`)}` : "";
-
-  const displayName = useMemo(() => {
-    const n = listing?.agent_name || listing?.agent;
-    if (n && String(n).trim()) return String(n).trim();
-    return "Your listing agent";
-  }, [listing?.agent_name, listing?.agent]);
-
-  const brokerage = listing?.agency_name || listing?.brokerage_name;
-  const brokerageLabel = brokerage && String(brokerage).trim() ? String(brokerage).trim() : "";
+  const mailHref = hasEmail
+    ? `mailto:${agentEmail}?subject=${encodeURIComponent(`Listing: ${listing?.title || ""}`)}&body=${encodeURIComponent(`Hi,\n\nI'm interested in this property on BelizeListings:\n${listingUrl}\n`)}`
+    : "";
 
   const initial = useMemo(() => {
     const ch = displayName.charAt(0);
     return /[a-zA-Z0-9]/.test(ch) ? ch.toUpperCase() : "?";
   }, [displayName]);
+
+  const canMessageViaSite = BL_ENABLE_CONVERSATIONS && typeof onOpenSiteMessage === "function";
 
   useEffect(() => {
     if (!open) return undefined;
@@ -94,10 +116,29 @@ export default function ContactAgentModal({ open, onClose, listing, onOpenSiteMe
         </div>
 
         <p className={styles.lede}>
-          Choose how you would like to reach out. For a richer note or attachments, use the BelizeListings inbox below.
+          Choose how you would like to reach out. For a richer note or attachments, message via
+          BelizeListings when available.
         </p>
 
         <div className={styles.pathGrid}>
+          {hasPhone ? (
+            <a href={phoneHref} className={styles.pathCard} onClick={() => onClose?.()}>
+              <span className={styles.pathIcon} aria-hidden>
+                <Phone size={22} strokeWidth={2} />
+              </span>
+              <span className={styles.pathLabel}>Phone</span>
+              <span className={styles.pathHint}>Call the agent directly</span>
+            </a>
+          ) : (
+            <div className={`${styles.pathCard} ${styles.pathCardDisabled}`} aria-disabled="true">
+              <span className={styles.pathIcon} aria-hidden>
+                <Phone size={22} strokeWidth={2} />
+              </span>
+              <span className={styles.pathLabel}>Phone</span>
+              <span className={styles.pathHintMuted}>Phone is not published for this listing.</span>
+            </div>
+          )}
+
           {hasWhatsApp ? (
             <a
               href={waHref}
@@ -118,7 +159,7 @@ export default function ContactAgentModal({ open, onClose, listing, onOpenSiteMe
                 <MessageCircle size={22} strokeWidth={2} />
               </span>
               <span className={styles.pathLabel}>WhatsApp</span>
-              <span className={styles.pathHintMuted}>No phone on file for this listing yet.</span>
+              <span className={styles.pathHintMuted}>WhatsApp is not on file for this agent yet.</span>
             </div>
           )}
 
@@ -136,18 +177,24 @@ export default function ContactAgentModal({ open, onClose, listing, onOpenSiteMe
                 <Mail size={22} strokeWidth={2} />
               </span>
               <span className={styles.pathLabel}>Email</span>
-              <span className={styles.pathHintMuted}>Agent email is not published on this listing.</span>
+              <span className={styles.pathHintMuted}>Email is not published for this listing.</span>
             </div>
           )}
         </div>
 
-        {typeof onOpenSiteMessage === "function" ? (
+        {canMessageViaSite ? (
           <p className={styles.inboxRow}>
             <button type="button" className={styles.inboxLink} onClick={() => onOpenSiteMessage()}>
-              Send a note through BelizeListings
+              Message via BelizeListings
             </button>
           </p>
-        ) : null}
+        ) : (
+          <p className={styles.inboxRow}>
+            <span className={styles.inboxDisabled} aria-disabled="true">
+              Message via BelizeListings — coming soon
+            </span>
+          </p>
+        )}
       </div>
     </div>
   );

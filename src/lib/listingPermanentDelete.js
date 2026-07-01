@@ -1,11 +1,11 @@
 import { dedupeListingImagesBucketPath } from "../utils/listingImage";
 import { coerceListingIdForDb } from "./listingEvents/coerceListingId";
 
-export const RPC_PERMANENT_DELETE = "permanently_delete_archived_listing";
+export const RPC_PERMANENT_DELETE = "permanently_delete_listing";
 
-/** Shown when `permanently_delete_archived_listing` RPC is not deployed yet. */
+/** Shown when `permanently_delete_listing` RPC is not deployed yet. */
 export const PERMANENT_DELETE_MIGRATION_REQUIRED_MESSAGE =
-  "Permanent delete requires database migration 20260629120000 — apply in Supabase SQL editor";
+  "Permanent delete requires database migration 20260701130000 — apply in Supabase SQL editor";
 
 const LISTING_IMAGES_BUCKET = "listing-images";
 const STORAGE_PUBLIC_MARKER = "/storage/v1/object/public/";
@@ -30,8 +30,14 @@ export function mapPermanentDeleteRpcError(error) {
   if (lower.includes("permanent deletion is restricted to archived listings")) {
     return new Error("Permanent deletion is restricted to archived listings.");
   }
+  if (lower.includes("permanent deletion is restricted to draft or archived listings")) {
+    return new Error("Only drafts and archived listings can be permanently deleted.");
+  }
   if (lower.includes("not authorized to permanently delete")) {
     return new Error("You are not allowed to permanently delete this listing.");
+  }
+  if (/listing_events is append-only/i.test(msg)) {
+    return new Error("Unable to permanently delete listing. Apply migration 20260701130000.");
   }
   if (/foreign key|violates foreign key|23503/i.test(msg)) {
     return new Error("Unable to delete listing because related records still exist.");

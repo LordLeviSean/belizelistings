@@ -1,6 +1,8 @@
 import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { CalendarClock, MessageCircle, Share2 } from "lucide-react";
+import { fetchListingOwnerContact } from "@/lib/listingContactResolver";
+import { supabase } from "@/lib/supabaseClient";
 
 const ContactAgentModal = dynamic(() => import("./ContactAgentModal"), { ssr: false });
 const ListingMessageModal = dynamic(() => import("./ListingMessageModal"), { ssr: false });
@@ -16,6 +18,22 @@ export default function ListingContactActions({ listing, user }) {
   const [messageOpen, setMessageOpen] = useState(false);
   const [viewingOpen, setViewingOpen] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
+  const [ownerContact, setOwnerContact] = useState(null);
+
+  useEffect(() => {
+    if (!listing?.id) {
+      setOwnerContact(null);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      const { contact } = await fetchListingOwnerContact(supabase, listing.id);
+      if (!cancelled) setOwnerContact(contact);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [listing?.id]);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -80,6 +98,7 @@ export default function ListingContactActions({ listing, user }) {
         open={contactOpen}
         onClose={() => setContactOpen(false)}
         listing={listing}
+        contact={ownerContact}
         onOpenSiteMessage={() => {
           setContactOpen(false);
           setMessageOpen(true);

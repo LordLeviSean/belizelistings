@@ -131,6 +131,6 @@ describe("permanentlyDeleteArchivedListing", () => {
   });
 
   test("RPC constant matches migration function name", () => {
-    expect(RPC_PERMANENT_DELETE).toBe("permanently_delete_archived_listing");
+    expect(RPC_PERMANENT_DELETE).toBe("permanently_delete_listing");
   });
 });

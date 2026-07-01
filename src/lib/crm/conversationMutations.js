@@ -39,6 +39,42 @@ export async function fetchConversationMessages(client, conversationId, { limit 
     .limit(limit);
 }
 
+export async function sendBuyerReply(client, { conversationId, buyerUserId, body, listingId }) {
+  const text = String(body || "").trim();
+  if (!text) {
+    return { data: null, error: { message: "Message body required" } };
+  }
+
+  const now = new Date().toISOString();
+  const { data: message, error: msgError } = await client
+    .from("messages")
+    .insert({
+      conversation_id: conversationId,
+      sender_id: buyerUserId,
+      sender_role: MESSAGE_SENDER_ROLE.BUYER,
+      body: text,
+      channel: "in_app",
+    })
+    .select("id,created_at")
+    .single();
+
+  if (msgError) {
+    if (isCrmUnavailable(msgError)) return { data: null, error: msgError, unavailable: true };
+    return { data: null, error: msgError };
+  }
+
+  await client
+    .from("conversations")
+    .update({
+      last_message_at: now,
+      updated_at: now,
+    })
+    .eq("id", conversationId)
+    .eq("buyer_id", buyerUserId);
+
+  return { data: message, error: null };
+}
+
 export async function sendAgentReply(client, { conversationId, agentUserId, body, listingId }) {
   const text = String(body || "").trim();
   if (!text) {

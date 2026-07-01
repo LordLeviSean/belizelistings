@@ -33,6 +33,11 @@ import {
   emitListingEventAfterMutation,
   LISTING_EVENT_TYPES,
 } from "./listingEvents";
+import { coerceListingIdForDb } from "./listingEvents/coerceListingId";
+import {
+  bestEffortRemoveListingImageStorage,
+  invokePermanentDeleteListingRpc,
+} from "./listingPermanentDelete";
 
 const isProd =
   typeof process !== "undefined" && process.env.NODE_ENV === "production";
@@ -504,7 +509,7 @@ export async function getUserActiveListingCount(supabase, userId) {
   return active;
 }
 
-/** Permanently remove a private draft row (images + favorites + listing). */
+/** Permanently remove a private draft row via RPC (images + favorites + listing_events + listing). */
 export async function discardDraftListing(supabase, { listingId, userId }) {
   const id = String(listingId || "").trim();
   const uid = String(userId || "").trim();
@@ -517,14 +522,21 @@ export async function discardDraftListing(supabase, { listingId, userId }) {
     .maybeSingle();
   if (loadError) return { error: loadError };
   if (!row) return { error: new Error("Draft not found.") };
-  if (String(row.user_id) !== uid) return { error: new Error("You cannot discard this draft.") };
   if (getLifecycleStatus(row) !== LISTING_LIFECYCLE.DRAFT) {
     return { error: new Error("Only drafts can be discarded from here.") };
   }
 
-  await supabase.from("listing_images").delete().eq("listing_id", id);
-  await supabase.from("favorites").delete().eq("listing_id", id);
+  const dbListingId = coerceListingIdForDb(id);
+  const { data: imageRows } = await supabase
+    .from("listing_images")
+    .select("image_url")
+    .eq("listing_id", dbListingId);
 
-  const { error: deleteError } = await supabase.from("listings").delete().eq("id", id).eq("user_id", uid);
-  return { error: deleteError || null };
+  const rpcResult = await invokePermanentDeleteListingRpc(supabase, id);
+  if (!rpcResult.ok) {
+    return { error: rpcResult.error };
+  }
+
+  await bestEffortRemoveListingImageStorage(supabase, imageRows || []);
+  return { error: null };
 }

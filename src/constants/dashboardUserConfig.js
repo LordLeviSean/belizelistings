@@ -12,6 +12,8 @@ export const USER_DASHBOARD_TAB_IDS = Object.freeze({
   PENDING: "pending",
   ARCHIVED: "archived",
   SAVED_FAVORITES: "saved-favorites",
+  PROFILE: "profile",
+  MESSAGES: "messages",
   MY_INQUIRIES: "my-inquiries",
   MY_VIEWINGS: "my-viewings",
 });
@@ -23,6 +25,8 @@ export const USER_DASHBOARD_TABS = Object.freeze([
   { id: USER_DASHBOARD_TAB_IDS.PENDING, label: "Pending" },
   { id: USER_DASHBOARD_TAB_IDS.ARCHIVED, label: "Archived" },
   { id: USER_DASHBOARD_TAB_IDS.SAVED_FAVORITES, label: "Saved Favorites" },
+  { id: USER_DASHBOARD_TAB_IDS.PROFILE, label: "Profile" },
+  { id: USER_DASHBOARD_TAB_IDS.MESSAGES, label: "Messages", crm: true, conversations: true },
   { id: USER_DASHBOARD_TAB_IDS.MY_INQUIRIES, label: "My Inquiries", crm: true },
   { id: USER_DASHBOARD_TAB_IDS.MY_VIEWINGS, label: "My Viewings", crm: true },
 ]);

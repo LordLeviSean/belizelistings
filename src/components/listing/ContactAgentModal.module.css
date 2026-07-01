@@ -238,6 +238,11 @@
   color: rgba(22, 86, 74, 0.95);
 }
 
+.inboxDisabled {
+  font-size: 0.84rem;
+  color: rgba(42, 72, 66, 0.55);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .backdrop,
   .modal,

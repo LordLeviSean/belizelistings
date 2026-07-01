@@ -22,12 +22,25 @@ import { isMissingColumnError } from "./supabaseCompat";
  * Do not add inline `.from("profiles").select(...)` outside this module.
  */
 
+/** Phase 4.0 contact columns (migration 20260701120000). */
+export const PROFILE_CONTACT_COLUMNS =
+  "phone, whatsapp, brokerage_name, brokerage_phone, contact_email_display, show_email_public, show_phone_public, profile_completed_at";
+
 /** Widest → narrowest for signed-in session hydrate (own row). */
 export const PROFILE_SELECT_TIERS = [
+  `id, email, role, username, created_at, updated_at, ${PROFILE_CONTACT_COLUMNS}`,
   "id, email, role, username, created_at, updated_at",
   "id, email, role, username",
   "id, email, role",
   "id, role",
+];
+
+/** Return select after contact section UPDATE. */
+export const PROFILE_CONTACT_UPDATE_RETURN_TIERS = [
+  `id, email, role, username, ${PROFILE_CONTACT_COLUMNS}`,
+  "id, email, role, username, created_at, updated_at",
+  "id, email, role, username",
+  "id, email, role",
 ];
 
 /** Rows returned after client INSERT repair in ensureProfile. */

@@ -11,12 +11,14 @@ export const AGENT_DASHBOARD_TAB_IDS = Object.freeze({
   OVERVIEW: "overview",
   LISTINGS: "listings",
   INQUIRIES: "inquiries",
+  PROFILE: "profile",
 });
 
 export const AGENT_DASHBOARD_TABS = Object.freeze([
   { id: AGENT_DASHBOARD_TAB_IDS.OVERVIEW, label: "Overview" },
   { id: AGENT_DASHBOARD_TAB_IDS.LISTINGS, label: "Listings" },
   { id: AGENT_DASHBOARD_TAB_IDS.INQUIRIES, label: "Inquiries" },
+  { id: AGENT_DASHBOARD_TAB_IDS.PROFILE, label: "Profile" },
 ]);
 
 export const AGENT_INVENTORY_FILTERS = Object.freeze({

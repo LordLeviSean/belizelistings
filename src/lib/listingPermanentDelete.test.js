@@ -16,6 +16,20 @@ describe("listingPermanentDelete", () => {
     expect(err.message).toBe("Permanent deletion is restricted to archived listings.");
   });
 
+  test("mapPermanentDeleteRpcError maps draft-or-archived guard", () => {
+    const err = mapPermanentDeleteRpcError({
+      message: "permanent deletion is restricted to draft or archived listings",
+    });
+    expect(err.message).toBe("Only drafts and archived listings can be permanently deleted.");
+  });
+
+  test("mapPermanentDeleteRpcError maps listing_events trigger text", () => {
+    const err = mapPermanentDeleteRpcError({
+      message: "listing_events is append-only; DELETE is not permitted",
+    });
+    expect(err.message).toBe("Unable to permanently delete listing. Apply migration 20260701130000.");
+  });
+
   test("mapPermanentDeleteRpcError maps admin authorization", () => {
     const err = mapPermanentDeleteRpcError({
       message: "not authorized to permanently delete this listing",
@@ -31,7 +45,7 @@ describe("listingPermanentDelete", () => {
   test("isPermanentDeleteRpcUnavailable detects missing RPC", () => {
     expect(
       isPermanentDeleteRpcUnavailable({
-        message: "Could not find the function permanently_delete_archived_listing",
+        message: "Could not find the function permanently_delete_listing",
       })
     ).toBe(true);
     expect(isPermanentDeleteRpcUnavailable({ code: "PGRST202" })).toBe(true);

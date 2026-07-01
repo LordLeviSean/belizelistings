@@ -1,0 +1,125 @@
+.panel {
+  padding: 22px 22px 20px;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(120, 178, 164, 0.28);
+  box-shadow: var(--elev-1);
+}
+
+.panelCompact {
+  padding: 18px 18px 16px;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: 1.08rem;
+  font-weight: 620;
+  color: rgba(26, 56, 52, 0.98);
+}
+
+.lede {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: rgba(42, 72, 66, 0.78);
+  max-width: 58ch;
+}
+
+.completeBadge,
+.incompleteBadge {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.completeBadge {
+  background: rgba(118, 189, 170, 0.16);
+  border: 1px solid rgba(95, 161, 145, 0.35);
+  color: rgba(32, 88, 76, 0.92);
+}
+
+.incompleteBadge {
+  background: rgba(212, 175, 122, 0.12);
+  border: 1px solid rgba(212, 175, 122, 0.38);
+  color: rgba(92, 68, 36, 0.92);
+}
+
+.formGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  margin-bottom: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 0.82rem;
+  font-weight: 560;
+  color: rgba(36, 66, 60, 0.88);
+}
+
+.required {
+  color: rgba(180, 95, 70, 0.95);
+}
+
+.hint {
+  font-size: 0.78rem;
+  color: rgba(42, 72, 66, 0.62);
+}
+
+.readOnly {
+  opacity: 0.88;
+  cursor: default;
+}
+
+.privacyGroup {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 178, 164, 0.22);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.privacyLegend {
+  padding: 0 4px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(42, 72, 66, 0.65);
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 0.88rem;
+  color: rgba(32, 62, 56, 0.9);
+  cursor: pointer;
+}
+
+.checkRow input {
+  accent-color: rgba(95, 161, 145, 0.95);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

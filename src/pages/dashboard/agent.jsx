@@ -10,6 +10,8 @@ import AgentInventoryPanel from "@/components/agent/AgentInventoryPanel";
 import { AgentActivityFeed } from "@/components/operational";
 import AgentInquiryList from "@/components/inquiry/AgentInquiryList";
 import AgentInboxPanel from "@/components/inquiry/AgentInboxPanel";
+import ProfileCompletionPanel from "@/components/profile/ProfileCompletionPanel";
+import ProfileCompletionBanner from "@/components/profile/ProfileCompletionBanner";
 import useUserRole from "@/hooks/useUserRole";
 import { isProfileHydratedForUser } from "@/lib/profileSessionCache";
 import { formatWelcomeGreeting } from "@/lib/dashboardGreeting";
@@ -243,6 +245,8 @@ export default function AgentDashboard() {
           <div className={styles.userDashboardAboveArt}>
             <DashboardShell roleKey={DASHBOARD_ROLE.agent} title={AGENT_DASHBOARD_COPY.shellTitle} subtitle={subtitle}>
               <div className={styles.adminWrapper}>
+                <ProfileCompletionBanner profileTabHref="/dashboard/agent?tab=profile" />
+
                 {showHydratingShell || (metricsLoading && !myListingsInitialFetchDone) ? (
                   <div className={loadingStyles.hydratingMetrics} aria-busy="true">
                     {Array.from({ length: 6 }, (_, i) => (
@@ -373,6 +377,10 @@ export default function AgentDashboard() {
                       />
                     )}
                   </section>
+                ) : null}
+
+                {activeTab === AGENT_DASHBOARD_TAB_IDS.PROFILE ? (
+                  <ProfileCompletionPanel />
                 ) : null}
               </div>
             </DashboardShell>
