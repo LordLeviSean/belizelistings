@@ -9,7 +9,7 @@ import AgentBenefitsPanel from "@/components/agent/AgentBenefitsPanel";
 import AgentInventoryPanel from "@/components/agent/AgentInventoryPanel";
 import { AgentActivityFeed } from "@/components/operational";
 import AgentInquiryList from "@/components/inquiry/AgentInquiryList";
-import AgentInboxPanel from "@/components/inquiry/AgentInboxPanel";
+import OwnerInquiriesPanel from "@/components/inquiry/OwnerInquiriesPanel";
 import ProfileCompletionPanel from "@/components/profile/ProfileCompletionPanel";
 import ProfileCompletionBanner from "@/components/profile/ProfileCompletionBanner";
 import useUserRole from "@/hooks/useUserRole";
@@ -341,14 +341,14 @@ export default function AgentDashboard() {
                     <p className={styles.muted} style={{ marginBottom: 16, maxWidth: "62ch" }}>
                       Buyer messages from listing pages route here.
                       {BL_ENABLE_CONVERSATIONS
-                        ? " Reply in-thread or manage pipeline groups below."
+                        ? " Reply in-thread grouped by listing below."
                         : " Mark responded when you've replied outside the app."}
                     </p>
                     {BL_ENABLE_CONVERSATIONS ? (
                       conversationsLoading && !conversationRows.length ? (
                         <div className={loadingStyles.hydratingPanel} aria-busy="true" />
                       ) : (
-                        <AgentInboxPanel
+                        <OwnerInquiriesPanel
                           conversations={conversationRows}
                           listingsById={listingsById}
                           agentUserId={user.id}

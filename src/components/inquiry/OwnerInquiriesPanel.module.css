@@ -1,0 +1,298 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.unreadBanner {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(235, 220, 195, 0.92);
+}
+
+.unreadDot {
+  color: rgba(212, 175, 122, 0.95);
+  font-weight: 650;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.35fr) minmax(0, 0.65fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.sidebar {
+  min-width: 0;
+}
+
+.sidebarInner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.threadPane {
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(14, 32, 38, 0.42);
+  border: 1px solid rgba(110, 185, 178, 0.18);
+  min-height: 320px;
+}
+
+.backBtn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0 0 8px;
+  margin: 0 0 4px;
+  font: inherit;
+  font-size: 0.84rem;
+  color: rgba(170, 220, 212, 0.82);
+  cursor: pointer;
+  text-align: left;
+  min-height: var(--touch-target-min, 44px);
+}
+
+.backBtn:hover {
+  color: rgba(212, 175, 122, 0.92);
+}
+
+.listingGroupBtn {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.listingGroupRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.listingGroupCopy {
+  flex: 1;
+  min-width: 0;
+}
+
+.listingGroupHead {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 4px 2px 8px;
+}
+
+.listingGroupTitle {
+  margin: 0 0 2px;
+  font-size: 0.98rem;
+  font-weight: 500;
+  color: rgba(235, 245, 243, 0.95);
+}
+
+.listingGroupMeta {
+  margin: 0;
+  font-size: 0.82rem;
+  color: rgba(170, 220, 212, 0.68);
+}
+
+.listingThumbWrap {
+  flex-shrink: 0;
+}
+
+.listingThumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid rgba(110, 185, 178, 0.16);
+}
+
+.listingGroupHead .listingThumb {
+  width: 48px;
+  height: 48px;
+}
+
+.listingThumbPlaceholder {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  background: rgba(20, 48, 54, 0.55);
+  border: 1px solid rgba(110, 185, 178, 0.14);
+}
+
+.convBtn {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.convBtnSelected {
+  border-color: rgba(212, 175, 122, 0.55) !important;
+}
+
+.convType {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(170, 220, 212, 0.62);
+}
+
+.detailHead {
+  margin-bottom: 12px;
+}
+
+.detailTitle {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: rgba(235, 245, 243, 0.95);
+}
+
+.detailMeta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(170, 220, 212, 0.72);
+}
+
+.contactMeta {
+  margin: 0 0 12px;
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+}
+
+.contactMeta dt {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(160, 200, 192, 0.55);
+}
+
+.contactMeta dd {
+  margin: 0;
+  color: rgba(228, 245, 240, 0.88);
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 16px 0;
+  padding-right: 4px;
+}
+
+.threadMuted {
+  margin: 0;
+  font-size: 0.88rem;
+  color: rgba(170, 220, 212, 0.62);
+}
+
+.bubble {
+  padding: 10px 12px;
+  border-radius: 12px;
+  max-width: 92%;
+}
+
+.bubbleBuyer {
+  align-self: flex-start;
+  background: rgba(20, 48, 54, 0.55);
+  border: 1px solid rgba(110, 185, 178, 0.16);
+}
+
+.bubbleAgent {
+  align-self: flex-end;
+  background: rgba(212, 175, 122, 0.1);
+  border: 1px solid rgba(212, 175, 122, 0.22);
+}
+
+.bubbleBody {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(230, 242, 240, 0.92);
+}
+
+.bubbleTime {
+  font-size: 0.72rem;
+  color: rgba(170, 220, 212, 0.55);
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.composerLabel {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(170, 220, 212, 0.65);
+}
+
+.composerInput {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(110, 185, 178, 0.22);
+  background: rgba(8, 22, 26, 0.45);
+  color: rgba(235, 245, 243, 0.95);
+  font: inherit;
+  resize: vertical;
+}
+
+.composerInput:focus {
+  outline: none;
+  border-color: rgba(130, 190, 185, 0.42);
+}
+
+.mobileThreadOnly {
+  display: block;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .layoutHideSidebar .sidebar {
+    display: none;
+  }
+
+  .layoutHideThread .threadPane {
+    display: none;
+  }
+
+  .threadPane {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .thread {
+    max-height: min(42dvh, 320px);
+  }
+
+  .composerInput {
+    font-size: 16px;
+    min-height: 88px;
+  }
+
+  .convBtn,
+  .listingGroupBtn,
+  .backBtn {
+    min-height: var(--touch-target-min);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .convBtn,
+  .listingGroupBtn {
+    transition: none;
+  }
+}
