@@ -3,6 +3,7 @@
 import {
   CONVERSATION_DISPLAY_STATUS,
   conversationDisplayStatusLabel,
+  countOwnerInboxUnread,
   getListingCoverUrl,
   groupConversationsByListing,
   resolveConversationDisplayStatus,
@@ -50,6 +51,26 @@ describe("conversationGrouping", () => {
     expect(conversationDisplayStatusLabel(CONVERSATION_DISPLAY_STATUS.NEW)).toBe("New");
     expect(conversationDisplayStatusLabel(CONVERSATION_DISPLAY_STATUS.READ)).toBe("Read");
     expect(conversationDisplayStatusLabel(CONVERSATION_DISPLAY_STATUS.REPLIED)).toBe("Replied");
+  });
+
+  test("countOwnerInboxUnread counts agent-unread conversations", () => {
+    const conversations = [
+      {
+        pipeline_stage: CRM_PIPELINE_STAGE.NEW_INQUIRY,
+        listing_inquiries: { status: INQUIRY_STATUS.NEW, read_at: null },
+      },
+      {
+        pipeline_stage: CRM_PIPELINE_STAGE.RESPONDED,
+        listing_inquiries: { status: INQUIRY_STATUS.RESPONDED, read_at: "2026-06-01" },
+      },
+      {
+        pipeline_stage: CRM_PIPELINE_STAGE.NEW_INQUIRY,
+        listing_inquiries: { status: INQUIRY_STATUS.OPENED, read_at: "2026-06-02" },
+      },
+    ];
+
+    expect(countOwnerInboxUnread(conversations)).toBe(1);
+    expect(countOwnerInboxUnread([])).toBe(0);
   });
 
   test("groupConversationsByListing groups, counts, and sorts", () => {

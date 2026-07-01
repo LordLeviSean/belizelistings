@@ -3,8 +3,10 @@ import { supabase } from "@/lib/supabaseClient";
 import { fetchUserOwnedListingsForDashboard } from "@/lib/listingQueries";
 import { deriveUserDashboardListingCounts } from "@/lib/userDashboardListingTruth";
 import { isTransientNetworkError, isTerminalDashboardCountError, isMissingTableError } from "@/lib/supabaseCompat";
-import { BL_ENABLE_INQUIRIES } from "@/lib/featureFlags";
+import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES } from "@/lib/featureFlags";
 import { resolveUserDashboardListingCap } from "@/constants/dashboardAgentConfig";
+import { countOwnerInboxUnread } from "@/lib/crm/conversationGrouping";
+import { fetchConversationsForAgent } from "@/lib/crm/conversationMutations";
 import { fetchInquiriesForAgent } from "@/lib/listingInquiries";
 import { INQUIRY_STATUS } from "@/constants/inquiryModel";
 
@@ -155,6 +157,7 @@ const useAgentDashboardStore = create((set, get) => ({
     get().attachRealtime(userId);
     void get().loadMyListings({ syncMetrics: true });
     void get().loadInquiries({ quiet: true });
+    if (BL_ENABLE_CONVERSATIONS) void get().loadConversationInbox({ quiet: true });
   },
 
   destroy() {
@@ -217,6 +220,21 @@ const useAgentDashboardStore = create((set, get) => ({
       );
     }
 
+    if (BL_ENABLE_CONVERSATIONS) {
+      channel = channel.on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "conversations",
+          filter: `agent_id=eq.${userId}`,
+        },
+        () => {
+          get()._scheduleDebouncedRealtimeBatch();
+        }
+      );
+    }
+
     channel.subscribe();
     realtimeChannel = channel;
   },
@@ -232,6 +250,7 @@ const useAgentDashboardStore = create((set, get) => ({
         void get().loadMyListings({ syncMetrics: true, quiet: true });
       } else {
         void get().loadInquiries({ quiet: true });
+        if (BL_ENABLE_CONVERSATIONS) void get().loadConversationInbox({ quiet: true });
       }
     }, METRICS_DEBOUNCE_MS);
   },
@@ -264,15 +283,41 @@ const useAgentDashboardStore = create((set, get) => ({
       }
 
       const rows = data || [];
-      const unread = rows.filter((q) => !q.read_at && q.status === INQUIRY_STATUS.NEW).length;
-      patchIfChanged(set, get, {
+      const patch = {
         inquiriesRows: rows,
         inquiriesCount: rows.length,
-        unreadInquiryCount: unread,
-      });
+      };
+      if (BL_ENABLE_CONVERSATIONS) {
+        void get().loadConversationInbox({ quiet: true });
+      } else {
+        patch.unreadInquiryCount = rows.filter(
+          (q) => !q.read_at && q.status === INQUIRY_STATUS.NEW
+        ).length;
+      }
+      patchIfChanged(set, get, patch);
     } finally {
       if (genAtStart === loadGen) {
         patchIfChanged(set, get, { inquiriesLoading: false });
+      }
+    }
+  },
+
+  async loadConversationInbox(opts = {}) {
+    const { quiet = false } = opts;
+    const uid = get()._sessionUserId;
+    if (!uid || !BL_ENABLE_CONVERSATIONS) return;
+
+    const genAtStart = loadGen;
+    try {
+      const { data, error } = await fetchConversationsForAgent(supabase, uid, { limit: 80 });
+      if (genAtStart !== loadGen || !get()._sessionUserId) return;
+      if (error) return;
+
+      const unread = countOwnerInboxUnread(data || []);
+      patchIfChanged(set, get, { unreadInquiryCount: unread });
+    } finally {
+      if (!quiet && genAtStart === loadGen) {
+        /* reserved for future loading indicator */
       }
     }
   },
@@ -420,6 +465,7 @@ const useAgentDashboardStore = create((set, get) => ({
       void get().loadMyListings({ syncMetrics: true, quiet: true, force: true });
     } else {
       void get().loadInquiries({ quiet: true });
+      if (BL_ENABLE_CONVERSATIONS) void get().loadConversationInbox({ quiet: true });
     }
   },
 
