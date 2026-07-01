@@ -14,6 +14,7 @@ import { getLifecycleStatus } from "../utils/canonicalListing";
 import { applyListingLifecycleAction } from "../utils/ownershipAttribution";
 import { OWNERSHIP_ACTIONS } from "../constants/ownershipModel";
 import { normalizeUsername, validateUsernameCandidate } from "../lib/usernameRules";
+import { MODAL_TYPES, useModalController } from "@/hooks/useModalController";
 import styles from "../styles/Dashboard.module.css";
 import mu from "./ManageUsersPanel.module.css";
 import { formatProfileDisplayLabel } from "../lib/profileDisplayName";
@@ -57,10 +58,17 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
   const [creatingUser, setCreatingUser] = useState(false);
   const [createUserMessage, setCreateUserMessage] = useState("");
   const [modalFieldError, setModalFieldError] = useState("");
-  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const modal = useModalController();
+  const deleteTarget =
+    modal.isModalOpen(MODAL_TYPES.ADMIN_ACTION) &&
+    modal.activeModal?.payload?.action === "delete-user"
+      ? modal.activeModal.payload.user
+      : null;
+  const showCreateUserModal =
+    modal.isModalOpen(MODAL_TYPES.SYSTEM) &&
+    modal.activeModal?.payload?.action === "create-user";
   const [roleUnlocked, setRoleUnlocked] = useState({});
   const [listingsUnlocked, setListingsUnlocked] = useState({});
-  const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("");
   const listingsUnlockedRef = useRef({});
@@ -282,7 +290,8 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
   const openCreateModal = () => {
     setModalFieldError("");
     setCreateUserMessage("");
-    setShowCreateUserModal(true);
+    modal.closeAllModals();
+    modal.openModal(MODAL_TYPES.SYSTEM, { action: "create-user" });
   };
 
   const unlockListings = (userId) => {
@@ -338,7 +347,7 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
           message: result.error?.message || "Unable to permanently delete user",
         });
         if (result.dataRemoved) {
-          setDeleteTarget(null);
+          modal.closeModal(MODAL_TYPES.ADMIN_ACTION);
         }
         setDeleteBusy(false);
         return;
@@ -363,7 +372,7 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
       await loadUsers();
       onAction?.("Permanently deleted user");
       showToast({ type: "success", message: "User permanently deleted" });
-      setDeleteTarget(null);
+      modal.closeModal(MODAL_TYPES.ADMIN_ACTION);
     } catch (error) {
       console.error("[manage-users-panel] permanent user delete error", error);
       showToast({
@@ -504,7 +513,13 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
                   type="button"
                   className={mu.deleteUserBtn}
                   disabled={!canDeleteUser || deleteBusy}
-                  onClick={() => setDeleteTarget(user)}
+                  onClick={() => {
+                    modal.closeAllModals();
+                    modal.openModal(MODAL_TYPES.ADMIN_ACTION, {
+                      action: "delete-user",
+                      user,
+                    });
+                  }}
                   title={
                     isSelf
                       ? "You cannot delete your own account"
@@ -608,12 +623,12 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
         user={deleteTarget}
         busy={deleteBusy}
         onClose={() => {
-          if (!deleteBusy) setDeleteTarget(null);
+          if (!deleteBusy) modal.closeModal(MODAL_TYPES.ADMIN_ACTION);
         }}
         onConfirm={permanentlyDeleteUser}
       />
       {showCreateUserModal ? (
-        <div className={styles.modalBackdrop} onClick={() => setShowCreateUserModal(false)}>
+        <div className={styles.modalBackdrop} onClick={() => modal.closeModal(MODAL_TYPES.SYSTEM)}>
           <div className={styles.modalCard} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
             <h3 className={styles.sectionTitle}>Create User</h3>
             <div className={styles.modalForm}>
@@ -656,13 +671,13 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
                 className={styles.primaryButton}
                 onClick={async () => {
                   const created = await createUser();
-                  if (created) setShowCreateUserModal(false);
+                  if (created) modal.closeModal(MODAL_TYPES.SYSTEM);
                 }}
                 disabled={creatingUser}
               >
                 {creatingUser ? "Creating…" : "Create User"}
               </button>
-              <button type="button" className={styles.rejectButton} onClick={() => setShowCreateUserModal(false)}>
+              <button type="button" className={styles.rejectButton} onClick={() => modal.closeModal(MODAL_TYPES.SYSTEM)}>
                 Cancel
               </button>
             </div>

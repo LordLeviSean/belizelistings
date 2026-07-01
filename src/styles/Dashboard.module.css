@@ -1998,11 +1998,16 @@ button.dashboardLink:disabled {
   display: grid;
   place-items: center;
   z-index: 1200;
-  padding: 16px;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  box-sizing: border-box;
 }
 
 .modalCard {
   width: min(640px, 95vw);
+  max-height: min(88dvh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(251, 254, 252, 0.95);
   border-radius: 14px;
@@ -2201,5 +2206,123 @@ button.dashboardLink:disabled {
   .liveDot {
     animation: none;
     opacity: 0.92;
+  }
+}
+
+@media (max-width: 768px) {
+  .adminWrapper {
+    padding: 14px 12px calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .adminTabs {
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .dashboardLink {
+    min-height: var(--touch-target-min);
+    padding: 10px 14px;
+  }
+
+  .toggleButton {
+    min-height: var(--touch-target-min);
+    padding: 10px 14px;
+  }
+
+  .statusToggle {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .listingsHeaderRow {
+    display: none;
+  }
+
+  .listingsRow {
+    grid-template-columns: 74px minmax(0, 1fr);
+    grid-template-areas:
+      "thumb title"
+      "thumb owner"
+      "status price"
+      "actions actions";
+    gap: 8px 10px;
+    align-items: start;
+  }
+
+  .listingsThumb {
+    grid-area: thumb;
+  }
+
+  .listingsRow > :nth-child(2) {
+    grid-area: title;
+    min-width: 0;
+  }
+
+  .listingsRow > :nth-child(3) {
+    grid-area: owner;
+    min-width: 0;
+  }
+
+  .listingsRow > :nth-child(4) {
+    grid-area: status;
+  }
+
+  .listingsRow > :nth-child(5) {
+    grid-area: price;
+  }
+
+  .listingsRow > :nth-child(6) {
+    grid-area: actions;
+  }
+
+  .rowActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rowActions button,
+  .rowActions a {
+    width: 100%;
+    min-height: var(--touch-target-min);
+    justify-content: center;
+  }
+
+  .modalBackdrop {
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    align-items: center;
+  }
+
+  .modalCard {
+    width: min(640px, 100%);
+    max-height: min(90dvh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modalGridCols {
+    grid-template-columns: 1fr;
+  }
+
+  .modalActions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .modalActions button {
+    width: 100%;
+    min-height: var(--touch-target-min);
+  }
+
+  .userCreateGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pendingCard {
+    grid-template-columns: 1fr;
+  }
+
+  .pendingImage {
+    height: 140px;
   }
 }

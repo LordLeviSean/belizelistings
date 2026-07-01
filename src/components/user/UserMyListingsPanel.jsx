@@ -5,8 +5,9 @@ import { useShallow } from "zustand/react/shallow";
 import { supabase } from "@/lib/supabaseClient";
 import { discardDraftListing } from "@/lib/listingPersistence";
 import { isLegacyGenerationDraft } from "@/lib/legacyDraftCompat";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import { MODAL_TYPES, useModalController } from "@/hooks/useModalController";
 import ArchiveListingModal from "@/components/listing/ArchiveListingModal";
-import DiscardDraftModal from "@/components/listing/DiscardDraftModal";
 import UserListingRowIntel from "@/components/user/UserListingRowIntel";
 import useUserDashboardStore from "@/stores/useUserDashboardStore";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -47,8 +48,11 @@ function UserMyListingsPanel({ userId, tier }) {
   const router = useRouter();
   const { showToast } = useToast();
   const [actionId, setActionId] = useState("");
-  const [archiveTargetId, setArchiveTargetId] = useState("");
-  const [discardTargetId, setDiscardTargetId] = useState("");
+  const modal = useModalController();
+  const deletePayload = modal.isModalOpen(MODAL_TYPES.DELETE) ? modal.activeModal?.payload : null;
+  const archiveTargetId = modal.isModalOpen(MODAL_TYPES.ARCHIVE)
+    ? String(modal.activeModal?.payload?.listingId || "")
+    : "";
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(MY_LISTINGS_STATUS_FILTERS.ALL);
   const [sortKey, setSortKey] = useState(MY_LISTINGS_SORT_KEYS.NEWEST);
@@ -113,24 +117,34 @@ function UserMyListingsPanel({ userId, tier }) {
     invalidate();
     showToast({ type: "success", message: "Listing archived successfully." });
     setActionId("");
-    setArchiveTargetId("");
+    modal.closeModal(MODAL_TYPES.ARCHIVE);
   };
 
   const confirmDiscardDraft = async () => {
-    const listingId = discardTargetId;
+    const listingId = deletePayload?.id ?? deletePayload;
     if (!listingId || !userId) return;
-    setActionId(listingId);
+    setActionId(String(listingId));
     const { error } = await discardDraftListing(supabase, { listingId, userId });
     if (error) {
       setActionId("");
       showToast({ type: "error", message: error?.message || "Unable to discard draft" });
       return;
     }
-    setDiscardTargetId("");
+    modal.closeModal(MODAL_TYPES.DELETE);
     removeMyListingRow(listingId);
     invalidate();
     showToast({ type: "info", message: "Draft discarded" });
     setActionId("");
+  };
+
+  const openDiscardDraft = (listing) => {
+    modal.closeAllModals();
+    modal.openModal(MODAL_TYPES.DELETE, { id: listing.id, title: listing.title });
+  };
+
+  const openArchiveListing = (listingId) => {
+    modal.closeAllModals();
+    modal.openModal(MODAL_TYPES.ARCHIVE, { listingId: String(listingId) });
   };
 
   const resubmitViaEditor = (listingId) => {
@@ -297,7 +311,7 @@ function UserMyListingsPanel({ userId, tier }) {
                         <button
                           type="button"
                           className={styles.deleteListingButton}
-                          onClick={() => setDiscardTargetId(String(l.id))}
+                          onClick={() => openDiscardDraft(l)}
                           disabled={actionId === String(l.id)}
                         >
                           Discard draft
@@ -308,7 +322,7 @@ function UserMyListingsPanel({ userId, tier }) {
                       <button
                         type="button"
                         className={styles.deleteListingButton}
-                        onClick={() => setArchiveTargetId(String(l.id))}
+                        onClick={() => openArchiveListing(l.id)}
                         disabled={actionId === String(l.id)}
                       >
                         {actionId === String(l.id) ? "Archiving…" : "Archive"}
@@ -329,7 +343,7 @@ function UserMyListingsPanel({ userId, tier }) {
                         <button
                           type="button"
                           className={styles.deleteListingButton}
-                          onClick={() => setArchiveTargetId(String(l.id))}
+                          onClick={() => openArchiveListing(l.id)}
                           disabled={actionId === String(l.id)}
                         >
                           {actionId === String(l.id) ? "Archiving…" : "Archive"}
@@ -347,18 +361,25 @@ function UserMyListingsPanel({ userId, tier }) {
         isArchiving={Boolean(archiveTargetId && actionId === archiveTargetId)}
         onClose={() => {
           if (actionId === archiveTargetId) return;
-          setArchiveTargetId("");
+          modal.closeModal(MODAL_TYPES.ARCHIVE);
         }}
         onConfirm={confirmArchiveListing}
       />
-      <DiscardDraftModal
-        open={Boolean(discardTargetId)}
-        discarding={Boolean(discardTargetId && actionId === discardTargetId)}
+      <DeleteConfirmationModal
+        isOpen={modal.isModalOpen(MODAL_TYPES.DELETE)}
+        title="Discard this draft?"
+        warningText="This draft will be permanently removed. This action cannot be undone."
+        confirmLabel="Discard Draft"
+        item={deletePayload}
+        loading={
+          Boolean(deletePayload?.id) &&
+          actionId === String(deletePayload.id)
+        }
         onClose={() => {
-          if (actionId === discardTargetId) return;
-          setDiscardTargetId("");
+          if (actionId === String(deletePayload?.id)) return;
+          modal.closeModal(MODAL_TYPES.DELETE);
         }}
-        onDiscard={confirmDiscardDraft}
+        onConfirm={confirmDiscardDraft}
       />
     </section>
   );

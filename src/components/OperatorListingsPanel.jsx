@@ -9,7 +9,8 @@ import { useToast } from "./ui/ToastProvider";
 import ListingCard from "./ListingCard";
 import ListingTrustStrip from "./ListingTrustStrip";
 import ListingOwnershipMeta from "./ListingOwnershipMeta";
-import DeleteConfirmModal from "./DeleteConfirmModal";
+import DeleteConfirmationModal from "./DeleteConfirmationModal";
+import { MODAL_TYPES, useModalController } from "@/hooks/useModalController";
 import ArchiveListingModal from "./listing/ArchiveListingModal";
 import { getSelectableRegions } from "../constants/geographyLayer";
 import { getArchiveStatus, getModerationStatus, getRepublishStatus, LISTING_LIFECYCLE } from "../constants/operationalModel";
@@ -50,9 +51,14 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
   const [loading, setLoading] = useState(false);
   const [actionKey, setActionKey] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [editingId, setEditingId] = useState("");
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [archiveTargetId, setArchiveTargetId] = useState("");
+  const modal = useModalController();
+  const deletePayload = modal.isModalOpen(MODAL_TYPES.DELETE) ? modal.activeModal?.payload : null;
+  const archiveTargetId = modal.isModalOpen(MODAL_TYPES.ARCHIVE)
+    ? String(modal.activeModal?.payload?.listingId || "")
+    : "";
+  const editingId = modal.isModalOpen(MODAL_TYPES.EDIT)
+    ? String(modal.activeModal?.payload?.listingId || "")
+    : "";
   const [editStep, setEditStep] = useState(0);
   const [editForm, setEditForm] = useState({
     title: "",
@@ -166,7 +172,7 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
     onAction?.("Archived listing from operator panel");
     showToast({ type: "success", message: "Listing archived successfully." });
     setActionKey("");
-    setArchiveTargetId("");
+    modal.closeModal(MODAL_TYPES.ARCHIVE);
   };
 
   const approveListing = async (listingId) => {
@@ -289,27 +295,49 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
   };
 
   const permanentlyDeleteListing = async () => {
-    if (!deleteTarget?.id) return;
-    setActionKey(`${deleteTarget.id}:delete-permanent`);
+    if (!deletePayload?.id) return;
+    setActionKey(`${deletePayload.id}:delete-permanent`);
     const { error } = await permanentlyDeleteArchivedListing(supabase, {
-      listingId: deleteTarget.id,
-      statusHint: deleteTarget.status,
+      listingId: deletePayload.id,
+      statusHint: deletePayload.status,
     });
     if (error) {
       setActionKey("");
       showToast({ type: "error", message: error.message || "Unable to permanently delete listing" });
       return;
     }
-    setListings((prev) => prev.filter((listing) => String(listing.id) !== String(deleteTarget.id)));
+    setListings((prev) =>
+      prev.filter((listing) => String(listing.id) !== String(deletePayload.id))
+    );
     await loadListings();
     onAction?.("Permanently deleted archived listing");
     showToast({ type: "info", message: "Listing permanently deleted" });
-    setDeleteTarget(null);
+    modal.closeModal(MODAL_TYPES.DELETE);
     setActionKey("");
   };
 
+  const closeEditModal = useCallback(() => {
+    modal.closeModal(MODAL_TYPES.EDIT);
+    setEditStep(0);
+  }, [modal]);
+
+  const openPermanentDelete = (listing) => {
+    modal.closeAllModals();
+    modal.openModal(MODAL_TYPES.DELETE, {
+      id: listing.id,
+      status: listing.status,
+      title: listing.title,
+    });
+  };
+
+  const openArchiveListing = (listingId) => {
+    modal.closeAllModals();
+    modal.openModal(MODAL_TYPES.ARCHIVE, { listingId: String(listingId) });
+  };
+
   const startEdit = (listing) => {
-    setEditingId(String(listing.id));
+    modal.closeAllModals();
+    modal.openModal(MODAL_TYPES.EDIT, { listingId: String(listing.id) });
     setEditStep(0);
     setEditForm({
       title: listing.title || "",
@@ -357,7 +385,7 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
     ) {
       await clearAllFavoritesForListing(listingId);
     }
-    setEditingId("");
+    modal.closeModal(MODAL_TYPES.EDIT);
     await loadListings();
     onAction?.("Updated listing from operator panel");
     showToast({ type: "success", message: "Listing updated" });
@@ -513,7 +541,7 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
                     <button
                       type="button"
                       className={`${styles.rejectButton} ${styles.quickDangerMuted}`}
-                      onClick={() => setDeleteTarget({ id: listing.id, status: listing.status })}
+                      onClick={() => openPermanentDelete(listing)}
                       disabled={isBusy}
                     >
                       Permanently Delete
@@ -532,7 +560,7 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
                     <button
                       type="button"
                       className={styles.deleteListingButton}
-                      onClick={() => setArchiveTargetId(String(listing.id))}
+                      onClick={() => openArchiveListing(listing.id)}
                       disabled={isBusy}
                     >
                       {actionKey === `${listing.id}:archive` ? "Removing..." : "Archive"}
@@ -592,7 +620,7 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
                     <button
                       type="button"
                       className={styles.deleteListingButton}
-                      onClick={() => setArchiveTargetId(String(listing.id))}
+                      onClick={() => openArchiveListing(listing.id)}
                       disabled={isBusy}
                     >
                       {actionKey === `${listing.id}:archive` ? "Removing..." : "Remove Listing"}
@@ -614,7 +642,7 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
       })}
 
       {editingId ? (
-        <div className={styles.modalBackdrop} onClick={() => setEditingId("")}>
+        <div className={styles.modalBackdrop} onClick={closeEditModal}>
           <div className={styles.modalCard} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
             <h3 className={styles.sectionTitle}>Edit Listing · Editorial Mode</h3>
             <p className={styles.muted} style={{ marginTop: 0 }}>
@@ -673,7 +701,7 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
               <button type="button" className={styles.approveButton} onClick={() => saveEdit(editingId)} disabled={actionKey === `${editingId}:edit`}>
                 {actionKey === `${editingId}:edit` ? "Saving..." : "Save Changes"}
               </button>
-              <button type="button" className={styles.rejectButton} onClick={() => { setEditingId(""); setEditStep(0); }}>Cancel</button>
+              <button type="button" className={styles.rejectButton} onClick={closeEditModal}>Cancel</button>
             </div>
           </div>
         </div>
@@ -683,24 +711,26 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
         isArchiving={Boolean(archiveTargetId && actionKey === `${archiveTargetId}:archive`)}
         onClose={() => {
           if (actionKey === `${archiveTargetId}:archive`) return;
-          setArchiveTargetId("");
+          modal.closeModal(MODAL_TYPES.ARCHIVE);
         }}
         onConfirm={confirmArchiveListing}
       />
-      <DeleteConfirmModal
-        isOpen={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={permanentlyDeleteListing}
-        loading={Boolean(deleteTarget) && actionKey === `${deleteTarget.id}:delete-permanent`}
-        mode="delete"
+      <DeleteConfirmationModal
+        isOpen={modal.isModalOpen(MODAL_TYPES.DELETE)}
         title="Permanent Deletion"
-        description={
-          <>
-            This permanently removes the listing and associated operational history. This action
-            cannot be undone. Type <strong>delete</strong> to continue.
-          </>
-        }
+        warningText="This permanently removes the listing and associated operational history. This action cannot be undone."
         confirmLabel="Permanently Delete"
+        item={deletePayload}
+        requireTypeDelete
+        loading={
+          Boolean(deletePayload?.id) &&
+          actionKey === `${deletePayload.id}:delete-permanent`
+        }
+        onClose={() => {
+          if (actionKey === `${deletePayload?.id}:delete-permanent`) return;
+          modal.closeModal(MODAL_TYPES.DELETE);
+        }}
+        onConfirm={permanentlyDeleteListing}
       />
     </div>
   );

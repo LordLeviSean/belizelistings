@@ -123,3 +123,30 @@
   flex-wrap: wrap;
   gap: 10px;
 }
+
+@media (max-width: 768px) {
+  .panel,
+  .panelCompact {
+    padding: 16px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .head {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .actions button,
+  .actions a {
+    width: 100%;
+    min-height: var(--touch-target-min);
+    justify-content: center;
+  }
+
+  .checkRow {
+    min-height: var(--touch-target-min);
+  }
+}

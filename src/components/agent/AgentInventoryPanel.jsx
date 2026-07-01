@@ -6,8 +6,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { discardDraftListing } from "@/lib/listingPersistence";
 import { getUserActiveListingCount } from "@/lib/listingPersistence";
 import ArchiveListingModal from "@/components/listing/ArchiveListingModal";
-import DiscardDraftModal from "@/components/listing/DiscardDraftModal";
-import DeleteConfirmModal from "@/components/DeleteConfirmModal";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import { MODAL_TYPES, useModalController } from "@/hooks/useModalController";
 import UserListingRowIntel from "@/components/user/UserListingRowIntel";
 import useAgentDashboardStore from "@/stores/useAgentDashboardStore";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -58,9 +58,11 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
   const router = useRouter();
   const { showToast } = useToast();
   const [actionId, setActionId] = useState("");
-  const [archiveTargetId, setArchiveTargetId] = useState("");
-  const [discardTargetId, setDiscardTargetId] = useState("");
-  const [deleteTargetId, setDeleteTargetId] = useState("");
+  const modal = useModalController();
+  const deletePayload = modal.isModalOpen(MODAL_TYPES.DELETE) ? modal.activeModal?.payload : null;
+  const archiveTargetId = modal.isModalOpen(MODAL_TYPES.ARCHIVE)
+    ? String(modal.activeModal?.payload?.listingId || "")
+    : "";
   const [searchQuery, setSearchQuery] = useState("");
   const [sortKey, setSortKey] = useState(MY_LISTINGS_SORT_KEYS.NEWEST);
 
@@ -125,7 +127,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
     invalidate();
     showToast({ type: "success", message: "Listing archived successfully." });
     setActionId("");
-    setArchiveTargetId("");
+    modal.closeModal(MODAL_TYPES.ARCHIVE);
   };
 
   const republishListing = async (listingId) => {
@@ -177,16 +179,16 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
   };
 
   const confirmDiscardDraft = async () => {
-    const listingId = discardTargetId;
-    if (!listingId || !userId) return;
-    setActionId(listingId);
+    const listingId = deletePayload?.id ?? deletePayload;
+    if (!listingId || !userId || deletePayload?.variant !== "discard") return;
+    setActionId(String(listingId));
     const { error } = await discardDraftListing(supabase, { listingId, userId });
     if (error) {
       setActionId("");
       showToast({ type: "error", message: error?.message || "Unable to discard draft" });
       return;
     }
-    setDiscardTargetId("");
+    modal.closeModal(MODAL_TYPES.DELETE);
     removeMyListingRow(listingId);
     invalidate();
     showToast({ type: "info", message: "Draft discarded" });
@@ -194,10 +196,11 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
   };
 
   const permanentlyDeleteListing = async () => {
-    if (!deleteTargetId) return;
-    setActionId(`delete:${deleteTargetId}`);
+    const listingId = deletePayload?.id ?? deletePayload;
+    if (!listingId || deletePayload?.variant !== "permanent") return;
+    setActionId(`delete:${listingId}`);
     const { error } = await permanentlyDeleteArchivedListing(supabase, {
-      listingId: deleteTargetId,
+      listingId,
       statusHint: "archived",
     });
     if (error) {
@@ -205,11 +208,34 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
       setActionId("");
       return;
     }
-    removeMyListingRow(deleteTargetId);
+    removeMyListingRow(listingId);
     invalidate();
     showToast({ type: "info", message: "Listing permanently deleted" });
-    setDeleteTargetId("");
+    modal.closeModal(MODAL_TYPES.DELETE);
     setActionId("");
+  };
+
+  const openDiscardDraft = (listing) => {
+    modal.closeAllModals();
+    modal.openModal(MODAL_TYPES.DELETE, {
+      id: listing.id,
+      title: listing.title,
+      variant: "discard",
+    });
+  };
+
+  const openPermanentDelete = (listing) => {
+    modal.closeAllModals();
+    modal.openModal(MODAL_TYPES.DELETE, {
+      id: listing.id,
+      title: listing.title,
+      variant: "permanent",
+    });
+  };
+
+  const openArchiveListing = (listingId) => {
+    modal.closeAllModals();
+    modal.openModal(MODAL_TYPES.ARCHIVE, { listingId: String(listingId) });
   };
 
   const editListingHref = (listingId) =>
@@ -371,7 +397,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
                         <button
                           type="button"
                           className={styles.deleteListingButton}
-                          onClick={() => setDiscardTargetId(String(l.id))}
+                          onClick={() => openDiscardDraft(l)}
                           disabled={actionId === String(l.id)}
                         >
                           Discard draft
@@ -382,7 +408,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
                       <button
                         type="button"
                         className={styles.deleteListingButton}
-                        onClick={() => setArchiveTargetId(String(l.id))}
+                        onClick={() => openArchiveListing(l.id)}
                         disabled={actionId === String(l.id)}
                       >
                         {actionId === String(l.id) ? "Archiving…" : "Archive"}
@@ -404,7 +430,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
                         <button
                           type="button"
                           className={styles.deleteListingButton}
-                          onClick={() => setArchiveTargetId(String(l.id))}
+                          onClick={() => openArchiveListing(l.id)}
                           disabled={actionId === String(l.id)}
                         >
                           Archive
@@ -424,7 +450,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
                         <button
                           type="button"
                           className={`${styles.rejectButton} ${styles.quickDangerMuted}`}
-                          onClick={() => setDeleteTargetId(String(l.id))}
+                          onClick={() => openPermanentDelete(l)}
                           disabled={actionId === String(l.id) || actionId === `delete:${l.id}`}
                         >
                           Permanently delete
@@ -443,35 +469,52 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
         isArchiving={Boolean(archiveTargetId && actionId === archiveTargetId)}
         onClose={() => {
           if (actionId === archiveTargetId) return;
-          setArchiveTargetId("");
+          modal.closeModal(MODAL_TYPES.ARCHIVE);
         }}
         onConfirm={confirmArchiveListing}
       />
 
-      <DiscardDraftModal
-        open={Boolean(discardTargetId)}
-        discarding={Boolean(discardTargetId && actionId === discardTargetId)}
-        onClose={() => {
-          if (actionId === discardTargetId) return;
-          setDiscardTargetId("");
-        }}
-        onDiscard={confirmDiscardDraft}
-      />
-
-      <DeleteConfirmModal
-        isOpen={Boolean(deleteTargetId)}
-        onClose={() => setDeleteTargetId("")}
-        onConfirm={permanentlyDeleteListing}
-        loading={actionId === `delete:${deleteTargetId}` && Boolean(deleteTargetId)}
-        mode="delete"
-        title="Permanent Deletion"
-        description={
-          <>
-            This permanently removes the listing and associated operational history. Type{" "}
-            <strong>delete</strong> to continue.
-          </>
+      <DeleteConfirmationModal
+        isOpen={modal.isModalOpen(MODAL_TYPES.DELETE)}
+        title={
+          deletePayload?.variant === "permanent"
+            ? "Permanent Deletion"
+            : "Discard this draft?"
         }
-        confirmLabel="Permanently Delete"
+        warningText={
+          deletePayload?.variant === "permanent"
+            ? "This permanently removes the listing and associated operational history. This action cannot be undone."
+            : "This draft will be permanently removed. This action cannot be undone."
+        }
+        confirmLabel={deletePayload?.variant === "permanent" ? "Permanently Delete" : "Discard Draft"}
+        item={deletePayload}
+        requireTypeDelete={deletePayload?.variant === "permanent"}
+        loading={
+          Boolean(deletePayload?.id) &&
+          (deletePayload.variant === "permanent"
+            ? actionId === `delete:${deletePayload.id}`
+            : actionId === String(deletePayload.id))
+        }
+        onClose={() => {
+          if (
+            deletePayload?.variant === "permanent" &&
+            actionId === `delete:${deletePayload?.id}`
+          ) {
+            return;
+          }
+          if (
+            deletePayload?.variant !== "permanent" &&
+            actionId === String(deletePayload?.id)
+          ) {
+            return;
+          }
+          modal.closeModal(MODAL_TYPES.DELETE);
+        }}
+        onConfirm={
+          deletePayload?.variant === "permanent"
+            ? permanentlyDeleteListing
+            : confirmDiscardDraft
+        }
       />
     </section>
   );

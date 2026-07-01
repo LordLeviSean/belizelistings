@@ -167,3 +167,32 @@
   outline: none;
   border-color: rgba(130, 190, 185, 0.42);
 }
+
+@media (max-width: 768px) {
+  .groupBtn {
+    min-height: var(--touch-target-min);
+    padding: 10px 16px;
+  }
+
+  .split {
+    gap: 14px;
+  }
+
+  .detail {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .thread {
+    max-height: min(42dvh, 320px);
+  }
+
+  .composerInput {
+    font-size: 16px;
+    min-height: 88px;
+  }
+
+  .convBtn {
+    min-height: var(--touch-target-min);
+  }
+}

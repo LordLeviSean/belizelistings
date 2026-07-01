@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { Heart } from "lucide-react";
+import styles from "./ToastProvider.module.css";
 
 const ToastContext = createContext(null);
 
@@ -96,16 +97,7 @@ export function ToastProvider({ children }) {
       <div
         aria-live="polite"
         aria-atomic="true"
-        style={{
-          position: "fixed",
-          right: 16,
-          bottom: 16,
-          zIndex: 9999,
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-          pointerEvents: "none",
-        }}
+        className={styles.stack}
       >
         {toasts.map((toast) => {
           const preset = toastPresentation(toast.type);
@@ -115,15 +107,8 @@ export function ToastProvider({ children }) {
           return (
             <div
               key={toast.id}
+              className={`${styles.toast} ${glass ? styles.toastGlass : ""}`}
               style={{
-                minWidth: 248,
-                maxWidth: 360,
-                padding: glass ? "11px 14px" : "10px 12px",
-                borderRadius: glass ? 14 : 10,
-                display: "flex",
-                alignItems: "center",
-                gap: 11,
-                pointerEvents: "auto",
                 animation: "toastSlideIn 260ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
                 ...(glass && preset.glassStyles),
                 ...(glass

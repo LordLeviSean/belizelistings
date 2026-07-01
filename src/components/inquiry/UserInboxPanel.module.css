@@ -6,6 +6,12 @@
   max-width: 62ch;
 }
 
+@media (max-width: 768px) {
+  .lede {
+    font-size: 0.86rem;
+  }
+}
+
 .unreadBanner {
   margin: 0 0 12px;
   font-size: 0.82rem;

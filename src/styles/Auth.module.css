@@ -16,7 +16,9 @@
   min-height: calc(100vh - var(--site-nav-offset));
   display: grid;
   place-items: center;
-  padding: 24px 16px;
+  padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  overflow-x: hidden;
 }
 
 .card {
@@ -364,4 +366,33 @@
   opacity: 0.45;
   cursor: not-allowed;
   text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  .card {
+    max-width: 100%;
+    padding: 16px;
+  }
+
+  .title {
+    font-size: clamp(1.35rem, 5.5vw, 26px);
+  }
+
+  .primaryBtn,
+  .secondaryBtn,
+  .successSecondaryBtn {
+    width: 100%;
+    min-height: var(--touch-target-min);
+  }
+
+  .input {
+    min-height: var(--touch-target-min);
+    font-size: 16px;
+  }
+
+  .successModal {
+    width: min(calc(100% - 20px), 340px);
+    max-height: min(88dvh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px));
+    overflow-y: auto;
+  }
 }

@@ -16,6 +16,15 @@
   }
 }
 
+@media (max-width: 768px) {
+  .unlockBtn,
+  .relockBtn,
+  .deleteUserBtn {
+    width: 100%;
+    min-height: var(--touch-target-min);
+  }
+}
+
 @media (max-width: 520px) {
   .userGrid {
     grid-template-columns: 1fr;

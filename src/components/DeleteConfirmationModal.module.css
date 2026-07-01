@@ -24,7 +24,7 @@
 }
 
 .modal {
-  width: min(420px, 100%);
+  width: min(520px, 100%);
   max-height: min(90dvh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -70,8 +70,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--touch-target-min);
-  height: var(--touch-target-min);
+  width: 38px;
+  height: 38px;
   margin: -4px -6px 0 0;
   padding: 0;
   border-radius: 10px;
@@ -82,16 +82,54 @@
   transition: var(--transition-surface), transform var(--dur-2) var(--ease-out-soft);
 }
 
-.close:hover {
+.close:hover:not(:disabled) {
   transform: translateY(var(--hover-lift-xs));
   border-color: rgba(72, 140, 128, 0.42);
 }
 
+.close:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .body {
-  margin: 0 0 18px;
+  margin: 0 0 8px;
   font-size: 0.9rem;
   line-height: 1.55;
   color: rgba(52, 82, 76, 0.88);
+}
+
+.itemTitle {
+  margin: 0 0 14px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: rgba(32, 62, 56, 0.94);
+}
+
+.typeConfirm {
+  margin: 0 0 14px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: rgba(52, 82, 76, 0.82);
+}
+
+.input {
+  width: 100%;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 178, 164, 0.38);
+  background: rgba(255, 255, 255, 0.82);
+  color: rgba(32, 62, 56, 0.96);
+  padding: 11px 12px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: rgba(72, 140, 128, 0.52);
+  box-shadow: 0 0 0 2px rgba(120, 178, 164, 0.18);
 }
 
 .actions {
@@ -101,10 +139,20 @@
 }
 
 @media (max-width: 768px) {
-  .btnPrimary,
-  .btnSecondary {
+  .close {
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+  }
+
+  .btnSecondary,
+  .btnDestructive {
     width: 100%;
     min-height: var(--touch-target-min);
+  }
+
+  .input {
+    min-height: var(--touch-target-min);
+    font-size: 16px;
   }
 }
 
@@ -115,44 +163,18 @@
   }
 }
 
-.btnPrimary {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(52, 130, 118, 0.42);
-  background: rgba(244, 252, 249, 0.95);
-  color: rgba(22, 72, 62, 0.98);
-  font-size: 0.9rem;
-  font-weight: 650;
-  cursor: pointer;
-  transition: var(--transition-hover-lift), border-color var(--dur-2) var(--ease-out-soft);
-  box-shadow: var(--elev-1);
-}
-
-.btnPrimary:hover:not(:disabled) {
-  border-color: rgba(32, 110, 98, 0.5);
-  transform: translateY(var(--hover-lift-xs));
-}
-
-.btnPrimary:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
 .btnSecondary {
   flex: 1;
   min-width: 0;
   padding: 12px 16px;
   border-radius: 12px;
-  border: 1px solid rgba(120, 178, 164, 0.35);
+  border: 1px solid rgba(120, 178, 164, 0.38);
   background: rgba(255, 255, 255, 0.72);
-  color: rgba(42, 72, 66, 0.92);
+  color: rgba(42, 72, 66, 0.9);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition-hover-lift), border-color var(--dur-2) var(--ease-out-soft);
-  box-shadow: var(--elev-0);
 }
 
 .btnSecondary:hover:not(:disabled) {
@@ -165,19 +187,44 @@
   cursor: not-allowed;
 }
 
+.btnDestructive {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 145, 128, 0.48);
+  background: linear-gradient(135deg, rgba(255, 230, 220, 0.62), rgba(235, 165, 148, 0.2));
+  color: rgba(108, 62, 56, 0.92);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-hover-lift), border-color var(--dur-2) var(--ease-out-soft);
+  box-shadow: var(--elev-0);
+}
+
+.btnDestructive:hover:not(:disabled) {
+  border-color: rgba(195, 115, 98, 0.55);
+  transform: translateY(var(--hover-lift-xs));
+}
+
+.btnDestructive:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .backdrop,
   .modal,
   .close,
-  .btnPrimary,
-  .btnSecondary {
+  .btnSecondary,
+  .btnDestructive {
     animation: none !important;
     transition-duration: 0.01ms !important;
   }
 
-  .close:hover,
-  .btnPrimary:hover:not(:disabled),
-  .btnSecondary:hover:not(:disabled) {
+  .close:hover:not(:disabled),
+  .btnSecondary:hover:not(:disabled),
+  .btnDestructive:hover:not(:disabled) {
     transform: none;
   }
 }

@@ -279,3 +279,9 @@ select:focus-visible {
   pointer-events: none !important;
 }
 
+@media (max-width: 768px) {
+  .pageContent {
+    padding: 24px 14px calc(20px + env(safe-area-inset-bottom));
+  }
+}
+

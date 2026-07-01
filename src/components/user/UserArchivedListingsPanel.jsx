@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { filterArchivedListingsPanelRows } from "@/lib/userDashboardListingTruth";
 import useUserDashboardStore from "@/stores/useUserDashboardStore";
 import { useToast } from "@/components/ui/ToastProvider";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import { MODAL_TYPES, useModalController } from "@/hooks/useModalController";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import UserListingRowIntel from "@/components/user/UserListingRowIntel";
 import {
@@ -27,6 +29,8 @@ function coverUrl(listing) {
 function UserArchivedListingsPanel({ userId, tier }) {
   const { showToast } = useToast();
   const [actionId, setActionId] = useState("");
+  const modal = useModalController();
+  const deletePayload = modal.isModalOpen(MODAL_TYPES.DELETE) ? modal.activeModal?.payload : null;
 
   const { listings, loading, invalidate, patchMyListingRow, removeMyListingRow, myListingsInitialFetchDone, activeListings } =
     useUserDashboardStore(
@@ -77,13 +81,9 @@ function UserArchivedListingsPanel({ userId, tier }) {
     setActionId("");
   };
 
-  const deleteListing = async (listingId) => {
-    if (typeof window !== "undefined") {
-      const ok = window.confirm(
-        "Permanently remove this archived listing? This cannot be undone."
-      );
-      if (!ok) return;
-    }
+  const confirmPermanentDelete = async () => {
+    const listingId = deletePayload?.id ?? deletePayload;
+    if (!listingId) return;
     setActionId(String(listingId));
     const { error } = await permanentlyDeleteArchivedListing(supabase, {
       listingId,
@@ -97,6 +97,7 @@ function UserArchivedListingsPanel({ userId, tier }) {
     removeMyListingRow(listingId);
     invalidate();
     showToast({ type: "info", message: "Listing removed" });
+    modal.closeModal(MODAL_TYPES.DELETE);
     setActionId("");
   };
 
@@ -182,7 +183,13 @@ function UserArchivedListingsPanel({ userId, tier }) {
                     <button
                       type="button"
                       className={styles.deleteListingButton}
-                      onClick={() => deleteListing(l.id)}
+                      onClick={() => {
+                        modal.closeAllModals();
+                        modal.openModal(MODAL_TYPES.DELETE, {
+                          id: l.id,
+                          title: l.title || "Untitled",
+                        });
+                      }}
                       disabled={actionId === String(l.id)}
                     >
                       Delete
@@ -193,6 +200,23 @@ function UserArchivedListingsPanel({ userId, tier }) {
             );
           })}
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={modal.isModalOpen(MODAL_TYPES.DELETE)}
+        title="Delete Listing?"
+        warningText="This action cannot be undone. The archived listing will be permanently removed."
+        confirmLabel="Delete"
+        item={deletePayload}
+        loading={
+          Boolean(deletePayload?.id) &&
+          actionId === String(deletePayload.id)
+        }
+        onClose={() => {
+          if (actionId === String(deletePayload?.id)) return;
+          modal.closeModal(MODAL_TYPES.DELETE);
+        }}
+        onConfirm={confirmPermanentDelete}
+      />
     </section>
   );
 }

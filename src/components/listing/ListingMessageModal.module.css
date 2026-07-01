@@ -14,8 +14,9 @@
 
 .modal {
   width: min(580px, 94vw);
-  max-height: calc(100dvh - 32px);
-  overflow: auto;
+  max-height: min(90dvh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: var(--radius);
   padding: 22px 22px 20px;
   background: var(--glass-bg-strong);
@@ -46,8 +47,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
   margin: -4px -6px 0 0;
   padding: 0;
   border-radius: 10px;
@@ -136,6 +137,7 @@
   border: 1px solid rgba(72, 140, 128, 0.32);
   border-radius: 12px;
   padding: 13px 16px;
+  min-height: var(--touch-target-min);
   font-size: 0.92rem;
   font-weight: 650;
   cursor: pointer;
@@ -171,6 +173,13 @@
   display: flex;
   justify-content: center;
   margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .input,
+  .textarea {
+    font-size: 16px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
