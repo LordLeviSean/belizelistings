@@ -66,6 +66,6 @@ describe("fetchNotifications", () => {
       },
     ]);
     expect(items[0].unread).toBe(true);
-    expect(items[0].href).toBe("/dashboard/agent");
+    expect(items[0].href).toBe("/dashboard/agent?tab=inquiries");
   });
 });

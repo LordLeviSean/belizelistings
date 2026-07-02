@@ -12,6 +12,7 @@ import UserArchivedListingsPanel from "@/components/user/UserArchivedListingsPan
 import BuyerInquiriesPanel from "@/components/inquiry/BuyerInquiriesPanel";
 import BuyerViewingsPanel from "@/components/inquiry/BuyerViewingsPanel";
 import UserInboxPanel from "@/components/inquiry/UserInboxPanel";
+import AdminOwnerInboxPanel from "@/components/admin/AdminOwnerInboxPanel";
 import ProfileCompletionPanel from "@/components/profile/ProfileCompletionPanel";
 import ProfileCompletionBanner from "@/components/profile/ProfileCompletionBanner";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
@@ -29,9 +30,10 @@ import {
   USER_DASHBOARD_PLACEHOLDERS,
   USER_DASHBOARD_FINITE_CAP_THRESHOLD,
   USER_DASHBOARD_TAB_IDS,
-  USER_DASHBOARD_TABS,
   formatListingRemainingLabel,
   formatTryCreateRemainderChip,
+  getVisibleUserDashboardTabs,
+  userHasOwnedListings,
 } from "@/constants/dashboardUserConfig";
 import styles from "@/styles/Dashboard.module.css";
 import loadingStyles from "@/styles/UserDashboard.module.css";
@@ -62,6 +64,7 @@ export default function UserDashboard() {
     pendingListings,
     archivedListings,
     draftListings,
+    rejectedListings,
     favoritesCount,
     inquiriesCount,
     favoritesUnavailable,
@@ -73,6 +76,7 @@ export default function UserDashboard() {
       pendingListings: s.pendingListings,
       archivedListings: s.archivedListings,
       draftListings: s.draftListings,
+      rejectedListings: s.rejectedListings,
       favoritesCount: s.favoritesCount,
       inquiriesCount: s.inquiriesCount,
       favoritesUnavailable: s.favoritesUnavailable,
@@ -90,21 +94,29 @@ export default function UserDashboard() {
 
   const activeTab = useMemo(() => normalizeUserDashboardTab(router.query.tab), [router.query.tab]);
 
-  const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
-  const visibleTabs = useMemo(
+  const hasOwnedListings = useMemo(
     () =>
-      USER_DASHBOARD_TABS.filter((tab) => {
-        if (tab.conversations && !BL_ENABLE_CONVERSATIONS) return false;
-        if (tab.crm && !crmTabsEnabled) return false;
-        return true;
+      userHasOwnedListings({
+        activeListings,
+        pendingListings,
+        archivedListings,
+        draftListings,
+        rejectedListings,
       }),
-    [crmTabsEnabled]
+    [activeListings, pendingListings, archivedListings, draftListings, rejectedListings]
+  );
+
+  const visibleTabs = useMemo(
+    () => getVisibleUserDashboardTabs({ hasOwnedListings }),
+    [hasOwnedListings]
   );
 
   const [buyerInquiries, setBuyerInquiries] = useState([]);
   const [buyerViewings, setBuyerViewings] = useState([]);
   const [buyerConversations, setBuyerConversations] = useState([]);
   const [buyerCrmLoading, setBuyerCrmLoading] = useState(false);
+
+  const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
 
   const loadBuyerCrm = useCallback(async () => {
     if (!user?.id) return;
@@ -446,6 +458,22 @@ export default function UserDashboard() {
                       />
                     )}
                   </section>
+                ) : null}
+
+                {activeTab === USER_DASHBOARD_TAB_IDS.OWNER_INBOX && user?.id ? (
+                  <AdminOwnerInboxPanel
+                    ownerUserId={user.id}
+                    section="inquiries"
+                    surface="user"
+                  />
+                ) : null}
+
+                {activeTab === USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS && user?.id ? (
+                  <AdminOwnerInboxPanel
+                    ownerUserId={user.id}
+                    section="viewings"
+                    surface="user"
+                  />
                 ) : null}
               </div>
             </DashboardShell>

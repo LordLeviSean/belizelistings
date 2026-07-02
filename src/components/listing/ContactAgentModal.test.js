@@ -29,6 +29,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
 import ContactAgentModal from "./ContactAgentModal";
+import styles from "./ContactAgentModal.module.css";
 
 function renderModal(ui) {
   const container = document.createElement("div");
@@ -71,6 +72,8 @@ describe("ContactAgentModal", () => {
     expect(dialog.textContent).toMatch(/Phone/i);
     expect(dialog.textContent).toMatch(/Email/i);
     expect(dialog.textContent).toMatch(/Message via BelizeListings/i);
+    expect(container.querySelector(`.${styles.copyBtn}`)).toBeTruthy();
+    expect(container.querySelector(`.${styles.primaryActionBtn}`)).toBeTruthy();
   });
 
   test("returns null when closed", () => {

@@ -126,7 +126,16 @@ export default function ContactAgentModal({
 
   if (!open) return null;
 
-  const renderContactRow = ({ icon: Icon, label, value, href, disabledHint, showWaWeb }) => {
+  const renderContactRow = ({
+    icon: Icon,
+    label,
+    value,
+    href,
+    disabledHint,
+    showWaWeb,
+    copyValue,
+  }) => {
+    const copyTarget = copyValue ?? value;
     if (!value && !disabledHint) return null;
 
     if (!value) {
@@ -167,19 +176,10 @@ export default function ContactAgentModal({
           <span className={styles.contactValue}>{value}</span>
         </span>
         <div className={styles.contactActions}>
-          <button
-            type="button"
-            className={styles.copyBtn}
-            aria-label={`Copy ${label}`}
-            onClick={() => void handleCopy(label, value)}
-          >
-            <Copy size={14} aria-hidden />
-            Copy
-          </button>
           {showWaWeb && href ? (
             <a
               href={href}
-              className={styles.waWebLink}
+              className={styles.primaryActionBtn}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => onClose?.()}
@@ -187,6 +187,15 @@ export default function ContactAgentModal({
               Open WhatsApp Web
             </a>
           ) : null}
+          <button
+            type="button"
+            className={showWaWeb ? styles.secondaryCopyBtn : styles.copyBtn}
+            aria-label={`Copy ${label}`}
+            onClick={() => void handleCopy(label, copyTarget)}
+          >
+            <Copy size={14} aria-hidden />
+            Copy
+          </button>
         </div>
       </div>
     );
@@ -232,6 +241,7 @@ export default function ContactAgentModal({
             icon: MessageCircle,
             label: "WhatsApp",
             value: waDisplay,
+            copyValue: waDigits || waDisplay,
             href: waHref,
             showWaWeb: true,
             disabledHint: "WhatsApp is not on file for this agent yet.",

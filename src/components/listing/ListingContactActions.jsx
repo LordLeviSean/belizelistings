@@ -1,7 +1,8 @@
 import dynamic from "next/dynamic";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { CalendarClock, MessageCircle, Share2 } from "lucide-react";
 import { fetchListingOwnerContact } from "@/lib/listingContactResolver";
+import { resolveListingAgentUserId } from "@/lib/listingInquiryTargets";
 import { supabase } from "@/lib/supabaseClient";
 
 const ContactAgentModal = dynamic(() => import("./ContactAgentModal"), { ssr: false });
@@ -19,6 +20,11 @@ export default function ListingContactActions({ listing, user }) {
   const [viewingOpen, setViewingOpen] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
   const [ownerContact, setOwnerContact] = useState(null);
+
+  const listingAgentUserId = useMemo(
+    () => resolveListingAgentUserId(listing, ownerContact),
+    [listing, ownerContact]
+  );
 
   useEffect(() => {
     if (!listing?.id) {
@@ -109,12 +115,14 @@ export default function ListingContactActions({ listing, user }) {
         onClose={() => setMessageOpen(false)}
         listing={listing}
         user={user}
+        agentUserId={listingAgentUserId}
       />
       <ListingViewingBookingModal
         open={viewingOpen}
         onClose={() => setViewingOpen(false)}
         listing={listing}
         user={user}
+        agentUserId={listingAgentUserId}
       />
     </section>
   );

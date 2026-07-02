@@ -5,6 +5,11 @@
  * `NEXT_PUBLIC_BETA_LISTING_CAP_OVERRIDE` for QA).
  */
 import { resolveActiveListingCapForTier } from "@/constants/operationalModel";
+import {
+  BL_ENABLE_CONVERSATIONS,
+  BL_ENABLE_INQUIRIES,
+  BL_ENABLE_VIEWING_PERSIST,
+} from "@/lib/featureFlags";
 
 export const USER_DASHBOARD_TAB_IDS = Object.freeze({
   OVERVIEW: "overview",
@@ -16,6 +21,8 @@ export const USER_DASHBOARD_TAB_IDS = Object.freeze({
   MESSAGES: "messages",
   MY_INQUIRIES: "my-inquiries",
   MY_VIEWINGS: "my-viewings",
+  OWNER_INBOX: "owner-inbox",
+  OWNER_VIEWINGS: "owner-viewings",
 });
 
 /** Shared tab metadata for `/dashboard/user`. */
@@ -29,7 +36,57 @@ export const USER_DASHBOARD_TABS = Object.freeze([
   { id: USER_DASHBOARD_TAB_IDS.MESSAGES, label: "Messages", crm: true, conversations: true },
   { id: USER_DASHBOARD_TAB_IDS.MY_INQUIRIES, label: "My Inquiries", crm: true },
   { id: USER_DASHBOARD_TAB_IDS.MY_VIEWINGS, label: "My Viewings", crm: true },
+  {
+    id: USER_DASHBOARD_TAB_IDS.OWNER_INBOX,
+    label: "Owner Inbox",
+    owner: true,
+    conversations: true,
+  },
+  {
+    id: USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS,
+    label: "Viewing Requests",
+    owner: true,
+    crm: true,
+  },
 ]);
+
+/**
+ * True when the user has posted at least one listing in any lifecycle state.
+ */
+export function userHasOwnedListings({
+  activeListings = 0,
+  pendingListings = 0,
+  archivedListings = 0,
+  draftListings = 0,
+  rejectedListings = 0,
+} = {}) {
+  return (
+    activeListings + pendingListings + archivedListings + draftListings + rejectedListings > 0
+  );
+}
+
+/** Buyer + conditional owner CRM tabs for `/dashboard/user`. */
+export function getVisibleUserDashboardTabs({ hasOwnedListings = false } = {}) {
+  const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
+
+  return USER_DASHBOARD_TABS.filter((tab) => {
+    if (tab.owner) {
+      if (!hasOwnedListings) return false;
+      if (tab.conversations && !BL_ENABLE_CONVERSATIONS) return false;
+      if (
+        tab.id === USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS &&
+        !BL_ENABLE_VIEWING_PERSIST &&
+        !BL_ENABLE_CONVERSATIONS
+      ) {
+        return false;
+      }
+      return true;
+    }
+    if (tab.conversations && !BL_ENABLE_CONVERSATIONS) return false;
+    if (tab.crm && !crmTabsEnabled) return false;
+    return true;
+  });
+}
 
 export const USER_DASHBOARD_METRIC_KEYS = Object.freeze({
   ACTIVE_LISTINGS: "activeListings",

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { X } from "lucide-react";
@@ -9,6 +9,8 @@ import {
   resolveInquirySenderEmail,
 } from "@/lib/inquiryEmailPrefill";
 import { submitListingInquiry } from "@/lib/listingInquiries";
+import { resolvePostInquiryMessagesPath } from "@/lib/dashboardCrmRoutes";
+import { resolveListingAgentUserId } from "@/lib/listingInquiryTargets";
 import { supabase } from "@/lib/supabaseClient";
 import useUserRole from "@/hooks/useUserRole";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -17,11 +19,16 @@ import styles from "./ListingMessageModal.module.css";
 const MESSAGE_PLACEHOLDER =
   "Introduce yourself, ask a question about the property, request a viewing, or inquire about pricing...";
 
-export default function ListingMessageModal({ open, onClose, listing, user: userProp }) {
+export default function ListingMessageModal({ open, onClose, listing, user: userProp, agentUserId: agentUserIdProp }) {
   const router = useRouter();
   const { showToast } = useToast();
-  const { user: sessionUser, profile } = useUserRole();
+  const { user: sessionUser, profile, role } = useUserRole();
   const user = userProp ?? sessionUser;
+
+  const listingAgentUserId = useMemo(
+    () => agentUserIdProp || resolveListingAgentUserId(listing),
+    [agentUserIdProp, listing]
+  );
 
   const [email, setEmail] = useState("");
   const [body, setBody] = useState("");
@@ -78,7 +85,7 @@ export default function ListingMessageModal({ open, onClose, listing, user: user
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!listing?.id || !listing?.user_id || sending) return;
+    if (!listing?.id || !listingAgentUserId || sending) return;
     const gate = scoreInquiryBody(body);
     if (!gate.ok) {
       showToast({ type: "error", message: gate.reason || "Add a bit more detail." });
@@ -97,7 +104,7 @@ export default function ListingMessageModal({ open, onClose, listing, user: user
     try {
       const { data, error } = await submitListingInquiry(supabase, {
         listingId: listing.id,
-        agentUserId: listing.user_id,
+        agentUserId: listingAgentUserId,
         senderUserId: user?.id ?? null,
         senderName: null,
         senderEmail: email.trim(),
@@ -134,7 +141,7 @@ export default function ListingMessageModal({ open, onClose, listing, user: user
 
       const conversationId = data?.conversationId ?? data?.conversation_id ?? null;
       if (user?.id && BL_ENABLE_CONVERSATIONS && conversationId) {
-        void router.push(`/dashboard/user?tab=messages&conversation=${conversationId}`);
+        void router.push(resolvePostInquiryMessagesPath({ role, conversationId }));
       }
     } finally {
       setSending(false);

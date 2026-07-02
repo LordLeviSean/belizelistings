@@ -16,7 +16,7 @@ describe("notificationCopyRegistry", () => {
     });
     expect(pres.category).toBe(NOTIFICATION_CATEGORIES.INQUIRY);
     expect(pres.title).toMatch(/inquiry/i);
-    expect(pres.href).toBe("/dashboard/agent");
+    expect(pres.href).toBe("/dashboard/agent?tab=inquiries&conversation=conv-1");
     expect(pres.dedupeKey).toBe("new_inquiry:inq-1");
   });
 
@@ -42,7 +42,7 @@ describe("notificationCopyRegistry", () => {
       listing_id: 12,
     });
     expect(pres.title).toMatch(/viewing request/i);
-    expect(pres.href).toBe("/dashboard/agent?tab=viewings");
+    expect(pres.href).toBe("/dashboard/agent?tab=viewings&viewing=v1");
   });
 
   test("mapNotificationRowToCenterItem preserves unread state", () => {

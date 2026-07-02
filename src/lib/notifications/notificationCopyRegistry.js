@@ -1,3 +1,4 @@
+import { resolveOwnerInboxPath } from "@/lib/dashboardCrmRoutes";
 import { NOTIFICATION_EVENT_TYPES } from "./notificationEvents";
 
 /** Editorial categories — calm luxury, operational tone. */
@@ -45,7 +46,7 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "inquiry";
       entityId = inquiryId ? String(inquiryId) : conversationId ? String(conversationId) : null;
       dedupeKey = dedupeKey ?? `new_inquiry:${inquiryId ?? conversationId ?? ""}`;
-      href = "/dashboard/agent";
+      href = resolveOwnerInboxPath({ role: "agent", conversationId });
       break;
 
     case NOTIFICATION_EVENT_TYPES.AGENT_REPLIED:
@@ -65,7 +66,7 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
       dedupeKey = dedupeKey ?? `viewing_requested:${viewingId ?? conversationId ?? ""}`;
-      href = "/dashboard/agent?tab=viewings";
+      href = resolveOwnerInboxPath({ role: "agent", tab: "viewings", viewingId });
       break;
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED:

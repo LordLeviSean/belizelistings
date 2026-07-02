@@ -7,6 +7,7 @@ import {
   resolveInquirySenderEmail,
 } from "@/lib/inquiryEmailPrefill";
 import { createViewingRequest } from "@/lib/crm/viewingMutations";
+import { resolveListingAgentUserId } from "@/lib/listingInquiryTargets";
 import { supabase } from "@/lib/supabaseClient";
 import useUserRole from "@/hooks/useUserRole";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -77,10 +78,21 @@ function buildMonthCells(year, monthIndex) {
   return cells;
 }
 
-export default function ListingViewingBookingModal({ open, onClose, listing, user: userProp }) {
+export default function ListingViewingBookingModal({
+  open,
+  onClose,
+  listing,
+  user: userProp,
+  agentUserId: agentUserIdProp,
+}) {
   const { showToast } = useToast();
   const { user: sessionUser, profile } = useUserRole();
   const user = userProp ?? sessionUser;
+
+  const listingAgentUserId = useMemo(
+    () => agentUserIdProp || resolveListingAgentUserId(listing),
+    [agentUserIdProp, listing]
+  );
 
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState(TIME_SLOTS[0]?.value ?? "07:00");
@@ -179,7 +191,7 @@ export default function ListingViewingBookingModal({ open, onClose, listing, use
   }, []);
 
   const handleConfirmBooking = useCallback(async () => {
-    if (pending || confirmed || !listing?.id || !listing?.user_id) return;
+    if (pending || confirmed || !listing?.id || !listingAgentUserId) return;
     if (!selectedDate || !selectedTime) return;
 
     const email = (user?.email || guestEmail || "").trim();
@@ -205,7 +217,7 @@ export default function ListingViewingBookingModal({ open, onClose, listing, use
     try {
       const { error, unavailable } = await createViewingRequest(supabase, {
         listingId: listing.id,
-        agentUserId: listing.user_id,
+        agentUserId: listingAgentUserId,
         requesterId: user?.id ?? null,
         requesterEmail: email || null,
         requesterName: guestName.trim() || user?.user_metadata?.full_name || null,

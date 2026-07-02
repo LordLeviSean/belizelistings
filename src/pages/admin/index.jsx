@@ -1,10 +1,13 @@
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import SiteNav from "../../components/SiteNav";
 import PendingListingsPanel from "../../components/PendingListingsPanel";
 import AllListingsPanel from "../../components/AllListingsPanel";
 import ManageUsersPanel from "../../components/ManageUsersPanel";
 import OperatorListingsPanel from "../../components/OperatorListingsPanel";
+import BuyerInquiriesPanel from "../../components/inquiry/BuyerInquiriesPanel";
+import BuyerViewingsPanel from "../../components/inquiry/BuyerViewingsPanel";
+import UserInboxPanel from "../../components/inquiry/UserInboxPanel";
 import { supabase } from "../../lib/supabaseClient";
 import useUserRole from "../../hooks/useUserRole";
 import useLivePaletteMode from "../../hooks/useLivePaletteMode";
@@ -28,10 +31,19 @@ import { getOperationalLifecycleCountsFromDb } from "../../lib/listingOperationa
 import AdminOperationalStats from "../../components/AdminOperationalStats";
 import AgentUpgradeRequestsPanel from "../../components/admin/AgentUpgradeRequestsPanel";
 import AdminOwnerInboxPanel from "../../components/admin/AdminOwnerInboxPanel";
-import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_VIEWING_PERSIST } from "../../lib/featureFlags";
+import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "../../lib/featureFlags";
+import { fetchInquiriesForBuyer } from "../../lib/crm/inquiryMutations";
+import { fetchConversationsForBuyer } from "../../lib/crm/conversationMutations";
+import { fetchViewingsForBuyer } from "../../lib/crm/viewingMutations";
+import {
+  ADMIN_DASHBOARD_TAB_IDS,
+  getVisibleAdminDashboardTabs,
+  normalizeAdminDashboardTab,
+} from "../../constants/dashboardAdminConfig";
 import { DashboardShell } from "../../components/dashboard";
 import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "../../constants/dashboardRoles";
 import styles from "../../styles/Dashboard.module.css";
+import loadingStyles from "../../styles/UserDashboard.module.css";
 import PremiumEmptyState from "../../components/ui/PremiumEmptyState";
 import Link from "next/link";
 
@@ -57,10 +69,47 @@ export default function AdminPage() {
   const [profilesRevision, setProfilesRevision] = useState(0);
   const [upgradeRequestsRevision, setUpgradeRequestsRevision] = useState(0);
   const [listingsRevision, setListingsRevision] = useState(0);
+  const [buyerInquiries, setBuyerInquiries] = useState([]);
+  const [buyerViewings, setBuyerViewings] = useState([]);
+  const [buyerConversations, setBuyerConversations] = useState([]);
+  const [buyerCrmLoading, setBuyerCrmLoading] = useState(false);
   const { enabled: livePaletteModeEnabled, setMode: setLivePaletteMode } = useLivePaletteMode();
   const { enabled: pulseModeEnabled, setMode: setPulseMode } = usePulseMode();
   const { enabled: seaFlowModeEnabled, setMode: setSeaFlowMode } = useSeaFlowMode();
   const { intensity: seaFlowIntensity, setIntensity: setSeaFlowIntensity } = useSeaFlowIntensity();
+
+  const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
+  const visibleTabs = useMemo(() => getVisibleAdminDashboardTabs(), [crmTabsEnabled]);
+
+  const loadBuyerCrm = useCallback(async () => {
+    if (!user?.id) return;
+    setBuyerCrmLoading(true);
+    const tasks = [];
+    if (crmTabsEnabled) {
+      tasks.push(fetchInquiriesForBuyer(supabase, user.id).then(({ data }) => setBuyerInquiries(data || [])));
+    }
+    if (BL_ENABLE_CONVERSATIONS) {
+      tasks.push(
+        fetchConversationsForBuyer(supabase, user.id).then(({ data }) => setBuyerConversations(data || []))
+      );
+    }
+    if (BL_ENABLE_VIEWING_PERSIST || BL_ENABLE_CONVERSATIONS) {
+      tasks.push(fetchViewingsForBuyer(supabase, user.id).then(({ data }) => setBuyerViewings(data || [])));
+    }
+    await Promise.all(tasks);
+    setBuyerCrmLoading(false);
+  }, [user?.id, crmTabsEnabled]);
+
+  useEffect(() => {
+    if (
+      activeTab !== ADMIN_DASHBOARD_TAB_IDS.MESSAGES &&
+      activeTab !== ADMIN_DASHBOARD_TAB_IDS.MY_INQUIRIES &&
+      activeTab !== ADMIN_DASHBOARD_TAB_IDS.MY_VIEWINGS
+    ) {
+      return;
+    }
+    void loadBuyerCrm();
+  }, [activeTab, loadBuyerCrm]);
 
   const refreshStats = useCallback(async () => {
     const [operational, { count: usersCount, error: usersError }] = await Promise.all([
@@ -122,9 +171,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const tab = typeof router.query.tab === "string" ? router.query.tab : "";
-    if (tab === "pending" || tab === "listings" || tab === "users" || tab === "operator" || tab === "upgrades" || tab === "owner-inbox") {
-      setActiveTab(tab);
-    }
+    setActiveTab(normalizeAdminDashboardTab(tab));
   }, [router.query.tab]);
 
   useEffect(() => {
@@ -264,50 +311,16 @@ export default function AdminPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, marginTop: 18 }}>
             <section>
               <div className={styles.adminTabs}>
-                <button
-                  type="button"
-                  className={`${styles.dashboardLink} ${activeTab === "pending" ? styles.dashboardLinkActive : ""}`}
-                  onClick={() => setActiveTab("pending")}
-                >
-                  Pending
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.dashboardLink} ${activeTab === "listings" ? styles.dashboardLinkActive : ""}`}
-                  onClick={() => setActiveTab("listings")}
-                >
-                  Listings
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.dashboardLink} ${activeTab === "users" ? styles.dashboardLinkActive : ""}`}
-                  onClick={() => setActiveTab("users")}
-                >
-                  Users
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.dashboardLink} ${activeTab === "operator" ? styles.dashboardLinkActive : ""}`}
-                  onClick={() => setActiveTab("operator")}
-                >
-                  Operator
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.dashboardLink} ${activeTab === "upgrades" ? styles.dashboardLinkActive : ""}`}
-                  onClick={() => setActiveTab("upgrades")}
-                >
-                  Upgrades
-                </button>
-                {(BL_ENABLE_CONVERSATIONS || BL_ENABLE_VIEWING_PERSIST) ? (
+                {visibleTabs.map((tab) => (
                   <button
+                    key={tab.id}
                     type="button"
-                    className={`${styles.dashboardLink} ${activeTab === "owner-inbox" ? styles.dashboardLinkActive : ""}`}
-                    onClick={() => setActiveTab("owner-inbox")}
+                    className={`${styles.dashboardLink} ${activeTab === tab.id ? styles.dashboardLinkActive : ""}`}
+                    onClick={() => setActiveTab(tab.id)}
                   >
-                    My listing inbox
+                    {tab.label}
                   </button>
-                ) : null}
+                ))}
               </div>
               {activeTab === "pending" && (
                 <PendingListingsPanel
@@ -364,8 +377,54 @@ export default function AdminPage() {
                   }}
                 />
               )}
-              {activeTab === "owner-inbox" && user?.id ? (
-                <AdminOwnerInboxPanel ownerUserId={user.id} />
+              {activeTab === ADMIN_DASHBOARD_TAB_IDS.OWNER_INBOX && user?.id ? (
+                <AdminOwnerInboxPanel ownerUserId={user.id} section="inquiries" />
+              ) : null}
+              {activeTab === ADMIN_DASHBOARD_TAB_IDS.OWNER_VIEWINGS && user?.id ? (
+                <AdminOwnerInboxPanel ownerUserId={user.id} section="viewings" />
+              ) : null}
+              {activeTab === ADMIN_DASHBOARD_TAB_IDS.MESSAGES ? (
+                <section aria-label="Messages">
+                  {buyerCrmLoading && !buyerConversations.length ? (
+                    <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                  ) : (
+                    <UserInboxPanel
+                      conversations={buyerConversations}
+                      buyerUserId={user?.id}
+                      onRefresh={loadBuyerCrm}
+                      initialConversationId={
+                        typeof router.query.conversation === "string"
+                          ? router.query.conversation
+                          : Array.isArray(router.query.conversation)
+                            ? router.query.conversation[0]
+                            : null
+                      }
+                    />
+                  )}
+                </section>
+              ) : null}
+              {activeTab === ADMIN_DASHBOARD_TAB_IDS.MY_INQUIRIES ? (
+                <section aria-label="My inquiries">
+                  {buyerCrmLoading && !buyerInquiries.length ? (
+                    <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                  ) : (
+                    <BuyerInquiriesPanel inquiries={buyerInquiries} />
+                  )}
+                </section>
+              ) : null}
+              {activeTab === ADMIN_DASHBOARD_TAB_IDS.MY_VIEWINGS ? (
+                <section aria-label="My viewings">
+                  {buyerCrmLoading && !buyerViewings.length ? (
+                    <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                  ) : (
+                    <BuyerViewingsPanel
+                      viewings={buyerViewings}
+                      listingsById={{}}
+                      buyerUserId={user?.id}
+                      onRefresh={loadBuyerCrm}
+                    />
+                  )}
+                </section>
               ) : null}
             </section>
             <aside className={styles.card}>
