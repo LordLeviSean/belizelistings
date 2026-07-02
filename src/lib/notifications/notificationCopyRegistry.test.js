@@ -36,6 +36,15 @@ describe("notificationCopyRegistry", () => {
     expect(pres.dedupeKey).toBe("agent_replied:c1:m1");
   });
 
+  test("viewing_requested routes agent to viewings tab", () => {
+    const pres = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED, {
+      viewing_id: "v1",
+      listing_id: 12,
+    });
+    expect(pres.title).toMatch(/viewing request/i);
+    expect(pres.href).toBe("/dashboard/agent?tab=viewings");
+  });
+
   test("mapNotificationRowToCenterItem preserves unread state", () => {
     const item = mapNotificationRowToCenterItem({
       id: "n1",

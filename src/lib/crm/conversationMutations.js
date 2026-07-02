@@ -36,22 +36,30 @@ export function isBuyerConversationUnread(conv) {
   return Boolean(conv?.buyer_unread);
 }
 
-export async function fetchConversationsForAgent(client, agentUserId, { limit = 80 } = {}) {
-  return client
+export async function fetchConversationsForAgent(client, agentUserId, { limit = 80, includeArchived = false } = {}) {
+  let query = client
     .from("conversations")
     .select(CONVERSATION_SELECT)
     .eq("agent_id", agentUserId)
     .order("updated_at", { ascending: false })
     .limit(limit);
+  if (!includeArchived) {
+    query = query.is("agent_archived_at", null);
+  }
+  return query;
 }
 
-export async function fetchConversationsForBuyer(client, buyerUserId, { limit = 50 } = {}) {
-  return client
+export async function fetchConversationsForBuyer(client, buyerUserId, { limit = 50, includeArchived = false } = {}) {
+  let query = client
     .from("conversations")
     .select(CONVERSATION_SELECT)
     .eq("buyer_id", buyerUserId)
     .order("updated_at", { ascending: false })
     .limit(limit);
+  if (!includeArchived) {
+    query = query.is("buyer_archived_at", null);
+  }
+  return query;
 }
 
 export async function fetchConversationMessages(client, conversationId, { limit = 100 } = {}) {
@@ -302,13 +310,25 @@ export async function archiveConversation(client, { conversationId, agentUserId 
   const { error } = await client
     .from("conversations")
     .update({
-      status: "archived",
-      pipeline_stage: CRM_PIPELINE_STAGE.ARCHIVED,
-      stage: CRM_PIPELINE_STAGE.ARCHIVED,
+      agent_archived_at: now,
       updated_at: now,
     })
     .eq("id", conversationId)
     .eq("agent_id", agentUserId);
+
+  return { error };
+}
+
+export async function archiveConversationForBuyer(client, { conversationId, buyerUserId }) {
+  const now = new Date().toISOString();
+  const { error } = await client
+    .from("conversations")
+    .update({
+      buyer_archived_at: now,
+      updated_at: now,
+    })
+    .eq("id", conversationId)
+    .eq("buyer_id", buyerUserId);
 
   return { error };
 }

@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
-import { BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
+import { Turnstile } from "@marsidev/react-turnstile";
+import { BL_ENABLE_TURNSTILE, BL_ENABLE_VIEWING_PERSIST, TURNSTILE_SITE_KEY } from "@/lib/featureFlags";
+import {
+  isInquiryEmailReadOnly,
+  resolveInquirySenderEmail,
+} from "@/lib/inquiryEmailPrefill";
 import { createViewingRequest } from "@/lib/crm/viewingMutations";
 import { supabase } from "@/lib/supabaseClient";
+import useUserRole from "@/hooks/useUserRole";
 import { useToast } from "@/components/ui/ToastProvider";
 import styles from "./ListingViewingBookingModal.module.css";
 
@@ -71,10 +77,17 @@ function buildMonthCells(year, monthIndex) {
   return cells;
 }
 
-export default function ListingViewingBookingModal({ open, onClose, listing, user }) {
+export default function ListingViewingBookingModal({ open, onClose, listing, user: userProp }) {
   const { showToast } = useToast();
+  const { user: sessionUser, profile } = useUserRole();
+  const user = userProp ?? sessionUser;
+
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState(TIME_SLOTS[0]?.value ?? "07:00");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestName, setGuestName] = useState("");
+  const [message, setMessage] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [pending, setPending] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [step, setStep] = useState("pick");
@@ -83,6 +96,10 @@ export default function ListingViewingBookingModal({ open, onClose, listing, use
     const t = new Date();
     return { y: t.getFullYear(), m: t.getMonth() };
   });
+
+  const isGuest = !user?.id;
+  const emailReadOnly = isInquiryEmailReadOnly(user);
+  const turnstileRequired = BL_ENABLE_TURNSTILE && isGuest && Boolean(TURNSTILE_SITE_KEY);
 
   const title = listing?.title ? String(listing.title) : "This listing";
 
@@ -99,13 +116,17 @@ export default function ListingViewingBookingModal({ open, onClose, listing, use
     if (!open) return undefined;
     setSelectedDate(todayISODate());
     setSelectedTime(TIME_SLOTS[0]?.value ?? "07:00");
+    setGuestEmail(resolveInquirySenderEmail(user, profile));
+    setGuestName("");
+    setMessage("");
+    setTurnstileToken("");
     setPending(false);
     setConfirmed(false);
     setStep("pick");
     setCalendarOpen(false);
     const t = new Date();
     setViewYM({ y: t.getFullYear(), m: t.getMonth() });
-  }, [open]);
+  }, [open, user, profile]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -161,6 +182,16 @@ export default function ListingViewingBookingModal({ open, onClose, listing, use
     if (pending || confirmed || !listing?.id || !listing?.user_id) return;
     if (!selectedDate || !selectedTime) return;
 
+    const email = (user?.email || guestEmail || "").trim();
+    if (isGuest && (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+      showToast({ type: "error", message: "Valid email required." });
+      return;
+    }
+    if (turnstileRequired && !turnstileToken) {
+      showToast({ type: "error", message: "Complete the verification check below." });
+      return;
+    }
+
     if (!BL_ENABLE_VIEWING_PERSIST) {
       setPending(true);
       window.setTimeout(() => {
@@ -176,10 +207,11 @@ export default function ListingViewingBookingModal({ open, onClose, listing, use
         listingId: listing.id,
         agentUserId: listing.user_id,
         requesterId: user?.id ?? null,
-        requesterEmail: user?.email ?? null,
-        requesterName: user?.user_metadata?.full_name ?? null,
+        requesterEmail: email || null,
+        requesterName: guestName.trim() || user?.user_metadata?.full_name || null,
         requestedDate: selectedDate,
         requestedTime: selectedTime,
+        message: message.trim() || null,
       });
       if (error) {
         const msg = error.message || "";
@@ -197,7 +229,21 @@ export default function ListingViewingBookingModal({ open, onClose, listing, use
     } finally {
       setPending(false);
     }
-  }, [pending, confirmed, listing, selectedDate, selectedTime, user, showToast]);
+  }, [
+    pending,
+    confirmed,
+    listing,
+    selectedDate,
+    selectedTime,
+    user,
+    guestEmail,
+    guestName,
+    message,
+    turnstileRequired,
+    turnstileToken,
+    isGuest,
+    showToast,
+  ]);
 
   const isDaySelectable = useCallback(
     (iso) => iso >= minDate && iso <= maxDate,
@@ -286,6 +332,51 @@ export default function ListingViewingBookingModal({ open, onClose, listing, use
         {!confirmed && step === "review" ? (
           <>
             <p className={styles.lede}>Review your visit — you can adjust before confirming.</p>
+            {isGuest ? (
+              <>
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel} htmlFor="viewing-guest-email">
+                    Email
+                  </label>
+                  <input
+                    id="viewing-guest-email"
+                    type="email"
+                    className={styles.timeSelect}
+                    value={guestEmail}
+                    readOnly={emailReadOnly}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    placeholder="Email for confirmation"
+                    required
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel} htmlFor="viewing-guest-name">
+                    Name (optional)
+                  </label>
+                  <input
+                    id="viewing-guest-name"
+                    type="text"
+                    className={styles.timeSelect}
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    placeholder="Your name"
+                  />
+                </div>
+              </>
+            ) : null}
+            <div className={styles.field}>
+              <label className={styles.fieldLabel} htmlFor="viewing-message">
+                Note (optional)
+              </label>
+              <textarea
+                id="viewing-message"
+                className={styles.timeSelect}
+                rows={2}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Anything the agent should know before your visit"
+              />
+            </div>
             <div className={styles.summaryCard}>
               <p className={styles.summaryLine}>
                 <span className={styles.summaryKey}>Property</span>
@@ -300,6 +391,15 @@ export default function ListingViewingBookingModal({ open, onClose, listing, use
                 <span className={styles.summaryVal}>{slotLabel(selectedTime)}</span>
               </p>
             </div>
+            {turnstileRequired ? (
+              <div className={styles.field}>
+                <Turnstile
+                  siteKey={TURNSTILE_SITE_KEY}
+                  onSuccess={setTurnstileToken}
+                  onExpire={() => setTurnstileToken("")}
+                />
+              </div>
+            ) : null}
             <div className={styles.footer}>
               <button type="button" className={styles.ghostBtn} onClick={() => setStep("pick")} disabled={pending}>
                 Back

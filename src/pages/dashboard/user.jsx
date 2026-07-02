@@ -438,7 +438,12 @@ export default function UserDashboard() {
                     {buyerCrmLoading && !buyerViewings.length ? (
                       <div className={loadingStyles.hydratingPanel} aria-busy="true" />
                     ) : (
-                      <BuyerViewingsPanel viewings={buyerViewings} />
+                      <BuyerViewingsPanel
+                        viewings={buyerViewings}
+                        listingsById={{}}
+                        buyerUserId={user?.id}
+                        onRefresh={loadBuyerCrm}
+                      />
                     )}
                   </section>
                 ) : null}

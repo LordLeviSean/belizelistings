@@ -58,6 +58,16 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       href = conversationId ? `/dashboard/user?conversation=${conversationId}` : "/dashboard/user";
       break;
 
+    case NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED:
+      category = NOTIFICATION_CATEGORIES.INQUIRY;
+      title = "New viewing request";
+      body = "A buyer requested a property viewing — review and confirm the slot.";
+      entityType = "viewing";
+      entityId = viewingId ? String(viewingId) : null;
+      dedupeKey = dedupeKey ?? `viewing_requested:${viewingId ?? conversationId ?? ""}`;
+      href = "/dashboard/agent?tab=viewings";
+      break;
+
     case NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED:
       category = NOTIFICATION_CATEGORIES.INQUIRY;
       title = "Viewing confirmed";
@@ -65,7 +75,7 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
       dedupeKey = dedupeKey ?? `viewing_confirmed:${viewingId ?? ""}`;
-      href = "/dashboard/user?tab=viewings";
+      href = "/dashboard/user?tab=my-viewings";
       break;
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_CANCELLED:
@@ -75,7 +85,27 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
       dedupeKey = dedupeKey ?? `viewing_cancelled:${viewingId ?? ""}`;
-      href = "/dashboard/user?tab=viewings";
+      href = "/dashboard/user?tab=my-viewings";
+      break;
+
+    case NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED:
+      category = NOTIFICATION_CATEGORIES.INQUIRY;
+      title = "Viewing declined";
+      body = "The agent could not accommodate your requested viewing time.";
+      entityType = "viewing";
+      entityId = viewingId ? String(viewingId) : null;
+      dedupeKey = dedupeKey ?? `viewing_declined:${viewingId ?? ""}`;
+      href = "/dashboard/user?tab=my-viewings";
+      break;
+
+    case NOTIFICATION_EVENT_TYPES.VIEWING_RESCHEDULED:
+      category = NOTIFICATION_CATEGORIES.INQUIRY;
+      title = "Viewing reschedule proposed";
+      body = "A new time was proposed for your viewing — review and respond.";
+      entityType = "viewing";
+      entityId = viewingId ? String(viewingId) : null;
+      dedupeKey = dedupeKey ?? `viewing_rescheduled:${viewingId ?? ""}`;
+      href = "/dashboard/user?tab=my-viewings";
       break;
 
     case NOTIFICATION_EVENT_TYPES.INQUIRY_ARCHIVED:

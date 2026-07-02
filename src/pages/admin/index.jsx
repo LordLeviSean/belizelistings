@@ -27,6 +27,8 @@ import {
 import { getOperationalLifecycleCountsFromDb } from "../../lib/listingOperationalStats";
 import AdminOperationalStats from "../../components/AdminOperationalStats";
 import AgentUpgradeRequestsPanel from "../../components/admin/AgentUpgradeRequestsPanel";
+import AdminOwnerInboxPanel from "../../components/admin/AdminOwnerInboxPanel";
+import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_VIEWING_PERSIST } from "../../lib/featureFlags";
 import { DashboardShell } from "../../components/dashboard";
 import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "../../constants/dashboardRoles";
 import styles from "../../styles/Dashboard.module.css";
@@ -120,7 +122,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const tab = typeof router.query.tab === "string" ? router.query.tab : "";
-    if (tab === "pending" || tab === "listings" || tab === "users" || tab === "operator" || tab === "upgrades") {
+    if (tab === "pending" || tab === "listings" || tab === "users" || tab === "operator" || tab === "upgrades" || tab === "owner-inbox") {
       setActiveTab(tab);
     }
   }, [router.query.tab]);
@@ -297,6 +299,15 @@ export default function AdminPage() {
                 >
                   Upgrades
                 </button>
+                {(BL_ENABLE_CONVERSATIONS || BL_ENABLE_VIEWING_PERSIST) ? (
+                  <button
+                    type="button"
+                    className={`${styles.dashboardLink} ${activeTab === "owner-inbox" ? styles.dashboardLinkActive : ""}`}
+                    onClick={() => setActiveTab("owner-inbox")}
+                  >
+                    My listing inbox
+                  </button>
+                ) : null}
               </div>
               {activeTab === "pending" && (
                 <PendingListingsPanel
@@ -353,6 +364,9 @@ export default function AdminPage() {
                   }}
                 />
               )}
+              {activeTab === "owner-inbox" && user?.id ? (
+                <AdminOwnerInboxPanel ownerUserId={user.id} />
+              ) : null}
             </section>
             <aside className={styles.card}>
               <h3 className={styles.sectionTitle}>Quick Actions</h3>

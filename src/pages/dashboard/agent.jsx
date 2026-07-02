@@ -9,6 +9,7 @@ import AgentBenefitsPanel from "@/components/agent/AgentBenefitsPanel";
 import AgentInventoryPanel from "@/components/agent/AgentInventoryPanel";
 import { AgentActivityFeed } from "@/components/operational";
 import AgentInquiryList from "@/components/inquiry/AgentInquiryList";
+import AgentViewingsPanel from "@/components/inquiry/AgentViewingsPanel";
 import OwnerInquiriesPanel from "@/components/inquiry/OwnerInquiriesPanel";
 import ProfileCompletionPanel from "@/components/profile/ProfileCompletionPanel";
 import ProfileCompletionBanner from "@/components/profile/ProfileCompletionBanner";
@@ -28,8 +29,9 @@ import {
 import { INQUIRY_STATUS } from "@/constants/inquiryModel";
 import { supabase } from "@/lib/supabaseClient";
 import { updateInquiryStatus } from "@/lib/listingInquiries";
-import { BL_ENABLE_CONVERSATIONS } from "@/lib/featureFlags";
+import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
 import { fetchConversationsForAgent } from "@/lib/crm/conversationMutations";
+import { fetchViewingsForAgent } from "@/lib/crm/viewingMutations";
 import { useToast } from "@/components/ui/ToastProvider";
 import styles from "@/styles/Dashboard.module.css";
 import loadingStyles from "@/styles/UserDashboard.module.css";
@@ -50,6 +52,8 @@ export default function AgentDashboard() {
   const [inquiryBusyId, setInquiryBusyId] = useState("");
   const [conversationRows, setConversationRows] = useState([]);
   const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [agentViewings, setAgentViewings] = useState([]);
+  const [viewingsLoading, setViewingsLoading] = useState(false);
   const [lifecycleFilter, setLifecycleFilter] = useState(AGENT_INVENTORY_FILTERS.ALL);
   const storeSessionRef = useRef(null);
   const dashboardPathRef = useRef(null);
@@ -86,6 +90,17 @@ export default function AgentDashboard() {
   const myListingsInitialFetchDone = useAgentDashboardStore((s) => s.myListingsInitialFetchDone);
 
   const activeTab = useMemo(() => normalizeAgentDashboardTab(router.query.tab), [router.query.tab]);
+
+  const visibleTabs = useMemo(
+    () =>
+      AGENT_DASHBOARD_TABS.filter((tab) => {
+        if (tab.crm && tab.id === AGENT_DASHBOARD_TAB_IDS.VIEWINGS && !BL_ENABLE_VIEWING_PERSIST) {
+          return false;
+        }
+        return true;
+      }),
+    []
+  );
 
   const profileHydrated = Boolean(user?.id && isProfileHydratedForUser(user.id));
   const showHydratingShell = loading && profileHydrated && role === "agent";
@@ -188,6 +203,19 @@ export default function AgentDashboard() {
     loadConversations();
   }, [activeTab, loadConversations]);
 
+  const loadViewings = useCallback(async () => {
+    if (!user?.id || !BL_ENABLE_VIEWING_PERSIST) return;
+    setViewingsLoading(true);
+    const { data, error } = await fetchViewingsForAgent(supabase, user.id);
+    setViewingsLoading(false);
+    if (!error) setAgentViewings(data || []);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (activeTab !== AGENT_DASHBOARD_TAB_IDS.VIEWINGS) return;
+    loadViewings();
+  }, [activeTab, loadViewings]);
+
   const markInquiryResponded = async (inquiryId) => {
     if (!user?.id) return;
     setInquiryBusyId(String(inquiryId));
@@ -269,7 +297,7 @@ export default function AgentDashboard() {
                 )}
 
                 <div className={styles.statusToggle} role="tablist" aria-label="Dashboard sections">
-                  {AGENT_DASHBOARD_TABS.map((tab) => (
+                  {visibleTabs.map((tab) => (
                     <button
                       key={tab.id}
                       type="button"
@@ -374,6 +402,24 @@ export default function AgentDashboard() {
                         busyId={inquiryBusyId}
                         onMarkResponded={markInquiryResponded}
                         onOpenListing={(listingId) => router.push(`/listing/${listingId}`)}
+                      />
+                    )}
+                  </section>
+                ) : null}
+
+                {activeTab === AGENT_DASHBOARD_TAB_IDS.VIEWINGS ? (
+                  <section aria-label="Viewing requests">
+                    <p className={styles.muted} style={{ marginBottom: 16, maxWidth: "62ch" }}>
+                      Confirm, reschedule, or complete property viewings requested from your listings.
+                    </p>
+                    {viewingsLoading && !agentViewings.length ? (
+                      <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                    ) : (
+                      <AgentViewingsPanel
+                        viewings={agentViewings}
+                        listingsById={listingsById}
+                        agentUserId={user.id}
+                        onRefresh={loadViewings}
                       />
                     )}
                   </section>

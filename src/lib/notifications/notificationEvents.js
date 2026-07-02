@@ -6,8 +6,11 @@ import { deliverAfterEnqueue } from "./deliverNotifications";
 export const NOTIFICATION_EVENT_TYPES = Object.freeze({
   NEW_INQUIRY: "new_inquiry",
   AGENT_REPLIED: "agent_replied",
+  VIEWING_REQUESTED: "viewing_requested",
   VIEWING_CONFIRMED: "viewing_confirmed",
   VIEWING_CANCELLED: "viewing_cancelled",
+  VIEWING_DECLINED: "viewing_declined",
+  VIEWING_RESCHEDULED: "viewing_rescheduled",
   INQUIRY_ARCHIVED: "inquiry_archived",
 });
 
