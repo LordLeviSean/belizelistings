@@ -126,6 +126,8 @@
   }
 
   .panel {
+    display: flex;
+    flex-direction: column;
     width: 100%;
     max-width: none;
     max-height: none;
@@ -134,9 +136,23 @@
     padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
   }
 
+  .body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .footer {
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: 10px;
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+
   .backdropCompact .panel {
     min-height: 100dvh;
-    overflow-y: visible;
+    overflow-y: hidden;
     padding: max(10px, env(safe-area-inset-top)) 12px max(10px, env(safe-area-inset-bottom));
   }
 }
