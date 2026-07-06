@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { BL_ENABLE_TURNSTILE, BL_ENABLE_VIEWING_PERSIST, TURNSTILE_SITE_KEY } from "@/lib/featureFlags";
 import {
@@ -11,6 +11,7 @@ import { resolveListingAgentUserId } from "@/lib/listingInquiryTargets";
 import { supabase } from "@/lib/supabaseClient";
 import useUserRole from "@/hooks/useUserRole";
 import { useToast } from "@/components/ui/ToastProvider";
+import ListingInteractionModal from "./ListingInteractionModal";
 import styles from "./ListingViewingBookingModal.module.css";
 
 function buildTimeSlots() {
@@ -140,33 +141,6 @@ export default function ListingViewingBookingModal({
     setViewYM({ y: t.getFullYear(), m: t.getMonth() });
   }, [open, user, profile]);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const prevOverflow = document.body.style.overflow;
-    const prevPaddingRight = document.body.style.paddingRight;
-    const gap = window.innerWidth - document.documentElement.clientWidth;
-    document.body.style.overflow = "hidden";
-    if (gap > 0) document.body.style.paddingRight = `${gap}px`;
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      document.body.style.paddingRight = prevPaddingRight;
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e) => {
-      if (e.key !== "Escape") return;
-      if (calendarOpen) {
-        setCalendarOpen(false);
-        return;
-      }
-      onClose?.();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, calendarOpen]);
-
   const openCalendar = useCallback(() => {
     const base = selectedDate && selectedDate >= minDate && selectedDate <= maxDate ? selectedDate : minDate;
     const p = isoParts(base);
@@ -245,6 +219,7 @@ export default function ListingViewingBookingModal({
     pending,
     confirmed,
     listing,
+    listingAgentUserId,
     selectedDate,
     selectedTime,
     user,
@@ -264,254 +239,266 @@ export default function ListingViewingBookingModal({
 
   if (!open) return null;
 
+  const modalTitle = confirmed ? "You’re set" : "Schedule a viewing";
+
+  const pickFooter = (
+    <>
+      <button type="button" className={styles.ghostBtn} onClick={() => onClose?.()}>
+        Cancel
+      </button>
+      <button
+        type="button"
+        className={styles.primaryBtn}
+        disabled={!selectedDate || !selectedTime}
+        onClick={() => setStep("review")}
+      >
+        Continue
+      </button>
+    </>
+  );
+
+  const reviewFooter = (
+    <>
+      <button type="button" className={styles.ghostBtn} onClick={() => setStep("pick")} disabled={pending}>
+        Back
+      </button>
+      <button type="button" className={styles.primaryBtn} onClick={handleConfirmBooking} disabled={pending}>
+        {pending ? (
+          <span className={styles.pendingInner}>
+            <span className={styles.pendingDot} />
+            Confirming…
+          </span>
+        ) : (
+          "Confirm viewing"
+        )}
+      </button>
+    </>
+  );
+
+  const confirmedFooter = (
+    <button type="button" className={styles.primaryBtn} onClick={() => onClose?.()}>
+      Done
+    </button>
+  );
+
+  let footer = null;
+  if (!confirmed && step === "pick") footer = pickFooter;
+  if (!confirmed && step === "review") footer = reviewFooter;
+  if (confirmed) footer = confirmedFooter;
+
   return (
-    <div
-      className={styles.backdrop}
-      role="presentation"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose?.();
+    <ListingInteractionModal
+      isOpen={open}
+      onClose={onClose}
+      title={modalTitle}
+      titleId="booking-modal-title"
+      compact
+      panelClassName={styles.bookingPanel}
+      footer={footer}
+      onEscape={() => {
+        if (calendarOpen) {
+          setCalendarOpen(false);
+          return;
+        }
+        onClose?.();
       }}
     >
-      <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="booking-modal-title">
-        <div className={styles.head}>
-          <h2 id="booking-modal-title" className={styles.title}>
-            {confirmed ? "You’re set" : "Schedule a viewing"}
-          </h2>
-          <button type="button" className={styles.close} aria-label="Close" onClick={() => onClose?.()}>
-            <X size={18} aria-hidden />
-          </button>
-        </div>
-
-        {!confirmed && step === "pick" ? (
-          <>
-            <p className={styles.lede}>
-              Choose a date and a 15-minute window between 7:00 AM and 7:00 PM (local).
-              {BL_ENABLE_VIEWING_PERSIST
-                ? " Your request is sent to the listing agent for confirmation."
-                : " This is a preview flow — nothing is sent yet."}
-            </p>
-            <div className={styles.field}>
-              <span className={styles.fieldLabel} id="booking-date-label">
-                Date
+      {!confirmed && step === "pick" ? (
+        <>
+          <p className={styles.lede}>
+            Choose a date and a 15-minute window between 7:00 AM and 7:00 PM (local).
+            {BL_ENABLE_VIEWING_PERSIST
+              ? " Your request is sent to the listing agent for confirmation."
+              : " This is a preview flow — nothing is sent yet."}
+          </p>
+          <div className={styles.field}>
+            <span className={styles.fieldLabel} id="booking-date-label">
+              Date
+            </span>
+            <button
+              type="button"
+              className={styles.dateTrigger}
+              aria-expanded={calendarOpen}
+              aria-haspopup="dialog"
+              aria-labelledby="booking-date-label"
+              onClick={() => (calendarOpen ? setCalendarOpen(false) : openCalendar())}
+            >
+              <span className={styles.dateTriggerText}>
+                {selectedDate ? formatDateLong(selectedDate) : "Select a date"}
               </span>
-              <button
-                type="button"
-                className={styles.dateTrigger}
-                aria-expanded={calendarOpen}
-                aria-haspopup="dialog"
-                aria-labelledby="booking-date-label"
-                onClick={() => (calendarOpen ? setCalendarOpen(false) : openCalendar())}
-              >
-                <span className={styles.dateTriggerText}>
-                  {selectedDate ? formatDateLong(selectedDate) : "Select a date"}
-                </span>
-                <ChevronDown size={18} strokeWidth={2} className={styles.dateTriggerChevron} aria-hidden />
-              </button>
-            </div>
-            <div className={styles.field}>
-              <label className={styles.fieldLabel} htmlFor="booking-time-select">
-                Time
-              </label>
-              <select
-                id="booking-time-select"
-                className={styles.timeSelect}
-                value={selectedTime}
-                onChange={(e) => setSelectedTime(e.target.value)}
-              >
-                {TIME_SLOTS.map((slot) => (
-                  <option key={slot.value} value={slot.value}>
-                    {slot.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className={styles.footer}>
-              <button type="button" className={styles.ghostBtn} onClick={() => onClose?.()}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={styles.primaryBtn}
-                disabled={!selectedDate || !selectedTime}
-                onClick={() => setStep("review")}
-              >
-                Continue
-              </button>
-            </div>
-          </>
-        ) : null}
+              <ChevronDown size={18} strokeWidth={2} className={styles.dateTriggerChevron} aria-hidden />
+            </button>
+          </div>
+          <div className={styles.field}>
+            <label className={styles.fieldLabel} htmlFor="booking-time-select">
+              Time
+            </label>
+            <select
+              id="booking-time-select"
+              className={styles.timeSelect}
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(e.target.value)}
+            >
+              {TIME_SLOTS.map((slot) => (
+                <option key={slot.value} value={slot.value}>
+                  {slot.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </>
+      ) : null}
 
-        {!confirmed && step === "review" ? (
-          <>
-            <p className={styles.lede}>Review your visit — you can adjust before confirming.</p>
-            {isGuest ? (
-              <>
-                <div className={styles.field}>
-                  <label className={styles.fieldLabel} htmlFor="viewing-guest-email">
-                    Email
-                  </label>
-                  <input
-                    id="viewing-guest-email"
-                    type="email"
-                    className={styles.timeSelect}
-                    value={guestEmail}
-                    readOnly={emailReadOnly}
-                    onChange={(e) => setGuestEmail(e.target.value)}
-                    placeholder="Email for confirmation"
-                    required
-                  />
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.fieldLabel} htmlFor="viewing-guest-name">
-                    Name (optional)
-                  </label>
-                  <input
-                    id="viewing-guest-name"
-                    type="text"
-                    className={styles.timeSelect}
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                    placeholder="Your name"
-                  />
-                </div>
-              </>
-            ) : null}
-            <div className={styles.field}>
-              <label className={styles.fieldLabel} htmlFor="viewing-message">
-                Note (optional)
-              </label>
-              <textarea
-                id="viewing-message"
-                className={styles.timeSelect}
-                rows={2}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Anything the agent should know before your visit"
-              />
-            </div>
-            <div className={styles.summaryCard}>
-              <p className={styles.summaryLine}>
-                <span className={styles.summaryKey}>Property</span>
-                <span className={styles.summaryVal}>{title}</span>
-              </p>
-              <p className={styles.summaryLine}>
-                <span className={styles.summaryKey}>Date</span>
-                <span className={styles.summaryVal}>{formatDateLong(selectedDate)}</span>
-              </p>
-              <p className={styles.summaryLine}>
-                <span className={styles.summaryKey}>Time</span>
-                <span className={styles.summaryVal}>{slotLabel(selectedTime)}</span>
-              </p>
-            </div>
-            {turnstileRequired ? (
+      {!confirmed && step === "review" ? (
+        <>
+          <p className={styles.lede}>Review your visit — you can adjust before confirming.</p>
+          {isGuest ? (
+            <>
               <div className={styles.field}>
-                <Turnstile
-                  siteKey={TURNSTILE_SITE_KEY}
-                  onSuccess={setTurnstileToken}
-                  onExpire={() => setTurnstileToken("")}
+                <label className={styles.fieldLabel} htmlFor="viewing-guest-email">
+                  Email
+                </label>
+                <input
+                  id="viewing-guest-email"
+                  type="email"
+                  className={styles.timeSelect}
+                  value={guestEmail}
+                  readOnly={emailReadOnly}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  placeholder="Email for confirmation"
+                  required
                 />
               </div>
-            ) : null}
-            <div className={styles.footer}>
-              <button type="button" className={styles.ghostBtn} onClick={() => setStep("pick")} disabled={pending}>
-                Back
-              </button>
-              <button type="button" className={styles.primaryBtn} onClick={handleConfirmBooking} disabled={pending}>
-                {pending ? (
-                  <span className={styles.pendingInner}>
-                    <span className={styles.pendingDot} />
-                    Confirming…
-                  </span>
-                ) : (
-                  "Confirm viewing"
-                )}
-              </button>
-            </div>
-          </>
-        ) : null}
-
-        {confirmed ? (
-          <>
-            <div className={styles.successMark} aria-hidden>
-              <Check className={styles.successIcon} strokeWidth={2.4} />
-            </div>
-            <p className={styles.confirmCopy}>
-              Your viewing request for <strong>{formatDateLong(selectedDate)}</strong> at{" "}
-              <strong>{slotLabel(selectedTime)}</strong>{" "}
-              {BL_ENABLE_VIEWING_PERSIST
-                ? "has been sent to the agent. They will confirm your slot shortly."
-                : "is held locally. An agent will confirm separately when booking goes live."}
+              <div className={styles.field}>
+                <label className={styles.fieldLabel} htmlFor="viewing-guest-name">
+                  Name (optional)
+                </label>
+                <input
+                  id="viewing-guest-name"
+                  type="text"
+                  className={styles.timeSelect}
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="Your name"
+                />
+              </div>
+            </>
+          ) : null}
+          <div className={styles.field}>
+            <label className={styles.fieldLabel} htmlFor="viewing-message">
+              Note (optional)
+            </label>
+            <textarea
+              id="viewing-message"
+              className={styles.timeSelect}
+              rows={2}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Anything the agent should know before your visit"
+            />
+          </div>
+          <div className={styles.summaryCard}>
+            <p className={styles.summaryLine}>
+              <span className={styles.summaryKey}>Property</span>
+              <span className={styles.summaryVal}>{title}</span>
             </p>
-            <div className={styles.footer}>
-              <button type="button" className={styles.primaryBtn} onClick={() => onClose?.()}>
-                Done
+            <p className={styles.summaryLine}>
+              <span className={styles.summaryKey}>Date</span>
+              <span className={styles.summaryVal}>{formatDateLong(selectedDate)}</span>
+            </p>
+            <p className={styles.summaryLine}>
+              <span className={styles.summaryKey}>Time</span>
+              <span className={styles.summaryVal}>{slotLabel(selectedTime)}</span>
+            </p>
+          </div>
+          {turnstileRequired ? (
+            <div className={styles.field}>
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY}
+                onSuccess={setTurnstileToken}
+                onExpire={() => setTurnstileToken("")}
+              />
+            </div>
+          ) : null}
+        </>
+      ) : null}
+
+      {confirmed ? (
+        <>
+          <div className={styles.successMark} aria-hidden>
+            <Check className={styles.successIcon} strokeWidth={2.4} />
+          </div>
+          <p className={styles.confirmCopy}>
+            Your viewing request for <strong>{formatDateLong(selectedDate)}</strong> at{" "}
+            <strong>{slotLabel(selectedTime)}</strong>{" "}
+            {BL_ENABLE_VIEWING_PERSIST
+              ? "has been sent to the agent. They will confirm your slot shortly."
+              : "is held locally. An agent will confirm separately when booking goes live."}
+          </p>
+        </>
+      ) : null}
+
+      {calendarOpen ? (
+        <div
+          className={styles.calendarLayer}
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setCalendarOpen(false);
+          }}
+        >
+          <div
+            className={styles.calendarPanel}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Choose date"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className={styles.calHead}>
+              <button type="button" className={styles.calNav} aria-label="Previous month" onClick={() => bumpMonth(-1)}>
+                <ChevronLeft size={20} strokeWidth={2} aria-hidden />
+              </button>
+              <p className={styles.calTitle}>{formatMonthYear(viewYM.y, viewYM.m)}</p>
+              <button type="button" className={styles.calNav} aria-label="Next month" onClick={() => bumpMonth(1)}>
+                <ChevronRight size={20} strokeWidth={2} aria-hidden />
               </button>
             </div>
-          </>
-        ) : null}
-
-        {calendarOpen ? (
-          <div
-            className={styles.calendarLayer}
-            role="presentation"
-            onMouseDown={(e) => {
-              if (e.target === e.currentTarget) setCalendarOpen(false);
-            }}
-          >
-            <div
-              className={styles.calendarPanel}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Choose date"
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <div className={styles.calHead}>
-                <button type="button" className={styles.calNav} aria-label="Previous month" onClick={() => bumpMonth(-1)}>
-                  <ChevronLeft size={20} strokeWidth={2} aria-hidden />
-                </button>
-                <p className={styles.calTitle}>{formatMonthYear(viewYM.y, viewYM.m)}</p>
-                <button type="button" className={styles.calNav} aria-label="Next month" onClick={() => bumpMonth(1)}>
-                  <ChevronRight size={20} strokeWidth={2} aria-hidden />
-                </button>
-              </div>
-              <div className={styles.weekRow}>
-                {WEEKDAYS.map((d) => (
-                  <span key={d} className={styles.weekCell}>
-                    {d}
-                  </span>
-                ))}
-              </div>
-              <div className={styles.dayGrid}>
-                {monthCells.map((cell) => {
-                  if (cell.kind === "pad") {
-                    return <span key={cell.key} className={styles.dayPad} aria-hidden />;
-                  }
-                  const iso = toISODate(viewYM.y, viewYM.m, cell.d);
-                  const selectable = isDaySelectable(iso);
-                  const selected = selectedDate === iso;
-                  return (
-                    <button
-                      key={cell.key}
-                      type="button"
-                      disabled={!selectable}
-                      className={`${styles.dayPill} ${selected ? styles.dayPillSelected : ""} ${
-                        !selectable ? styles.dayPillMuted : ""
-                      }`}
-                      onClick={() => {
-                        if (!selectable) return;
-                        setSelectedDate(iso);
-                        setCalendarOpen(false);
-                      }}
-                    >
-                      {cell.d}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className={styles.weekRow}>
+              {WEEKDAYS.map((d) => (
+                <span key={d} className={styles.weekCell}>
+                  {d}
+                </span>
+              ))}
+            </div>
+            <div className={styles.dayGrid}>
+              {monthCells.map((cell) => {
+                if (cell.kind === "pad") {
+                  return <span key={cell.key} className={styles.dayPad} aria-hidden />;
+                }
+                const iso = toISODate(viewYM.y, viewYM.m, cell.d);
+                const selectable = isDaySelectable(iso);
+                const selected = selectedDate === iso;
+                return (
+                  <button
+                    key={cell.key}
+                    type="button"
+                    disabled={!selectable}
+                    className={`${styles.dayPill} ${selected ? styles.dayPillSelected : ""} ${
+                      !selectable ? styles.dayPillMuted : ""
+                    }`}
+                    onClick={() => {
+                      if (!selectable) return;
+                      setSelectedDate(iso);
+                      setCalendarOpen(false);
+                    }}
+                  >
+                    {cell.d}
+                  </button>
+                );
+              })}
             </div>
           </div>
-        ) : null}
-      </div>
-    </div>
+        </div>
+      ) : null}
+    </ListingInteractionModal>
   );
 }

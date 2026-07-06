@@ -1,0 +1,155 @@
+/**
+ * Listing interaction modal shell — standard overlay for Contact, Schedule Viewing,
+ * and future Share / Report / Save Search modals. Admin/delete modals keep their own v2 shells.
+ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 225;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: rgba(28, 48, 44, 0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: listingModalBackdropIn var(--dur-2) var(--ease-out-soft);
+}
+
+@keyframes listingModalBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.panel {
+  position: relative;
+  width: min(560px, 100%);
+  max-width: 100%;
+  max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius);
+  padding: 16px 16px 14px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border-mint);
+  box-shadow: var(--elev-3);
+  color: rgba(32, 62, 56, 0.96);
+  animation: listingModalPanelIn var(--dur-3) var(--ease-out-soft);
+  box-sizing: border-box;
+}
+
+@keyframes listingModalPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 620;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  color: rgba(26, 56, 52, 0.98);
+}
+
+.close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  margin: -2px -4px 0 0;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 178, 164, 0.35);
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(42, 72, 66, 0.88);
+  cursor: pointer;
+  transition: var(--transition-surface), transform var(--dur-2) var(--ease-out-soft);
+}
+
+.close:hover {
+  transform: translateY(var(--hover-lift-xs));
+  border-color: rgba(72, 140, 128, 0.42);
+}
+
+.body {
+  min-width: 0;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 4px;
+}
+
+.backdropCompact .panel {
+  padding: 14px 14px 12px;
+}
+
+.backdropCompact .head {
+  margin-bottom: 8px;
+}
+
+.backdropCompact .title {
+  font-size: 1rem;
+}
+
+@media (max-width: 640px) {
+  .backdrop {
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+  }
+
+  .panel {
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    min-height: 100dvh;
+    border-radius: 0;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  }
+
+  .backdropCompact .panel {
+    min-height: 100dvh;
+    overflow-y: visible;
+    padding: max(10px, env(safe-area-inset-top)) 12px max(10px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .panel,
+  .close {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .close:hover {
+    transform: none;
+  }
+}

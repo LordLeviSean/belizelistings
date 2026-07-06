@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Mail, MessageCircle, Phone, X } from "lucide-react";
+import { Copy, Mail, MessageCircle, Phone } from "lucide-react";
 import { BL_ENABLE_CONVERSATIONS } from "@/lib/featureFlags";
 import {
   copyTextToClipboard,
@@ -11,6 +11,7 @@ import {
   resolveListingContactFromListingFields,
 } from "@/lib/listingContactResolver";
 import { useToast } from "@/components/ui/ToastProvider";
+import ListingInteractionModal from "./ListingInteractionModal";
 import styles from "./ContactAgentModal.module.css";
 
 function digitsOnly(s = "") {
@@ -94,28 +95,6 @@ export default function ContactAgentModal({
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const prevOverflow = document.body.style.overflow;
-    const prevPaddingRight = document.body.style.paddingRight;
-    const gap = window.innerWidth - document.documentElement.clientWidth;
-    document.body.style.overflow = "hidden";
-    if (gap > 0) document.body.style.paddingRight = `${gap}px`;
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      document.body.style.paddingRight = prevPaddingRight;
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose?.();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
   const handleCopy = async (label, value) => {
     const ok = await copyTextToClipboard(value);
     showToast({
@@ -123,8 +102,6 @@ export default function ContactAgentModal({
       message: ok ? `${label} copied` : `Could not copy ${label.toLowerCase()}.`,
     });
   };
-
-  if (!open) return null;
 
   const renderContactRow = ({
     icon: Icon,
@@ -154,7 +131,13 @@ export default function ContactAgentModal({
 
     if (isMobile && href) {
       return (
-        <a href={href} className={styles.contactRow} onClick={() => onClose?.()} target={showWaWeb ? "_blank" : undefined} rel={showWaWeb ? "noopener noreferrer" : undefined}>
+        <a
+          href={href}
+          className={styles.contactRow}
+          onClick={() => onClose?.()}
+          target={showWaWeb ? "_blank" : undefined}
+          rel={showWaWeb ? "noopener noreferrer" : undefined}
+        >
           <span className={styles.contactIcon} aria-hidden>
             <Icon size={18} strokeWidth={2} />
           </span>
@@ -202,74 +185,63 @@ export default function ContactAgentModal({
   };
 
   return (
-    <div
-      className={styles.backdrop}
-      role="presentation"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose?.();
-      }}
+    <ListingInteractionModal
+      isOpen={open}
+      onClose={onClose}
+      title="Contact agent"
+      titleId="contact-agent-title"
+      compact
     >
-      <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="contact-agent-title">
-        <div className={styles.head}>
-          <h2 id="contact-agent-title" className={styles.title}>
-            Contact agent
-          </h2>
-          <button type="button" className={styles.close} aria-label="Close" onClick={() => onClose?.()}>
-            <X size={18} aria-hidden />
-          </button>
+      <div className={styles.hero}>
+        <div className={styles.avatar} aria-hidden>
+          {initial}
         </div>
-
-        <div className={styles.hero}>
-          <div className={styles.avatar} aria-hidden>
-            {initial}
-          </div>
-          <div className={styles.heroText}>
-            <p className={styles.agentName}>{displayName}</p>
-            {brokerageLabel ? <p className={styles.brokerage}>{brokerageLabel}</p> : null}
-          </div>
+        <div className={styles.heroText}>
+          <p className={styles.agentName}>{displayName}</p>
+          {brokerageLabel ? <p className={styles.brokerage}>{brokerageLabel}</p> : null}
         </div>
-
-        <div className={styles.contactCard} aria-label="Agent contact details">
-          {renderContactRow({
-            icon: Phone,
-            label: "Phone",
-            value: phoneDisplay,
-            href: phoneHref,
-            disabledHint: "Phone is not published for this listing.",
-          })}
-          {renderContactRow({
-            icon: MessageCircle,
-            label: "WhatsApp",
-            value: waDisplay,
-            copyValue: waDigits || waDisplay,
-            href: waHref,
-            showWaWeb: true,
-            disabledHint: "WhatsApp is not on file for this agent yet.",
-          })}
-          {renderContactRow({
-            icon: Mail,
-            label: "Email",
-            value: agentEmail,
-            href: mailHref,
-            disabledHint: "Email is not published for this listing.",
-          })}
-        </div>
-
-        <p className={styles.lede}>
-          Choose how you would like to reach out. For a richer note, message via BelizeListings when
-          available.
-        </p>
-
-        {canMessageViaSite ? (
-          <button type="button" className={styles.siteMessageBtn} onClick={() => onOpenSiteMessage()}>
-            Message via BelizeListings
-          </button>
-        ) : (
-          <p className={styles.inboxDisabled} aria-disabled="true">
-            Message via BelizeListings — coming soon
-          </p>
-        )}
       </div>
-    </div>
+
+      <div className={styles.contactCard} aria-label="Agent contact details">
+        {renderContactRow({
+          icon: Phone,
+          label: "Phone",
+          value: phoneDisplay,
+          href: phoneHref,
+          disabledHint: "Phone is not published for this listing.",
+        })}
+        {renderContactRow({
+          icon: MessageCircle,
+          label: "WhatsApp",
+          value: waDisplay,
+          copyValue: waDigits || waDisplay,
+          href: waHref,
+          showWaWeb: true,
+          disabledHint: "WhatsApp is not on file for this agent yet.",
+        })}
+        {renderContactRow({
+          icon: Mail,
+          label: "Email",
+          value: agentEmail,
+          href: mailHref,
+          disabledHint: "Email is not published for this listing.",
+        })}
+      </div>
+
+      <p className={styles.lede}>
+        Choose how you would like to reach out. For a richer note, message via BelizeListings when
+        available.
+      </p>
+
+      {canMessageViaSite ? (
+        <button type="button" className={styles.siteMessageBtn} onClick={() => onOpenSiteMessage()}>
+          Message via BelizeListings
+        </button>
+      ) : (
+        <p className={styles.inboxDisabled} aria-disabled="true">
+          Message via BelizeListings — coming soon
+        </p>
+      )}
+    </ListingInteractionModal>
   );
 }

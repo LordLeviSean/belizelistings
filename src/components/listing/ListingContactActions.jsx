@@ -78,7 +78,15 @@ export default function ListingContactActions({ listing, user }) {
     }
   };
 
-  const wrapClass = [styles.wrap, footerVisible ? styles.wrapFooterClear : ""].filter(Boolean).join(" ");
+  const anyModalOpen = contactOpen || messageOpen || viewingOpen;
+
+  const wrapClass = [
+    styles.wrap,
+    footerVisible && !anyModalOpen ? styles.wrapFooterClear : "",
+    anyModalOpen ? styles.wrapModalHidden : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <section className={wrapClass} aria-label="Contact and scheduling">

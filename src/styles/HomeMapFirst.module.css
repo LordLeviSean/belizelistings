@@ -1446,7 +1446,30 @@
   }
 
   .propertyMedia {
-    height: 170px;
+    height: 162px;
+  }
+
+  .propertyBody {
+    padding: 9px 12px 11px;
+  }
+
+  .propertyBody h4 {
+    font-size: 16px;
+  }
+
+  .propertyPrice {
+    margin: 8px 0 0;
+    font-size: 21px;
+  }
+
+  .propertyMeta {
+    margin: 8px 0 0;
+    gap: 10px;
+    font-size: 10.5px;
+  }
+
+  .recentGrid {
+    gap: 8px;
   }
 }
 

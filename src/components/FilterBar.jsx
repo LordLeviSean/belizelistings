@@ -1,9 +1,10 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import {
   PROPERTY_TYPE_OPTIONS,
   SEARCH_SORT_OPTIONS,
 } from "../lib/searchFilters";
+import { shouldShowFilterSummary } from "../lib/filterBarMobile";
 import styles from "./FilterBar.module.css";
 
 const MIN_PRICE_OPTIONS = [
@@ -61,13 +62,52 @@ export default function FilterBar({
   resultCount,
   activeChips = [],
   onRemoveChip,
+  mobileSummaryTitle = "Belize listings",
 }) {
   const advancedPanelId = useId();
   const marketValue = listingType === "for-sale" ? "for-sale" : listingType;
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
+
+  const showFilterSummary = shouldShowFilterSummary(filtersExpanded);
+
+  const resultLabel =
+    typeof resultCount === "number"
+      ? `${resultCount} ${resultCount === 1 ? "result" : "results"}`
+      : null;
 
   return (
     <div className={styles.filterShell}>
-      <div className={styles.filterBar} role="region" aria-label="Listing filters">
+      {showFilterSummary ? (
+        <div className={styles.filterSummary} role="region" aria-label="Listing filters summary">
+          <div className={styles.filterSummaryText}>
+            <p className={styles.filterSummaryTitle}>{mobileSummaryTitle}</p>
+            {resultLabel ? <p className={styles.filterSummaryCount}>{resultLabel}</p> : null}
+          </div>
+          <button
+            type="button"
+            className={styles.showFiltersBtn}
+            aria-expanded={filtersExpanded}
+            onClick={() => setFiltersExpanded(true)}
+          >
+            <SlidersHorizontal size={15} strokeWidth={2} aria-hidden="true" />
+            Show Filters
+          </button>
+        </div>
+      ) : null}
+
+      <div
+        className={`${styles.filterBar} ${showFilterSummary ? styles.filterBarHidden : ""}`}
+        role="region"
+        aria-label="Listing filters"
+      >
+        <button
+          type="button"
+          className={styles.collapseFiltersBtn}
+          onClick={() => setFiltersExpanded(false)}
+        >
+          Hide Filters
+        </button>
+
         <form className={styles.searchGroup} onSubmit={onSearchSubmit}>
           <label className={styles.searchInputWrap} htmlFor="search-filter-query">
             <span className={styles.searchIcon} aria-hidden="true">
@@ -175,7 +215,7 @@ export default function FilterBar({
         ) : null}
       </div>
 
-      {showAdvanced ? (
+      {!showFilterSummary && showAdvanced ? (
         <div className={styles.advancedPanel} id={advancedPanelId} role="region" aria-label="Advanced filters">
           <label className={styles.advancedField}>
             <span className={styles.advancedLabel}>Property type</span>
@@ -198,14 +238,14 @@ export default function FilterBar({
         </div>
       ) : null}
 
-      {typeof resultCount === "number" ? (
+      {!showFilterSummary && typeof resultCount === "number" ? (
         <p className={styles.resultMeta} aria-live="polite">
           <span className={styles.resultCount}>{resultCount}</span>
           {resultCount === 1 ? " result" : " results"}
         </p>
       ) : null}
 
-      {activeChips.length > 0 ? (
+      {!showFilterSummary && activeChips.length > 0 ? (
         <div className={styles.chipRow} aria-label="Active filters">
           {activeChips.map((chip) => (
             <button

@@ -16,6 +16,7 @@ import {
   removeFilterChip,
   sortSearchResults,
 } from "../lib/searchFilters";
+import { getRegionLabel } from "../constants/geographyLayer";
 import styles from "../styles/SearchResults.module.css";
 import PremiumEmptyState from "../components/ui/PremiumEmptyState";
 
@@ -156,6 +157,12 @@ export default function SearchPage() {
     return `${count} ${noun}`;
   }, [filteredListings.length, filters.q, loading]);
 
+  const mobileFilterTitle = useMemo(() => {
+    if (filters.district) return getRegionLabel(filters.district);
+    if (filters.q) return `“${filters.q}”`;
+    return "Belize listings";
+  }, [filters.district, filters.q]);
+
   return (
     <div className={styles.page}>
       <SiteNav active="browse" />
@@ -195,6 +202,7 @@ export default function SearchPage() {
           resultCount={loading ? undefined : filteredListings.length}
           activeChips={activeChips}
           onRemoveChip={handleRemoveChip}
+          mobileSummaryTitle={mobileFilterTitle}
         />
 
         <section className={styles.grid} aria-busy={loading}>

@@ -93,13 +93,13 @@
     bottom: 0;
     z-index: 90;
     margin: 0;
-    padding: 10px 14px calc(12px + env(safe-area-inset-bottom, 0px));
-    border-top: 1px solid rgba(137, 190, 176, 0.28);
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid rgba(137, 190, 176, 0.22);
     border-bottom: none;
-    background: rgba(248, 252, 250, 0.94);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 -8px 24px rgba(68, 108, 102, 0.1);
+    background: rgba(248, 252, 250, 0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 -4px 16px rgba(68, 108, 102, 0.07);
     transform: translateY(0);
     opacity: 1;
     pointer-events: auto;
@@ -107,6 +107,13 @@
       transform var(--dur-3) var(--ease-out-soft),
       opacity var(--dur-2) var(--ease-out-soft),
       box-shadow var(--dur-2) var(--ease-out-soft);
+  }
+
+  .wrapModalHidden {
+    transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px)));
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: none;
   }
 
   .wrapFooterClear {
