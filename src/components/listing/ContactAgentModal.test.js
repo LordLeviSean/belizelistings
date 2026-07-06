@@ -65,21 +65,21 @@ describe("ContactAgentModal", () => {
       />
     );
 
-    const dialog = container.querySelector('[role="dialog"]');
+    const dialog = document.body.querySelector('[role="dialog"]');
     expect(dialog).toBeTruthy();
     expect(dialog.textContent).toMatch(/Contact agent/i);
     expect(dialog.textContent).toMatch(/Jane Agent/i);
     expect(dialog.textContent).toMatch(/Phone/i);
     expect(dialog.textContent).toMatch(/Email/i);
     expect(dialog.textContent).toMatch(/Message via BelizeListings/i);
-    expect(container.querySelector(`.${styles.copyBtn}`)).toBeTruthy();
-    expect(container.querySelector(`.${styles.primaryActionBtn}`)).toBeTruthy();
+    expect(document.body.querySelector(`.${styles.copyBtn}`)).toBeTruthy();
+    expect(document.body.querySelector(`.${styles.primaryActionBtn}`)).toBeTruthy();
   });
 
   test("returns null when closed", () => {
     const { container } = renderModal(
       <ContactAgentModal open={false} onClose={() => {}} listing={{ id: 1 }} />
     );
-    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull();
   });
 });

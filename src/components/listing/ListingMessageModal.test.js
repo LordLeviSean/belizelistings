@@ -54,13 +54,13 @@ describe("ListingMessageModal", () => {
       />
     );
 
-    const dialog = container.querySelector('[role="dialog"]');
+    const dialog = document.body.querySelector('[role="dialog"]');
     expect(dialog).toBeTruthy();
     expect(dialog.textContent).toMatch(/Message the agent/i);
     expect(dialog.textContent).toMatch(/Your message will be delivered securely/i);
-    expect(container.querySelector(`.${modalStyles.close}`)).toBeTruthy();
-    expect(container.querySelector('[type="submit"]')).toBeTruthy();
-    expect(container.querySelector("#listing-message-form")).toBeTruthy();
+    expect(document.body.querySelector(`.${modalStyles.close}`)).toBeTruthy();
+    expect(document.body.querySelector('[type="submit"]')).toBeTruthy();
+    expect(document.body.querySelector("#listing-message-form")).toBeTruthy();
   });
 
   test("returns null when closed", () => {
@@ -71,6 +71,6 @@ describe("ListingMessageModal", () => {
         listing={{ id: "abc-123" }}
       />
     );
-    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull();
   });
 });
