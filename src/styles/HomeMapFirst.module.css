@@ -1537,7 +1537,10 @@
     flex-direction: column;
     flex-shrink: 0;
     width: 100%;
-    min-height: calc(100dvh - var(--site-nav-height) - env(safe-area-inset-top, 0px));
+    /* ~15% shorter than full viewport so map fits snugly and headline reveals on minimal scroll */
+    min-height: calc(
+      (100dvh - var(--site-nav-height) - env(safe-area-inset-top, 0px)) * 0.85
+    );
     margin: 0;
     padding: 0;
   }
