@@ -5,7 +5,7 @@
 | **Date** | July 6, 2026 |
 | **Branch** | `main` |
 | **Baseline commit** | `c4211a3` (Apply final mobile UX micro-polish refinements) |
-| **Audit commit** | `__COMMIT_HASH__` |
+| **Audit commit** | `53f5302` |
 | **Scope** | Final mobile scroll quality + loading states (no redesign, no new features) |
 
 ---
