@@ -500,7 +500,6 @@ export default function HomePage() {
           >
             <div className={styles.sectionTitleRow}>
               <h2 className={styles.sectionTitle}>Featured listings</h2>
-              <p className={styles.sectionSubtitle}>Fresh arrivals across the map</p>
             </div>
             <div className={styles.featuredCarouselViewport} ref={featuredScrollRef}>
               <div className={styles.featuredCarouselTrack}>

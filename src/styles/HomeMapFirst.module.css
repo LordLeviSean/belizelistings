@@ -1531,8 +1531,11 @@
   .mobileHeroFlow .heroKicker {
     order: 1;
     text-align: center;
-    letter-spacing: 0.28em;
-    margin: 0 0 6px;
+    font-size: clamp(12px, 3.25vw, 14px);
+    font-weight: 700;
+    letter-spacing: 0.36em;
+    color: rgba(36, 66, 72, 0.88);
+    margin: 0 0 5px;
     width: 100%;
   }
 
@@ -1554,9 +1557,9 @@
     z-index: 1;
     width: 100%;
     max-width: 100%;
-    min-height: clamp(380px, 72vh, 560px);
-    height: clamp(380px, 72vh, 560px);
-    max-height: none;
+    min-height: min(54dvh, calc(100dvh - var(--site-nav-height, 48px) - 92px));
+    height: min(54dvh, calc(100dvh - var(--site-nav-height, 48px) - 92px));
+    max-height: min(54dvh, calc(100dvh - var(--site-nav-height, 48px) - 92px));
     margin: 0 auto;
     padding: 0;
     box-sizing: border-box;
@@ -1654,20 +1657,21 @@
     order: 3;
     position: relative;
     z-index: 1;
-    margin: 10px 0 0;
+    margin: 6px 0 0;
     width: 100%;
-    max-width: 18ch;
+    max-width: 100%;
+    padding: 0 2px;
     text-align: center;
-    text-wrap: balance;
+    white-space: nowrap;
     font-family: "DM Serif Display", "Times New Roman", serif;
-    font-size: clamp(1.85rem, 9.2vw, 2.35rem);
+    font-size: clamp(1.22rem, 4.85vw, 1.46rem);
     font-weight: 400;
-    line-height: 0.98;
-    letter-spacing: -0.022em;
+    line-height: 1.04;
+    letter-spacing: -0.032em;
     color: rgba(14, 52, 72, 0.97);
     text-shadow:
       0 1px 0 rgba(255, 255, 255, 0.42),
-      0 12px 28px rgba(72, 128, 142, 0.08);
+      0 8px 20px rgba(72, 128, 142, 0.07);
   }
 
   .heroMapSupport,
@@ -1680,7 +1684,7 @@
     flex-direction: column;
     order: 4;
     width: 100%;
-    margin-top: 8px;
+    margin-top: 5px;
     gap: 0;
   }
   .mobileHeroFlow .heroSearchBlock {
@@ -1712,7 +1716,7 @@
   .mobileHeroFlow .heroStatsBlock {
     order: 5;
     width: 100%;
-    margin-top: 8px;
+    margin-top: 6px;
     margin-bottom: 0;
     padding-bottom: 0;
   }
@@ -1798,8 +1802,38 @@
   }
 
   .featuredSection {
-    margin-top: 20px;
-    padding: 0 0 8px;
+    margin-top: 28px;
+    padding: 6px 0 12px;
+    position: relative;
+  }
+
+  .featuredSection::before {
+    content: "";
+    position: absolute;
+    inset: -8px -4px auto;
+    height: 48px;
+    pointer-events: none;
+    background: radial-gradient(ellipse 90% 100% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 72%);
+    opacity: 0.7;
+    z-index: -1;
+  }
+
+  .featuredSection .sectionTitleRow {
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+
+  .featuredCarouselViewport {
+    padding: 4px 4px 14px;
+    margin: -2px -4px -6px;
+  }
+
+  .featuredCarouselTrack {
+    gap: 12px;
+  }
+
+  .featuredCarouselItem {
+    flex: 0 0 min(296px, 80vw);
   }
 }
 
