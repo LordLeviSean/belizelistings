@@ -33,12 +33,15 @@ export default function ListingInteractionModal({
     if (!isOpen) return undefined;
     const prevOverflow = document.body.style.overflow;
     const prevPaddingRight = document.body.style.paddingRight;
+    const prevOverscroll = document.body.style.overscrollBehavior;
     const gap = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
     if (gap > 0) document.body.style.paddingRight = `${gap}px`;
     return () => {
       document.body.style.overflow = prevOverflow;
       document.body.style.paddingRight = prevPaddingRight;
+      document.body.style.overscrollBehavior = prevOverscroll;
     };
   }, [isOpen]);
 

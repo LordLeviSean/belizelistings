@@ -380,6 +380,51 @@
   color: #6d8982;
 }
 
+.loadingShell {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  min-height: calc(100dvh - var(--site-nav-offset));
+  padding: 12px 12px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+
+.loadingHero {
+  width: 100%;
+  height: min(42vh, 360px);
+  border-radius: 14px;
+  border: 1px solid rgba(154, 210, 200, 0.22);
+}
+
+.loadingBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 4px 0;
+}
+
+.loadingLine {
+  height: 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(154, 210, 200, 0.18);
+}
+
+.loadingLineShort {
+  width: 62%;
+}
+
+.loadingLinePrice {
+  width: 44%;
+  height: 28px;
+  margin-top: 4px;
+}
+
+.loadingBlock {
+  height: 72px;
+  margin-top: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(154, 210, 200, 0.18);
+}
+
 .muted {
   color: #8a949e;
   margin-bottom: 16px;
@@ -736,6 +781,8 @@
   justify-content: center;
   padding: 48px 56px;
   box-sizing: border-box;
+  overscroll-behavior: none;
+  touch-action: manipulation;
   animation: lightboxBackdropIn var(--dur-2) var(--ease-out-soft);
   backdrop-filter: blur(2px);
 }
@@ -909,6 +956,19 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
+  .lightboxBackdrop {
+    padding:
+      max(56px, calc(env(safe-area-inset-top) + 44px))
+      max(12px, env(safe-area-inset-right))
+      max(24px, calc(env(safe-area-inset-bottom) + 12px))
+      max(12px, env(safe-area-inset-left));
+  }
+
+  .lightboxCloseBtn {
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+  }
+
   .detailToolbar {
     margin-bottom: 6px;
   }
@@ -981,6 +1041,7 @@
     justify-content: flex-start;
     overflow-x: auto;
     overflow-y: hidden;
+    overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
     scrollbar-width: none;

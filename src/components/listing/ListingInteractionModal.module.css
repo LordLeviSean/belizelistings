@@ -14,6 +14,8 @@
   background: rgba(28, 48, 44, 0.28);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  overscroll-behavior: none;
+  touch-action: manipulation;
   animation: listingModalBackdropIn var(--dur-2) var(--ease-out-soft);
 }
 
@@ -32,6 +34,7 @@
   max-width: 100%;
   max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px));
   overflow-y: auto;
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   border-radius: var(--radius);
   padding: 16px 16px 14px;
@@ -140,6 +143,7 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }
 

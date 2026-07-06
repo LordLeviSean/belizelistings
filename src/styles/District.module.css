@@ -1227,7 +1227,7 @@
 
 @media (max-width: 720px) {
   .wrapper {
-    padding: 10px 12px 20px;
+    padding: 10px 12px calc(20px + env(safe-area-inset-bottom, 0px));
   }
 
   .districtTitle {

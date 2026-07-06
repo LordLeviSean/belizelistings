@@ -418,6 +418,12 @@
   }
 }
 
+@media (max-width: 800px) {
+  .filterBar {
+    top: calc(var(--site-nav-offset) + env(safe-area-inset-top, 0px));
+  }
+}
+
 @media (max-width: 768px) {
   .filterSummary {
     padding: 10px 12px;

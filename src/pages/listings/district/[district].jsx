@@ -227,7 +227,25 @@ export default function DistrictListings() {
   const districtCaption = getRegionCaption(activeRegionForHeader);
   const remainingListings = filtered;
 
-  if (!router.isReady || !district) return null;
+  if (!router.isReady || !district) {
+    return (
+      <div className={`${homeShellStyles.page} home-map-page-root`}>
+        <AmbientPalmBackdrop />
+        <SiteNav active="browse" />
+        <div className={styles.wrapper}>
+          <div className={styles.listingsGrid} aria-busy="true" aria-label="Loading district listings">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className={`${styles.gridItem} ${styles.cardSkeleton} skeleton`}
+                aria-hidden="true"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${homeShellStyles.page} home-map-page-root`}>

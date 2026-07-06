@@ -41,13 +41,20 @@ export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
   useEffect(() => {
     if (!isOpen) return undefined;
     const prevOverflow = document.body.style.overflow;
+    const prevPaddingRight = document.body.style.paddingRight;
+    const prevOverscroll = document.body.style.overscrollBehavior;
+    const gap = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    if (gap > 0) document.body.style.paddingRight = `${gap}px`;
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prevOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
+      document.body.style.overscrollBehavior = prevOverscroll;
       document.removeEventListener("keydown", onKey);
     };
   }, [isOpen, onClose]);

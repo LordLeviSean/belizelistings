@@ -1,12 +1,12 @@
 .page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(160deg, #f8f6f0 0%, #eaf4f2 45%, #ecf4fb 100%);
 }
 
 .main {
   width: min(1200px, calc(100% - 24px));
   margin: 0 auto;
-  padding: 18px 0 20px;
+  padding: 18px 0 calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
 .header h1 {

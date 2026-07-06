@@ -74,6 +74,7 @@ export default function HomePage() {
 
   const [mobileLayout, setMobileLayout] = useState(false);
   const [listingsData, setListingsData] = useState([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchSubmitting, setSearchSubmitting] = useState(false);
   const [carouselIndexById, setCarouselIndexById] = useState({});
@@ -87,13 +88,18 @@ export default function HomePage() {
   const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
 
   const fetchListings = useCallback(async () => {
-    const { data } = await fetchApprovedListingsWithImages();
-    const normalizedListings = (data || []).map((l) => ({
-      ...l,
-      id: String(l.id ?? ""),
-      images: Array.isArray(l.images) ? l.images : [],
-    }));
-    setListingsData(normalizedListings);
+    setListingsLoading(true);
+    try {
+      const { data } = await fetchApprovedListingsWithImages();
+      const normalizedListings = (data || []).map((l) => ({
+        ...l,
+        id: String(l.id ?? ""),
+        images: Array.isArray(l.images) ? l.images : [],
+      }));
+      setListingsData(normalizedListings);
+    } finally {
+      setListingsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -486,7 +492,22 @@ export default function HomePage() {
           </div>
         </section>
 
-        {featuredLoop.length ? (
+        {listingsLoading ? (
+          <section className={styles.featuredSection} aria-busy="true" aria-label="Loading featured listings">
+            <div className={styles.sectionTitleRow}>
+              <h2 className={styles.sectionTitle}>Featured listings</h2>
+            </div>
+            <div className={styles.featuredLoadingRow}>
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className={`${styles.featuredCarouselItem} ${styles.cardSkeleton} skeleton`}
+                  aria-hidden="true"
+                />
+              ))}
+            </div>
+          </section>
+        ) : featuredLoop.length ? (
           <section
             className={styles.featuredSection}
             aria-label="Featured listings"
@@ -527,7 +548,22 @@ export default function HomePage() {
             </div>
           </article>
 
-          {recentPool.length > 0 ? (
+          {listingsLoading ? (
+            <div className={styles.recentPanel}>
+              <div className={styles.sectionTitleRow}>
+                <h2 className={styles.sectionTitle}>Recently added</h2>
+              </div>
+              <div className={styles.recentGrid} aria-busy="true" aria-label="Loading recent listings">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className={`${styles.recentGridItem} ${styles.cardSkeleton} skeleton`}
+                    aria-hidden="true"
+                  />
+                ))}
+              </div>
+            </div>
+          ) : recentPool.length > 0 ? (
             <div className={styles.recentPanel}>
               <div className={styles.sectionTitleRow}>
                 <h2 className={styles.sectionTitle}>Recently added</h2>

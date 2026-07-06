@@ -1,5 +1,5 @@
 .page {
-  min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   isolation: isolate;
   background:
@@ -31,7 +31,7 @@
 
 @media (max-width: 720px) {
   .wrapper {
-    padding: 10px 14px 36px;
+    padding: 10px 14px calc(36px + env(safe-area-inset-bottom, 0px));
   }
 }
 

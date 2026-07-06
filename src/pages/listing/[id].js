@@ -206,12 +206,15 @@ export default function ListingPage() {
     if (!lightboxOpen) return undefined;
     const prevOverflow = document.body.style.overflow;
     const prevPaddingRight = document.body.style.paddingRight;
+    const prevOverscroll = document.body.style.overscrollBehavior;
     const gap = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
     if (gap > 0) document.body.style.paddingRight = `${gap}px`;
     return () => {
       document.body.style.overflow = prevOverflow;
       document.body.style.paddingRight = prevPaddingRight;
+      document.body.style.overscrollBehavior = prevOverscroll;
     };
   }, [lightboxOpen]);
 
@@ -314,7 +317,15 @@ export default function ListingPage() {
     return (
       <div className={styles.pageShell}>
         <SiteNav active="browse" />
-        <div className={styles.loadingState}>Loading listing...</div>
+        <div className={styles.loadingShell} aria-busy="true" aria-label="Loading listing">
+          <div className={`${styles.loadingHero} skeleton`} aria-hidden="true" />
+          <div className={styles.loadingBody}>
+            <div className={`${styles.loadingLine} skeleton`} aria-hidden="true" />
+            <div className={`${styles.loadingLine} ${styles.loadingLineShort} skeleton`} aria-hidden="true" />
+            <div className={`${styles.loadingLine} ${styles.loadingLinePrice} skeleton`} aria-hidden="true" />
+            <div className={`${styles.loadingBlock} skeleton`} aria-hidden="true" />
+          </div>
+        </div>
       </div>
     );
   }

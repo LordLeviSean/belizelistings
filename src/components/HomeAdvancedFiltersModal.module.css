@@ -10,6 +10,8 @@
   background: rgba(28, 48, 44, 0.28);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  overscroll-behavior: none;
+  touch-action: manipulation;
   animation: homeFiltersBackdropIn var(--dur-2) var(--ease-out-soft);
 }
 
@@ -27,6 +29,7 @@
   width: min(420px, 100%);
   max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px));
   overflow-y: auto;
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   padding: 18px 18px 16px;
   border-radius: var(--radius);

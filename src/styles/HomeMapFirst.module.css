@@ -76,6 +76,26 @@
   min-height: min(83.2dvh, calc(100dvh - var(--site-nav-height, 48px) - 60px));
 }
 
+.cardSkeleton {
+  border-radius: calc(var(--ui-radius) + 1px);
+  min-height: 245px;
+  border: 1px solid rgba(154, 210, 200, 0.24);
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 14px 30px rgba(88, 122, 128, 0.08);
+}
+
+.featuredLoadingRow {
+  display: flex;
+  gap: 12px;
+  overflow-x: hidden;
+  padding: 4px 4px 14px;
+}
+
+.featuredLoadingRow .featuredCarouselItem {
+  flex: 0 0 min(82vw, 296px);
+  min-width: min(82vw, 296px);
+}
+
 .heroSection {
   position: relative;
   isolation: isolate;

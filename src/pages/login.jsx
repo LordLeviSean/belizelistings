@@ -571,6 +571,7 @@ export default function Login() {
             className={`${styles.primaryBtn} ${isSignup ? styles.primaryBtnSignup : ""} ${signInPasswordStarted ? styles.primaryBtnSignInLit : ""}`}
             onClick={handleSubmit}
             disabled={formDisabled}
+            aria-busy={submitting || undefined}
           >
             {submitting ? (isSignup ? "Creating account..." : "Signing in...") : isSignup ? "Create Account" : "Sign In"}
           </button>
