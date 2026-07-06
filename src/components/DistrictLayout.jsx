@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SlidersHorizontal } from "lucide-react";
+import { ChevronUp, SlidersHorizontal } from "lucide-react";
 import { shouldShowFilterSummary } from "../lib/filterBarMobile";
 import styles from "../styles/District.module.css";
 import PremiumEmptyState from "./ui/PremiumEmptyState";
@@ -30,7 +30,7 @@ export default function DistrictLayout({
   const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   const showFilterSummary = shouldShowFilterSummary(filtersExpanded);
-  const resultLabel = `${filteredCount} ${filteredCount === 1 ? "result" : "results"}`;
+  const resultLabel = `${filteredCount} ${filteredCount === 1 ? "Result" : "Results"}`;
 
   return (
     <>
@@ -40,12 +40,20 @@ export default function DistrictLayout({
       </section>
 
       <section className={styles.filterBarShell}>
+        <svg width="0" height="0" className={styles.filterGradientDefs} aria-hidden="true">
+          <defs>
+            <linearGradient id="blDistrictFilterCollapseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#89cdbd" />
+              <stop offset="38%" stopColor="#89b7db" />
+              <stop offset="68%" stopColor="#9fb3d9" />
+              <stop offset="100%" stopColor="#d8c27b" />
+            </linearGradient>
+          </defs>
+        </svg>
+
         {showFilterSummary ? (
           <div className={styles.filterSummary} role="region" aria-label="District filters summary">
-            <div className={styles.filterSummaryText}>
-              <p className={styles.filterSummaryTitle}>{districtLabel}</p>
-              <p className={styles.filterSummaryCount}>{resultLabel}</p>
-            </div>
+            <p className={styles.filterSummaryResults}>{resultLabel}</p>
             <button
               type="button"
               className={styles.showFiltersBtn}
@@ -67,8 +75,14 @@ export default function DistrictLayout({
             type="button"
             className={styles.collapseFiltersBtn}
             onClick={() => setFiltersExpanded(false)}
+            aria-label="Hide filters"
           >
-            Hide Filters
+            <ChevronUp
+              size={16}
+              strokeWidth={2.5}
+              stroke="url(#blDistrictFilterCollapseGradient)"
+              aria-hidden="true"
+            />
           </button>
 
           <div className={styles.filterRowGrid}>

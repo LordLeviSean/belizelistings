@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { ChevronUp, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   PROPERTY_TYPE_OPTIONS,
   SEARCH_SORT_OPTIONS,
@@ -62,7 +62,6 @@ export default function FilterBar({
   resultCount,
   activeChips = [],
   onRemoveChip,
-  mobileSummaryTitle = "Belize listings",
 }) {
   const advancedPanelId = useId();
   const marketValue = listingType === "for-sale" ? "for-sale" : listingType;
@@ -72,17 +71,29 @@ export default function FilterBar({
 
   const resultLabel =
     typeof resultCount === "number"
-      ? `${resultCount} ${resultCount === 1 ? "result" : "results"}`
+      ? `${resultCount} ${resultCount === 1 ? "Result" : "Results"}`
       : null;
 
   return (
     <div className={styles.filterShell}>
+      <svg width="0" height="0" className={styles.filterGradientDefs} aria-hidden="true">
+        <defs>
+          <linearGradient id="blFilterCollapseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#89cdbd" />
+            <stop offset="38%" stopColor="#89b7db" />
+            <stop offset="68%" stopColor="#9fb3d9" />
+            <stop offset="100%" stopColor="#d8c27b" />
+          </linearGradient>
+        </defs>
+      </svg>
+
       {showFilterSummary ? (
         <div className={styles.filterSummary} role="region" aria-label="Listing filters summary">
-          <div className={styles.filterSummaryText}>
-            <p className={styles.filterSummaryTitle}>{mobileSummaryTitle}</p>
-            {resultLabel ? <p className={styles.filterSummaryCount}>{resultLabel}</p> : null}
-          </div>
+          {resultLabel ? (
+            <p className={styles.filterSummaryResults}>{resultLabel}</p>
+          ) : (
+            <span className={styles.filterSummaryResults} aria-hidden="true" />
+          )}
           <button
             type="button"
             className={styles.showFiltersBtn}
@@ -104,8 +115,9 @@ export default function FilterBar({
           type="button"
           className={styles.collapseFiltersBtn}
           onClick={() => setFiltersExpanded(false)}
+          aria-label="Hide filters"
         >
-          Hide Filters
+          <ChevronUp size={16} strokeWidth={2.5} stroke="url(#blFilterCollapseGradient)" aria-hidden="true" />
         </button>
 
         <form className={styles.searchGroup} onSubmit={onSearchSubmit}>

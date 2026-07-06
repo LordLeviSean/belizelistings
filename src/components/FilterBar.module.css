@@ -6,7 +6,7 @@
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
-  padding: 8px 14px;
+  padding: 8px 44px 8px 14px;
   
   background: linear-gradient(180deg, rgba(251, 254, 252, 0.86), rgba(239, 249, 245, 0.8));
   border: 1px solid rgba(150, 188, 178, 0.28);
@@ -164,6 +164,7 @@
   }
 
 .filterShell {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -288,6 +289,16 @@
   min-width: 0;
 }
 
+.filterSummaryResults {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: rgba(26, 58, 72, 0.92);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
 .filterSummaryTitle {
   margin: 0;
   font-size: 0.92rem;
@@ -327,20 +338,80 @@
   display: none !important;
 }
 
+.filterGradientDefs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
 .collapseFiltersBtn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 1 1 100%;
-  min-height: 30px;
-  margin-bottom: 2px;
-  border: 0;
-  border-radius: 8px;
-  background: rgba(137, 205, 189, 0.14);
-  color: #4a6f65;
-  font-size: 12px;
-  font-weight: 650;
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(151, 190, 179, 0.32);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 251, 248, 0.86));
+  box-shadow: var(--elev-1);
   cursor: pointer;
+  transition: var(--transition-surface), transform var(--dur-2) var(--ease-out-soft);
+}
+
+.collapseFiltersBtn::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    120deg,
+    rgba(137, 205, 189, 0.72) 0%,
+    rgba(137, 183, 219, 0.68) 42%,
+    rgba(159, 179, 217, 0.66) 68%,
+    rgba(216, 194, 123, 0.62) 100%
+  );
+  background-size: 220% 220%;
+  animation: filterCollapseGradient var(--ambient-cycle-c) var(--ambient-ease-drift) infinite alternate;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.collapseFiltersBtn:hover {
+  transform: translateY(var(--hover-lift-xs));
+  border-color: rgba(120, 178, 164, 0.48);
+  box-shadow: var(--elev-2);
+}
+
+.collapseFiltersBtn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(137, 205, 189, 0.22), var(--elev-1);
+}
+
+@keyframes filterCollapseGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collapseFiltersBtn::before {
+    animation: none;
+  }
 }
 
 @media (max-width: 768px) {
@@ -361,7 +432,10 @@
   }
 
   .collapseFiltersBtn {
-    min-height: 34px;
+    top: 6px;
+    right: 8px;
+    width: 34px;
+    height: 30px;
   }
 
   .searchGroup {
