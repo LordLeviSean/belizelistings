@@ -31,6 +31,7 @@ import useSeaFlowMode from "../hooks/useSeaFlowMode";
 import useSeaFlowIntensity from "../hooks/useSeaFlowIntensity";
 import { seaFlowIntensityStyle } from "../utils/seaFlowIntensity";
 import { useFavoriteSignupPrompt } from "../components/FavoriteSignupPromptProvider";
+import PremiumEmptyState from "../components/ui/PremiumEmptyState";
 
 import styles from "../styles/HomeMapFirst.module.css";
 
@@ -526,40 +527,34 @@ export default function HomePage() {
             </div>
           </article>
 
-          <div className={styles.recentPanel}>
-            <div className={styles.sectionTitleRow}>
-              <h2 className={styles.sectionTitle}>Recently added</h2>
-              <p className={styles.sectionSubtitle}>
-                {searchNorm
-                  ? `Filtered locally · ${recentFiltered.length} match${recentFiltered.length === 1 ? "" : "es"}`
-                  : "Live pool below featured · reacts to the field above"}
-              </p>
+          {recentPool.length > 0 ? (
+            <div className={styles.recentPanel}>
+              <div className={styles.sectionTitleRow}>
+                <h2 className={styles.sectionTitle}>Recently added</h2>
+                {searchNorm ? (
+                  <p className={styles.sectionSubtitle}>
+                    {`Filtered locally · ${recentFiltered.length} match${recentFiltered.length === 1 ? "" : "es"}`}
+                  </p>
+                ) : null}
+              </div>
+              <div className={styles.recentGrid}>
+                {recentFiltered.length === 0 ? (
+                  <PremiumEmptyState
+                    variant="search"
+                    compact
+                    title="No local matches"
+                    description="Ease the search phrase above or browse featured listings for curated arrivals."
+                  />
+                ) : (
+                  recentFiltered.map((listing) => (
+                    <div key={listing.id} className={styles.recentGridItem}>
+                      {renderListingCard(listing, "(max-width: 760px) 100vw, 33vw")}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-            <div className={styles.recentGrid}>
-              {recentFiltered.length === 0 ? (
-                <div className={styles.recentEmptyState} role="status">
-                  <p className={styles.recentEmptyKicker}>
-                    {recentPool.length === 0 ? "Ledger cadence" : "Filtered view"}
-                  </p>
-                  <p className={styles.recentEmptyTitle}>
-                    {recentPool.length === 0 ? "Quiet for the moment." : "No local matches."}
-                  </p>
-                  <p className={styles.recentEmptyBody}>
-                    {recentPool.length === 0
-                      ? "Approved listings appear here first. The map and featured band remain live—nothing is missing."
-                      : "Ease the phrase above, use advanced filters, or browse the featured band above for curated arrivals."}
-                  </p>
-                  <div className={styles.recentEmptyGhost} aria-hidden />
-                </div>
-              ) : (
-                recentFiltered.map((listing) => (
-                  <div key={listing.id} className={styles.recentGridItem}>
-                    {renderListingCard(listing, "(max-width: 760px) 100vw, 33vw")}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          ) : null}
         </section>
       </main>
 

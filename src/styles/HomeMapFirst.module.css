@@ -1687,7 +1687,7 @@
     order: 3;
     position: relative;
     z-index: 1;
-    margin: -4px 0 0;
+    margin: -4px 0 -12px;
     width: 100%;
     max-width: 100%;
     padding: 0 2px;
@@ -1714,7 +1714,7 @@
     flex-direction: column;
     order: 4;
     width: 100%;
-    margin-top: 5px;
+    margin-top: 0;
     gap: 0;
   }
   .mobileHeroFlow .heroSearchBlock {
@@ -1851,7 +1851,7 @@
   }
 
   .featuredSection {
-    margin-top: 42px;
+    margin-top: 56px;
     padding: 6px 0 12px;
     position: relative;
   }

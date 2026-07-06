@@ -1195,11 +1195,22 @@
 
 @media (max-width: 768px) {
   .filterSummary {
-    padding: 10px 12px;
+    padding: 7px 10px;
+    gap: 8px;
+    border-radius: 10px;
+    box-shadow: var(--elev-0);
+  }
+
+  .filterSummaryResults {
+    font-size: 0.86rem;
+    line-height: 1.15;
   }
 
   .showFiltersBtn {
-    min-height: var(--touch-target-min);
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+    border-radius: 8px;
   }
 
   .collapseFiltersBtn {
@@ -1210,7 +1221,7 @@
   }
 
   .filterBarShell:has(.filterPanelHidden) {
-    padding: 10px 10px 10px;
+    padding: 7px 8px;
   }
 }
 
