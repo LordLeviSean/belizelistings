@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import "@/styles/globals.css";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/router";
+import { PageTitleProvider } from "@/components/PageTitleProvider";
+import { resolveRouteTitle } from "@/lib/siteMetadata";
 import useAlerts from "@/hooks/useAlerts";
 import useListingModerationNotifications from "@/hooks/useListingModerationNotifications";
 import useAgentUpgradeNotifications from "@/hooks/useAgentUpgradeNotifications";
@@ -28,6 +30,8 @@ function ModerationNotificationListener() {
 function AppWithAlerts({ Component, pageProps }) {
   const router = useRouter();
   const skipPageEnterRef = useRef(true);
+  const pageTitle =
+    pageProps.pageTitle ?? resolveRouteTitle(router.pathname, router.query);
   useAlerts();
   useRouteMemory();
 
@@ -37,6 +41,7 @@ function AppWithAlerts({ Component, pageProps }) {
 
   return (
     <ToastProvider>
+      <PageTitleProvider routeTitle={pageTitle}>
       <UserRoleProvider>
         <ModerationNotificationListener />
         <AuthGateProvider>
@@ -59,6 +64,7 @@ function AppWithAlerts({ Component, pageProps }) {
           </FavoriteSignupPromptProvider>
         </AuthGateProvider>
       </UserRoleProvider>
+      </PageTitleProvider>
     </ToastProvider>
   );
 }

@@ -26,6 +26,8 @@ import { getRegionCaption, getRegionLabel } from "../../constants/geographyLayer
 import { getListingRegionSlug, getLifecycleStatus } from "../../utils/canonicalListing";
 import { LISTING_LIFECYCLE } from "../../constants/operationalModel";
 import { getDistrictExploreHref } from "@/lib/districtExploreRoutes";
+import { formatListingTitle } from "@/lib/siteMetadata";
+import { usePageTitle } from "@/components/PageTitleProvider";
 import styles from "../../styles/ListingDetail.module.css";
 import favoriteStyles from "../../styles/FavoriteButton.module.css";
 import { useFavoriteSignupPrompt } from "../../components/FavoriteSignupPromptProvider";
@@ -67,6 +69,8 @@ export default function ListingPage() {
   const isDebug =
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("debug") === "true";
+
+  usePageTitle(listing?.title ? formatListingTitle(listing.title) : null);
 
   useEffect(() => {
     if (!id) return;
