@@ -9,7 +9,6 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
-  Hand,
   House,
   Key,
   Search,
@@ -30,7 +29,8 @@ import { filterListings } from "../utils/filterListings";
 import { getLifecycleStatus, getListingRegionSlug } from "../utils/canonicalListing";
 import useSeaFlowMode from "../hooks/useSeaFlowMode";
 import useSeaFlowIntensity from "../hooks/useSeaFlowIntensity";
-import { seaFlowIntensityStyle } from "../utils/seaFlowIntensity";
+import useHomepageSeaFlowMultiplier from "../hooks/useHomepageSeaFlowMultiplier";
+import { homepageSeaFlowIntensityStyle, seaFlowIntensityStyle } from "../utils/seaFlowIntensity";
 import { useFavoriteSignupPrompt } from "../components/FavoriteSignupPromptProvider";
 
 import styles from "../styles/HomeMapFirst.module.css";
@@ -84,6 +84,7 @@ export default function HomePage() {
   const featuredPausedRef = useRef(false);
   const { enabled: seaFlowModeEnabled } = useSeaFlowMode();
   const { intensity: seaFlowIntensity } = useSeaFlowIntensity();
+  const { multiplier: homepageSeaFlowMultiplier } = useHomepageSeaFlowMultiplier();
   const { isFavorite, toggleFavorite, isBusy, isAuthenticated } = useFavorites();
   const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
 
@@ -241,7 +242,7 @@ export default function HomePage() {
     return () => cancelAnimationFrame(raf);
   }, [featuredLoop.length]);
 
-  const renderHeroMap = ({ showCaption = true } = {}) => (
+  const renderHeroMap = ({ showCaption = true, showMobileHint = false } = {}) => (
     <>
       {showCaption ? <p className={styles.heroMapCaption}>Explore by district</p> : null}
       <div className={styles.mapPane}>
@@ -253,10 +254,11 @@ export default function HomePage() {
           />
         </div>
       </div>
-      <p className={styles.mobileMapHint}>
-        <Hand aria-hidden="true" />
-        Tap a district to explore listings.
-      </p>
+      {showMobileHint ? (
+        <p className={styles.mobileMapHint}>
+          Tap a district to explore listings.
+        </p>
+      ) : null}
     </>
   );
 
@@ -306,7 +308,11 @@ export default function HomePage() {
         <section className={styles.heroSection}>
           <div
             className={`${styles.heroCanvas} ${mobileLayout ? styles.heroCanvasMobile : ""}`}
-            style={seaFlowIntensityStyle(seaFlowIntensity)}
+            style={
+              mobileLayout
+                ? homepageSeaFlowIntensityStyle(seaFlowIntensity, homepageSeaFlowMultiplier)
+                : seaFlowIntensityStyle(seaFlowIntensity)
+            }
             data-sea-flow={seaFlowModeEnabled ? "on" : "off"}
           >
             <div className={styles.heroCanvasAtmosphere} aria-hidden>
@@ -317,23 +323,16 @@ export default function HomePage() {
             {mobileLayout ? (
               <div className={styles.mobileHeroFlow}>
                 <p className={styles.heroKicker}>EXPLORE • INVEST • THRIVE</p>
-                <h1 className={styles.heroMapTitle}>Belize&apos;s Living Property Map</h1>
-                <p className={styles.heroMapSupport}>
-                  Discover verified properties across Belize through one interactive national property
-                  map.
-                </p>
                 <div className={styles.mobileMapHero} aria-label="Belize property map">
                   {renderHeroMap({ showCaption: false })}
                 </div>
+                <h1 className={styles.heroMapTitle}>Belize&apos;s Living Property Map</h1>
 
                 <div className={styles.mobileSearchWrap}>
-                  <p className={styles.mobileSearchLabel} id="mobile-search-label">
-                    Search Belize
-                  </p>
                   <form
                     className={`${styles.searchShell} ${styles.heroSearchBlock} ${searchSubmitting ? styles.searchShellSubmitting : ""}`}
                     onSubmit={handleSearchSubmit}
-                    aria-labelledby="mobile-search-label"
+                    aria-label="Search listings"
                   >
                     <span className={styles.searchIcon} aria-hidden="true">
                       <Search />
@@ -364,34 +363,34 @@ export default function HomePage() {
 
                 <div className={`${styles.statGrid} ${styles.heroStatsBlock}`}>
                   <article className={styles.statCard}>
+                    <p className={styles.statValue}>{activeListings.length}</p>
                     <span className={styles.statIcon} aria-hidden="true">
                       <House />
                     </span>
-                    <p className={styles.statValue}>{activeListings.length}</p>
                     <p className={styles.statLabel}>
                       <span className={styles.statLabelDesktop}>Active Listings</span>
                       <span className={styles.statLabelMobile}>Listings</span>
                     </p>
                   </article>
                   <article className={styles.statCard}>
+                    <p className={styles.statValue}>{saleCount}</p>
                     <span className={styles.statIcon} aria-hidden="true">
                       <Tag />
                     </span>
-                    <p className={styles.statValue}>{saleCount}</p>
                     <p className={styles.statLabel}>For Sale</p>
                   </article>
                   <article className={styles.statCard}>
+                    <p className={styles.statValue}>{rentCount}</p>
                     <span className={styles.statIcon} aria-hidden="true">
                       <Key />
                     </span>
-                    <p className={styles.statValue}>{rentCount}</p>
                     <p className={styles.statLabel}>For Rent</p>
                   </article>
                   <article className={styles.statCard}>
+                    <p className={styles.statValue}>100%</p>
                     <span className={styles.statIcon} aria-hidden="true">
                       <TrendingUp />
                     </span>
-                    <p className={styles.statValue}>100%</p>
                     <p className={styles.statLabel}>
                       <span className={styles.statLabelDesktop}>Real-time Data</span>
                       <span className={styles.statLabelMobile}>100% Live Data</span>

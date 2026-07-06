@@ -65,3 +65,14 @@ export function seaFlowIntensityStyle(intensity) {
   const t = snapSeaFlowIntensity(intensity);
   return { "--sea-flow-intensity": t };
 }
+
+/**
+ * Homepage hero intensity — base Sea Flow intensity × optional homepage multiplier.
+ * Multiplier 0 disables homepage drift; values above 1 amplify the existing system.
+ */
+export function homepageSeaFlowIntensityStyle(baseIntensity, homepageMultiplier = 1) {
+  const base = snapSeaFlowIntensity(baseIntensity);
+  const mult = Math.min(3, Math.max(0, Number(homepageMultiplier) || 0));
+  const effective = mult === 0 ? 0 : Math.min(3, base * mult);
+  return { "--sea-flow-intensity": effective };
+}

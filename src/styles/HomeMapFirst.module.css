@@ -1499,11 +1499,17 @@
 
   .heroCanvasMobile .heroCanvasStaticWash {
     inset: -10% -6% 0;
-    opacity: calc(0.1 + 0.24 * var(--sea-flow-intensity, 0.5));
+    opacity: calc(0.06 + 0.14 * var(--sea-flow-intensity, 0.5));
   }
 
   .heroCanvasMobile .heroCanvasSeaFlowLayers {
-    opacity: calc(0.35 + 0.25 * var(--sea-flow-intensity, 0.5));
+    opacity: calc(0.2 + 0.18 * var(--sea-flow-intensity, 0.5));
+    will-change: transform;
+  }
+
+  .heroCanvasMobile .heroCanvasSeaFlowLayers::before,
+  .heroCanvasMobile .heroCanvasSeaFlowLayers::after {
+    will-change: transform;
   }
 
   .heroRight,
@@ -1526,53 +1532,20 @@
     order: 1;
     text-align: center;
     letter-spacing: 0.28em;
-    margin: 0 0 4px;
-    width: 100%;
-  }
-
-  .heroMapTitle {
-    display: block;
-    order: 2;
-    position: relative;
-    z-index: 1;
     margin: 0 0 6px;
     width: 100%;
-    text-align: center;
-    font-family: "DM Serif Display", "Times New Roman", serif;
-    font-size: clamp(1.65rem, 8vw, 2rem);
-    font-weight: 400;
-    line-height: 1.05;
-    letter-spacing: -0.014em;
-    color: rgba(18, 58, 80, 0.96);
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
-  }
-
-  .heroMapSupport {
-    display: block;
-    order: 3;
-    position: relative;
-    z-index: 1;
-    margin: 0 0 10px;
-    width: 100%;
-    max-width: 36ch;
-    text-align: center;
-    font-size: 0.84rem;
-    line-height: 1.38;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    color: rgba(32, 72, 82, 0.86);
   }
 
   .mobileMapHero {
     display: flex;
     flex-direction: column;
     align-items: center;
-    order: 4;
+    order: 2;
     position: relative;
     isolation: isolate;
     width: 100%;
     margin: 0;
-    padding: 0 2px 4px;
+    padding: 0;
     overflow: visible;
   }
 
@@ -1581,41 +1554,23 @@
     z-index: 1;
     width: 100%;
     max-width: 100%;
-    min-height: clamp(340px, 68vh, 500px);
-    height: clamp(340px, 68vh, 500px);
+    min-height: clamp(380px, 72vh, 560px);
+    height: clamp(380px, 72vh, 560px);
     max-height: none;
     margin: 0 auto;
-    padding: 10px 12px;
+    padding: 0;
     box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: visible;
-    border-radius: calc(var(--ui-radius) + 2px);
-    background:
-      radial-gradient(ellipse 86% 80% at 14% 54%, rgba(52, 200, 182, 0.12), transparent 76%),
-      radial-gradient(ellipse 82% 76% at 86% 32%, rgba(112, 170, 240, 0.08), transparent 80%),
-      linear-gradient(168deg, rgba(253, 254, 254, 0.42) 0%, rgba(248, 252, 251, 0.28) 100%);
-    border: 1px solid rgba(152, 192, 184, 0.16);
-    box-shadow:
-      0 18px 42px rgba(88, 128, 136, 0.14),
-      0 0 0 1px rgba(255, 255, 255, 0.32) inset,
-      0 0 28px rgba(122, 198, 186, 0.1);
-    backdrop-filter: blur(10px) saturate(1.04);
-    -webkit-backdrop-filter: blur(10px) saturate(1.04);
-    transition:
-      transform 320ms var(--ui-ease),
-      box-shadow 320ms var(--ui-ease);
-    -webkit-tap-highlight-color: transparent;
+    border-radius: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     touch-action: manipulation;
-  }
-
-  .mobileMapHero .mapPane:active {
-    transform: scale(0.985);
-    box-shadow:
-      0 12px 28px rgba(88, 128, 136, 0.12),
-      0 0 0 1px rgba(255, 255, 255, 0.28) inset,
-      0 0 18px rgba(122, 198, 186, 0.08);
   }
 
   .mobileMapHero .mapPaneMapWrap {
@@ -1694,50 +1649,40 @@
     transform-origin: center center !important;
   }
 
-  .mobileMapHint {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
+  .heroMapTitle {
+    display: block;
+    order: 3;
     position: relative;
     z-index: 1;
     margin: 10px 0 0;
     width: 100%;
+    max-width: 18ch;
     text-align: center;
-    font-size: 0.74rem;
-    font-weight: 500;
-    letter-spacing: 0.012em;
-    color: rgba(66, 98, 103, 0.72);
+    text-wrap: balance;
+    font-family: "DM Serif Display", "Times New Roman", serif;
+    font-size: clamp(1.85rem, 9.2vw, 2.35rem);
+    font-weight: 400;
+    line-height: 0.98;
+    letter-spacing: -0.022em;
+    color: rgba(14, 52, 72, 0.97);
+    text-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.42),
+      0 12px 28px rgba(72, 128, 142, 0.08);
   }
 
-  .mobileMapHint :global(svg) {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-    opacity: 0.72;
-    stroke-width: 1.85;
+  .heroMapSupport,
+  .mobileSearchLabel {
+    display: none !important;
   }
 
   .mobileSearchWrap {
     display: flex;
     flex-direction: column;
-    order: 5;
+    order: 4;
     width: 100%;
-    margin-top: 12px;
-    gap: 4px;
+    margin-top: 8px;
+    gap: 0;
   }
-
-  .mobileSearchLabel {
-    display: block;
-    margin: 0;
-    padding-left: 4px;
-    font-size: 0.58rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: rgba(66, 98, 103, 0.68);
-  }
-
   .mobileHeroFlow .heroSearchBlock {
     order: unset;
     width: 100%;
@@ -1755,13 +1700,19 @@
 
   .mobileHeroFlow .heroSearchBlock .searchFilterBtn {
     min-height: var(--touch-target-min, 44px);
+    min-width: var(--touch-target-min, 44px);
     padding: 8px 12px;
   }
 
+  .mobileHeroFlow .heroSearchBlock .searchIcon {
+    min-width: var(--touch-target-min, 44px);
+    min-height: var(--touch-target-min, 44px);
+  }
+
   .mobileHeroFlow .heroStatsBlock {
-    order: 6;
+    order: 5;
     width: 100%;
-    margin-top: 10px;
+    margin-top: 8px;
     margin-bottom: 0;
     padding-bottom: 0;
   }
@@ -1796,15 +1747,12 @@
   .heroStatsBlock .statCard {
     flex: 1 1 0;
     min-width: 0;
-    display: grid;
-    grid-template-columns: auto auto;
-    grid-template-rows: auto auto;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    justify-items: center;
-    column-gap: 3px;
-    row-gap: 1px;
-    padding: 4px 2px;
+    gap: 5px;
+    padding: 8px 4px;
     background: transparent;
     box-shadow: none;
     border-radius: 0;
@@ -1824,29 +1772,28 @@
   }
 
   .heroStatsBlock .statIcon {
-    grid-column: 1;
-    grid-row: 1;
     margin-bottom: 0;
-    font-size: 11px;
-    opacity: 0.72;
+    font-size: 14px;
+    opacity: 0.78;
+  }
+
+  .heroStatsBlock .statIcon :global(svg) {
+    width: 15px;
+    height: 15px;
   }
 
   .heroStatsBlock .statValue {
-    grid-column: 2;
-    grid-row: 1;
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 1.1;
+    font-size: 15px;
+    font-weight: 650;
+    line-height: 1;
   }
 
   .heroStatsBlock .statLabel {
-    grid-column: 1 / -1;
-    grid-row: 2;
     flex: none;
     margin: 0;
     font-size: 7.5px;
-    letter-spacing: 0.04em;
-    line-height: 1.15;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
     text-align: center;
   }
 
@@ -1857,12 +1804,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mobileMapHero .mapPane {
-    transition-duration: 0.01ms !important;
-  }
-
-  .mobileMapHero .mapPane:active {
-    transform: none;
+  .heroCanvasMobile .heroCanvasSeaFlowLayers,
+  .heroCanvasMobile .heroCanvasSeaFlowLayers::before,
+  .heroCanvasMobile .heroCanvasSeaFlowLayers::after {
+    animation: none !important;
+    transform: none !important;
+    will-change: auto;
   }
 }
 

@@ -14,7 +14,9 @@ import useLivePaletteMode from "../../hooks/useLivePaletteMode";
 import usePulseMode from "../../hooks/usePulseMode";
 import useSeaFlowMode from "../../hooks/useSeaFlowMode";
 import useSeaFlowIntensity from "../../hooks/useSeaFlowIntensity";
+import useHomepageSeaFlowMultiplier from "../../hooks/useHomepageSeaFlowMultiplier";
 import { getSeaFlowIntensityLabel } from "../../utils/seaFlowIntensity";
+import { getHomepageSeaFlowMultiplierLabel } from "../../utils/homepageSeaFlowMultiplier";
 import { ACTIVITY_SIGNAL_TYPES } from "../../constants/trustModel";
 import { clearAllFavoritesForListings } from "../../lib/favorites";
 import { isMissingColumnError } from "../../lib/supabaseCompat";
@@ -77,6 +79,8 @@ export default function AdminPage() {
   const { enabled: pulseModeEnabled, setMode: setPulseMode } = usePulseMode();
   const { enabled: seaFlowModeEnabled, setMode: setSeaFlowMode } = useSeaFlowMode();
   const { intensity: seaFlowIntensity, setIntensity: setSeaFlowIntensity } = useSeaFlowIntensity();
+  const { multiplier: homepageSeaFlowMultiplier, setMultiplier: setHomepageSeaFlowMultiplier } =
+    useHomepageSeaFlowMultiplier();
 
   const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
   const visibleTabs = useMemo(() => getVisibleAdminDashboardTabs(), [crmTabsEnabled]);
@@ -525,6 +529,42 @@ export default function AdminPage() {
                     <option value="50" label="Default" />
                     <option value="75" label="Pronounced" />
                     <option value="100" label="Cinematic" />
+                  </datalist>
+                </div>
+                <div className={`${styles.effectCard} ${styles.effectCardStacked}`}>
+                  <div className={styles.effectCardCopy}>
+                    <p className={styles.livePaletteLabel}>Homepage Sea Flow Multiplier</p>
+                    <p className={styles.livePaletteSubtext}>
+                      Mobile map hero drift strength — scales the base Sea Flow intensity on the
+                      homepage (desktop unchanged).
+                    </p>
+                    <p className={styles.livePaletteIndicator}>
+                      {getHomepageSeaFlowMultiplierLabel(homepageSeaFlowMultiplier)}
+                    </p>
+                  </div>
+                  <input
+                    type="range"
+                    className={styles.seaFlowIntensityRange}
+                    min="0"
+                    max="300"
+                    step="25"
+                    value={Math.round(homepageSeaFlowMultiplier * 100)}
+                    onChange={(e) => setHomepageSeaFlowMultiplier(Number(e.target.value) / 100)}
+                    aria-label="Homepage sea flow multiplier"
+                    aria-valuemin={0}
+                    aria-valuemax={300}
+                    aria-valuenow={Math.round(homepageSeaFlowMultiplier * 100)}
+                    list="homepage-sea-flow-multiplier-stops"
+                    disabled={!seaFlowModeEnabled}
+                  />
+                  <datalist id="homepage-sea-flow-multiplier-stops">
+                    <option value="0" label="Disabled" />
+                    <option value="25" label="Very subtle" />
+                    <option value="50" label="Slight" />
+                    <option value="100" label="Baseline" />
+                    <option value="150" label="Enhanced" />
+                    <option value="200" label="Strong" />
+                    <option value="300" label="Maximum" />
                   </datalist>
                 </div>
               </div>
