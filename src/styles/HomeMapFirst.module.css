@@ -414,6 +414,8 @@
 .heroMapTitle,
 .heroMapSupport,
 .mobileHeroFlow,
+.mobileHeroViewport,
+.mobileHeroReveal,
 .mobileMapHero,
 .mobileSearchWrap,
 .mobileSearchLabel {
@@ -1467,11 +1469,11 @@
   }
 }
 
-/* Mobile homepage — map-first hero flow (≤800px matches SiteNav breakpoint) */
+/* Mobile homepage — immersive map hero + scroll reveal (≤800px matches SiteNav breakpoint) */
 @media (max-width: 800px) {
   .pageMain {
-    width: calc(100% - 16px);
-    padding-top: 4px;
+    width: 100%;
+    padding: 0;
     gap: 0;
   }
 
@@ -1484,9 +1486,11 @@
     display: block;
     min-height: 0;
     gap: 0;
-    padding: 6px 6px 0;
-    border-radius: calc(var(--ui-radius) + 1px);
+    padding: 0;
+    border-radius: 0;
     overflow: visible;
+    box-shadow: none;
+    border: 0;
   }
 
   .heroCanvasMobile::before {
@@ -1521,32 +1525,45 @@
   .mobileHeroFlow {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     position: relative;
     z-index: 2;
     width: 100%;
     gap: 0;
   }
 
+  .mobileHeroViewport {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    width: 100%;
+    min-height: calc(100dvh - var(--site-nav-height) - env(safe-area-inset-top, 0px));
+    margin: 0;
+    padding: 0;
+  }
+
   .mobileHeroFlow .heroKicker {
-    order: 1;
+    flex-shrink: 0;
     text-align: center;
     font-size: clamp(12px, 3.25vw, 14px);
     font-weight: 700;
     letter-spacing: 0.36em;
     color: rgba(36, 66, 72, 0.88);
-    margin: 0 0 5px;
+    margin: 0;
+    padding: 8px 12px 6px;
     width: 100%;
+    box-sizing: border-box;
   }
 
   .mobileMapHero {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
-    align-items: center;
-    order: 2;
+    align-items: stretch;
     position: relative;
     isolation: isolate;
     width: 100%;
+    min-height: 0;
     margin: 0;
     padding: 0;
     overflow: visible;
@@ -1555,12 +1572,13 @@
   .mobileMapHero .mapPane {
     position: relative;
     z-index: 1;
+    flex: 1 1 auto;
     width: 100%;
     max-width: 100%;
-    min-height: min(54dvh, calc(100dvh - var(--site-nav-height, 48px) - 92px));
-    height: min(54dvh, calc(100dvh - var(--site-nav-height, 48px) - 92px));
-    max-height: min(54dvh, calc(100dvh - var(--site-nav-height, 48px) - 92px));
-    margin: 0 auto;
+    min-height: 0;
+    height: 100%;
+    max-height: none;
+    margin: 0;
     padding: 0;
     box-sizing: border-box;
     display: flex;
@@ -1652,12 +1670,20 @@
     transform-origin: center center !important;
   }
 
+  .mobileHeroReveal {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    padding: 0 8px;
+    gap: 0;
+  }
+
   .heroMapTitle {
     display: block;
-    order: 3;
     position: relative;
     z-index: 1;
-    margin: 6px 0 0;
+    margin: 8px 0 0;
     width: 100%;
     max-width: 100%;
     padding: 0 2px;
@@ -1682,13 +1708,12 @@
   .mobileSearchWrap {
     display: flex;
     flex-direction: column;
-    order: 4;
     width: 100%;
     margin-top: 5px;
     gap: 0;
   }
+
   .mobileHeroFlow .heroSearchBlock {
-    order: unset;
     width: 100%;
     margin-top: 0;
     grid-template-columns: var(--touch-target-min, 44px) 1fr auto;
@@ -1733,7 +1758,6 @@
   }
 
   .mobileHeroFlow .heroStatsBlock {
-    order: 5;
     width: 100%;
     margin-top: 6px;
     margin-bottom: 0;
@@ -1821,9 +1845,14 @@
   }
 
   .featuredSection {
-    margin-top: 28px;
-    padding: 6px 0 12px;
+    margin-top: 20px;
+    padding: 6px 8px 12px;
     position: relative;
+  }
+
+  .communitySection {
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
   .featuredSection::before {
