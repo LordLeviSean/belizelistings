@@ -1557,9 +1557,9 @@
     z-index: 1;
     width: 100%;
     max-width: 100%;
-    min-height: min(75.6dvh, calc(100dvh - var(--site-nav-height, 48px) - 66px));
-    height: min(75.6dvh, calc(100dvh - var(--site-nav-height, 48px) - 66px));
-    max-height: min(75.6dvh, calc(100dvh - var(--site-nav-height, 48px) - 66px));
+    min-height: min(83.2dvh, calc(100dvh - var(--site-nav-height, 48px) - 60px));
+    height: min(83.2dvh, calc(100dvh - var(--site-nav-height, 48px) - 60px));
+    max-height: min(83.2dvh, calc(100dvh - var(--site-nav-height, 48px) - 60px));
     margin: 0 auto;
     padding: 0;
     box-sizing: border-box;
