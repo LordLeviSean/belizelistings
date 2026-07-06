@@ -29,11 +29,11 @@ describe("ListingInteractionModal", () => {
       </ListingInteractionModal>
     );
 
-    const dialog = container.querySelector('[role="dialog"]');
+    const dialog = document.body.querySelector('[role="dialog"]');
     expect(dialog).toBeTruthy();
     expect(dialog.textContent).toMatch(/Contact agent/i);
     expect(dialog.textContent).toMatch(/Modal body/i);
-    expect(container.querySelector(`.${modalStyles.close}`)).toBeTruthy();
+    expect(document.body.querySelector(`.${modalStyles.close}`)).toBeTruthy();
   });
 
   test("renders optional footer", () => {
@@ -48,8 +48,8 @@ describe("ListingInteractionModal", () => {
       </ListingInteractionModal>
     );
 
-    expect(container.textContent).toMatch(/Continue/i);
-    expect(container.querySelector(`.${modalStyles.footer}`)).toBeTruthy();
+    expect(document.body.textContent).toMatch(/Continue/i);
+    expect(document.body.querySelector(`.${modalStyles.footer}`)).toBeTruthy();
   });
 
   test("returns null when closed", () => {
@@ -58,6 +58,6 @@ describe("ListingInteractionModal", () => {
         <p>Hidden body</p>
       </ListingInteractionModal>
     );
-    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull();
   });
 });

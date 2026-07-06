@@ -1,4 +1,5 @@
-import { useEffect, useId } from "react";
+import { useEffect, useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import styles from "./ListingInteractionModal.module.css";
 
@@ -22,6 +23,11 @@ export default function ListingInteractionModal({
 }) {
   const autoTitleId = useId();
   const titleId = titleIdProp || autoTitleId;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -50,12 +56,12 @@ export default function ListingInteractionModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, onClose, onEscape]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const backdropClass = [styles.backdrop, compact ? styles.backdropCompact : ""].filter(Boolean).join(" ");
   const panelClass = [styles.panel, panelClassName].filter(Boolean).join(" ");
 
-  return (
+  return createPortal(
     <div
       className={backdropClass}
       role="presentation"
@@ -78,6 +84,7 @@ export default function ListingInteractionModal({
 
         {footer ? <div className={styles.footer}>{footer}</div> : null}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
