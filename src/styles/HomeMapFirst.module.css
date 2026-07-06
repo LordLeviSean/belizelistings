@@ -1537,18 +1537,18 @@
     display: none;
   }
 
-  .heroStatsBlock {
+  .heroSearchBlock {
     order: 2;
     width: 100%;
     margin-top: 6px;
-    margin-bottom: 0;
-    padding-bottom: 0;
   }
 
-  .heroSearchBlock {
+  .heroStatsBlock {
     order: 3;
     width: 100%;
     margin-top: 8px;
+    margin-bottom: 0;
+    padding-bottom: 0;
   }
 
   .statLabelDesktop {
@@ -1636,7 +1636,7 @@
   }
 
   .searchShell.heroSearchBlock {
-    margin-top: 8px;
+    margin-top: 6px;
     min-height: var(--touch-target-min, 44px);
     padding: 4px 8px 4px 6px;
   }
