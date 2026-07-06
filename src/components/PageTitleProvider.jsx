@@ -3,14 +3,14 @@ import PageHead from "@/components/PageHead";
 
 const PageTitleContext = createContext(null);
 
-export function PageTitleProvider({ routeTitle, children }) {
+export function PageTitleProvider({ routeTitle, routeDescription, children }) {
   const [overrideTitle, setOverrideTitle] = useState(null);
   const value = useMemo(() => ({ setOverrideTitle }), []);
   const title = overrideTitle || routeTitle;
 
   return (
     <PageTitleContext.Provider value={value}>
-      {title ? <PageHead title={title} /> : null}
+      {title ? <PageHead title={title} description={routeDescription} /> : null}
       {children}
     </PageTitleContext.Provider>
   );

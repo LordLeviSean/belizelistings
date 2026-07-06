@@ -16,7 +16,14 @@ export const PAGE_TITLES = Object.freeze({
   notifications: `Notifications${TITLE_SEPARATOR}${SITE_NAME}`,
   login: `Login${TITLE_SEPARATOR}${SITE_NAME}`,
   register: `Create Account${TITLE_SEPARATOR}${SITE_NAME}`,
+  learnMore: `Learn More${TITLE_SEPARATOR}${SITE_NAME}`,
   admin: `Admin Dashboard${TITLE_SEPARATOR}${SITE_NAME}`,
+});
+
+/** Route-specific meta descriptions (fallback: SITE_TAGLINE). */
+export const PAGE_DESCRIPTIONS = Object.freeze({
+  learnMore:
+    "Learn what BelizeListings is, why we built it for Belize, what you can do today, and where the platform is heading.",
 });
 
 const MESSAGES_TAB_IDS = new Set([
@@ -97,6 +104,7 @@ export function resolveRouteTitle(pathname, query = {}) {
   if (path === "/") return PAGE_TITLES.home;
   if (path === "/search") return PAGE_TITLES.search;
   if (path === "/favorites") return PAGE_TITLES.favorites;
+  if (path === "/learn-more") return PAGE_TITLES.learnMore;
   if (path === "/login" || path === "/signin") {
     const signup = normalizeTab(query.signup);
     return signup === "1" || signup === "true" ? PAGE_TITLES.register : PAGE_TITLES.login;
@@ -117,4 +125,15 @@ export function resolveRouteTitle(pathname, query = {}) {
   }
 
   return SITE_NAME;
+}
+
+/**
+ * Resolve a meta description from pathname (static routes only).
+ * @param {string} pathname
+ * @returns {string}
+ */
+export function resolveRouteDescription(pathname) {
+  const path = String(pathname || "").trim() || "/";
+  if (path === "/learn-more") return PAGE_DESCRIPTIONS.learnMore;
+  return SITE_TAGLINE;
 }

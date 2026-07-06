@@ -1,10 +1,12 @@
 import {
   PAGE_TITLES,
+  PAGE_DESCRIPTIONS,
   SITE_NAME,
   formatDistrictTitle,
   formatListingTitle,
   formatPageTitle,
   resolveDashboardTabTitle,
+  resolveRouteDescription,
   resolveRouteTitle,
 } from "./siteMetadata";
 
@@ -72,5 +74,19 @@ describe("resolveRouteTitle", () => {
 
   test("district route uses region label", () => {
     expect(resolveRouteTitle("/listings/district/cayo")).toBe("Cayo Listings | BelizeListings");
+  });
+
+  test("learn more title", () => {
+    expect(resolveRouteTitle("/learn-more")).toBe(PAGE_TITLES.learnMore);
+  });
+});
+
+describe("resolveRouteDescription", () => {
+  test("learn more description", () => {
+    expect(resolveRouteDescription("/learn-more")).toBe(PAGE_DESCRIPTIONS.learnMore);
+  });
+
+  test("defaults to site tagline", () => {
+    expect(resolveRouteDescription("/")).toBe("Belize's Living Property Map");
   });
 });

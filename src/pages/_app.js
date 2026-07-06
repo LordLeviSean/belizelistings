@@ -3,7 +3,7 @@ import "@/styles/globals.css";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/router";
 import { PageTitleProvider } from "@/components/PageTitleProvider";
-import { resolveRouteTitle } from "@/lib/siteMetadata";
+import { resolveRouteTitle, resolveRouteDescription } from "@/lib/siteMetadata";
 import useAlerts from "@/hooks/useAlerts";
 import useListingModerationNotifications from "@/hooks/useListingModerationNotifications";
 import useAgentUpgradeNotifications from "@/hooks/useAgentUpgradeNotifications";
@@ -32,6 +32,8 @@ function AppWithAlerts({ Component, pageProps }) {
   const skipPageEnterRef = useRef(true);
   const pageTitle =
     pageProps.pageTitle ?? resolveRouteTitle(router.pathname, router.query);
+  const pageDescription =
+    pageProps.pageDescription ?? resolveRouteDescription(router.pathname);
   useAlerts();
   useRouteMemory();
 
@@ -41,7 +43,7 @@ function AppWithAlerts({ Component, pageProps }) {
 
   return (
     <ToastProvider>
-      <PageTitleProvider routeTitle={pageTitle}>
+      <PageTitleProvider routeTitle={pageTitle} routeDescription={pageDescription}>
       <UserRoleProvider>
         <ModerationNotificationListener />
         <AuthGateProvider>

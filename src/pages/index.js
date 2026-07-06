@@ -520,7 +520,7 @@ export default function HomePage() {
               <Link className={styles.communityPrimaryBtn} href="/login?signup=1">
                 Create Free Account
               </Link>
-              <Link className={styles.communitySecondaryBtn} href="/about">
+              <Link className={styles.communitySecondaryBtn} href="/learn-more">
                 Learn More
               </Link>
             </div>
