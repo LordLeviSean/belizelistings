@@ -107,7 +107,8 @@ export default function PremiumEmptyState({
 }) {
   const preset = VARIANT_DEFAULTS[variant] || VARIANT_DEFAULTS.generic;
   const t = title ?? preset.title;
-  const d = description ?? preset.description;
+  const d = description !== undefined ? description : preset.description;
+  const showDescription = Boolean(d);
 
   return (
     <div
@@ -119,7 +120,7 @@ export default function PremiumEmptyState({
       <div className={styles.glow} aria-hidden />
       <div className={styles.inner}>
         <h2 className={styles.title}>{t}</h2>
-        <p className={styles.desc}>{d}</p>
+        {showDescription ? <p className={styles.desc}>{d}</p> : null}
         {(primary || secondary) && (
           <div className={styles.actions}>
             {primary ? (

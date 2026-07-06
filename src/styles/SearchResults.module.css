@@ -21,6 +21,16 @@
   color: rgba(60, 91, 97, 0.86);
 }
 
+@media (max-width: 768px) {
+  .headerSummary {
+    display: none;
+  }
+
+  .header h1 {
+    font-size: clamp(1.45rem, 5.5vw, 1.75rem);
+  }
+}
+
 .grid {
   margin-top: 14px;
   display: grid;
@@ -35,7 +45,7 @@
 
 .skeleton {
   min-height: 320px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: linear-gradient(
     110deg,
     rgba(255, 255, 255, 0.55) 8%,
@@ -43,8 +53,9 @@
     rgba(255, 255, 255, 0.55) 33%
   );
   background-size: 200% 100%;
-  border: 1px solid rgba(164, 193, 186, 0.25);
-  animation: searchSkeletonPulse 1.4s ease-in-out infinite;
+  border: 1px solid rgba(164, 193, 186, 0.22);
+  box-shadow: var(--elev-0);
+  animation: searchSkeletonPulse 1.6s var(--ease-out-soft) infinite;
 }
 
 @keyframes searchSkeletonPulse {

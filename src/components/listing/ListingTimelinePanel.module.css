@@ -19,7 +19,7 @@
   cursor: pointer;
   text-align: left;
   color: rgba(38, 62, 58, 0.92);
-  transition: background var(--dur-3) var(--ease-out-soft);
+  transition: background var(--dur-2) var(--ease-out-soft);
 }
 
 .toggle:hover {
@@ -42,7 +42,7 @@
 .chevron {
   flex-shrink: 0;
   color: rgba(48, 82, 74, 0.72);
-  transition: transform var(--dur-3) var(--ease-out-soft);
+  transition: transform var(--dur-2) var(--ease-out-soft);
 }
 
 .chevronExpanded {
@@ -52,7 +52,7 @@
 .body {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows var(--dur-4) var(--ease-out-soft);
+  transition: grid-template-rows var(--dur-3) var(--ease-out-soft);
 }
 
 .bodyExpanded {
@@ -93,25 +93,38 @@
 }
 
 .row {
+  position: relative;
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 10px 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(137, 190, 176, 0.14);
+  grid-template-columns: 28px 1fr;
+  gap: 0 12px;
+  align-items: start;
+  padding: 14px 0;
+}
+
+.row:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: calc(14px + 28px);
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-50%);
+  background: rgba(137, 190, 176, 0.28);
 }
 
 .row:last-child {
-  border-bottom: 0;
-  padding-bottom: 2px;
+  padding-bottom: 4px;
 }
 
 .iconWrap {
+  position: relative;
+  z-index: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
-  margin-top: 1px;
+  margin-top: 0;
   border-radius: 999px;
   background: rgba(196, 228, 220, 0.55);
   border: 1px solid rgba(137, 190, 176, 0.32);
@@ -126,6 +139,11 @@
 
 .rowMain {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 28px;
+  padding-top: 1px;
 }
 
 .headline {
@@ -169,5 +187,21 @@
 
   .headline {
     font-size: 0.9rem;
+  }
+
+  .row {
+    padding: 12px 0;
+  }
+
+  .row:not(:last-child)::after {
+    top: calc(12px + 28px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle,
+  .chevron,
+  .body {
+    transition-duration: 0.01ms !important;
   }
 }

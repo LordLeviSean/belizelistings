@@ -7,6 +7,12 @@ import styles from "./HomeAdvancedFiltersModal.module.css";
 
 const DISTRICT_ENTRIES = getSelectableRegions();
 
+const MARKET_OPTIONS = [
+  { label: "All", value: "all" },
+  { label: "For Sale", value: "sale" },
+  { label: "For Rent", value: "rent" },
+];
+
 export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
@@ -33,19 +39,29 @@ export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
   }, [router, keyword, districtSlug, market, onClose]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener("keydown", onKey);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className={styles.overlay} role="presentation">
-      <button type="button" className={styles.backdrop} aria-label="Close filters" onClick={onClose} />
+    <div
+      className={styles.overlay}
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
         className={styles.dialog}
         role="dialog"
@@ -88,34 +104,19 @@ export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
         </label>
         <fieldset className={styles.field}>
           <legend className={styles.label}>Market</legend>
-          <div className={styles.radioRow}>
-            <label className={styles.radio}>
-              <input
-                type="radio"
-                name="market-home"
-                checked={market === "all"}
-                onChange={() => setMarket("all")}
-              />{" "}
-              All
-            </label>
-            <label className={styles.radio}>
-              <input
-                type="radio"
-                name="market-home"
-                checked={market === "sale"}
-                onChange={() => setMarket("sale")}
-              />{" "}
-              For sale
-            </label>
-            <label className={styles.radio}>
-              <input
-                type="radio"
-                name="market-home"
-                checked={market === "rent"}
-                onChange={() => setMarket("rent")}
-              />{" "}
-              For rent
-            </label>
+          <div className={styles.segmentedControl} role="tablist" aria-label="Market type">
+            {MARKET_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="tab"
+                aria-selected={market === option.value}
+                className={`${styles.segmentBtn} ${market === option.value ? styles.segmentBtnActive : ""}`}
+                onClick={() => setMarket(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </fieldset>
         <div className={styles.actions}>

@@ -78,12 +78,9 @@ export default function ListingContactActions({ listing, user }) {
     }
   };
 
-  const anyModalOpen = contactOpen || messageOpen || viewingOpen;
-
   const wrapClass = [
     styles.wrap,
-    footerVisible && !anyModalOpen ? styles.wrapFooterClear : "",
-    anyModalOpen ? styles.wrapModalHidden : "",
+    footerVisible ? styles.wrapFooterClear : "",
   ]
     .filter(Boolean)
     .join(" ");

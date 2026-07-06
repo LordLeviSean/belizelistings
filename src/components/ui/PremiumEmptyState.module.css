@@ -77,6 +77,14 @@
   color: rgba(48, 78, 74, 0.72);
 }
 
+.wrap:not(:has(.desc)) .title {
+  margin-bottom: 0;
+}
+
+.wrap:not(:has(.desc)) .actions {
+  margin-top: 18px;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

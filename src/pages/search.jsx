@@ -163,7 +163,7 @@ export default function SearchPage() {
       <main className={styles.main}>
         <header className={styles.header}>
           <h1>Search Results</h1>
-          <p>{resultSummary}</p>
+          <p className={styles.headerSummary}>{resultSummary}</p>
         </header>
 
         <FilterBar
@@ -208,17 +208,16 @@ export default function SearchPage() {
             <PremiumEmptyState
               variant="search"
               className={styles.searchEmpty}
-              primary={{ label: "Explore from homepage", href: "/" }}
+              title="0 Results"
+              description=""
+              primary={{ label: "Explore the Map", href: "/" }}
               secondary={
                 hasActiveSearchFilters(filters)
                   ? {
-                      label: "Reset filters",
+                      label: "Reset Filters",
                       onClick: handleResetFilters,
                     }
-                  : {
-                      label: "Browse districts",
-                      href: "/",
-                    }
+                  : undefined
               }
             />
           ) : null}
