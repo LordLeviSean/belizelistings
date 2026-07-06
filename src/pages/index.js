@@ -11,6 +11,7 @@ import { useRouter } from "next/router";
 import {
   Hand,
   House,
+  Key,
   Search,
   SlidersHorizontal,
   Tag,
@@ -240,9 +241,9 @@ export default function HomePage() {
     return () => cancelAnimationFrame(raf);
   }, [featuredLoop.length]);
 
-  const renderHeroMap = () => (
+  const renderHeroMap = ({ showCaption = true } = {}) => (
     <>
-      <p className={styles.heroMapCaption}>Explore by district</p>
+      {showCaption ? <p className={styles.heroMapCaption}>Explore by district</p> : null}
       <div className={styles.mapPane}>
         <div className={styles.mapPaneMapWrap}>
           <BelizeMap
@@ -314,7 +315,7 @@ export default function HomePage() {
             </div>
             <div className={styles.heroLeft}>
               <div className={styles.heroCopyBlock}>
-                <p className={styles.heroKicker}>EXPLORE. INVEST. THRIVE.</p>
+                <p className={styles.heroKicker}>EXPLORE • INVEST • THRIVE</p>
                 <h1 className={styles.heroHeadline}>Belize&apos;s Living Property Map</h1>
                 <p className={styles.heroTrustLine}>
                   Verified listings. Real agents. One national property map.
@@ -361,7 +362,10 @@ export default function HomePage() {
                     <House />
                   </span>
                   <p className={styles.statValue}>{activeListings.length}</p>
-                  <p className={styles.statLabel}>Active Listings</p>
+                  <p className={styles.statLabel}>
+                    <span className={styles.statLabelDesktop}>Active Listings</span>
+                    <span className={styles.statLabelMobile}>Listings</span>
+                  </p>
                 </article>
                 <article className={styles.statCard}>
                   <span className={styles.statIcon} aria-hidden="true">
@@ -372,7 +376,7 @@ export default function HomePage() {
                 </article>
                 <article className={styles.statCard}>
                   <span className={styles.statIcon} aria-hidden="true">
-                    <Search />
+                    <Key />
                   </span>
                   <p className={styles.statValue}>{rentCount}</p>
                   <p className={styles.statLabel}>For Rent</p>
@@ -382,7 +386,10 @@ export default function HomePage() {
                     <TrendingUp />
                   </span>
                   <p className={styles.statValue}>100%</p>
-                  <p className={styles.statLabel}>Real-time Data</p>
+                  <p className={styles.statLabel}>
+                    <span className={styles.statLabelDesktop}>Real-time Data</span>
+                    <span className={styles.statLabelMobile}>Live Data</span>
+                  </p>
                 </article>
               </div>
             </div>
@@ -394,8 +401,12 @@ export default function HomePage() {
         </section>
 
         {mobileLayout ? (
-          <section className={styles.mobileMapSection} aria-label="Explore by district">
-            {renderHeroMap()}
+          <section className={styles.mobileMapSection} aria-label="Belize property map">
+            <h1 className={styles.heroMapTitle}>Belize&apos;s Living Property Map</h1>
+            <p className={styles.heroMapSupport}>
+              Discover verified properties across Belize with one interactive map.
+            </p>
+            {renderHeroMap({ showCaption: false })}
           </section>
         ) : null}
 

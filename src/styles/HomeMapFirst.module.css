@@ -407,6 +407,15 @@
   color: rgba(52, 87, 95, 0.9);
 }
 
+.statLabelMobile {
+  display: none;
+}
+
+.heroMapTitle,
+.heroMapSupport {
+  display: none;
+}
+
 .heroRight {
   position: relative;
   z-index: 2;
@@ -1342,31 +1351,12 @@
     padding-right: 0;
   }
 
-  .statGrid {
-    margin-top: 4px;
-    margin-bottom: 4px;
-    gap: 6px;
+  .heroStatsBlock.statGrid {
+    margin-top: 6px;
+    margin-bottom: 0;
+    gap: 0;
     position: relative;
     z-index: 2;
-  }
-
-  .statCard {
-    background:
-      radial-gradient(circle at 92% -20%, rgba(248, 224, 240, 0.08), transparent 48%),
-      linear-gradient(168deg, rgba(253, 254, 254, 0.72) 0%, rgba(248, 252, 251, 0.58) 100%);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.28) inset,
-      0 8px 18px rgba(200, 180, 220, 0.02);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-
-  .statCard::before {
-    background: rgba(255, 255, 255, 0.42);
-  }
-
-  .statCard::after {
-    opacity: 0.18;
   }
 }
 
@@ -1385,11 +1375,12 @@
     max-width: none;
   }
 
-  .searchShell {
+  .searchShell.heroSearchBlock {
     grid-template-columns: 34px 1fr;
-    row-gap: 8px;
-    border-radius: 18px;
-    padding: 6px 8px 6px 6px;
+    row-gap: 6px;
+    border-radius: 16px;
+    padding: 4px 6px 4px 5px;
+    min-height: var(--touch-target-min, 44px);
   }
 
   .searchIcon {
@@ -1402,14 +1393,11 @@
     padding: 2px 0;
   }
 
-  .searchFilterBtn {
+  .searchShell.heroSearchBlock .searchFilterBtn {
     grid-column: 1 / -1;
     width: 100%;
     min-height: var(--touch-target-min, 44px);
-  }
-
-  .searchShell {
-    min-height: var(--touch-target-min, 44px);
+    padding: 8px 12px;
   }
 
   .communityPrimaryBtn,
@@ -1417,22 +1405,24 @@
     min-height: var(--touch-target-min, 44px);
   }
 
-  .statGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-rows: 1fr;
-    gap: 6px;
+  .heroStatsBlock.statGrid {
+    display: flex;
+    flex-wrap: nowrap;
+    grid-template-columns: unset;
+    grid-auto-rows: unset;
+    gap: 0;
   }
 
-  .statCard {
-    padding: 8px 6px;
+  .heroStatsBlock .statCard {
+    padding: 4px 2px;
   }
 
-  .statValue {
-    font-size: 24px;
+  .heroStatsBlock .statValue {
+    font-size: 12px;
   }
 
-  .statLabel {
-    font-size: 9px;
+  .heroStatsBlock .statLabel {
+    font-size: 7px;
   }
 
   .heroMapDesktop .mapPane {
@@ -1522,7 +1512,8 @@
   }
 
   .heroLeft {
-    display: block;
+    display: flex;
+    flex-direction: column;
     width: 100%;
     margin-top: 0;
     max-width: none;
@@ -1530,35 +1521,129 @@
   }
 
   .heroCopyBlock {
+    order: 1;
     width: 100%;
   }
 
-  .heroSearchBlock {
-    width: 100%;
-    margin-top: 0;
+  .heroKicker {
+    text-align: center;
+    letter-spacing: 0.26em;
+    margin-bottom: 2px;
+  }
+
+  .heroCopyBlock .heroHeadline,
+  .heroCopyBlock .heroTrustLine,
+  .heroCopyBlock .heroSubtext {
+    display: none;
   }
 
   .heroStatsBlock {
+    order: 2;
     width: 100%;
-    margin-top: 0;
+    margin-top: 6px;
     margin-bottom: 0;
     padding-bottom: 0;
-    gap: 5px;
+  }
+
+  .heroSearchBlock {
+    order: 3;
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .statLabelDesktop {
+    display: none;
+  }
+
+  .statLabelMobile {
+    display: inline;
   }
 
   .heroStatsBlock.statGrid,
-  .statGrid {
+  .statGrid.heroStatsBlock {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0;
+    padding: 8px 6px;
+    border-radius: var(--ui-radius);
+    background:
+      radial-gradient(circle at 92% -20%, rgba(248, 224, 240, 0.1), transparent 48%),
+      linear-gradient(168deg, rgba(253, 254, 254, 0.78) 0%, rgba(248, 252, 251, 0.62) 100%);
+    border: 1px solid rgba(152, 192, 184, 0.18);
+    box-shadow:
+      var(--ui-shadow-soft),
+      0 1px 0 rgba(255, 255, 255, 0.38) inset;
+    backdrop-filter: blur(12px) saturate(1.04);
+    -webkit-backdrop-filter: blur(12px) saturate(1.04);
+  }
+
+  .heroStatsBlock .statCard {
+    flex: 1 1 0;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    justify-content: center;
+    justify-items: center;
+    column-gap: 3px;
+    row-gap: 1px;
+    padding: 4px 2px;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .heroStatsBlock .statCard::before,
+  .heroStatsBlock .statCard::after {
+    display: none;
+  }
+
+  .heroStatsBlock .statCard:hover {
+    transform: none;
+    box-shadow: none;
+    filter: none;
+  }
+
+  .heroStatsBlock .statIcon {
+    grid-column: 1;
+    grid-row: 1;
     margin-bottom: 0;
+    font-size: 11px;
+    opacity: 0.72;
   }
 
-  .heroHeadline {
-    font-size: clamp(1.65rem, 8.2vw, 2rem);
-    max-width: none;
+  .heroStatsBlock .statValue {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.1;
   }
 
-  .heroTrustLine,
-  .heroSubtext {
-    max-width: none;
+  .heroStatsBlock .statLabel {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    flex: none;
+    margin: 0;
+    font-size: 7.5px;
+    letter-spacing: 0.04em;
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  .searchShell.heroSearchBlock {
+    margin-top: 8px;
+    min-height: var(--touch-target-min, 44px);
+    padding: 4px 8px 4px 6px;
+  }
+
+  .searchShell.heroSearchBlock .searchFilterBtn {
+    min-height: var(--touch-target-min, 44px);
+    padding: 8px 12px;
   }
 
   .mobileMapSection {
@@ -1568,8 +1653,8 @@
     position: relative;
     isolation: isolate;
     width: 100%;
-    margin: 28px 0 0;
-    padding: 24px 16px 40px;
+    margin: 10px 0 0;
+    padding: 12px 10px 28px;
     border-radius: calc(var(--ui-radius) + 1px);
     background:
       radial-gradient(ellipse 86% 80% at 14% 54%, rgba(52, 200, 182, 0.14), transparent 76%),
@@ -1578,6 +1663,37 @@
     border: 0;
     box-shadow: none;
     overflow: visible;
+  }
+
+  .heroMapTitle {
+    display: block;
+    position: relative;
+    z-index: 1;
+    margin: 0 0 6px;
+    width: 100%;
+    text-align: center;
+    font-family: "DM Serif Display", "Times New Roman", serif;
+    font-size: clamp(1.55rem, 7.6vw, 1.9rem);
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: -0.014em;
+    color: rgba(18, 58, 80, 0.96);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  .heroMapSupport {
+    display: block;
+    position: relative;
+    z-index: 1;
+    margin: 0 0 12px;
+    width: 100%;
+    max-width: 34ch;
+    text-align: center;
+    font-size: 0.84rem;
+    line-height: 1.38;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: rgba(32, 72, 82, 0.86);
   }
 
   .mobileMapSection::before {
@@ -1610,11 +1726,11 @@
     z-index: 1;
     width: 100%;
     max-width: 100%;
-    min-height: clamp(360px, 70vh, 520px);
-    height: clamp(360px, 70vh, 520px);
+    min-height: clamp(340px, 68vh, 500px);
+    height: clamp(340px, 68vh, 500px);
     max-height: none;
     margin: 0 auto;
-    padding: 12px 14px;
+    padding: 8px 10px;
     box-sizing: border-box;
     display: flex;
     align-items: center;
