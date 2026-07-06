@@ -2,6 +2,7 @@
   position: relative;
   isolation: isolate;
   min-height: 100vh;
+  min-height: 100dvh;
   --ui-ease: cubic-bezier(0.32, 0.06, 0.2, 1);
   --ui-radius: 14px;
   --ui-blur-strong: blur(22px);
@@ -62,13 +63,17 @@
   z-index: 1;
   width: min(1280px, calc(100% - 18px));
   margin: 0 auto;
-  padding: 4px 0 8px;
+  padding: 4px 0 calc(8px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 12px;
   height: auto;
   max-height: none;
   overflow: visible;
+}
+
+.pageMainLoading {
+  min-height: min(83.2dvh, calc(100dvh - var(--site-nav-height, 48px) - 60px));
 }
 
 .heroSection {
@@ -109,11 +114,11 @@
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 86% 80% at 14% 54%, rgba(52, 200, 182, 0.38), transparent 76%),
-    radial-gradient(ellipse 82% 76% at 86% 32%, rgba(112, 170, 240, 0.32), transparent 80%),
-    radial-gradient(ellipse 70% 70% at 56% 82%, rgba(255, 202, 168, 0.28), transparent 82%);
+    radial-gradient(ellipse 86% 80% at 14% 54%, rgba(28, 118, 112, 0.42), transparent 76%),
+    radial-gradient(ellipse 82% 76% at 86% 32%, rgba(48, 98, 158, 0.36), transparent 80%),
+    radial-gradient(ellipse 70% 70% at 56% 82%, rgba(168, 118, 98, 0.24), transparent 82%);
   filter: blur(36px);
-  opacity: calc(0.22 + 0.68 * var(--sea-flow-intensity, 0.5));
+  opacity: calc(0.24 + 0.62 * min(var(--sea-flow-intensity, 0.5), 2));
 }
 
 .heroCanvasStaticWash::after {
@@ -470,9 +475,11 @@
   z-index: 1;
   pointer-events: none;
   overflow: hidden;
-  --sea-flow-drift: calc(0.22 + 0.78 * var(--sea-flow-intensity, 0.5));
-  --sea-flow-blur-a: calc(22px + 58px * var(--sea-flow-intensity, 0.5));
-  --sea-flow-blur-b: calc(28px + 64px * var(--sea-flow-intensity, 0.5));
+  contain: strict;
+  transform: translateZ(0);
+  --sea-flow-drift: calc(0.22 + 0.78 * min(var(--sea-flow-intensity, 0.5), 3));
+  --sea-flow-blur-a: calc(22px + 58px * min(var(--sea-flow-intensity, 0.5), 2));
+  --sea-flow-blur-b: calc(28px + 64px * min(var(--sea-flow-intensity, 0.5), 2));
 }
 
 .heroCanvasSeaFlowLayers::before {
@@ -480,13 +487,13 @@
   position: absolute;
   inset: -58% -52%;
   z-index: 0;
-  opacity: calc(0.012 + 0.46 * var(--sea-flow-intensity, 0.5) * var(--sea-flow-intensity, 0.5));
+  opacity: calc(0.018 + 0.52 * var(--sea-flow-intensity, 0.5) * min(var(--sea-flow-intensity, 0.5), 1.5));
   background:
-    radial-gradient(ellipse 92% 86% at 22% 58%, rgba(48, 168, 164, 0.28), transparent 62%),
-    radial-gradient(ellipse 88% 80% at 82% 36%, rgba(56, 136, 186, 0.21), transparent 64%),
-    radial-gradient(ellipse 78% 74% at 52% 78%, rgba(72, 188, 180, 0.17), transparent 66%);
+    radial-gradient(ellipse 92% 86% at 22% 58%, rgba(22, 92, 98, 0.38), transparent 62%),
+    radial-gradient(ellipse 88% 80% at 82% 36%, rgba(24, 72, 118, 0.32), transparent 64%),
+    radial-gradient(ellipse 78% 74% at 52% 78%, rgba(28, 102, 108, 0.28), transparent 66%);
   filter: blur(var(--sea-flow-blur-a));
-  will-change: transform, filter;
+  will-change: transform;
   animation:
     seaFlowDriftA 74s var(--ambient-ease-drift) infinite alternate,
     seaFlowPastelCycle var(--ambient-cycle-e) var(--ambient-ease-drift) infinite alternate,
@@ -498,22 +505,22 @@
   position: absolute;
   inset: -64% -56%;
   z-index: 1;
-  opacity: calc(0.008 + 0.34 * var(--sea-flow-intensity, 0.5) * var(--sea-flow-intensity, 0.5));
+  opacity: calc(0.014 + 0.38 * var(--sea-flow-intensity, 0.5) * min(var(--sea-flow-intensity, 0.5), 1.5));
   background:
-    radial-gradient(ellipse 74% 68% at 28% 34%, rgba(40, 128, 150, 0.18), transparent 58%),
-    radial-gradient(ellipse 82% 74% at 72% 66%, rgba(56, 158, 176, 0.14), transparent 62%),
+    radial-gradient(ellipse 74% 68% at 28% 34%, rgba(18, 68, 88, 0.28), transparent 58%),
+    radial-gradient(ellipse 82% 74% at 72% 66%, rgba(26, 88, 108, 0.22), transparent 62%),
     conic-gradient(
       from 210deg at 50% 50%,
-      rgba(38, 122, 140, 0.14),
-      rgba(52, 152, 160, 0.16),
-      rgba(54, 130, 170, 0.14),
-      rgba(62, 166, 180, 0.12),
-      rgba(42, 128, 148, 0.14),
-      rgba(38, 122, 140, 0.14)
+      rgba(16, 58, 78, 0.22),
+      rgba(24, 88, 98, 0.24),
+      rgba(22, 72, 108, 0.22),
+      rgba(28, 98, 112, 0.2),
+      rgba(18, 68, 88, 0.22),
+      rgba(16, 58, 78, 0.22)
     );
-  filter: blur(var(--sea-flow-blur-b)) saturate(calc(1 + 0.14 * var(--sea-flow-intensity, 0.5)));
+  filter: blur(var(--sea-flow-blur-b)) saturate(calc(1 + 0.16 * min(var(--sea-flow-intensity, 0.5), 2)));
   mix-blend-mode: normal;
-  will-change: transform, filter;
+  will-change: transform;
   animation:
     seaFlowDriftB var(--ambient-cycle-d) var(--ambient-ease-drift) infinite alternate,
     seaFlowSurge 84s var(--ambient-ease-drift) infinite alternate,
@@ -1231,34 +1238,34 @@
 @keyframes seaFlowPastelCycle {
   0% {
     filter: blur(calc(var(--sea-flow-blur-a, 52px) + 8px)) hue-rotate(-1.2deg)
-      saturate(calc(1 + 0.02 * var(--sea-flow-intensity, 0.5))) contrast(1.008)
-      brightness(calc(0.95 + 0.03 * var(--sea-flow-intensity, 0.5)));
+      saturate(calc(1 + 0.03 * min(var(--sea-flow-intensity, 0.5), 2))) contrast(1.012)
+      brightness(calc(0.82 + 0.025 * min(var(--sea-flow-intensity, 0.5), 2)));
   }
   33% {
     filter: blur(calc(var(--sea-flow-blur-a, 52px) + 10px)) hue-rotate(1.8deg)
-      saturate(calc(1 + 0.04 * var(--sea-flow-intensity, 0.5))) contrast(1.008)
-      brightness(calc(0.955 + 0.03 * var(--sea-flow-intensity, 0.5)));
+      saturate(calc(1 + 0.05 * min(var(--sea-flow-intensity, 0.5), 2))) contrast(1.012)
+      brightness(calc(0.825 + 0.025 * min(var(--sea-flow-intensity, 0.5), 2)));
   }
   66% {
     filter: blur(calc(var(--sea-flow-blur-a, 52px) + 9px)) hue-rotate(-1.6deg)
-      saturate(calc(1 + 0.03 * var(--sea-flow-intensity, 0.5))) contrast(1.008)
-      brightness(calc(0.952 + 0.028 * var(--sea-flow-intensity, 0.5)));
+      saturate(calc(1 + 0.04 * min(var(--sea-flow-intensity, 0.5), 2))) contrast(1.012)
+      brightness(calc(0.822 + 0.024 * min(var(--sea-flow-intensity, 0.5), 2)));
   }
   100% {
     filter: blur(calc(var(--sea-flow-blur-a, 52px) + 8px)) hue-rotate(-1.2deg)
-      saturate(calc(1 + 0.02 * var(--sea-flow-intensity, 0.5))) contrast(1.008)
-      brightness(calc(0.95 + 0.03 * var(--sea-flow-intensity, 0.5)));
+      saturate(calc(1 + 0.03 * min(var(--sea-flow-intensity, 0.5), 2))) contrast(1.012)
+      brightness(calc(0.82 + 0.025 * min(var(--sea-flow-intensity, 0.5), 2)));
   }
 }
 
 @keyframes seaFlowSurge {
   0% {
-    filter: blur(calc(var(--sea-flow-blur-b, 58px) + 10px)) saturate(calc(1 + 0.02 * var(--sea-flow-intensity, 0.5)))
-      brightness(calc(0.92 + 0.04 * var(--sea-flow-intensity, 0.5))) contrast(1.01);
+    filter: blur(calc(var(--sea-flow-blur-b, 58px) + 10px)) saturate(calc(1 + 0.03 * min(var(--sea-flow-intensity, 0.5), 2)))
+      brightness(calc(0.78 + 0.035 * min(var(--sea-flow-intensity, 0.5), 2))) contrast(1.012);
   }
   100% {
-    filter: blur(calc(var(--sea-flow-blur-b, 58px) + 14px)) saturate(calc(1 + 0.08 * var(--sea-flow-intensity, 0.5)))
-      brightness(calc(0.93 + 0.05 * var(--sea-flow-intensity, 0.5))) contrast(1.02);
+    filter: blur(calc(var(--sea-flow-blur-b, 58px) + 14px)) saturate(calc(1 + 0.1 * min(var(--sea-flow-intensity, 0.5), 2)))
+      brightness(calc(0.79 + 0.04 * min(var(--sea-flow-intensity, 0.5), 2))) contrast(1.022);
   }
 }
 
@@ -1469,9 +1476,20 @@
 
 /* Mobile homepage — map-first hero flow (≤800px matches SiteNav breakpoint) */
 @media (max-width: 800px) {
+  .page {
+    overscroll-behavior-y: none;
+  }
+
+  .page::before,
+  .page::after {
+    position: absolute;
+  }
+
   .pageMain {
     width: calc(100% - 16px);
-    padding-top: 4px;
+    padding-top: calc(4px + env(safe-area-inset-top, 0px));
+    padding-left: max(0px, env(safe-area-inset-left, 0px));
+    padding-right: max(0px, env(safe-area-inset-right, 0px));
     gap: 0;
   }
 
@@ -1503,13 +1521,25 @@
   }
 
   .heroCanvasMobile .heroCanvasSeaFlowLayers {
-    opacity: calc(0.2 + 0.18 * var(--sea-flow-intensity, 0.5));
+    opacity: calc(0.24 + 0.2 * min(var(--sea-flow-intensity, 0.5), 2));
     will-change: transform;
   }
 
   .heroCanvasMobile .heroCanvasSeaFlowLayers::before,
   .heroCanvasMobile .heroCanvasSeaFlowLayers::after {
     will-change: transform;
+  }
+
+  .heroCanvasMobile .heroCanvasSeaFlowLayers::before {
+    animation:
+      seaFlowDriftA 74s var(--ambient-ease-drift) infinite alternate,
+      mapShimmerDrift 96s var(--ambient-ease-drift) infinite alternate;
+  }
+
+  .heroCanvasMobile .heroCanvasSeaFlowLayers::after {
+    animation:
+      seaFlowDriftB var(--ambient-cycle-d) var(--ambient-ease-drift) infinite alternate,
+      mapShimmerDriftAlt 110s var(--ambient-ease-drift) infinite alternate;
   }
 
   .heroRight,
@@ -1657,7 +1687,7 @@
     order: 3;
     position: relative;
     z-index: 1;
-    margin: 6px 0 0;
+    margin: -4px 0 0;
     width: 100%;
     max-width: 100%;
     padding: 0 2px;
@@ -1821,7 +1851,7 @@
   }
 
   .featuredSection {
-    margin-top: 28px;
+    margin-top: 42px;
     padding: 6px 0 12px;
     position: relative;
   }

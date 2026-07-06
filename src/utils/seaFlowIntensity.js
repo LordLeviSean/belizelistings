@@ -1,27 +1,35 @@
 export const SEA_FLOW_INTENSITY_KEY = "blz_sea_flow_intensity_v1";
 export const SEA_FLOW_INTENSITY_EVENT = "blz-sea-flow-intensity-change";
+/** 50% — subtle default across homepage, canvas, and ambient layers */
 export const SEA_FLOW_INTENSITY_DEFAULT = 0.5;
-export const SEA_FLOW_INTENSITY_STOPS = [0, 0.25, 0.5, 0.75, 1];
+export const SEA_FLOW_INTENSITY_MAX = 5;
+export const SEA_FLOW_INTENSITY_STOPS = [0, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5];
 
 export const SEA_FLOW_INTENSITY_LABELS = {
   0: "Disabled",
-  0.25: "Subtle",
-  0.5: "Default",
-  0.75: "Pronounced",
-  1: "Cinematic",
+  0.25: "Very subtle",
+  0.5: "Subtle",
+  0.75: "Light",
+  1: "Baseline",
+  1.5: "Enhanced",
+  2: "Strong",
+  3: "Pronounced",
+  4: "Cinematic",
+  5: "Maximum",
 };
 
 export function clampSeaFlowIntensity(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return SEA_FLOW_INTENSITY_DEFAULT;
-  return Math.min(1, Math.max(0, n));
+  return Math.min(SEA_FLOW_INTENSITY_MAX, Math.max(0, n));
 }
 
 export function getSeaFlowIntensityLabel(intensity) {
-  const pct = Math.round(clampSeaFlowIntensity(intensity) * 100);
+  const t = clampSeaFlowIntensity(intensity);
+  const pct = Math.round(t * 100);
   const stop = SEA_FLOW_INTENSITY_STOPS.find((s) => Math.round(s * 100) === pct);
   if (stop != null && SEA_FLOW_INTENSITY_LABELS[stop]) {
-    return `${pct} · ${SEA_FLOW_INTENSITY_LABELS[stop]}`;
+    return `${pct}% · ${SEA_FLOW_INTENSITY_LABELS[stop]}`;
   }
   return `${pct}%`;
 }
@@ -44,35 +52,16 @@ export function writeSeaFlowIntensity(intensity) {
   );
 }
 
-/** Nearest slider stop (0, 0.25, …) for admin + QA consistency */
+/** Nearest 25% step (0–500%) for admin slider + QA consistency */
 export function snapSeaFlowIntensity(intensity) {
   const t = clampSeaFlowIntensity(intensity);
   const pct = Math.round(t * 100);
-  let best = SEA_FLOW_INTENSITY_STOPS[0];
-  let bestDelta = Math.abs(Math.round(best * 100) - pct);
-  for (const stop of SEA_FLOW_INTENSITY_STOPS) {
-    const delta = Math.abs(Math.round(stop * 100) - pct);
-    if (delta < bestDelta) {
-      best = stop;
-      bestDelta = delta;
-    }
-  }
-  return best;
+  const snappedPct = Math.round(pct / 25) * 25;
+  return clampSeaFlowIntensity(snappedPct / 100);
 }
 
 /** CSS custom property payload for hero canvas (--sea-flow-intensity is primary driver) */
 export function seaFlowIntensityStyle(intensity) {
   const t = snapSeaFlowIntensity(intensity);
   return { "--sea-flow-intensity": t };
-}
-
-/**
- * Homepage hero intensity — base Sea Flow intensity × optional homepage multiplier.
- * Multiplier 0 disables homepage drift; values above 1 amplify the existing system.
- */
-export function homepageSeaFlowIntensityStyle(baseIntensity, homepageMultiplier = 1) {
-  const base = snapSeaFlowIntensity(baseIntensity);
-  const mult = Math.min(3, Math.max(0, Number(homepageMultiplier) || 0));
-  const effective = mult === 0 ? 0 : Math.min(3, base * mult);
-  return { "--sea-flow-intensity": effective };
 }

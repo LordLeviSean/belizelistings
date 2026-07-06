@@ -29,8 +29,7 @@ import { filterListings } from "../utils/filterListings";
 import { getLifecycleStatus, getListingRegionSlug } from "../utils/canonicalListing";
 import useSeaFlowMode from "../hooks/useSeaFlowMode";
 import useSeaFlowIntensity from "../hooks/useSeaFlowIntensity";
-import useHomepageSeaFlowMultiplier from "../hooks/useHomepageSeaFlowMultiplier";
-import { homepageSeaFlowIntensityStyle, seaFlowIntensityStyle } from "../utils/seaFlowIntensity";
+import { seaFlowIntensityStyle } from "../utils/seaFlowIntensity";
 import { useFavoriteSignupPrompt } from "../components/FavoriteSignupPromptProvider";
 
 import styles from "../styles/HomeMapFirst.module.css";
@@ -72,7 +71,6 @@ function listingMatchesHaystack(listing, qNorm) {
 export default function HomePage() {
   const router = useRouter();
 
-  const [hydrated, setHydrated] = useState(false);
   const [mobileLayout, setMobileLayout] = useState(false);
   const [listingsData, setListingsData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -84,7 +82,6 @@ export default function HomePage() {
   const featuredPausedRef = useRef(false);
   const { enabled: seaFlowModeEnabled } = useSeaFlowMode();
   const { intensity: seaFlowIntensity } = useSeaFlowIntensity();
-  const { multiplier: homepageSeaFlowMultiplier } = useHomepageSeaFlowMultiplier();
   const { isFavorite, toggleFavorite, isBusy, isAuthenticated } = useFavorites();
   const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
 
@@ -117,7 +114,6 @@ export default function HomePage() {
     const mobile =
       typeof window !== "undefined" && window.matchMedia("(max-width: 800px)").matches;
     setMobileLayout(mobile);
-    setHydrated(true);
   }, [router.isReady]);
 
   useEffect(() => {
@@ -295,8 +291,14 @@ export default function HomePage() {
     ]
   );
 
-  if (!router.isReady || !hydrated) {
-    return null;
+  if (!router.isReady) {
+    return (
+      <div className={`${styles.page} home-map-page-root`}>
+        <AmbientPalmBackdrop />
+        <SiteNav active="browse" />
+        <main className={`${styles.pageMain} ${styles.pageMainLoading}`} aria-hidden="true" />
+      </div>
+    );
   }
 
   return (
@@ -308,11 +310,7 @@ export default function HomePage() {
         <section className={styles.heroSection}>
           <div
             className={`${styles.heroCanvas} ${mobileLayout ? styles.heroCanvasMobile : ""}`}
-            style={
-              mobileLayout
-                ? homepageSeaFlowIntensityStyle(seaFlowIntensity, homepageSeaFlowMultiplier)
-                : seaFlowIntensityStyle(seaFlowIntensity)
-            }
+            style={seaFlowIntensityStyle(seaFlowIntensity)}
             data-sea-flow={seaFlowModeEnabled ? "on" : "off"}
           >
             <div className={styles.heroCanvasAtmosphere} aria-hidden>
