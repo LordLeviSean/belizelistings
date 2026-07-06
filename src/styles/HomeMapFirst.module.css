@@ -1537,9 +1537,18 @@
     flex-direction: column;
     flex-shrink: 0;
     width: 100%;
-    /* ~15% shorter than full viewport so map fits snugly and headline reveals on minimal scroll */
+    /* Cap hero so full Belize (incl. Toledo) stays above mobile browser chrome */
     min-height: calc(
-      (100dvh - var(--site-nav-height) - env(safe-area-inset-top, 0px)) * 0.85
+      (
+        100dvh - var(--site-nav-height) - env(safe-area-inset-top, 0px) -
+          env(safe-area-inset-bottom, 0px)
+      ) * 0.79
+    );
+    max-height: calc(
+      (
+        100dvh - var(--site-nav-height) - env(safe-area-inset-top, 0px) -
+          env(safe-area-inset-bottom, 0px)
+      ) * 0.79
     );
     margin: 0;
     padding: 0;
