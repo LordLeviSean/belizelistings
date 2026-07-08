@@ -227,7 +227,7 @@ export default function HomePage() {
     return () => cancelAnimationFrame(raf);
   }, [featuredLoop.length]);
 
-  const renderHeroMap = ({ showCaption = true, showMobileHint = false } = {}) => (
+  const renderHeroMap = ({ showCaption = true } = {}) => (
     <>
       {showCaption ? <p className={styles.heroMapCaption}>Explore by district</p> : null}
       <div className={styles.mapPane}>
@@ -239,11 +239,6 @@ export default function HomePage() {
           />
         </div>
       </div>
-      {showMobileHint ? (
-        <p className={styles.mobileMapHint}>
-          Tap a district to explore listings.
-        </p>
-      ) : null}
     </>
   );
 
@@ -299,7 +294,7 @@ export default function HomePage() {
 
             <div className={styles.mobileHeroFlow}>
               <div className={styles.mobileMapHero} aria-label="Belize property map">
-                {renderHeroMap({ showCaption: false, showMobileHint: true })}
+                {renderHeroMap({ showCaption: false })}
               </div>
               <p className={styles.heroKicker}>EXPLORE • INVEST • THRIVE</p>
 

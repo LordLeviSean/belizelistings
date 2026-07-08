@@ -464,11 +464,6 @@
   margin: 0;
 }
 
-.mobileMapHint {
-  display: none;
-  margin: 0;
-}
-
 .mapPane {
   position: relative;
   z-index: 1;
@@ -1648,18 +1643,6 @@
   .mobileMapHero .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg svg) {
     transform: none !important;
     transform-origin: center center !important;
-  }
-
-  .mobileMapHint {
-    display: block;
-    width: 100%;
-    margin: 6px 0 0;
-    padding: 0 6px;
-    text-align: center;
-    font-size: 12px;
-    line-height: 1.4;
-    letter-spacing: 0.02em;
-    color: rgba(56, 90, 96, 0.78);
   }
 
   .heroMapSupport,
