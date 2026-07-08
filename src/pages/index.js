@@ -298,11 +298,10 @@ export default function HomePage() {
             </div>
 
             <div className={styles.mobileHeroFlow}>
-              <p className={styles.heroKicker}>EXPLORE • INVEST • THRIVE</p>
               <div className={styles.mobileMapHero} aria-label="Belize property map">
                 {renderHeroMap({ showCaption: false, showMobileHint: true })}
               </div>
-              <h1 className={styles.heroMapTitle}>Belize&apos;s Living Property Map</h1>
+              <p className={styles.heroKicker}>EXPLORE • INVEST • THRIVE</p>
 
               <div className={styles.mobileSearchWrap}>
                 <form
