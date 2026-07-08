@@ -363,7 +363,7 @@ export default function HomePage() {
                   </span>
                   <p className={styles.statLabel}>
                     <span className={styles.statLabelDesktop}>Real-time Data</span>
-                    <span className={styles.statLabelMobile}>100% Live Data</span>
+                    <span className={styles.statLabelMobile}>Live Data</span>
                   </p>
                 </article>
               </div>
