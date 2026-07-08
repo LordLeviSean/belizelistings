@@ -2,6 +2,75 @@
 
 | Field | Value |
 | --- | --- |
+| **Date** | July 8, 2026 |
+| **Branch** | `main` |
+| **Baseline commit** | `69ba594` (Set mobile UX log audit commit hash) |
+| **Scope** | Mobile-first homepage scroll rhythm + hydration/empty-state polish (≤800px only) |
+
+---
+
+## Summary — Homepage scroll polish stage
+
+Homepage mobile scroll path (hero → featured → community CTA → recently added → footer) tuned for intentional section rhythm, horizontal carousel isolation, and safe-area clearance. **Hydration mismatch** on first paint (router loading shell vs. full hero) eliminated by SSR-safe dual-layout rendering (CSS show/hide). Featured and recent **empty states** use `PremiumEmptyState`; map hint visible on mobile.
+
+---
+
+## Changes shipped
+
+### Scroll / rhythm (`HomeMapFirst.module.css`, `Footer.module.css`)
+
+- Featured carousel + loading row: `overscroll-behavior-x: contain` (horizontal swipe without page rubber-band)
+- Mobile section spacing: hero→community `44px` when featured absent; featured→community `22px`; community internal `18px` gap
+- `pageMain` mobile bottom padding: `16px + env(safe-area-inset-bottom)`
+- Map hint (`.mobileMapHint`) shown under map pane on ≤800px
+- Footer mobile: `margin-top: 4px`, `padding-top: 12px` for softer main→footer transition
+
+### Loading / empty (`index.js`)
+
+- Removed `router.isReady` loading shell (fixed SSR/client hydration + blank flash / CLS)
+- Removed JS `mobileLayout` branch — mobile + desktop hero DOM always rendered; CSS media queries toggle visibility (no layout swap on hydrate)
+- Featured band: `PremiumEmptyState` when inventory empty (was hidden entirely)
+- Recent filtered-empty: `PremiumEmptyState` with `recentEmptyState` grid span class
+
+---
+
+## Verify
+
+| Check | Result |
+| --- | --- |
+| `npm test` | **PASS** — 76 suites, 413 tests |
+| `npm run build` | **PASS** — Next.js 16.0.10 production build |
+| `npm run qa:mobile` (localhost prod) | **PASS** — 390/393/414/430 viewports |
+| `npm run qa:desktop` (1280) | **PASS** — desktop unchanged |
+| Playwright scroll captures | `qa-screenshots/qa-runs/20260708-095037-homepage-scroll/` (390 + 414 top/footer/full) |
+
+---
+
+## Mobile QA checklist (homepage focus)
+
+### Scroll
+
+- [x] Homepage: document scroll past map hero; featured carousel horizontal scroll isolated (`overscroll-behavior-x: contain`)
+- [x] Sticky nav: unchanged — SiteNav sticky at token height; no homepage sticky CTA overlap
+- [x] Section transitions: hero → featured `56px`; featured → community `22px`; hero → community (no featured) `44px`
+- [x] Footer clears home indicator (`pageMain` + footer safe-area padding)
+
+### Loading / empty
+
+- [x] Homepage: skeleton featured + recent cards during fetch (fixed dimensions)
+- [x] Featured empty: `PremiumEmptyState` compact when no listings
+- [x] Recent filtered-empty: `PremiumEmptyState` compact, full grid width
+- [x] No hydration flash on first paint (router shell removed)
+
+### Safe areas
+
+- [x] `pageMain` bottom includes `env(safe-area-inset-bottom)` on mobile
+- [x] Footer padding includes safe-area bottom inset
+
+---
+
+| Field | Value |
+| --- | --- |
 | **Date** | July 6, 2026 |
 | **Branch** | `main` |
 | **Baseline commit** | `c4211a3` (Apply final mobile UX micro-polish refinements) |

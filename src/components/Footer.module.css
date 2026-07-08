@@ -41,3 +41,10 @@
 .dot {
   opacity: 0.55;
 }
+
+@media (max-width: 800px) {
+  .footer {
+    margin-top: 4px;
+    padding-top: 12px;
+  }
+}

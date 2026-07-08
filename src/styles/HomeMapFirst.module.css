@@ -88,6 +88,7 @@
   display: flex;
   gap: 12px;
   overflow-x: hidden;
+  overscroll-behavior-x: contain;
   padding: 4px 4px 14px;
 }
 
@@ -601,6 +602,7 @@
 .featuredCarouselViewport {
   overflow-x: auto;
   overflow-y: hidden;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
   -ms-overflow-style: none;
   scroll-behavior: auto;
@@ -625,6 +627,10 @@
 .featuredCarouselItem {
   flex: 0 0 min(300px, 82vw);
   min-width: 0;
+}
+
+.featuredEmptyState {
+  margin: 2px 4px 0;
 }
 
 .communitySection {
@@ -673,65 +679,6 @@
 
 .recentEmptyState {
   grid-column: 1 / -1;
-  padding: 22px 20px 24px;
-  border-radius: calc(var(--ui-radius) + 1px);
-  border: 1px solid rgba(164, 198, 192, 0.22);
-  background:
-    radial-gradient(ellipse 80% 70% at 12% 0%, rgba(255, 252, 250, 0.55), transparent 62%),
-    linear-gradient(
-      168deg,
-      rgba(255, 255, 255, 0.52) 0%,
-      rgba(246, 252, 250, 0.38) 48%,
-      rgba(239, 248, 252, 0.44) 100%
-    );
-  box-shadow: 0 14px 32px rgba(92, 128, 130, 0.06), 0 1px 0 rgba(255, 255, 255, 0.5) inset;
-  backdrop-filter: blur(12px) saturate(1.03);
-  -webkit-backdrop-filter: blur(12px) saturate(1.03);
-  isolation: isolate;
-}
-
-.recentEmptyKicker {
-  margin: 0;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(68, 104, 108, 0.62);
-}
-
-.recentEmptyTitle {
-  margin: 10px 0 0;
-  font-family: "DM Serif Display", "Times New Roman", serif;
-  font-size: clamp(1.15rem, 1.4vw, 1.35rem);
-  font-weight: 400;
-  line-height: 1.14;
-  color: rgba(28, 64, 72, 0.94);
-}
-
-.recentEmptyBody {
-  margin: 8px 0 0;
-  max-width: 460px;
-  font-size: 13px;
-  line-height: 1.52;
-  color: rgba(58, 90, 96, 0.86);
-}
-
-.recentEmptyGhost {
-  margin-top: 18px;
-  height: min(128px, 20vw);
-  border-radius: var(--ui-radius);
-  opacity: 0.55;
-  background: repeating-linear-gradient(
-    -6deg,
-    rgba(146, 186, 176, 0.07),
-    rgba(146, 186, 176, 0.07) 1px,
-    rgba(255, 255, 255, 0.05) 1px,
-    rgba(255, 255, 255, 0.05) 18px,
-    rgba(154, 198, 190, 0.06) 18px,
-    rgba(154, 198, 190, 0.06) 19px,
-    transparent 19px,
-    transparent 52px
-  );
 }
 
 .communityCard {
@@ -1508,6 +1455,7 @@
   .pageMain {
     width: calc(100% - 16px);
     padding-top: calc(4px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     padding-left: max(0px, env(safe-area-inset-left, 0px));
     padding-right: max(0px, env(safe-area-inset-right, 0px));
     gap: 0;
@@ -1702,6 +1650,18 @@
     transform-origin: center center !important;
   }
 
+  .mobileMapHint {
+    display: block;
+    width: 100%;
+    margin: 6px 0 0;
+    padding: 0 6px;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+    color: rgba(56, 90, 96, 0.78);
+  }
+
   .heroMapTitle {
     display: block;
     order: 3;
@@ -1874,6 +1834,32 @@
     margin-top: 56px;
     padding: 6px 0 12px;
     position: relative;
+  }
+
+  .heroSection + .communitySection {
+    margin-top: 44px;
+  }
+
+  .featuredSection + .communitySection {
+    margin-top: 22px;
+  }
+
+  .communitySection {
+    margin-top: 0;
+    padding-bottom: 14px;
+    gap: 18px;
+  }
+
+  .communityCard {
+    padding: 18px 16px;
+  }
+
+  .recentPanel {
+    margin-top: 2px;
+  }
+
+  .recentPanel .sectionTitleRow {
+    margin-bottom: 10px;
   }
 
   .featuredSection::before {
