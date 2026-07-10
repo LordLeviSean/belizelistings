@@ -1249,6 +1249,68 @@
   }
 }
 
+/*
+ * Desktop document scroll — single continuous page (Hero → Featured → Community → Footer).
+ * Avoid nested vertical scroll; let atmosphere bleed between sections instead of clipped panels.
+ */
+@media (min-width: 801px) {
+  .pageMain {
+    gap: 0;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .heroSection {
+    overflow: visible;
+    padding-bottom: 6px;
+  }
+
+  .heroCanvas {
+    overflow: visible;
+  }
+
+  .heroCanvasAtmosphere {
+    overflow: visible;
+  }
+
+  /* Let vertical wheel/trackpad scroll reach the document over the horizontal band */
+  .featuredCarouselViewport {
+    touch-action: auto;
+  }
+
+  .featuredSection {
+    margin-top: 0;
+    padding: 20px 0 12px;
+    position: relative;
+  }
+
+  .featuredSection::before {
+    content: "";
+    position: absolute;
+    inset: -20px -6px auto;
+    height: 52px;
+    pointer-events: none;
+    background: radial-gradient(ellipse 92% 100% at 50% 0%, rgba(255, 255, 255, 0.42), transparent 72%);
+    opacity: 0.55;
+    z-index: -1;
+  }
+
+  .featuredSection .sectionTitleRow {
+    margin-bottom: 10px;
+  }
+
+  .communitySection {
+    margin-top: 6px;
+    padding-top: 4px;
+    padding-bottom: 14px;
+  }
+
+  .communitySection::before {
+    inset: -2% -2% auto;
+    height: min(280px, 42vh);
+    opacity: 0.38;
+  }
+}
+
 @media (max-width: 1160px) {
   .heroCanvas {
     grid-template-columns: 1fr;

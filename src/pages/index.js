@@ -211,6 +211,7 @@ export default function HomePage() {
     if (reduced) return;
 
     let raf = 0;
+    let scrollResumeTimer = 0;
     const speed = 0.088;
     const step = () => {
       const node = featuredScrollRef.current;
@@ -223,8 +224,20 @@ export default function HomePage() {
       }
       raf = requestAnimationFrame(step);
     };
+    const onDocumentScroll = () => {
+      featuredPausedRef.current = true;
+      window.clearTimeout(scrollResumeTimer);
+      scrollResumeTimer = window.setTimeout(() => {
+        featuredPausedRef.current = false;
+      }, 180);
+    };
     raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
+    window.addEventListener("scroll", onDocumentScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(scrollResumeTimer);
+      window.removeEventListener("scroll", onDocumentScroll);
+    };
   }, [featuredLoop.length]);
 
   const renderHeroMap = ({ showCaption = true } = {}) => (
