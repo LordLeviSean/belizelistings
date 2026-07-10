@@ -38,7 +38,7 @@ import { fetchViewingsForBuyer } from "../../lib/crm/viewingMutations";
 import {
   ADMIN_DASHBOARD_TAB_IDS,
   getVisibleAdminDashboardTabs,
-  normalizeAdminDashboardTab,
+  resolveVisibleAdminDashboardTab,
 } from "../../constants/dashboardAdminConfig";
 import { DashboardShell } from "../../components/dashboard";
 import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "../../constants/dashboardRoles";
@@ -80,6 +80,20 @@ export default function AdminPage() {
 
   const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
   const visibleTabs = useMemo(() => getVisibleAdminDashboardTabs(), [crmTabsEnabled]);
+
+  const selectTab = useCallback(
+    (tabId, extraQuery = {}) => {
+      const nextTab = resolveVisibleAdminDashboardTab(tabId, visibleTabs);
+      setActiveTab(nextTab);
+      const query = { ...router.query, tab: nextTab, ...extraQuery };
+      for (const key of Object.keys(extraQuery)) {
+        if (extraQuery[key] == null || extraQuery[key] === "") delete query[key];
+      }
+      if (!extraQuery.action) delete query.action;
+      void router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+    },
+    [router, visibleTabs]
+  );
 
   const loadBuyerCrm = useCallback(async () => {
     if (!user?.id) return;
@@ -171,8 +185,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     const tab = typeof router.query.tab === "string" ? router.query.tab : "";
-    setActiveTab(normalizeAdminDashboardTab(tab));
-  }, [router.query.tab]);
+    setActiveTab(resolveVisibleAdminDashboardTab(tab, visibleTabs));
+  }, [router.query.tab, visibleTabs]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -217,11 +231,6 @@ export default function AdminPage() {
       supabase.removeChannel(channel);
     };
   }, [isAdmin, refreshStats]);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-    void refreshStats();
-  }, [activeTab, isAdmin, refreshStats]);
 
   const pushActivity = (message, signal = null) => {
     const stamp = new Date().toLocaleTimeString();
@@ -308,7 +317,7 @@ export default function AdminPage() {
             archived={totals.archived}
             users={totals.users}
           />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, marginTop: 18 }}>
+          <div className={styles.adminMainGrid}>
             <section>
               <div className={styles.adminTabs}>
                 {visibleTabs.map((tab) => (
@@ -316,7 +325,7 @@ export default function AdminPage() {
                     key={tab.id}
                     type="button"
                     className={`${styles.dashboardLink} ${activeTab === tab.id ? styles.dashboardLinkActive : ""}`}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => selectTab(tab.id)}
                   >
                     {tab.label}
                   </button>
@@ -433,7 +442,12 @@ export default function AdminPage() {
                 Marketplace Health
               </Link>
               <button type="button" className={styles.primaryButton} style={{ marginTop: 8 }} onClick={() => router.push("/dashboard/create")}>Create Listing</button>
-              <button type="button" className={styles.primaryButton} style={{ marginTop: 8 }} onClick={() => setActiveTab("users")}>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                style={{ marginTop: 8 }}
+                onClick={() => selectTab(ADMIN_DASHBOARD_TAB_IDS.USERS, { action: "create-user" })}
+              >
                 Create User
               </button>
               <button type="button" className={styles.approveButton} style={{ marginTop: 8 }} onClick={() => handleBulkAction("approved")} disabled={bulkLoading === "approved"}>

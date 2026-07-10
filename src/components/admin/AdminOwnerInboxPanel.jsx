@@ -4,6 +4,7 @@ import OwnerInquiriesPanel from "@/components/inquiry/OwnerInquiriesPanel";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
 import { loadOwnerInboxData } from "@/lib/crm/ownerInboxData";
 import { supabase } from "@/lib/supabaseClient";
+import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import styles from "@/styles/Dashboard.module.css";
 import loadingStyles from "@/styles/UserDashboard.module.css";
 
@@ -61,11 +62,16 @@ export default function AdminOwnerInboxPanel({
 
   if (!hasOwnedListings && !hasOwnerActivity) {
     return (
-      <p className={styles.muted}>
-        {surface === "user"
-          ? "You have no listings yet. Create a listing to receive inquiries and viewing requests here."
-          : "You have no listings assigned to your account. Create a listing to receive inquiries here, or use the operator tools for listings owned by other users."}
-      </p>
+      <PremiumEmptyState
+        variant="inquiries"
+        compact
+        title={surface === "user" ? "No owner inbox yet" : "No listings on your account"}
+        description={
+          surface === "user"
+            ? "Create a listing to receive inquiries and viewing requests here."
+            : "Create a listing to receive inquiries here, or use operator tools for listings owned by other users."
+        }
+      />
     );
   }
 

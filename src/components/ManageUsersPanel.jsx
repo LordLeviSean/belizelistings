@@ -15,6 +15,10 @@ import { applyListingLifecycleAction } from "../utils/ownershipAttribution";
 import { OWNERSHIP_ACTIONS } from "../constants/ownershipModel";
 import { normalizeUsername, validateUsernameCandidate } from "../lib/usernameRules";
 import { MODAL_TYPES, useModalController } from "@/hooks/useModalController";
+import {
+  omitRouterQueryParam,
+  shouldOpenCreateUserModal,
+} from "@/lib/adminDashboardQuery";
 import styles from "../styles/Dashboard.module.css";
 import mu from "./ManageUsersPanel.module.css";
 import { formatProfileDisplayLabel } from "../lib/profileDisplayName";
@@ -293,6 +297,13 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
     modal.closeAllModals();
     modal.openModal(MODAL_TYPES.SYSTEM, { action: "create-user" });
   };
+
+  useEffect(() => {
+    if (!shouldOpenCreateUserModal(router.query.action)) return;
+    openCreateModal();
+    const nextQuery = omitRouterQueryParam(router.query, "action");
+    void router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true });
+  }, [router.query.action]);
 
   const unlockListings = (userId) => {
     const id = String(userId);

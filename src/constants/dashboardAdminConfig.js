@@ -46,6 +46,17 @@ export function normalizeAdminDashboardTab(raw) {
   return ADMIN_TAB_SET.has(s) ? s : ADMIN_DASHBOARD_TAB_IDS.PENDING;
 }
 
+/** Normalize tab id and ensure it is visible under current feature flags. */
+export function resolveVisibleAdminDashboardTab(
+  raw,
+  visibleTabs = getVisibleAdminDashboardTabs()
+) {
+  const normalized = normalizeAdminDashboardTab(raw);
+  const visibleIds = new Set(visibleTabs.map((tab) => tab.id));
+  if (visibleIds.has(normalized)) return normalized;
+  return visibleTabs[0]?.id ?? ADMIN_DASHBOARD_TAB_IDS.PENDING;
+}
+
 export function getVisibleAdminDashboardTabs() {
   const crmEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS || BL_ENABLE_VIEWING_PERSIST;
   return ADMIN_DASHBOARD_TABS.filter((tab) => {

@@ -78,6 +78,7 @@ export default function PendingListingsPanel({ onAction, profilesRevision = 0 })
 
     if (error) {
       console.error("[pending-panel] load error", error);
+      showToast({ type: "error", message: "Could not load the moderation queue. Try again shortly." });
       setLoading(false);
       return;
     }
