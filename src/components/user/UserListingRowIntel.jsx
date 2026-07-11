@@ -2,7 +2,7 @@ import { memo, useMemo } from "react";
 import opStyles from "@/components/operational/OperationalIntel.module.css";
 
 function fmtMetric(n) {
-  if (n == null || Number.isNaN(Number(n))) return "—";
+  if (n == null || Number.isNaN(Number(n))) return "0";
   return Number(n).toLocaleString();
 }
 

@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/router";
 import { CalendarClock, MessageCircle, Share2 } from "lucide-react";
 import { fetchListingOwnerContact } from "@/lib/listingContactResolver";
-import { resolveListingAgentUserId } from "@/lib/listingInquiryTargets";
+import { resolveListingAgentUserId, resolveListingAgentUserIdAsync } from "@/lib/listingInquiryTargets";
 import { supabase } from "@/lib/supabaseClient";
 import { useListingEngagementAuthPrompt } from "@/components/auth/ListingEngagementAuthPromptProvider";
 import {
@@ -29,12 +29,13 @@ export default function ListingContactActions({ listing, user }) {
   const [viewingOpen, setViewingOpen] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
   const [ownerContact, setOwnerContact] = useState(null);
+  const [agentUserIdResolved, setAgentUserIdResolved] = useState(null);
 
   const listingReturnPath = router.asPath || `/listing/${listing?.id}`;
 
   const listingAgentUserId = useMemo(
-    () => resolveListingAgentUserId(listing, ownerContact),
-    [listing, ownerContact]
+    () => agentUserIdResolved || resolveListingAgentUserId(listing, ownerContact),
+    [agentUserIdResolved, listing, ownerContact]
   );
 
   useEffect(() => {
@@ -51,6 +52,21 @@ export default function ListingContactActions({ listing, user }) {
       cancelled = true;
     };
   }, [listing?.id]);
+
+  useEffect(() => {
+    if (!listing?.id) {
+      setAgentUserIdResolved(null);
+      return undefined;
+    }
+    let cancelled = false;
+    void (async () => {
+      const resolved = await resolveListingAgentUserIdAsync(supabase, listing, ownerContact);
+      if (!cancelled) setAgentUserIdResolved(resolved);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [listing, ownerContact]);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;

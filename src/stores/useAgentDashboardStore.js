@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import { supabase } from "@/lib/supabaseClient";
 import { fetchUserOwnedListingsForDashboard } from "@/lib/listingQueries";
+import {
+  applyListingMetricsToRows,
+  fetchOwnerListingMetricsMap,
+} from "@/lib/listingOwnerMetrics";
 import { deriveUserDashboardListingCounts } from "@/lib/userDashboardListingTruth";
 import { isTransientNetworkError, isTerminalDashboardCountError, isMissingTableError } from "@/lib/supabaseCompat";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES } from "@/lib/featureFlags";
@@ -408,7 +412,12 @@ const useAgentDashboardStore = create((set, get) => ({
       }
 
       listingsTransientRetries = 0;
-      const rows = data || [];
+      let rows = data || [];
+      const listingIds = rows.map((r) => r?.id).filter(Boolean);
+      if (listingIds.length > 0) {
+        const { map: metricsMap } = await fetchOwnerListingMetricsMap(supabase, listingIds, uid);
+        rows = applyListingMetricsToRows(rows, metricsMap);
+      }
       const rowPatch = { listingsErrorMessage: null, listingsQueryTerminal: false };
       const sigChanged =
         myListingsRowsSignature(get().myListingsRows) !== myListingsRowsSignature(rows);

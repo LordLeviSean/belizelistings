@@ -1,6 +1,11 @@
 /** @jest-environment node */
 
-import { resolveListingAgentUserId } from "./listingInquiryTargets";
+jest.mock("./listingContactResolver", () => ({
+  fetchListingOwnerContact: jest.fn(),
+}));
+
+import { fetchListingOwnerContact } from "./listingContactResolver";
+import { resolveListingAgentUserId, resolveListingAgentUserIdAsync } from "./listingInquiryTargets";
 
 describe("resolveListingAgentUserId", () => {
   test("prefers listing.user_id when present", () => {
@@ -15,5 +20,16 @@ describe("resolveListingAgentUserId", () => {
 
   test("returns null when neither source is available", () => {
     expect(resolveListingAgentUserId({ id: 1 }, null)).toBeNull();
+  });
+
+  test("resolveListingAgentUserIdAsync fetches owner contact RPC when needed", async () => {
+    fetchListingOwnerContact.mockResolvedValue({
+      contact: { userId: "rpc-owner" },
+      error: null,
+      unavailable: false,
+    });
+    const client = {};
+    await expect(resolveListingAgentUserIdAsync(client, { id: 99 }, null)).resolves.toBe("rpc-owner");
+    expect(fetchListingOwnerContact).toHaveBeenCalledWith(client, 99);
   });
 });

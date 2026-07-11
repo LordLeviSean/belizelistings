@@ -22,14 +22,17 @@ export default function AdminOwnerInboxPanel({
   const [viewings, setViewings] = useState([]);
   const [listingsById, setListingsById] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
   const load = useCallback(async () => {
     if (!ownerUserId) return;
     setLoading(true);
-    const { conversations: convRows, viewings: viewingRows, listingsById: map } = await loadOwnerInboxData(
-      supabase,
-      ownerUserId
-    );
+    setLoadError(null);
+    const { conversations: convRows, viewings: viewingRows, listingsById: map, errors } =
+      await loadOwnerInboxData(supabase, ownerUserId);
+    if (errors?.conversations) {
+      setLoadError(errors.conversations.message || "Could not load owner inbox.");
+    }
     setConversations(convRows);
     setViewings(viewingRows);
     setListingsById(map);
@@ -58,6 +61,18 @@ export default function AdminOwnerInboxPanel({
 
   if (loading) {
     return <div className={loadingStyles.hydratingPanel} aria-busy="true" />;
+  }
+
+  if (loadError) {
+    return (
+      <PremiumEmptyState
+        variant="generic"
+        compact
+        title="Could not load owner inbox"
+        description={loadError}
+        primary={{ label: "Try again", onClick: () => void refresh() }}
+      />
+    );
   }
 
   if (!hasOwnedListings && !hasOwnerActivity) {

@@ -19,6 +19,8 @@ import {
 import BackButton from "@/components/BackButton";
 import SiteNav from "@/components/SiteNav";
 import { fetchListingByIdWithImages } from "../../lib/listingQueries";
+import { supabase } from "../../lib/supabaseClient";
+import { recordListingDetailView } from "@/lib/listingDetailViewTracking";
 import useAuth from "../../hooks/useAuth";
 import useRoleAccess from "../../hooks/useRoleAccess";
 import useFavorites from "../../hooks/useFavorites";
@@ -141,6 +143,22 @@ export default function ListingPage() {
       cancelled = true;
     };
   }, [id, isAdminView, requestedAdminBypass, roleLoading, user?.id]);
+
+  useEffect(() => {
+    if (!listing?.id || loading) return undefined;
+    let cancelled = false;
+    void (async () => {
+      if (cancelled) return;
+      await recordListingDetailView(supabase, {
+        listingId: listing.id,
+        viewerUserId: user?.id ?? null,
+        listingOwnerUserId: listing.user_id ?? listing.userId ?? null,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [listing?.id, listing?.user_id, listing?.userId, loading, user?.id]);
 
   const images = useMemo(
     () => (listing ? getListingGalleryImages(listing) : []),

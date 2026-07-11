@@ -7,7 +7,7 @@ import {
   resolveInquirySenderEmail,
 } from "@/lib/inquiryEmailPrefill";
 import { createViewingRequest } from "@/lib/crm/viewingMutations";
-import { resolveListingAgentUserId } from "@/lib/listingInquiryTargets";
+import { resolveListingAgentUserId, resolveListingAgentUserIdAsync } from "@/lib/listingInquiryTargets";
 import { supabase } from "@/lib/supabaseClient";
 import useUserRole from "@/hooks/useUserRole";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -165,8 +165,20 @@ export default function ListingViewingBookingModal({
   }, []);
 
   const handleConfirmBooking = useCallback(async () => {
-    if (pending || confirmed || !listing?.id || !listingAgentUserId) return;
+    if (pending || confirmed || !listing?.id) return;
     if (!selectedDate || !selectedTime) return;
+
+    let agentUserId = listingAgentUserId;
+    if (!agentUserId) {
+      agentUserId = await resolveListingAgentUserIdAsync(supabase, listing);
+    }
+    if (!agentUserId) {
+      showToast({
+        type: "error",
+        message: "We could not reach the listing agent right now. Try phone or email if shown.",
+      });
+      return;
+    }
 
     const email = (user?.email || guestEmail || "").trim();
     if (isGuest && (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
@@ -189,9 +201,9 @@ export default function ListingViewingBookingModal({
 
     setPending(true);
     try {
-      const { error, unavailable } = await createViewingRequest(supabase, {
+      const { error, unavailable, data } = await createViewingRequest(supabase, {
         listingId: listing.id,
-        agentUserId: listingAgentUserId,
+        agentUserId,
         requesterId: user?.id ?? null,
         requesterEmail: email || null,
         requesterName: guestName.trim() || user?.user_metadata?.full_name || null,
@@ -209,6 +221,13 @@ export default function ListingViewingBookingModal({
         } else {
           showToast({ type: "error", message: msg || "Could not schedule viewing." });
         }
+        return;
+      }
+      if (!data?.id && !data?.conversationId) {
+        showToast({
+          type: "error",
+          message: "Your viewing request could not be saved. Please try again.",
+        });
         return;
       }
       setConfirmed(true);

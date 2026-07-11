@@ -13,8 +13,12 @@ import {
 } from "./crmConstants";
 import { isCrmUnavailable } from "./crmCompat";
 
+/** Disambiguate listing_inquiries embed (PGRST201 when multiple FKs exist). */
+export const CONVERSATION_INQUIRY_EMBED =
+  "listing_inquiries!conversations_inquiry_id_fkey(status,pipeline_stage,inquiry_type,message,body,read_at)";
+
 const CONVERSATION_SELECT =
-  "id,listing_id,inquiry_id,buyer_id,agent_id,buyer_email,buyer_name,buyer_phone,stage,pipeline_stage,status,last_message_at,last_message_body,last_message_role,buyer_unread,created_at,updated_at,listing_inquiries(status,pipeline_stage,inquiry_type,message,body,read_at)";
+  `id,listing_id,inquiry_id,buyer_id,agent_id,buyer_email,buyer_name,buyer_phone,stage,pipeline_stage,status,last_message_at,last_message_body,last_message_role,buyer_unread,created_at,updated_at,${CONVERSATION_INQUIRY_EMBED}`;
 
 export function conversationPreviewText(conv) {
   const preview = String(conv?.last_message_body ?? "").trim();
