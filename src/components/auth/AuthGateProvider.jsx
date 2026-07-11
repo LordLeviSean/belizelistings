@@ -55,7 +55,10 @@ export function AuthGateProvider({ children }) {
   const openLoginIfNeeded = useCallback(
     (opts) => {
       if (loading) return;
-      const dest = loginHref({ signup: Boolean(opts?.signup) });
+      const dest = loginHref({
+        signup: Boolean(opts?.signup),
+        returnTo: opts?.returnTo ?? null,
+      });
       if (user) {
         pendingAfterSignOutRef.current = dest;
         setAlreadySignedInOpen(true);
@@ -67,7 +70,10 @@ export function AuthGateProvider({ children }) {
   );
 
   const presentAlreadySignedInModal = useCallback((opts) => {
-    pendingAfterSignOutRef.current = loginHref({ signup: Boolean(opts?.signup) });
+    pendingAfterSignOutRef.current = loginHref({
+      signup: Boolean(opts?.signup),
+      returnTo: opts?.returnTo ?? null,
+    });
     setAlreadySignedInOpen(true);
   }, []);
 

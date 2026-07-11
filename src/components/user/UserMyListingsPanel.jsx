@@ -319,14 +319,19 @@ function UserMyListingsPanel({ userId, tier }) {
                       </>
                     ) : null}
                     {!isDraft && isPublished ? (
-                      <button
-                        type="button"
-                        className={styles.deleteListingButton}
-                        onClick={() => openArchiveListing(l.id)}
-                        disabled={actionId === String(l.id)}
-                      >
-                        {actionId === String(l.id) ? "Archiving…" : "Archive"}
-                      </button>
+                      <>
+                        <Link className={styles.approveButton} href={editListingHref(l.id)}>
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          className={styles.deleteListingButton}
+                          onClick={() => openArchiveListing(l.id)}
+                          disabled={actionId === String(l.id)}
+                        >
+                          {actionId === String(l.id) ? "Archiving…" : "Archive"}
+                        </button>
+                      </>
                     ) : null}
                     {isRejected ? (
                       <>

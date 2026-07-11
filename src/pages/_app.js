@@ -10,6 +10,7 @@ import useAgentUpgradeNotifications from "@/hooks/useAgentUpgradeNotifications";
 import AgentUpgradeWelcomeListener from "@/components/agent/AgentUpgradeWelcomeListener";
 import { UserRoleProvider } from "@/hooks/useUserRole";
 import { AuthGateProvider } from "@/components/auth/AuthGateProvider";
+import { ListingEngagementAuthPromptProvider } from "@/components/auth/ListingEngagementAuthPromptProvider";
 import useRouteMemory from "@/hooks/useRouteMemory";
 import { pageTransition } from "@/lib/motionTokens";
 import { ToastProvider } from "@/components/ui/ToastProvider";
@@ -47,6 +48,7 @@ function AppWithAlerts({ Component, pageProps }) {
       <UserRoleProvider>
         <ModerationNotificationListener />
         <AuthGateProvider>
+          <ListingEngagementAuthPromptProvider>
           <FavoriteSignupPromptProvider>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
@@ -64,6 +66,7 @@ function AppWithAlerts({ Component, pageProps }) {
           </AnimatePresence>
           <Footer />
           </FavoriteSignupPromptProvider>
+          </ListingEngagementAuthPromptProvider>
         </AuthGateProvider>
       </UserRoleProvider>
       </PageTitleProvider>

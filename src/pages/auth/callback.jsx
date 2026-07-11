@@ -11,6 +11,7 @@ import {
   resolveAuthCallbackDestination,
   shouldEnsureProfile,
 } from "@/lib/authCallback";
+import { resolvePostAuthEngagementReturnPath } from "@/lib/authEngagementReturn";
 import SiteNav from "@/components/SiteNav";
 import styles from "@/styles/Auth.module.css";
 
@@ -54,6 +55,13 @@ export default function AuthCallback() {
 
       if (shouldEnsureProfile(linkType)) {
         await ensureProfile(user, { flow: "email-verification", force: true });
+      }
+
+      const engagementReturn =
+        linkType !== "recovery" ? resolvePostAuthEngagementReturnPath() : null;
+      if (engagementReturn) {
+        finish("success", "Returning to your listing…", engagementReturn);
+        return;
       }
 
       finish(destination.status, destination.message, destination.dest);

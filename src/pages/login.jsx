@@ -10,9 +10,21 @@ import useUserRole from "../hooks/useUserRole";
 import { useAuthGate } from "../components/auth/AuthGateProvider";
 import { validateSignupUsername } from "../lib/usernameRules";
 import { getAuthRedirectUrl } from "../lib/siteUrl";
+import {
+  normalizeReturnTo,
+  resolvePostAuthEngagementReturnPath,
+} from "../lib/authEngagementReturn";
 import styles from "../styles/Auth.module.css";
 
 const USERNAME_TAKEN_MSG = "Username already taken, try a new username";
+
+function resolvePostAuthDestination(router) {
+  const engagementReturn = resolvePostAuthEngagementReturnPath();
+  if (engagementReturn) return engagementReturn;
+  const fromQuery = normalizeReturnTo(router.query.returnTo);
+  if (fromQuery) return fromQuery;
+  return "/";
+}
 
 function getPasswordRequirements(password) {
   return {
@@ -79,7 +91,10 @@ export default function Login() {
       q.signup === "true" ||
       String(q.signup || "").toLowerCase() === "yes" ||
       q.mode === "signup";
-    presentAlreadySignedInModal({ signup: wantSignup });
+    presentAlreadySignedInModal({
+      signup: wantSignup,
+      returnTo: router.query.returnTo,
+    });
   }, [router.isReady, router.query, authLoading, sessionUser, presentAlreadySignedInModal]);
 
   useEffect(() => {
@@ -362,10 +377,15 @@ export default function Login() {
           setMessageType("error");
         } else if (hasSession && prof.ok) {
           setSignupRecoveryUser(null);
-          setSignupSuccessEmail(email.trim());
-          setSignupSuccessMode("full");
-          setSignupModalNotice("");
-          setSignupSuccessOpen(true);
+          const engagementReturn = resolvePostAuthEngagementReturnPath();
+          if (engagementReturn) {
+            void router.push(resolvePostAuthDestination(router));
+          } else {
+            setSignupSuccessEmail(email.trim());
+            setSignupSuccessMode("full");
+            setSignupModalNotice("");
+            setSignupSuccessOpen(true);
+          }
         } else {
           setSignupRecoveryUser(null);
           setSignupSuccessEmail(email.trim());
@@ -384,7 +404,7 @@ export default function Login() {
         setMessage(error.message);
         setMessageType("error");
       } else {
-        router.push("/");
+        void router.push(resolvePostAuthDestination(router));
       }
     }
 

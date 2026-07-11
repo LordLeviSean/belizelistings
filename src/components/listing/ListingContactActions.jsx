@@ -1,9 +1,16 @@
 import dynamic from "next/dynamic";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useRouter } from "next/router";
 import { CalendarClock, MessageCircle, Share2 } from "lucide-react";
 import { fetchListingOwnerContact } from "@/lib/listingContactResolver";
 import { resolveListingAgentUserId } from "@/lib/listingInquiryTargets";
 import { supabase } from "@/lib/supabaseClient";
+import { useListingEngagementAuthPrompt } from "@/components/auth/ListingEngagementAuthPromptProvider";
+import {
+  LISTING_ENGAGEMENT_ACTIONS,
+  clearPendingListingEngagement,
+  readPendingListingEngagement,
+} from "@/lib/authEngagementReturn";
 
 const ContactAgentModal = dynamic(() => import("./ContactAgentModal"), { ssr: false });
 const ListingMessageModal = dynamic(() => import("./ListingMessageModal"), { ssr: false });
@@ -14,12 +21,16 @@ import styles from "./ListingContactActions.module.css";
 const MOBILE_STICKY_MQ = "(max-width: 520px)";
 
 export default function ListingContactActions({ listing, user }) {
+  const router = useRouter();
+  const openListingEngagementPrompt = useListingEngagementAuthPrompt();
   const { showToast } = useToast();
   const [contactOpen, setContactOpen] = useState(false);
   const [messageOpen, setMessageOpen] = useState(false);
   const [viewingOpen, setViewingOpen] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
   const [ownerContact, setOwnerContact] = useState(null);
+
+  const listingReturnPath = router.asPath || `/listing/${listing?.id}`;
 
   const listingAgentUserId = useMemo(
     () => resolveListingAgentUserId(listing, ownerContact),
@@ -59,6 +70,43 @@ export default function ListingContactActions({ listing, user }) {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (!user?.id || !listing?.id) return;
+    const pending = readPendingListingEngagement(listing.id);
+    if (!pending) return;
+    clearPendingListingEngagement();
+    if (pending.action === LISTING_ENGAGEMENT_ACTIONS.MESSAGE) {
+      setMessageOpen(true);
+    } else if (pending.action === LISTING_ENGAGEMENT_ACTIONS.VIEWING) {
+      setViewingOpen(true);
+    }
+  }, [user?.id, listing?.id]);
+
+  const requestSiteMessage = useCallback(() => {
+    setContactOpen(false);
+    if (!user?.id) {
+      openListingEngagementPrompt({
+        action: LISTING_ENGAGEMENT_ACTIONS.MESSAGE,
+        listingId: listing?.id,
+        returnPath: listingReturnPath,
+      });
+      return;
+    }
+    setMessageOpen(true);
+  }, [user?.id, listing?.id, listingReturnPath, openListingEngagementPrompt]);
+
+  const requestScheduleViewing = useCallback(() => {
+    if (!user?.id) {
+      openListingEngagementPrompt({
+        action: LISTING_ENGAGEMENT_ACTIONS.VIEWING,
+        listingId: listing?.id,
+        returnPath: listingReturnPath,
+      });
+      return;
+    }
+    setViewingOpen(true);
+  }, [user?.id, listing?.id, listingReturnPath, openListingEngagementPrompt]);
+
   const listingUrl =
     typeof window !== "undefined" ? `${window.location.origin}/listing/${listing?.id}` : "";
 
@@ -94,7 +142,7 @@ export default function ListingContactActions({ listing, user }) {
             Contact agent
           </button>
 
-          <button type="button" className={styles.secondaryBtn} onClick={() => setViewingOpen(true)}>
+          <button type="button" className={styles.secondaryBtn} onClick={requestScheduleViewing}>
             <CalendarClock size={18} strokeWidth={2} aria-hidden />
             Schedule viewing
           </button>
@@ -110,10 +158,7 @@ export default function ListingContactActions({ listing, user }) {
         onClose={() => setContactOpen(false)}
         listing={listing}
         contact={ownerContact}
-        onOpenSiteMessage={() => {
-          setContactOpen(false);
-          setMessageOpen(true);
-        }}
+        onOpenSiteMessage={requestSiteMessage}
       />
       <ListingMessageModal
         open={messageOpen}
