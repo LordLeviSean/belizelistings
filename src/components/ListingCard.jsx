@@ -9,7 +9,8 @@ import homeStyles from "../styles/HomeMapFirst.module.css";
 import favoriteStyles from "../styles/FavoriteButton.module.css";
 import { BELIZE_MAP_REGION_CONFIG } from "../constants/belizeMapRegions";
 import { getRegionCaption, getRegionLabel, normalizeRegionSlug } from "../constants/geographyLayer";
-import { getListingRegionSlug } from "../utils/canonicalListing";
+import { getListingRegionSlug, getLifecycleStatus } from "../utils/canonicalListing";
+import { LISTING_LIFECYCLE } from "../constants/operationalModel";
 import { normalizeListingImageEntry } from "../utils/listingImage";
 import { isLandInventoryListing } from "../utils/listingPresentation";
 import { isListingCardVerified } from "../utils/listingVerification";
@@ -53,6 +54,13 @@ function getListingMarketKind(listing) {
 }
 
 function detectListingBadge(listing) {
+  const lc = getLifecycleStatus(listing);
+  if (lc === LISTING_LIFECYCLE.RECENTLY_SOLD || lc === LISTING_LIFECYCLE.SOLD) {
+    return "RECENTLY SOLD";
+  }
+  if (lc === LISTING_LIFECYCLE.RECENTLY_RENTED || lc === LISTING_LIFECYCLE.RENTED) {
+    return "RECENTLY RENTED";
+  }
   return getListingMarketKind(listing) === "rent" ? "FOR RENT" : "FOR SALE";
 }
 
@@ -187,6 +195,7 @@ export default function ListingCard({
   const imageUrl = imageCount ? listingImages[activeIndex] : "/placeholder.jpg";
   const status = detectListingBadge(listing);
   const isRentBadge = status === "FOR RENT";
+  const isRecentlyClosedBadge = status === "RECENTLY SOLD" || status === "RECENTLY RENTED";
   const isVerified = isListingCardVerified(listing);
   const canonicalRegionSlug = getListingRegionSlug(listing) || "belize";
   const district = districtLabel(canonicalRegionSlug);
@@ -268,7 +277,11 @@ export default function ListingCard({
         <div className={homeStyles.propertyBadgeStack}>
           <span
             className={`${homeStyles.propertyBadge} ${
-              isRentBadge ? homeStyles.propertyBadgeRent : homeStyles.propertyBadgeSale
+              isRecentlyClosedBadge
+                ? homeStyles.propertyBadgeRecentlyClosed
+                : isRentBadge
+                  ? homeStyles.propertyBadgeRent
+                  : homeStyles.propertyBadgeSale
             }`}
           >
             {status}

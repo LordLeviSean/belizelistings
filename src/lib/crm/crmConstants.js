@@ -29,14 +29,19 @@ export const INQUIRY_TYPE = Object.freeze({
   PURCHASE: "purchase",
 });
 
-/** Viewing request status. */
+/** Viewing request status — DB values; display aliases in viewingStatusLabels.js */
 export const VIEWING_STATUS = Object.freeze({
+  /** Canonical "requested" */
   PENDING: "pending",
+  REQUESTED: "pending",
   CONFIRMED: "confirmed",
   COMPLETED: "completed",
   CANCELLED: "cancelled",
+  /** Canonical "reschedule_requested" */
   RESCHEDULED: "rescheduled",
-  /** @deprecated */ DECLINED: "declined",
+  RESCHEDULE_REQUESTED: "rescheduled",
+  /** @deprecated prefer cancelled with response note */
+  DECLINED: "declined",
 });
 
 export const MESSAGE_SENDER_ROLE = Object.freeze({

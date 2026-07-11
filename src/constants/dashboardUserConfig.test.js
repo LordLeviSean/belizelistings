@@ -30,10 +30,10 @@ describe("dashboardUserConfig owner parity", () => {
     expect(ids).toEqual(
       expect.arrayContaining([
         USER_DASHBOARD_TAB_IDS.MESSAGES,
-        USER_DASHBOARD_TAB_IDS.MY_INQUIRIES,
         USER_DASHBOARD_TAB_IDS.MY_VIEWINGS,
       ])
     );
+    expect(ids).not.toContain(USER_DASHBOARD_TAB_IDS.MY_INQUIRIES);
   });
 
   test("getVisibleUserDashboardTabs shows owner tabs when user owns listings and flags enabled", () => {

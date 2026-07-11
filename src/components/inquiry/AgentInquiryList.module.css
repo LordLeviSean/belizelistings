@@ -33,6 +33,11 @@
   box-shadow: 0 0 0 1px rgba(212, 175, 122, 0.08), 0 4px 16px rgba(212, 175, 122, 0.06);
 }
 
+.cardHighlighted {
+  border-color: rgba(130, 190, 185, 0.48);
+  box-shadow: 0 0 0 1px rgba(130, 190, 185, 0.12), 0 10px 28px rgba(0, 0, 0, 0.14);
+}
+
 .cardHead {
   display: flex;
   justify-content: space-between;

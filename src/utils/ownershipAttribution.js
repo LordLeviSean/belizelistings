@@ -12,6 +12,8 @@ import {
   buildModerationRejectPatch,
   buildModerationResubmitFallback,
   buildModerationResubmitPatch,
+  buildRecentlyRentedPatch,
+  buildRecentlySoldPatch,
   executeListingUpdate,
 } from "../lib/listingWriteContract";
 import { omitSubmitForReviewWorkflowFields } from "../lib/draftListingInsertContract";
@@ -162,6 +164,12 @@ function lifecyclePayloadForAction({ action }) {
     return {
       verification_status: "verified",
     };
+  }
+  if (action === OWNERSHIP_ACTIONS.CLOSE_SOLD) {
+    return buildRecentlySoldPatch();
+  }
+  if (action === OWNERSHIP_ACTIONS.CLOSE_RENTED) {
+    return buildRecentlyRentedPatch();
   }
   return {};
 }

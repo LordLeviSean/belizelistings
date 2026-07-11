@@ -1,69 +1,51 @@
 /** @jest-environment node */
 
-jest.mock("../constants/dashboardAdminConfig", () => ({
-  ADMIN_DASHBOARD_TAB_IDS: {
-    MESSAGES: "messages",
-    OWNER_INBOX: "owner-inbox",
-    OWNER_VIEWINGS: "owner-viewings",
-  },
-}));
-
-jest.mock("../constants/dashboardUserConfig", () => ({
-  USER_DASHBOARD_TAB_IDS: {
-    MESSAGES: "messages",
-    OWNER_INBOX: "owner-inbox",
-    OWNER_VIEWINGS: "owner-viewings",
-  },
-}));
-
-jest.mock("../constants/dashboardAgentConfig", () => ({
-  AGENT_DASHBOARD_TAB_IDS: { INQUIRIES: "inquiries", VIEWINGS: "viewings" },
-}));
-
 import {
-  resolveDashboardCrmPath,
-  resolveOwnerInboxPath,
-  resolvePostInquiryMessagesPath,
+  resolveNotificationDestination,
+  resolveUserDashboardTabFromQuery,
+  resolveAgentDashboardTabFromQuery,
 } from "./dashboardCrmRoutes";
+import { NOTIFICATION_EVENT_TYPES } from "./notifications/notificationEvents";
+import { USER_DASHBOARD_TAB_IDS } from "../constants/dashboardUserConfig";
+import { AGENT_DASHBOARD_TAB_IDS } from "../constants/dashboardAgentConfig";
 
 describe("dashboardCrmRoutes", () => {
-  test("resolvePostInquiryMessagesPath routes admin buyers to admin messages tab", () => {
-    expect(resolvePostInquiryMessagesPath({ role: "admin", conversationId: "conv-1" })).toBe(
-      "/admin?tab=messages&conversation=conv-1"
+  test("resolveNotificationDestination opens exact conversation for buyer reply", () => {
+    const href = resolveNotificationDestination({
+      eventType: NOTIFICATION_EVENT_TYPES.AGENT_REPLIED,
+      role: "user",
+      payload: { conversation_id: "conv-42" },
+    });
+    expect(href).toBe("/dashboard/user?tab=messages&conversation=conv-42");
+  });
+
+  test("resolveNotificationDestination opens exact viewing for buyer viewing events", () => {
+    const href = resolveNotificationDestination({
+      eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
+      role: "user",
+      payload: { viewing_id: "view-9" },
+    });
+    expect(href).toBe("/dashboard/user?tab=my-viewings&viewing=view-9");
+  });
+
+  test("resolveNotificationDestination routes owner viewing request to agent viewings", () => {
+    const href = resolveNotificationDestination({
+      eventType: NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED,
+      role: "agent",
+      payload: { viewing_id: "view-3", recipient_role: "agent" },
+    });
+    expect(href).toBe("/dashboard/agent?tab=viewings&viewing=view-3");
+  });
+
+  test("resolveUserDashboardTabFromQuery infers messages from conversation param", () => {
+    expect(resolveUserDashboardTabFromQuery({ conversation: "c1" })).toBe(
+      USER_DASHBOARD_TAB_IDS.MESSAGES
     );
   });
 
-  test("resolvePostInquiryMessagesPath routes platform users to user dashboard", () => {
-    expect(resolvePostInquiryMessagesPath({ role: "user", conversationId: "conv-2" })).toBe(
-      "/dashboard/user?tab=messages&conversation=conv-2"
+  test("resolveAgentDashboardTabFromQuery infers viewings from viewing param", () => {
+    expect(resolveAgentDashboardTabFromQuery({ viewing: "v1" })).toBe(
+      AGENT_DASHBOARD_TAB_IDS.VIEWINGS
     );
-  });
-
-  test("resolveOwnerInboxPath routes admin owners to owner inbox", () => {
-    expect(resolveOwnerInboxPath({ role: "admin", conversationId: "conv-3" })).toBe(
-      "/admin?tab=owner-inbox&conversation=conv-3"
-    );
-  });
-
-  test("resolveOwnerInboxPath routes agents to inquiries tab", () => {
-    expect(resolveOwnerInboxPath({ role: "agent" })).toBe("/dashboard/agent?tab=inquiries");
-  });
-
-  test("resolveOwnerInboxPath routes platform user owners to owner inbox", () => {
-    expect(resolveOwnerInboxPath({ role: "user", conversationId: "conv-4" })).toBe(
-      "/dashboard/user?tab=owner-inbox&conversation=conv-4"
-    );
-  });
-
-  test("resolveOwnerInboxPath maps viewing tab for platform user owners", () => {
-    expect(resolveOwnerInboxPath({ role: "user", tab: "viewings", viewingId: "view-2" })).toBe(
-      "/dashboard/user?tab=owner-viewings&viewing=view-2"
-    );
-  });
-
-  test("resolveDashboardCrmPath supports owner viewing tab on admin", () => {
-    expect(
-      resolveDashboardCrmPath({ role: "admin", tab: "owner-viewings", viewingId: "view-1" })
-    ).toBe("/admin?tab=owner-viewings&viewing=view-1");
   });
 });

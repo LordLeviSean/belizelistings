@@ -1,4 +1,4 @@
-import { resolveOwnerInboxPath } from "@/lib/dashboardCrmRoutes";
+import { resolveNotificationDestination } from "@/lib/dashboardCrmRoutes";
 import { NOTIFICATION_EVENT_TYPES } from "./notificationEvents";
 
 /** Editorial categories — calm luxury, operational tone. */
@@ -26,6 +26,7 @@ export function buildNotificationPresentation(eventType, payload = {}) {
   const messageId = payload.message_id ?? payload.messageId ?? null;
   const inquiryType = payload.inquiry_type ?? payload.inquiryType ?? "general";
   const explicitDedupe = payload.dedupe_key ?? payload.dedupeKey ?? null;
+  const recipientRole = payload.recipient_role ?? payload.recipientRole ?? null;
 
   let category = NOTIFICATION_CATEGORIES.SYSTEM;
   let title = "Operational update";
@@ -46,7 +47,11 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "inquiry";
       entityId = inquiryId ? String(inquiryId) : conversationId ? String(conversationId) : null;
       dedupeKey = dedupeKey ?? `new_inquiry:${inquiryId ?? conversationId ?? ""}`;
-      href = resolveOwnerInboxPath({ role: "agent", conversationId });
+      href = resolveNotificationDestination({
+        eventType,
+        role: recipientRole || "agent",
+        payload,
+      });
       break;
 
     case NOTIFICATION_EVENT_TYPES.AGENT_REPLIED:
@@ -56,7 +61,11 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "conversation";
       entityId = conversationId ? String(conversationId) : null;
       dedupeKey = dedupeKey ?? `agent_replied:${conversationId ?? ""}:${messageId ?? ""}`;
-      href = conversationId ? `/dashboard/user?conversation=${conversationId}` : "/dashboard/user";
+      href = resolveNotificationDestination({
+        eventType,
+        role: recipientRole || "user",
+        payload,
+      });
       break;
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED:
@@ -66,7 +75,11 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
       dedupeKey = dedupeKey ?? `viewing_requested:${viewingId ?? conversationId ?? ""}`;
-      href = resolveOwnerInboxPath({ role: "agent", tab: "viewings", viewingId });
+      href = resolveNotificationDestination({
+        eventType,
+        role: recipientRole || "agent",
+        payload,
+      });
       break;
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED:
@@ -76,7 +89,11 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
       dedupeKey = dedupeKey ?? `viewing_confirmed:${viewingId ?? ""}`;
-      href = "/dashboard/user?tab=my-viewings";
+      href = resolveNotificationDestination({
+        eventType,
+        role: recipientRole || "user",
+        payload,
+      });
       break;
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_CANCELLED:
@@ -86,7 +103,11 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
       dedupeKey = dedupeKey ?? `viewing_cancelled:${viewingId ?? ""}`;
-      href = "/dashboard/user?tab=my-viewings";
+      href = resolveNotificationDestination({
+        eventType,
+        role: recipientRole || "user",
+        payload,
+      });
       break;
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED:
@@ -96,7 +117,11 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
       dedupeKey = dedupeKey ?? `viewing_declined:${viewingId ?? ""}`;
-      href = "/dashboard/user?tab=my-viewings";
+      href = resolveNotificationDestination({
+        eventType,
+        role: recipientRole || "user",
+        payload,
+      });
       break;
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_RESCHEDULED:
@@ -106,7 +131,11 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
       dedupeKey = dedupeKey ?? `viewing_rescheduled:${viewingId ?? ""}`;
-      href = "/dashboard/user?tab=my-viewings";
+      href = resolveNotificationDestination({
+        eventType,
+        role: recipientRole || "user",
+        payload,
+      });
       break;
 
     case NOTIFICATION_EVENT_TYPES.INQUIRY_ARCHIVED:
@@ -116,7 +145,11 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "inquiry";
       entityId = inquiryId ? String(inquiryId) : null;
       dedupeKey = dedupeKey ?? `inquiry_archived:${inquiryId ?? ""}`;
-      href = "/dashboard/agent";
+      href = resolveNotificationDestination({
+        eventType,
+        role: recipientRole || "agent",
+        payload,
+      });
       break;
 
     default:
@@ -125,6 +158,7 @@ export function buildNotificationPresentation(eventType, payload = {}) {
         entityId = String(listingId);
       }
       dedupeKey = dedupeKey ?? `${eventType}:${JSON.stringify(payload)}`;
+      href = resolveNotificationDestination({ eventType, role: recipientRole, payload });
       break;
   }
 

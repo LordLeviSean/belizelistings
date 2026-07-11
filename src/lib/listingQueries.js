@@ -1,10 +1,10 @@
 import { supabase } from "./supabaseClient";
-import { getModerationStatus } from "../constants/operationalModel";
+import { getModerationStatus, LISTING_LIFECYCLE } from "../constants/operationalModel";
 import {
   isMissingColumnError,
   isMissingRelationshipError,
 } from "./supabaseCompat";
-import { filterPublicInventory, isPubliclyVisibleListing } from "../utils/canonicalListing";
+import { filterBrowsableInventory, isBrowsableListing } from "../utils/canonicalListing";
 import { mapListingWithImages } from "../utils/listingImage";
 import { normalizeUserDashboardListingRows } from "./userDashboardListingTruth";
 import {
@@ -228,8 +228,17 @@ export async function fetchApprovedListingsWithImages() {
     `;
 
   const approvedOrDual = `status.eq.${getModerationStatus("approved")},moderation_status.eq.approved`;
+  const recentlyClosedOr = [
+    `lifecycle_status.eq.${LISTING_LIFECYCLE.RECENTLY_SOLD}`,
+    `lifecycle_status.eq.${LISTING_LIFECYCLE.RECENTLY_RENTED}`,
+    `status.eq.${LISTING_LIFECYCLE.RECENTLY_SOLD}`,
+    `status.eq.${LISTING_LIFECYCLE.RECENTLY_RENTED}`,
+  ].join(",");
 
-  let query = supabase.from("listings").select(selectWithImages).or(approvedOrDual);
+  let query = supabase
+    .from("listings")
+    .select(selectWithImages)
+    .or(`${approvedOrDual},${recentlyClosedOr}`);
 
   let { data, error } = await query;
   if (error && isMissingColumnError(error)) {
@@ -253,7 +262,7 @@ export async function fetchApprovedListingsWithImages() {
     return { data: [], error };
   }
 
-  const normalized = filterPublicInventory(
+  const normalized = filterBrowsableInventory(
     (data || []).map((listing) => mapListingWithImages(listing))
   );
   const imageRowCount = normalized.reduce((sum, listing) => sum + (listing.images?.length || 0), 0);
@@ -333,7 +342,7 @@ export async function fetchListingByIdWithImages(id, isAdmin = false, options = 
     return { data: null, error: null };
   }
 
-  if (!isAdmin && !isPubliclyVisibleListing(listing)) {
+  if (!isAdmin && !isBrowsableListing(listing)) {
     const isOwner =
       ownerUserId && String(listing.user_id || "") === ownerUserId;
     if (!isOwner) {
@@ -364,6 +373,6 @@ export async function fetchListingByIdWithImages(id, isAdmin = false, options = 
     ownerPreview:
       Boolean(ownerUserId) &&
       String(listing.user_id || "") === ownerUserId &&
-      !isPubliclyVisibleListing(listing),
+      !isBrowsableListing(listing),
   };
 }

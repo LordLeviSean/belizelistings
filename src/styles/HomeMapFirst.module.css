@@ -912,6 +912,13 @@
   color: rgba(54, 98, 88, 0.92);
 }
 
+.propertyBadgeRecentlyClosed {
+  background: rgba(198, 58, 58, 0.92);
+  color: rgba(255, 248, 246, 0.96);
+  font-weight: 650;
+  letter-spacing: 0.08em;
+}
+
 .verificationBadge {
   display: inline-flex;
   align-items: center;

@@ -83,6 +83,10 @@ export function getVisibleUserDashboardTabs({ hasOwnedListings = false } = {}) {
       return true;
     }
     if (tab.conversations && !BL_ENABLE_CONVERSATIONS) return false;
+    if (tab.id === USER_DASHBOARD_TAB_IDS.MY_INQUIRIES) {
+      if (!BL_ENABLE_INQUIRIES && !BL_ENABLE_CONVERSATIONS) return false;
+      if (BL_ENABLE_CONVERSATIONS) return false;
+    }
     if (tab.crm && !crmTabsEnabled) return false;
     return true;
   });

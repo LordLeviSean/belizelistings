@@ -2,9 +2,13 @@ import dynamic from "next/dynamic";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/router";
 import { CalendarClock, MessageCircle, Share2 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 import { fetchListingOwnerContact } from "@/lib/listingContactResolver";
 import { resolveListingAgentUserId, resolveListingAgentUserIdAsync } from "@/lib/listingInquiryTargets";
-import { supabase } from "@/lib/supabaseClient";
+import {
+  getListingAvailabilityMessage,
+  isListingEngagementEnabled,
+} from "@/utils/canonicalListing";
 import { useListingEngagementAuthPrompt } from "@/components/auth/ListingEngagementAuthPromptProvider";
 import {
   LISTING_ENGAGEMENT_ACTIONS,
@@ -32,6 +36,8 @@ export default function ListingContactActions({ listing, user }) {
   const [agentUserIdResolved, setAgentUserIdResolved] = useState(null);
 
   const listingReturnPath = router.asPath || `/listing/${listing?.id}`;
+  const engagementEnabled = isListingEngagementEnabled(listing);
+  const availabilityMessage = getListingAvailabilityMessage(listing);
 
   const listingAgentUserId = useMemo(
     () => agentUserIdResolved || resolveListingAgentUserId(listing, ownerContact),
@@ -100,6 +106,10 @@ export default function ListingContactActions({ listing, user }) {
 
   const requestSiteMessage = useCallback(() => {
     setContactOpen(false);
+    if (!engagementEnabled) {
+      showToast({ type: "info", message: availabilityMessage });
+      return;
+    }
     if (!user?.id) {
       openListingEngagementPrompt({
         action: LISTING_ENGAGEMENT_ACTIONS.MESSAGE,
@@ -109,9 +119,13 @@ export default function ListingContactActions({ listing, user }) {
       return;
     }
     setMessageOpen(true);
-  }, [user?.id, listing?.id, listingReturnPath, openListingEngagementPrompt]);
+  }, [user?.id, listing?.id, listingReturnPath, openListingEngagementPrompt, engagementEnabled, availabilityMessage, showToast]);
 
   const requestScheduleViewing = useCallback(() => {
+    if (!engagementEnabled) {
+      showToast({ type: "info", message: availabilityMessage });
+      return;
+    }
     if (!user?.id) {
       openListingEngagementPrompt({
         action: LISTING_ENGAGEMENT_ACTIONS.VIEWING,
@@ -121,7 +135,7 @@ export default function ListingContactActions({ listing, user }) {
       return;
     }
     setViewingOpen(true);
-  }, [user?.id, listing?.id, listingReturnPath, openListingEngagementPrompt]);
+  }, [user?.id, listing?.id, listingReturnPath, openListingEngagementPrompt, engagementEnabled, availabilityMessage, showToast]);
 
   const listingUrl =
     typeof window !== "undefined" ? `${window.location.origin}/listing/${listing?.id}` : "";
@@ -151,14 +165,29 @@ export default function ListingContactActions({ listing, user }) {
 
   return (
     <section className={wrapClass} aria-label="Contact and scheduling">
+      {!engagementEnabled ? (
+        <p className={styles.unavailableNote} role="status">
+          {availabilityMessage}
+        </p>
+      ) : null}
       <div className={styles.row}>
         <div className={styles.rowLead}>
-          <button type="button" className={styles.primaryBtn} onClick={() => setContactOpen(true)}>
+          <button
+            type="button"
+            className={styles.primaryBtn}
+            onClick={() => setContactOpen(true)}
+            disabled={!engagementEnabled}
+          >
             <MessageCircle size={18} strokeWidth={2} aria-hidden />
             Contact agent
           </button>
 
-          <button type="button" className={styles.secondaryBtn} onClick={requestScheduleViewing}>
+          <button
+            type="button"
+            className={styles.secondaryBtn}
+            onClick={requestScheduleViewing}
+            disabled={!engagementEnabled}
+          >
             <CalendarClock size={18} strokeWidth={2} aria-hidden />
             Schedule viewing
           </button>

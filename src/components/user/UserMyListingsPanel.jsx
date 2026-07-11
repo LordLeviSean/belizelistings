@@ -8,6 +8,7 @@ import { isLegacyGenerationDraft } from "@/lib/legacyDraftCompat";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { MODAL_TYPES, useModalController } from "@/hooks/useModalController";
 import ArchiveListingModal from "@/components/listing/ArchiveListingModal";
+import MarkRecentlyClosedModal from "@/components/listing/MarkRecentlyClosedModal";
 import UserListingRowIntel from "@/components/user/UserListingRowIntel";
 import useUserDashboardStore from "@/stores/useUserDashboardStore";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -25,6 +26,8 @@ import { getRegionLabel, normalizeRegionSlug } from "@/constants/geographyLayer"
 import { applyListingLifecycleAction } from "@/utils/ownershipAttribution";
 import {
   buildModerationArchivePatch,
+  buildRecentlyRentedPatch,
+  buildRecentlySoldPatch,
 } from "@/lib/listingWriteContract";
 import { getLifecycleStatus } from "@/utils/canonicalListing";
 import {
@@ -44,6 +47,18 @@ function coverUrl(listing) {
   return first?.image_url || "";
 }
 
+function isRentListing(listing) {
+  const signals = [
+    listing?.listing_type,
+    listing?.market_type,
+    listing?.listing_status,
+    listing?.property_type,
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+  return /(rent|rental|lease|for-rent|for rent)/.test(signals);
+}
+
 function UserMyListingsPanel({ userId, tier }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -53,6 +68,9 @@ function UserMyListingsPanel({ userId, tier }) {
   const archiveTargetId = modal.isModalOpen(MODAL_TYPES.ARCHIVE)
     ? String(modal.activeModal?.payload?.listingId || "")
     : "";
+  const closeTarget = modal.isModalOpen(MODAL_TYPES.MARK_RECENTLY_CLOSED)
+    ? modal.activeModal?.payload || null
+    : null;
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(MY_LISTINGS_STATUS_FILTERS.ALL);
   const [sortKey, setSortKey] = useState(MY_LISTINGS_SORT_KEYS.NEWEST);
@@ -145,6 +163,47 @@ function UserMyListingsPanel({ userId, tier }) {
   const openArchiveListing = (listingId) => {
     modal.closeAllModals();
     modal.openModal(MODAL_TYPES.ARCHIVE, { listingId: String(listingId) });
+  };
+
+  const openMarkRecentlyClosed = (listing) => {
+    modal.closeAllModals();
+    modal.openModal(MODAL_TYPES.MARK_RECENTLY_CLOSED, {
+      listingId: String(listing.id),
+      title: listing.title || "Listing",
+      mode: isRentListing(listing) ? "rented" : "sold",
+    });
+  };
+
+  const confirmMarkRecentlyClosed = async () => {
+    const listingId = closeTarget?.listingId;
+    if (!listingId) return;
+    const action =
+      closeTarget?.mode === "rented" ? OWNERSHIP_ACTIONS.CLOSE_RENTED : OWNERSHIP_ACTIONS.CLOSE_SOLD;
+    const optimisticPatch =
+      closeTarget?.mode === "rented" ? buildRecentlyRentedPatch() : buildRecentlySoldPatch();
+
+    setActionId(String(listingId));
+    patchMyListingRow(listingId, optimisticPatch);
+    const { error } = await applyListingLifecycleAction(supabase, {
+      listingId,
+      action,
+    });
+    if (error) {
+      setActionId("");
+      invalidate();
+      showToast({ type: "error", message: error?.message || "Unable to update listing status" });
+      return;
+    }
+    invalidate();
+    showToast({
+      type: "success",
+      message:
+        closeTarget?.mode === "rented"
+          ? "Listing marked as recently rented."
+          : "Listing marked as recently sold.",
+    });
+    setActionId("");
+    modal.closeModal(MODAL_TYPES.MARK_RECENTLY_CLOSED);
   };
 
   const resubmitViaEditor = (listingId) => {
@@ -325,6 +384,14 @@ function UserMyListingsPanel({ userId, tier }) {
                         </Link>
                         <button
                           type="button"
+                          className={styles.approveButton}
+                          onClick={() => openMarkRecentlyClosed(l)}
+                          disabled={actionId === String(l.id)}
+                        >
+                          {isRentListing(l) ? "Mark rented" : "Mark sold"}
+                        </button>
+                        <button
+                          type="button"
                           className={styles.deleteListingButton}
                           onClick={() => openArchiveListing(l.id)}
                           disabled={actionId === String(l.id)}
@@ -369,6 +436,17 @@ function UserMyListingsPanel({ userId, tier }) {
           modal.closeModal(MODAL_TYPES.ARCHIVE);
         }}
         onConfirm={confirmArchiveListing}
+      />
+      <MarkRecentlyClosedModal
+        open={Boolean(closeTarget?.listingId)}
+        isSubmitting={Boolean(closeTarget?.listingId && actionId === closeTarget.listingId)}
+        mode={closeTarget?.mode === "rented" ? "rented" : "sold"}
+        listingTitle={closeTarget?.title || ""}
+        onClose={() => {
+          if (actionId === closeTarget?.listingId) return;
+          modal.closeModal(MODAL_TYPES.MARK_RECENTLY_CLOSED);
+        }}
+        onConfirm={confirmMarkRecentlyClosed}
       />
       <DeleteConfirmationModal
         isOpen={modal.isModalOpen(MODAL_TYPES.DELETE)}

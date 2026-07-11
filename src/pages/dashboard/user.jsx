@@ -35,6 +35,7 @@ import {
   getVisibleUserDashboardTabs,
   userHasOwnedListings,
 } from "@/constants/dashboardUserConfig";
+import { resolveUserDashboardTabFromQuery } from "@/lib/dashboardCrmRoutes";
 import styles from "@/styles/Dashboard.module.css";
 import loadingStyles from "@/styles/UserDashboard.module.css";
 
@@ -92,7 +93,10 @@ export default function UserDashboard() {
     [profile?.username]
   );
 
-  const activeTab = useMemo(() => normalizeUserDashboardTab(router.query.tab), [router.query.tab]);
+  const activeTab = useMemo(() => {
+    const inferred = resolveUserDashboardTabFromQuery(router.query);
+    return USER_TAB_SET.has(inferred) ? inferred : USER_DASHBOARD_TAB_IDS.OVERVIEW;
+  }, [router.query.tab, router.query.conversation, router.query.viewing]);
 
   const hasOwnedListings = useMemo(
     () =>
@@ -455,6 +459,13 @@ export default function UserDashboard() {
                         listingsById={{}}
                         buyerUserId={user?.id}
                         onRefresh={loadBuyerCrm}
+                        initialViewingId={
+                          typeof router.query.viewing === "string"
+                            ? router.query.viewing
+                            : Array.isArray(router.query.viewing)
+                              ? router.query.viewing[0]
+                              : null
+                        }
                       />
                     )}
                   </section>

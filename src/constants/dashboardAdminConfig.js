@@ -63,8 +63,9 @@ export function getVisibleAdminDashboardTabs() {
     if (tab.buyer || tab.owner) {
       if (!crmEnabled) return false;
       if (tab.conversations && !BL_ENABLE_CONVERSATIONS) return false;
-      if (tab.id === ADMIN_DASHBOARD_TAB_IDS.MY_INQUIRIES && !BL_ENABLE_INQUIRIES && !BL_ENABLE_CONVERSATIONS) {
-        return false;
+      if (tab.id === ADMIN_DASHBOARD_TAB_IDS.MY_INQUIRIES) {
+        if (!BL_ENABLE_INQUIRIES && !BL_ENABLE_CONVERSATIONS) return false;
+        if (BL_ENABLE_CONVERSATIONS) return false;
       }
       if (
         (tab.id === ADMIN_DASHBOARD_TAB_IDS.MY_VIEWINGS ||

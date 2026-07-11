@@ -147,6 +147,36 @@ export const MODERATION_RESUBMIT_STATUS_TIERS = Object.freeze([
   Object.freeze({ status: "pending" }),
 ]);
 
+/** Owner marks listing as recently sold — temporary public display window. */
+export const RECENTLY_SOLD_STATUS_TIERS = Object.freeze([
+  Object.freeze({
+    status: LISTING_LIFECYCLE.RECENTLY_SOLD,
+    lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD,
+    moderation_status: "approved",
+    sold_at: null,
+  }),
+  Object.freeze({
+    status: LISTING_LIFECYCLE.RECENTLY_SOLD,
+    lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD,
+  }),
+  Object.freeze({ status: LISTING_LIFECYCLE.RECENTLY_SOLD }),
+]);
+
+/** Owner marks listing as recently rented — temporary public display window. */
+export const RECENTLY_RENTED_STATUS_TIERS = Object.freeze([
+  Object.freeze({
+    status: LISTING_LIFECYCLE.RECENTLY_RENTED,
+    lifecycle_status: LISTING_LIFECYCLE.RECENTLY_RENTED,
+    moderation_status: "approved",
+    rented_at: null,
+  }),
+  Object.freeze({
+    status: LISTING_LIFECYCLE.RECENTLY_RENTED,
+    lifecycle_status: LISTING_LIFECYCLE.RECENTLY_RENTED,
+  }),
+  Object.freeze({ status: LISTING_LIFECYCLE.RECENTLY_RENTED }),
+]);
+
 export function buildModerationApprovePatch() {
   return { ...MODERATION_APPROVE_STATUS_TIERS[0] };
 }
@@ -177,6 +207,34 @@ export function buildModerationResubmitPatch() {
 
 export function buildModerationResubmitFallback() {
   return { ...MODERATION_RESUBMIT_STATUS_TIERS[1] };
+}
+
+export function buildRecentlySoldPatch({ closedAt, closedBy } = {}) {
+  const at = closedAt || new Date().toISOString();
+  return {
+    ...RECENTLY_SOLD_STATUS_TIERS[0],
+    sold_at: at,
+    closed_at: at,
+    ...(closedBy ? { closed_by: closedBy } : {}),
+  };
+}
+
+export function buildRecentlySoldFallback() {
+  return { ...RECENTLY_SOLD_STATUS_TIERS[1], sold_at: new Date().toISOString() };
+}
+
+export function buildRecentlyRentedPatch({ closedAt, closedBy } = {}) {
+  const at = closedAt || new Date().toISOString();
+  return {
+    ...RECENTLY_RENTED_STATUS_TIERS[0],
+    rented_at: at,
+    closed_at: at,
+    ...(closedBy ? { closed_by: closedBy } : {}),
+  };
+}
+
+export function buildRecentlyRentedFallback() {
+  return { ...RECENTLY_RENTED_STATUS_TIERS[1], rented_at: new Date().toISOString() };
 }
 
 const ENRICHMENT_STRIP_SET = new Set(MUTATION_ENRICHMENT_STRIP_ORDER);

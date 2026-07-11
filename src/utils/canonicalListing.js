@@ -1,5 +1,9 @@
 import { normalizeRegionSlug } from "../constants/geographyLayer";
 import { LISTING_LIFECYCLE, normalizeLifecycleStatus } from "../constants/operationalModel";
+import {
+  getListingClosedAt,
+  isWithinRecentlyClosedWindow,
+} from "../constants/listingClosedLifecycle";
 
 /** Operational inventory buckets (draft/verified/etc. → excluded). Each listing maps to at most one. */
 export const OPERATIONAL_LIFECYCLE_BUCKET = Object.freeze({
@@ -60,17 +64,70 @@ export function getListingRegionSlug(listing = {}) {
 }
 
 /**
- * Published / approved inventory only. Archived, rejected, pending, draft, etc. are non-public.
- * Uses canonical lifecycle resolution (any archived signal wins first).
+ * Published inventory available for new inquiries and viewing requests.
  */
-export function isPubliclyVisibleListing(listing) {
+export function isActiveInventoryListing(listing) {
   if (!listing || listing.id == null) return false;
   return getLifecycleStatus(listing) === LISTING_LIFECYCLE.PUBLISHED;
 }
 
+/**
+ * Recently sold/rented listings within the temporary public display window.
+ */
+export function isRecentlyClosedPublicListing(listing, nowMs) {
+  if (!listing || listing.id == null) return false;
+  const lc = getLifecycleStatus(listing);
+  if (lc !== LISTING_LIFECYCLE.RECENTLY_SOLD && lc !== LISTING_LIFECYCLE.RECENTLY_RENTED) {
+    return false;
+  }
+  return isWithinRecentlyClosedWindow(getListingClosedAt(listing), nowMs);
+}
+
+/**
+ * Browsable on homepage, search, agent profiles, favorites — published or recently closed.
+ */
+export function isBrowsableListing(listing, nowMs) {
+  if (!listing || listing.id == null) return false;
+  if (isActiveInventoryListing(listing)) return true;
+  return isRecentlyClosedPublicListing(listing, nowMs);
+}
+
+/** @deprecated use isActiveInventoryListing for engagement gates */
+export function isPubliclyVisibleListing(listing) {
+  return isActiveInventoryListing(listing);
+}
+
 /** Client-side guard for browse/search/map/favorites when API rows may be stale. */
+export function filterBrowsableInventory(listings, nowMs) {
+  return (listings || []).filter((row) => isBrowsableListing(row, nowMs));
+}
+
+/** Active for-sale / for-rent counts only. */
+export function filterActiveInventory(listings) {
+  return (listings || []).filter(isActiveInventoryListing);
+}
+
+/** @deprecated use filterBrowsableInventory */
 export function filterPublicInventory(listings) {
-  return (listings || []).filter(isPubliclyVisibleListing);
+  return filterActiveInventory(listings);
+}
+
+/**
+ * Whether guests/members can start new messages or viewing requests.
+ */
+export function isListingEngagementEnabled(listing, nowMs) {
+  return isActiveInventoryListing(listing);
+}
+
+export function getListingAvailabilityMessage(listing) {
+  const lc = getLifecycleStatus(listing);
+  if (lc === LISTING_LIFECYCLE.RECENTLY_SOLD || lc === LISTING_LIFECYCLE.SOLD) {
+    return "This property was recently sold.";
+  }
+  if (lc === LISTING_LIFECYCLE.RECENTLY_RENTED || lc === LISTING_LIFECYCLE.RENTED) {
+    return "This property was recently rented.";
+  }
+  return "This listing is no longer available for inquiries.";
 }
 
 /**

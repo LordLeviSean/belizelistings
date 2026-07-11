@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 export const MODAL_TYPES = {
   DELETE: "delete",
   ARCHIVE: "archive",
+  MARK_RECENTLY_CLOSED: "mark-recently-closed",
   EDIT: "edit",
   VIEW: "view",
   ADMIN_ACTION: "admin-action",

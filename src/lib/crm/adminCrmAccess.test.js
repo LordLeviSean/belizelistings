@@ -23,8 +23,9 @@ describe("admin CRM access", () => {
     const tabs = getVisibleAdminDashboardTabs();
     const ids = tabs.map((t) => t.id);
     expect(ids).toEqual(
-      expect.arrayContaining(["messages", "my-inquiries", "my-viewings", "owner-inbox", "owner-viewings"])
+      expect.arrayContaining(["messages", "my-viewings", "owner-inbox", "owner-viewings"])
     );
+    expect(ids).not.toContain("my-inquiries");
   });
 
   test("fetchConversationsForAgent scopes by listing owner agent_id", () => {

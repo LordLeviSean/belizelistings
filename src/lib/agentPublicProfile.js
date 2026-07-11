@@ -1,6 +1,6 @@
 import { PROFILE_OWNER_MINIMAL_SELECT } from "./profileSelectContract";
 import { isMissingRelationshipError } from "./supabaseCompat";
-import { filterPublicInventory, getListingRegionSlug } from "../utils/canonicalListing";
+import { filterBrowsableInventory, getListingRegionSlug } from "../utils/canonicalListing";
 import { mapListingWithImages } from "../utils/listingImage";
 
 const PUBLIC_AGENT_ROLES = new Set(["agent", "broker"]);
@@ -11,7 +11,7 @@ const PUBLIC_AGENT_ROLES = new Set(["agent", "broker"]);
  */
 export function groupPublicListingsByUserId(rows) {
   const publicByAgent = {};
-  for (const row of filterPublicInventory(rows || [])) {
+  for (const row of filterBrowsableInventory(rows || [])) {
     const uid = row?.user_id;
     if (!uid) continue;
     if (!publicByAgent[uid]) publicByAgent[uid] = [];
@@ -48,7 +48,7 @@ export async function fetchPublicListingsForUser(supabaseClient, userId) {
 
   if (error) return [];
 
-  return filterPublicInventory((data || []).map((row) => mapListingWithImages(row)));
+  return filterBrowsableInventory((data || []).map((row) => mapListingWithImages(row)));
 }
 
 /**

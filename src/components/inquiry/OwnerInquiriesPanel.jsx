@@ -23,10 +23,11 @@ export default function OwnerInquiriesPanel({
   agentUserId,
   onRefresh,
   legacyFallback = null,
+  initialConversationId = null,
 }) {
   const { showToast } = useToast();
   const [selectedListingId, setSelectedListingId] = useState(null);
-  const [selectedConversationId, setSelectedConversationId] = useState(null);
+  const [selectedConversationId, setSelectedConversationId] = useState(initialConversationId);
   const [mobilePane, setMobilePane] = useState("listings");
   const [isCompact, setIsCompact] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -52,6 +53,13 @@ export default function OwnerInquiriesPanel({
     }
     return selectedGroup?.conversations?.[0] || null;
   }, [conversations, selectedConversationId, selectedGroup]);
+
+  useEffect(() => {
+    if (!initialConversationId) return;
+    setSelectedConversationId(initialConversationId);
+    const match = conversations.find((c) => c.id === initialConversationId);
+    if (match?.listing_id) setSelectedListingId(match.listing_id);
+  }, [initialConversationId, conversations]);
 
   const listingTitle =
     listingsById?.[selectedConversation?.listing_id]?.title ||

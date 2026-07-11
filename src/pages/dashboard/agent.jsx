@@ -33,6 +33,7 @@ import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featur
 import { fetchConversationsForAgent } from "@/lib/crm/conversationMutations";
 import { fetchViewingsForAgent } from "@/lib/crm/viewingMutations";
 import { useToast } from "@/components/ui/ToastProvider";
+import { resolveAgentDashboardTabFromQuery } from "@/lib/dashboardCrmRoutes";
 import styles from "@/styles/Dashboard.module.css";
 import loadingStyles from "@/styles/UserDashboard.module.css";
 
@@ -89,7 +90,10 @@ export default function AgentDashboard() {
   const metricsLoading = useAgentDashboardStore((s) => s.metricsLoading);
   const myListingsInitialFetchDone = useAgentDashboardStore((s) => s.myListingsInitialFetchDone);
 
-  const activeTab = useMemo(() => normalizeAgentDashboardTab(router.query.tab), [router.query.tab]);
+  const activeTab = useMemo(() => {
+    const inferred = resolveAgentDashboardTabFromQuery(router.query);
+    return AGENT_TAB_SET.has(inferred) ? inferred : AGENT_DASHBOARD_TAB_IDS.OVERVIEW;
+  }, [router.query.tab, router.query.conversation, router.query.viewing]);
 
   const visibleTabs = useMemo(
     () =>
@@ -380,6 +384,13 @@ export default function AgentDashboard() {
                           conversations={conversationRows}
                           listingsById={listingsById}
                           agentUserId={user.id}
+                          initialConversationId={
+                            typeof router.query.conversation === "string"
+                              ? router.query.conversation
+                              : Array.isArray(router.query.conversation)
+                                ? router.query.conversation[0]
+                                : null
+                          }
                           onRefresh={() => {
                             loadConversations();
                             useAgentDashboardStore.getState().invalidate({ listings: false });
@@ -420,6 +431,13 @@ export default function AgentDashboard() {
                         listingsById={listingsById}
                         agentUserId={user.id}
                         onRefresh={loadViewings}
+                        initialViewingId={
+                          typeof router.query.viewing === "string"
+                            ? router.query.viewing
+                            : Array.isArray(router.query.viewing)
+                              ? router.query.viewing[0]
+                              : null
+                        }
                       />
                     )}
                   </section>

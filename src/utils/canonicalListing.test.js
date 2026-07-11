@@ -3,7 +3,11 @@ import {
   getModerationStatus,
   getListingRegionSlug,
   isPubliclyVisibleListing,
+  isBrowsableListing,
+  isListingEngagementEnabled,
   filterPublicInventory,
+  filterBrowsableInventory,
+  filterActiveInventory,
   normalizeOperationalLifecycle,
   tallyOperationalLifecycleCounts,
   OPERATIONAL_LIFECYCLE_BUCKET,
@@ -100,8 +104,47 @@ describe("canonicalListing", () => {
       { id: 1, status: "approved" },
       { id: 2, status: "archived" },
       { id: 3, status: "approved", moderation_status: "archived" },
+      { id: 4, status: "recently_sold", sold_at: "2026-07-01T00:00:00.000Z" },
     ];
     expect(filterPublicInventory(rows).map((r) => r.id)).toEqual([1]);
+  });
+
+  test("filterBrowsableInventory includes recently closed within display window", () => {
+    const now = Date.parse("2026-07-10T12:00:00.000Z");
+    const rows = [
+      { id: 1, status: "approved" },
+      { id: 2, status: "recently_sold", sold_at: "2026-07-01T00:00:00.000Z" },
+      { id: 3, status: "recently_sold", sold_at: "2026-05-01T00:00:00.000Z" },
+    ];
+    expect(filterBrowsableInventory(rows, now).map((r) => r.id)).toEqual([1, 2]);
+    expect(filterActiveInventory(rows).map((r) => r.id)).toEqual([1]);
+  });
+
+  test("isListingEngagementEnabled only for published inventory", () => {
+    expect(isListingEngagementEnabled({ id: 1, status: "approved" })).toBe(true);
+    expect(
+      isListingEngagementEnabled({
+        id: 2,
+        status: "recently_sold",
+        sold_at: "2026-07-01T00:00:00.000Z",
+      })
+    ).toBe(false);
+  });
+
+  test("isBrowsableListing includes recently closed within window", () => {
+    const now = Date.parse("2026-07-10T12:00:00.000Z");
+    expect(
+      isBrowsableListing(
+        { id: 1, status: "recently_rented", rented_at: "2026-07-05T00:00:00.000Z" },
+        now
+      )
+    ).toBe(true);
+    expect(
+      isBrowsableListing(
+        { id: 2, status: "recently_rented", rented_at: "2026-04-01T00:00:00.000Z" },
+        now
+      )
+    ).toBe(false);
   });
 
   test("normalizeOperationalLifecycle: pending, approved, rejected, archived vs excluded", () => {

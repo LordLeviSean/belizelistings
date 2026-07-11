@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import { VIEWING_STATUS } from "@/lib/crm/crmConstants";
+import { viewingStatusLabel, isOwnerActionableViewingStatus } from "@/lib/crm/viewingStatusLabels";
 import {
   acceptViewingReschedule,
   archiveViewing,
@@ -15,16 +16,6 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
 import listStyles from "./AgentInquiryList.module.css";
-
-function statusLabel(status) {
-  if (status === VIEWING_STATUS.CONFIRMED) return "Confirmed";
-  if (status === VIEWING_STATUS.PENDING) return "Pending";
-  if (status === VIEWING_STATUS.CANCELLED) return "Cancelled";
-  if (status === VIEWING_STATUS.COMPLETED) return "Completed";
-  if (status === VIEWING_STATUS.RESCHEDULED) return "Reschedule proposed";
-  if (status === VIEWING_STATUS.DECLINED) return "Declined";
-  return status || "Scheduled";
-}
 
 function formatViewingSlot(date, time) {
   if (!date) return "";
@@ -41,7 +32,7 @@ function formatViewingSlot(date, time) {
 }
 
 function isPendingLike(status) {
-  return status === VIEWING_STATUS.PENDING || status === VIEWING_STATUS.RESCHEDULED;
+  return isOwnerActionableViewingStatus(status);
 }
 
 export default function AgentViewingsPanel({
@@ -49,13 +40,20 @@ export default function AgentViewingsPanel({
   listingsById = {},
   agentUserId,
   onRefresh,
+  initialViewingId = null,
 }) {
   const { showToast } = useToast();
   const [busyId, setBusyId] = useState("");
+  const [highlightId, setHighlightId] = useState(initialViewingId);
   const [declineTarget, setDeclineTarget] = useState(null);
   const [rescheduleId, setRescheduleId] = useState(null);
   const [proposedDate, setProposedDate] = useState("");
   const [proposedTime, setProposedTime] = useState("10:00");
+
+  useEffect(() => {
+    if (!initialViewingId) return;
+    setHighlightId(initialViewingId);
+  }, [initialViewingId]);
 
   if (!viewings?.length) {
     return (
@@ -127,7 +125,15 @@ export default function AgentViewingsPanel({
             row.status === VIEWING_STATUS.RESCHEDULED && row.proposed_date && !showRescheduleForm;
 
           return (
-            <article key={row.id} className={listStyles.card}>
+            <article
+              key={row.id}
+              className={[
+                listStyles.card,
+                highlightId === row.id ? listStyles.cardHighlighted : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
               <header className={listStyles.cardHead}>
                 <span className={listStyles.channel}>Viewing request</span>
                 <time className={listStyles.time} dateTime={row.requested_date}>
@@ -297,7 +303,7 @@ export default function AgentViewingsPanel({
                     Archive
                   </button>
                 ) : null}
-                <span className={listStyles.statusPill}>{statusLabel(row.status)}</span>
+                <span className={listStyles.statusPill}>{viewingStatusLabel(row.status)}</span>
               </div>
             </article>
           );

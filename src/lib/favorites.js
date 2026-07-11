@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient";
-import { filterPublicInventory } from "../utils/canonicalListing";
+import { filterBrowsableInventory } from "../utils/canonicalListing";
 
 export async function addFavorite(listingId) {
   const {
@@ -99,7 +99,7 @@ export async function getUserFavorites() {
 
   if (error) return { data: [], error };
 
-  const listings = filterPublicInventory(
+  const listings = filterBrowsableInventory(
     (data || [])
       .map((row) => row.listing)
       .filter(Boolean)

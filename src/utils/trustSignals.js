@@ -1,5 +1,6 @@
 import { ACTIVITY_SIGNAL_TYPES, VERIFICATION_STATUS } from "../constants/trustModel";
 import { LISTING_LIFECYCLE, normalizeLifecycleStatus } from "../constants/operationalModel";
+import { isWithinRecentlyClosedWindow, recentlyClosedDisplayMs } from "../constants/listingClosedLifecycle";
 import { getLifecycleTimestamps } from "./listingOperationalMeta";
 
 const MS_IN_HOUR = 60 * 60 * 1000;
@@ -71,16 +72,20 @@ export function getListingActivitySignals(listing = {}) {
     signals.push(ACTIVITY_SIGNAL_TYPES.RECENTLY_VERIFIED);
   }
 
-  if (lifecycle === LISTING_LIFECYCLE.RENTED && timestamps.rentedAt) {
-    if (now - timestamps.rentedAt.getTime() <= 48 * MS_IN_HOUR) {
-      signals.push(ACTIVITY_SIGNAL_TYPES.RECENTLY_RENTED);
-    }
+  if (
+    (lifecycle === LISTING_LIFECYCLE.RECENTLY_RENTED || lifecycle === LISTING_LIFECYCLE.RENTED) &&
+    timestamps.rentedAt &&
+    isWithinRecentlyClosedWindow(timestamps.rentedAt)
+  ) {
+    signals.push(ACTIVITY_SIGNAL_TYPES.RECENTLY_RENTED);
   }
 
-  if (lifecycle === LISTING_LIFECYCLE.SOLD && timestamps.soldAt) {
-    if (now - timestamps.soldAt.getTime() <= 48 * MS_IN_HOUR) {
-      signals.push(ACTIVITY_SIGNAL_TYPES.RECENTLY_SOLD);
-    }
+  if (
+    (lifecycle === LISTING_LIFECYCLE.RECENTLY_SOLD || lifecycle === LISTING_LIFECYCLE.SOLD) &&
+    timestamps.soldAt &&
+    isWithinRecentlyClosedWindow(timestamps.soldAt)
+  ) {
+    signals.push(ACTIVITY_SIGNAL_TYPES.RECENTLY_SOLD);
   }
 
   if (

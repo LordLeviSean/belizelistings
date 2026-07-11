@@ -28,12 +28,14 @@ describe("notificationCopyRegistry", () => {
     expect(pres.body).toMatch(/viewing/i);
   });
 
-  test("agent_replied dedupe includes message id", () => {
+  test("agent_replied routes buyer to messages tab with conversation", () => {
     const pres = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.AGENT_REPLIED, {
       conversation_id: "c1",
       message_id: "m1",
+      recipient_role: "user",
     });
     expect(pres.dedupeKey).toBe("agent_replied:c1:m1");
+    expect(pres.href).toBe("/dashboard/user?tab=messages&conversation=c1");
   });
 
   test("viewing_requested routes agent to viewings tab", () => {
@@ -59,5 +61,6 @@ describe("notificationCopyRegistry", () => {
     expect(item.unread).toBe(true);
     expect(item.id).toBe("notif-n1");
     expect(item.notificationId).toBe("n1");
+    expect(item.href).toBe("/dashboard/user?tab=my-viewings&viewing=v1");
   });
 });
