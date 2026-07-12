@@ -14,9 +14,21 @@ jest.mock("./inquiryMutations", () => ({
   createInquiryWithConversation: jest.fn(),
 }));
 
+jest.mock("../notifications/notificationEvents", () => ({
+  enqueueNotificationEvent: jest.fn().mockResolvedValue({ ok: true, queueId: "q1" }),
+  triggerNotificationDelivery: jest.fn().mockResolvedValue({ ok: true }),
+  NOTIFICATION_EVENT_TYPES: {
+    VIEWING_REQUESTED: "viewing_requested",
+    VIEWING_CONFIRMED: "viewing_confirmed",
+    VIEWING_DECLINED: "viewing_declined",
+    VIEWING_CANCELLED: "viewing_cancelled",
+    VIEWING_RESCHEDULED: "viewing_rescheduled",
+  },
+}));
+
 import { emitListingEventAfterMutation } from "../listingEvents/writeListingEvent";
 import { LISTING_EVENT_TYPES } from "../listingEvents/listingEventTypes";
-import { NOTIFICATION_EVENT_TYPES } from "../notifications/notificationEvents";
+import { NOTIFICATION_EVENT_TYPES, enqueueNotificationEvent } from "../notifications/notificationEvents";
 import { createInquiryWithConversation } from "./inquiryMutations";
 import {
   cancelViewing,
@@ -38,12 +50,7 @@ describe("viewingMutations", () => {
       error: null,
     });
 
-    const insert = jest.fn().mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        single: jest.fn().mockResolvedValue({ data: { id: "q1" }, error: null }),
-      }),
-    });
-    const client = { rpc: jest.fn(), from: jest.fn().mockReturnValue({ insert }) };
+    const client = { rpc: jest.fn(), from: jest.fn() };
 
     const result = await createViewingRequest(client, {
       listingId: 12,
@@ -63,8 +70,10 @@ describe("viewingMutations", () => {
         requestedTime: "10:00",
       })
     );
-    expect(insert).toHaveBeenCalledWith(
-      expect.objectContaining({ event_type: NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED })
+    expect(enqueueNotificationEvent).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({ eventType: NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED }),
+      expect.any(Object)
     );
   });
 
@@ -88,15 +97,10 @@ describe("viewingMutations", () => {
     const from = jest.fn((table) => {
       if (table === "viewing_requests") return { update };
       if (table === "conversations") {
-        return { update: jest.fn().mockReturnValue({ eq: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ error: null }) }) }) };
-      }
-      if (table === "notification_queue") {
         return {
-          insert: jest.fn().mockReturnValue({
-            select: jest.fn().mockReturnValue({
-              single: jest.fn().mockResolvedValue({ data: { id: "q1" }, error: null }),
-            }),
-          }),
+          update: jest
+            .fn()
+            .mockReturnValue({ eq: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ error: null }) }) }),
         };
       }
       return { update };
@@ -158,15 +162,9 @@ describe("viewingMutations", () => {
         error: null,
       }),
     };
-    const insert = jest.fn().mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        single: jest.fn().mockResolvedValue({ data: { id: "q1" }, error: null }),
-      }),
-    });
     const client = {
       from: jest.fn((table) => {
         if (table === "viewing_requests") return { update: jest.fn().mockReturnValue(chain) };
-        if (table === "notification_queue") return { insert };
         return {};
       }),
     };
@@ -177,8 +175,10 @@ describe("viewingMutations", () => {
       cancelledByAgent: false,
     });
     expect(error).toBeNull();
-    expect(insert).toHaveBeenCalledWith(
-      expect.objectContaining({ event_type: NOTIFICATION_EVENT_TYPES.VIEWING_CANCELLED })
+    expect(enqueueNotificationEvent).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({ eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CANCELLED }),
+      expect.any(Object)
     );
   });
 
@@ -205,6 +205,13 @@ describe("viewingMutations", () => {
       BL_ENABLE_CONVERSATIONS: false,
       BL_ENABLE_VIEWING_PERSIST: false,
       BL_ENABLE_NOTIFICATIONS: false,
+    }));
+    jest.doMock("../notifications/notificationEvents", () => ({
+      enqueueNotificationEvent: jest.fn().mockResolvedValue({ ok: true, queueId: "q1" }),
+      triggerNotificationDelivery: jest.fn().mockResolvedValue({ ok: true }),
+      NOTIFICATION_EVENT_TYPES: {
+        VIEWING_REQUESTED: "viewing_requested",
+      },
     }));
     const { createViewingRequest: createDirect } = await import("./viewingMutations");
 

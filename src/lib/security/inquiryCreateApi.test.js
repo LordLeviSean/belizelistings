@@ -71,12 +71,9 @@ describe("POST /api/inquiries/create", () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
-  test("rejects guest when turnstile verification fails", async () => {
-    verifyTurnstileToken.mockResolvedValue({ ok: false, error: "turnstile_verification_failed" });
+  test("rejects unauthenticated inquiries", async () => {
     createClient.mockReturnValue({
-      from: jest.fn().mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ error: null }),
-      }),
+      from: jest.fn(),
       rpc: jest.fn(),
       auth: { getUser: jest.fn() },
     });
@@ -84,58 +81,59 @@ describe("POST /api/inquiries/create", () => {
     const req = {
       method: "POST",
       headers: {},
-      body: {
-        listingId: 1,
-        senderEmail: "guest@test.com",
-        message: "Hello",
-        turnstileToken: "bad",
-      },
-      socket: { remoteAddress: "127.0.0.1" },
+      body: { listingId: 1, message: "Hello" },
+      socket: {},
     };
     const res = mockRes();
 
     await handler(req, res);
 
-    expect(verifyTurnstileToken).toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: "captcha_failed" })
+      expect.objectContaining({ code: "authentication_required" })
     );
   });
 
   test("maps RPC rate_limited_listing to HTTP 429", async () => {
-    verifyTurnstileToken.mockResolvedValue({ ok: true });
     const rpc = jest.fn().mockResolvedValue({
       data: null,
       error: { message: "rate_limited_listing: maximum guest inquiries per listing per hour exceeded" },
     });
-    createClient.mockImplementation(() => ({
-      from: jest.fn((table) => {
-        if (table === "listings") {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                maybeSingle: jest.fn().mockResolvedValue({
-                  data: { id: 1, user_id: "agent-1", status: "published" },
-                  error: null,
+    createClient.mockImplementation((url, key, opts) => {
+      const isUserClient = opts?.global?.headers?.Authorization;
+      if (isUserClient) {
+        return {
+          auth: {
+            getUser: jest.fn().mockResolvedValue({ data: { user: { id: "buyer-1" } } }),
+          },
+        };
+      }
+      return {
+        from: jest.fn((table) => {
+          if (table === "listings") {
+            return {
+              select: jest.fn().mockReturnValue({
+                eq: jest.fn().mockReturnValue({
+                  maybeSingle: jest.fn().mockResolvedValue({
+                    data: { id: 1, user_id: "agent-1", status: "published" },
+                    error: null,
+                  }),
                 }),
               }),
-            }),
-          };
-        }
-        return { insert: jest.fn().mockResolvedValue({ error: null }) };
-      }),
-      rpc,
-    }));
+            };
+          }
+          return { insert: jest.fn().mockResolvedValue({ error: null }) };
+        }),
+        rpc,
+      };
+    });
 
     const req = {
       method: "POST",
-      headers: {},
+      headers: { authorization: "Bearer test-token" },
       body: {
         listingId: 1,
-        senderEmail: "guest@test.com",
         message: "Hello again",
-        turnstileToken: "ok",
       },
       socket: {},
     };

@@ -27,20 +27,16 @@ export async function enqueueNotificationEvent(
   { eventType, recipientId, recipientEmail, payload = {} },
   { deliver = BL_ENABLE_NOTIFICATIONS } = {}
 ) {
-  if (!client?.from || !eventType) {
+  if (!client?.rpc || !eventType) {
     return { ok: false, skipped: true };
   }
 
-  const row = {
-    event_type: eventType,
-    recipient_id: recipientId ?? null,
-    recipient_email: recipientEmail ?? null,
-    payload,
-    status: "pending",
-    scheduled_at: new Date().toISOString(),
-  };
-
-  const { data, error } = await client.from("notification_queue").insert(row).select("id").single();
+  const { data, error } = await client.rpc("enqueue_notification_event", {
+    p_event_type: eventType,
+    p_recipient_id: recipientId ?? null,
+    p_recipient_email: recipientEmail ?? null,
+    p_payload: payload,
+  });
 
   if (error) {
     if (isCrmUnavailable(error)) {
@@ -52,7 +48,8 @@ export async function enqueueNotificationEvent(
     return { ok: false, error };
   }
 
-  const queueId = data?.id ?? null;
+  const result = data && typeof data === "object" ? data : {};
+  const queueId = result.queue_id ?? result.queueId ?? null;
   let delivery = null;
 
   if (deliver && queueId) {

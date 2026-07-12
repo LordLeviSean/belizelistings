@@ -23,6 +23,9 @@ Thumbs.db
 # Cursor IDE
 .cursor/
 
+# Claude IDE local launch configs
+.claude/
+
 # Local QA screenshots (not committed)
 qa-screenshots/
 

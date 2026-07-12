@@ -111,6 +111,13 @@ export async function createInquiryWithConversation(client, payload) {
  * Backwards-compatible inquiry submit — prefers RPC when BL_ENABLE_CONVERSATIONS.
  */
 export async function submitListingInquiry(client, payload) {
+  if (BL_ENABLE_CONVERSATIONS && !payload.senderUserId) {
+    return {
+      data: null,
+      error: { message: "authentication_required", code: "authentication_required" },
+    };
+  }
+
   if (BL_ENABLE_TURNSTILE && !payload.senderUserId) {
     return submitGuestInquiryViaSecureApi(payload);
   }

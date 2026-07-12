@@ -63,6 +63,16 @@ describe("inquiryMutations", () => {
     );
   });
 
+  test("submitListingInquiry requires auth when conversations enabled", async () => {
+    const { data, error } = await submitListingInquiry({ rpc: jest.fn() }, {
+      listingId: 7,
+      agentUserId: "agent-1",
+      message: "Hi",
+    });
+    expect(data).toBeNull();
+    expect(error?.code).toBe("authentication_required");
+  });
+
   test("submitListingInquiry falls back to legacy insert when RPC unavailable", async () => {
     jest.resetModules();
     jest.doMock("../featureFlags", () => ({ BL_ENABLE_CONVERSATIONS: false }));
@@ -98,6 +108,7 @@ describe("inquiryMutations", () => {
     const { data, error } = await submitListingInquiry(client, {
       listingId: "99",
       agentUserId: "agent-1",
+      senderUserId: "buyer-1",
       body: "Schedule a tour please.",
       channel: "contact",
     });

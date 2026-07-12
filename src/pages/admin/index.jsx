@@ -32,9 +32,7 @@ import AdminOperationalStats from "../../components/AdminOperationalStats";
 import AgentUpgradeRequestsPanel from "../../components/admin/AgentUpgradeRequestsPanel";
 import AdminOwnerInboxPanel from "../../components/admin/AdminOwnerInboxPanel";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "../../lib/featureFlags";
-import { fetchInquiriesForBuyer } from "../../lib/crm/inquiryMutations";
-import { fetchConversationsForBuyer } from "../../lib/crm/conversationMutations";
-import { fetchViewingsForBuyer } from "../../lib/crm/viewingMutations";
+import { loadBuyerCrmData } from "../../lib/crm/buyerCrmData";
 import {
   ADMIN_DASHBOARD_TAB_IDS,
   getVisibleAdminDashboardTabs,
@@ -72,6 +70,7 @@ export default function AdminPage() {
   const [buyerInquiries, setBuyerInquiries] = useState([]);
   const [buyerViewings, setBuyerViewings] = useState([]);
   const [buyerConversations, setBuyerConversations] = useState([]);
+  const [buyerListingsById, setBuyerListingsById] = useState({});
   const [buyerCrmLoading, setBuyerCrmLoading] = useState(false);
   const { enabled: livePaletteModeEnabled, setMode: setLivePaletteMode } = useLivePaletteMode();
   const { enabled: pulseModeEnabled, setMode: setPulseMode } = usePulseMode();
@@ -98,21 +97,13 @@ export default function AdminPage() {
   const loadBuyerCrm = useCallback(async () => {
     if (!user?.id) return;
     setBuyerCrmLoading(true);
-    const tasks = [];
-    if (crmTabsEnabled) {
-      tasks.push(fetchInquiriesForBuyer(supabase, user.id).then(({ data }) => setBuyerInquiries(data || [])));
-    }
-    if (BL_ENABLE_CONVERSATIONS) {
-      tasks.push(
-        fetchConversationsForBuyer(supabase, user.id).then(({ data }) => setBuyerConversations(data || []))
-      );
-    }
-    if (BL_ENABLE_VIEWING_PERSIST || BL_ENABLE_CONVERSATIONS) {
-      tasks.push(fetchViewingsForBuyer(supabase, user.id).then(({ data }) => setBuyerViewings(data || [])));
-    }
-    await Promise.all(tasks);
+    const { inquiries, viewings, conversations, listingsById } = await loadBuyerCrmData(supabase, user.id);
+    setBuyerInquiries(inquiries);
+    setBuyerViewings(viewings);
+    setBuyerConversations(conversations);
+    setBuyerListingsById(listingsById);
     setBuyerCrmLoading(false);
-  }, [user?.id, crmTabsEnabled]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (
@@ -428,7 +419,7 @@ export default function AdminPage() {
                   ) : (
                     <BuyerViewingsPanel
                       viewings={buyerViewings}
-                      listingsById={{}}
+                      listingsById={buyerListingsById}
                       buyerUserId={user?.id}
                       onRefresh={loadBuyerCrm}
                     />

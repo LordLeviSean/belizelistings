@@ -14,12 +14,11 @@ import { deliverAfterEnqueue } from "./deliverNotifications";
 
 describe("notificationEvents integration", () => {
   test("enqueue → deliver path when flag on", async () => {
-    const insert = jest.fn().mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        single: jest.fn().mockResolvedValue({ data: { id: "queue-1" }, error: null }),
-      }),
+    const rpc = jest.fn().mockResolvedValue({
+      data: { ok: true, queue_id: "queue-1" },
+      error: null,
     });
-    const client = { from: jest.fn().mockReturnValue({ insert }) };
+    const client = { rpc };
 
     const result = await enqueueNotificationEvent(
       client,

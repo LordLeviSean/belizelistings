@@ -89,25 +89,11 @@ export default async function handler(req, res) {
   const senderName = body.senderName ?? null;
   const senderPhone = body.senderPhone ?? null;
 
-  if (!senderUserId && !senderEmail) {
-    return res.status(400).json({ code: "validation_error", error: "sender_email is required for guest inquiries." });
-  }
-
-  if (!senderUserId && BL_ENABLE_TURNSTILE) {
-    const turnstile = await verifyTurnstileToken(body.turnstileToken, { remoteIp: ip });
-    if (!turnstile.ok) {
-      await logSecurityEvent(adminClient, {
-        eventType: "captcha_failure",
-        listingId,
-        senderEmail,
-        ipAddress: ip,
-        metadata: { reason: turnstile.error },
-      });
-      return res.status(400).json({
-        code: "captcha_failed",
-        error: "Verification failed. Please try again.",
-      });
-    }
+  if (!senderUserId) {
+    return res.status(401).json({
+      code: "authentication_required",
+      error: "Sign in to contact this listing.",
+    });
   }
 
   const { data: listing, error: listingErr } = await adminClient

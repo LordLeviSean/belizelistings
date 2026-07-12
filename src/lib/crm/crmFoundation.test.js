@@ -15,16 +15,11 @@ describe("crmConstants", () => {
 });
 
 describe("notificationEvents", () => {
-  test("enqueueNotificationEvent skips gracefully when table missing", async () => {
+  test("enqueueNotificationEvent skips gracefully when RPC unavailable", async () => {
     const client = {
-      from: jest.fn().mockReturnValue({
-        insert: jest.fn().mockReturnValue({
-          select: jest.fn().mockReturnValue({
-            single: jest.fn().mockResolvedValue({
-              error: { message: "relation notification_queue does not exist" },
-            }),
-          }),
-        }),
+      rpc: jest.fn().mockResolvedValue({
+        data: null,
+        error: { message: "relation notification_queue does not exist" },
       }),
     };
     const result = await enqueueNotificationEvent(client, {
@@ -35,13 +30,12 @@ describe("notificationEvents", () => {
     expect(result.skipped).toBe(true);
   });
 
-  test("enqueueNotificationEvent inserts pending row", async () => {
-    const insert = jest.fn().mockReturnValue({
-      select: jest.fn().mockReturnValue({
-        single: jest.fn().mockResolvedValue({ data: { id: "q1" }, error: null }),
-      }),
+  test("enqueueNotificationEvent calls secure RPC", async () => {
+    const rpc = jest.fn().mockResolvedValue({
+      data: { ok: true, queue_id: "q1" },
+      error: null,
     });
-    const client = { from: jest.fn().mockReturnValue({ insert }) };
+    const client = { rpc };
     const result = await enqueueNotificationEvent(client, {
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
       recipientId: "buyer-1",
@@ -49,8 +43,13 @@ describe("notificationEvents", () => {
     });
     expect(result.ok).toBe(true);
     expect(result.queueId).toBe("q1");
-    expect(insert).toHaveBeenCalledWith(
-      expect.objectContaining({ event_type: "viewing_confirmed", status: "pending" })
+    expect(rpc).toHaveBeenCalledWith(
+      "enqueue_notification_event",
+      expect.objectContaining({
+        p_event_type: "viewing_confirmed",
+        p_recipient_id: "buyer-1",
+        p_payload: { viewing_id: "v1" },
+      })
     );
   });
 });

@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { discardDraftListing } from "@/lib/listingPersistence";
 import { getUserActiveListingCount } from "@/lib/listingPersistence";
 import ArchiveListingModal from "@/components/listing/ArchiveListingModal";
+import MarkRecentlyClosedModal from "@/components/listing/MarkRecentlyClosedModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { MODAL_TYPES, useModalController } from "@/hooks/useModalController";
 import UserListingRowIntel from "@/components/user/UserListingRowIntel";
@@ -27,7 +28,7 @@ import {
   applyListingLifecycleAction,
   permanentlyDeleteArchivedListing,
 } from "@/utils/ownershipAttribution";
-import { buildModerationArchivePatch } from "@/lib/listingWriteContract";
+import { buildModerationArchivePatch, buildRecentlyRentedPatch, buildRecentlySoldPatch } from "@/lib/listingWriteContract";
 import { getLifecycleStatus } from "@/utils/canonicalListing";
 import { isLegacyGenerationDraft } from "@/lib/legacyDraftCompat";
 import {
@@ -55,6 +56,18 @@ function emptyVariantForFilter(filter) {
   return "listings";
 }
 
+function isRentListing(listing) {
+  const signals = [
+    listing?.listing_type,
+    listing?.market_type,
+    listing?.listing_status,
+    listing?.property_type,
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+  return /(rent|rental|lease|for-rent|for rent)/.test(signals);
+}
+
 function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterChange }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -64,6 +77,9 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
   const archiveTargetId = modal.isModalOpen(MODAL_TYPES.ARCHIVE)
     ? String(modal.activeModal?.payload?.listingId || "")
     : "";
+  const closeTarget = modal.isModalOpen(MODAL_TYPES.MARK_RECENTLY_CLOSED)
+    ? modal.activeModal?.payload || null
+    : null;
   const [searchQuery, setSearchQuery] = useState("");
   const [sortKey, setSortKey] = useState(MY_LISTINGS_SORT_KEYS.NEWEST);
 
@@ -107,6 +123,49 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
   const mayShowError = myListingsInitialFetchDone && !loading && Boolean(listingsErrorMessage);
   const showSkeleton =
     loading || (!myListingsInitialFetchDone && !listingsErrorMessage && listings.length === 0);
+
+  const editListingHref = (listingId) => resolveListingEditHref(listingId);
+
+  const openMarkRecentlyClosed = (listing) => {
+    modal.closeAllModals();
+    modal.openModal(MODAL_TYPES.MARK_RECENTLY_CLOSED, {
+      listingId: String(listing.id),
+      title: listing.title || "Listing",
+      mode: isRentListing(listing) ? "rented" : "sold",
+    });
+  };
+
+  const confirmMarkRecentlyClosed = async () => {
+    const listingId = closeTarget?.listingId;
+    if (!listingId) return;
+    const action =
+      closeTarget?.mode === "rented" ? OWNERSHIP_ACTIONS.CLOSE_RENTED : OWNERSHIP_ACTIONS.CLOSE_SOLD;
+    const optimisticPatch =
+      closeTarget?.mode === "rented" ? buildRecentlyRentedPatch() : buildRecentlySoldPatch();
+
+    setActionId(String(listingId));
+    patchMyListingRow(listingId, optimisticPatch);
+    const { error } = await applyListingLifecycleAction(supabase, {
+      listingId,
+      action,
+    });
+    if (error) {
+      setActionId("");
+      invalidate();
+      showToast({ type: "error", message: error?.message || "Unable to update listing status" });
+      return;
+    }
+    invalidate();
+    showToast({
+      type: "success",
+      message:
+        closeTarget?.mode === "rented"
+          ? "Listing marked as recently rented."
+          : "Listing marked as recently sold.",
+    });
+    setActionId("");
+    modal.closeModal(MODAL_TYPES.MARK_RECENTLY_CLOSED);
+  };
 
   const confirmArchiveListing = async () => {
     const listingId = archiveTargetId;
@@ -238,8 +297,6 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
     modal.closeAllModals();
     modal.openModal(MODAL_TYPES.ARCHIVE, { listingId: String(listingId) });
   };
-
-  const editListingHref = (listingId) => resolveListingEditHref(listingId);
 
   const emptyProps = {
     variant: emptyVariantForFilter(lifecycleFilter),
@@ -405,14 +462,27 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
                       </>
                     ) : null}
                     {isPublished ? (
-                      <button
-                        type="button"
-                        className={styles.deleteListingButton}
-                        onClick={() => openArchiveListing(l.id)}
-                        disabled={actionId === String(l.id)}
-                      >
-                        {actionId === String(l.id) ? "Archiving…" : "Archive"}
-                      </button>
+                      <>
+                        <Link className={styles.approveButton} href={editListingHref(l.id)}>
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          className={styles.approveButton}
+                          onClick={() => openMarkRecentlyClosed(l)}
+                          disabled={actionId === String(l.id)}
+                        >
+                          {isRentListing(l) ? "Mark rented" : "Mark sold"}
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.deleteListingButton}
+                          onClick={() => openArchiveListing(l.id)}
+                          disabled={actionId === String(l.id)}
+                        >
+                          {actionId === String(l.id) ? "Archiving…" : "Archive"}
+                        </button>
+                      </>
                     ) : null}
                     {isRejected ? (
                       <>
@@ -472,6 +542,18 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
           modal.closeModal(MODAL_TYPES.ARCHIVE);
         }}
         onConfirm={confirmArchiveListing}
+      />
+
+      <MarkRecentlyClosedModal
+        open={Boolean(closeTarget?.listingId)}
+        isSubmitting={Boolean(closeTarget?.listingId && actionId === closeTarget.listingId)}
+        mode={closeTarget?.mode || "sold"}
+        listingTitle={closeTarget?.title || "Listing"}
+        onClose={() => {
+          if (actionId === closeTarget?.listingId) return;
+          modal.closeModal(MODAL_TYPES.MARK_RECENTLY_CLOSED);
+        }}
+        onConfirm={confirmMarkRecentlyClosed}
       />
 
       <DeleteConfirmationModal
