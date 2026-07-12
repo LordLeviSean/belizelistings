@@ -15,6 +15,7 @@ import {
 } from "@/lib/crm/viewingMutations";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useViewingsRealtime } from "@/lib/crm/useViewingsRealtime";
 import listStyles from "./AgentInquiryList.module.css";
 
 function formatViewingSlot(date, time) {
@@ -54,6 +55,8 @@ export default function AgentViewingsPanel({
     if (!initialViewingId) return;
     setHighlightId(initialViewingId);
   }, [initialViewingId]);
+
+  useViewingsRealtime({ userId: agentUserId, asAgent: true }, onRefresh);
 
   if (!viewings?.length) {
     return (
@@ -122,7 +125,9 @@ export default function AgentViewingsPanel({
             row.requester_name || row.requester_email || (row.requester_id ? "Registered buyer" : "Guest");
           const showRescheduleForm = rescheduleId === row.id;
           const buyerProposed =
-            row.status === VIEWING_STATUS.RESCHEDULED && row.proposed_date && !showRescheduleForm;
+            row.status === VIEWING_STATUS.RESCHEDULED &&
+            row.proposed_date &&
+            row.proposed_by === "buyer";
 
           return (
             <article
@@ -223,7 +228,11 @@ export default function AgentViewingsPanel({
                       disabled={busyId === row.id}
                       onClick={() =>
                         void runAction(row.id, () =>
-                          acceptViewingReschedule(supabase, { viewingId: row.id, agentUserId })
+                          acceptViewingReschedule(supabase, {
+                            viewingId: row.id,
+                            actorUserId: agentUserId,
+                            asAgent: true,
+                          })
                         ).then((ok) => ok && showToast({ type: "success", message: "Reschedule accepted." }))
                       }
                     >

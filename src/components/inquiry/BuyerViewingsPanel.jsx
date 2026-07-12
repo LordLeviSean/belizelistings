@@ -8,7 +8,9 @@ import {
   archiveViewing,
   cancelViewing,
   proposeViewingReschedule,
+  acceptViewingReschedule,
 } from "@/lib/crm/viewingMutations";
+import { useViewingsRealtime } from "@/lib/crm/useViewingsRealtime";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
 import listStyles from "./AgentInquiryList.module.css";
@@ -50,6 +52,8 @@ export default function BuyerViewingsPanel({
     if (!initialViewingId) return;
     setHighlightId(initialViewingId);
   }, [initialViewingId]);
+
+  useViewingsRealtime({ userId: buyerUserId, asAgent: false }, onRefresh);
 
   if (!viewings?.length) {
     return (
@@ -99,6 +103,23 @@ export default function BuyerViewingsPanel({
     onRefresh?.();
   };
 
+  const handleAcceptReschedule = async (viewingId) => {
+    if (!buyerUserId) return;
+    setBusyId(viewingId);
+    const { error } = await acceptViewingReschedule(supabase, {
+      viewingId,
+      actorUserId: buyerUserId,
+      asAgent: false,
+    });
+    setBusyId("");
+    if (error) {
+      showToast({ type: "error", message: error.message || "Could not accept proposed time." });
+      return;
+    }
+    showToast({ type: "success", message: "Viewing time confirmed." });
+    onRefresh?.();
+  };
+
   const handleArchive = async (viewingId) => {
     if (!buyerUserId) return;
     setBusyId(viewingId);
@@ -125,6 +146,10 @@ export default function BuyerViewingsPanel({
             `Listing ${String(row.listing_id || "").slice(0, 8)}…`;
           const active = isActiveStatus(row.status);
           const showRescheduleForm = rescheduleId === row.id;
+          const agentProposed =
+            row.status === VIEWING_STATUS.RESCHEDULED &&
+            row.proposed_date &&
+            row.proposed_by === "agent";
 
           return (
             <article
@@ -143,7 +168,7 @@ export default function BuyerViewingsPanel({
                 </time>
               </header>
               <p className={listStyles.listingRef}>{title}</p>
-              {row.status === VIEWING_STATUS.RESCHEDULED && row.proposed_date ? (
+              {agentProposed ? (
                 <p className={listStyles.body}>
                   Agent proposed: {formatViewingSlot(row.proposed_date, row.proposed_time)}
                 </p>
@@ -180,6 +205,16 @@ export default function BuyerViewingsPanel({
                 ) : null}
                 {active && buyerUserId ? (
                   <>
+                    {agentProposed ? (
+                      <button
+                        type="button"
+                        className={listStyles.primary}
+                        disabled={busyId === row.id}
+                        onClick={() => void handleAcceptReschedule(row.id)}
+                      >
+                        Accept proposed time
+                      </button>
+                    ) : null}
                     {showRescheduleForm ? (
                       <>
                         <button

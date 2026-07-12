@@ -145,6 +145,13 @@ export function resolveNotificationDestination({ eventType, role, payload = {} }
     case NOTIFICATION_EVENT_TYPES.VIEWING_CANCELLED:
     case NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED:
     case NOTIFICATION_EVENT_TYPES.VIEWING_RESCHEDULED:
+      if (recipientRole === "agent" || recipientRole === "admin") {
+        return resolveOwnerInboxPath({
+          role: recipientRole,
+          tab: "viewings",
+          viewingId,
+        });
+      }
       return resolveBuyerViewingsPath({ role: recipientRole, viewingId });
 
     case NOTIFICATION_EVENT_TYPES.INQUIRY_ARCHIVED:

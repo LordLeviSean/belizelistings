@@ -37,6 +37,24 @@ describe("dashboardCrmRoutes", () => {
     expect(href).toBe("/dashboard/agent?tab=viewings&viewing=view-3");
   });
 
+  test("resolveNotificationDestination routes agent viewing confirmed to agent viewings", () => {
+    const href = resolveNotificationDestination({
+      eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
+      role: "agent",
+      payload: { viewing_id: "view-9", recipient_role: "agent" },
+    });
+    expect(href).toBe("/dashboard/agent?tab=viewings&viewing=view-9");
+  });
+
+  test("resolveNotificationDestination routes buyer viewing rescheduled to my-viewings", () => {
+    const href = resolveNotificationDestination({
+      eventType: NOTIFICATION_EVENT_TYPES.VIEWING_RESCHEDULED,
+      role: "user",
+      payload: { viewing_id: "view-2", recipient_role: "user" },
+    });
+    expect(href).toBe("/dashboard/user?tab=my-viewings&viewing=view-2");
+  });
+
   test("resolveUserDashboardTabFromQuery infers messages from conversation param", () => {
     expect(resolveUserDashboardTabFromQuery({ conversation: "c1" })).toBe(
       USER_DASHBOARD_TAB_IDS.MESSAGES

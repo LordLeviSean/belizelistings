@@ -2,7 +2,7 @@
 
 Use this checklist before enabling marketplace features in production (Netlify + Supabase). All flags default **off** until migrations are applied and env vars are set.
 
-**Related:** [platform-freeze-v1.7.0.md](./platform-freeze-v1.7.0.md) · [marketplace-security-v1.6.7.md](./marketplace-security-v1.6.7.md)
+**Related:** [platform-freeze-v1.7.0.md](./platform-freeze-v1.7.0.md) · [marketplace-security-v1.6.7.md](./marketplace-security-v1.6.7.md) · [open-beta-readiness.md](./open-beta-readiness.md)
 
 ---
 
@@ -22,6 +22,12 @@ Use this checklist before enabling marketplace features in production (Netlify +
 | 10 | `20260626160000_crm_foundation.sql` | CRM / inquiries |
 | 11 | `20260627120000_notification_delivery.sql` | Notifications inbox |
 | 12 | `20260628120000_inquiry_rate_limits.sql` | Rate limits + security events |
+| 13 | `20260710190000_listing_owner_metrics.sql` | Owner metrics |
+| 14 | `20260710200000_recently_closed_listing_lifecycle.sql` | Recently closed lifecycle |
+| 15 | `20260712120000_p0_marketplace_security.sql` | P0 marketplace security |
+| 16 | `20260712140000_open_beta_communication_loop.sql` | Open beta communication loop |
+
+**Open beta:** See [open-beta-readiness.md](./open-beta-readiness.md) for staging flags, cron, and manual test matrix.
 
 ```bash
 node scripts/apply-supabase-migrations.mjs

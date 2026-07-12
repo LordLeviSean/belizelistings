@@ -11,6 +11,7 @@ import {
   markConversationReadByAgent,
   sendAgentReply,
 } from "@/lib/crm/conversationMutations";
+import { useConversationMessagesRealtime } from "@/lib/crm/useConversationMessagesRealtime";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
 import ConversationThread from "./ConversationThread";
@@ -84,6 +85,19 @@ export default function OwnerInquiriesPanel({
   useEffect(() => {
     if (selectedConversation?.id) void loadMessages(selectedConversation.id);
   }, [selectedConversation?.id, loadMessages]);
+
+  const handleRealtimeMessage = useCallback(
+    (row) => {
+      if (!row?.id) return;
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === row.id)) return prev;
+        return [...prev, row];
+      });
+    },
+    []
+  );
+
+  useConversationMessagesRealtime(selectedConversation?.id, handleRealtimeMessage, onRefresh);
 
   useEffect(() => {
     if (!selectedConversation?.id || !agentUserId) return;

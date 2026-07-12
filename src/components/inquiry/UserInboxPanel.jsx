@@ -10,6 +10,7 @@ import {
   sendBuyerReply,
 } from "@/lib/crm/conversationMutations";
 import { formatRelativeTime } from "@/lib/formatRelativeTime";
+import { useConversationMessagesRealtime } from "@/lib/crm/useConversationMessagesRealtime";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
 import listStyles from "./AgentInquiryList.module.css";
@@ -69,6 +70,19 @@ export default function UserInboxPanel({
   useEffect(() => {
     if (selected?.id) void loadMessages(selected.id);
   }, [selected?.id, loadMessages]);
+
+  const handleRealtimeMessage = useCallback(
+    (row) => {
+      if (!row?.id) return;
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === row.id)) return prev;
+        return [...prev, row];
+      });
+    },
+    []
+  );
+
+  useConversationMessagesRealtime(selected?.id, handleRealtimeMessage, onRefresh);
 
   useEffect(() => {
     if (!selected?.id || !buyerUserId) return;

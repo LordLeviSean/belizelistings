@@ -6,14 +6,16 @@ import { enqueueNotificationEvent, NOTIFICATION_EVENT_TYPES } from "../notificat
 import { CRM_PIPELINE_STAGE, INQUIRY_TYPE, VIEWING_STATUS } from "./crmConstants";
 import { coerceListingIdForDb, isCrmUnavailable } from "./crmCompat";
 import { createInquiryWithConversation } from "./inquiryMutations";
+import { withNotificationRecipientRole } from "./notificationRecipientRoles";
 
 const VIEWING_SELECT =
-  "id,listing_id,conversation_id,requester_id,requester_email,requester_name,agent_user_id,requested_date,requested_time,proposed_date,proposed_time,status,notes,message,confirmed_at,created_at,updated_at";
+  "id,listing_id,conversation_id,requester_id,requester_email,requester_name,agent_user_id,requested_date,requested_time,proposed_date,proposed_time,proposed_by,status,notes,message,confirmed_at,created_at,updated_at";
 
-async function notifyViewingEvent(client, { eventType, recipientId, payload }) {
+async function notifyViewingEvent(client, { eventType, recipientId, payload, parties = {} }) {
+  const enrichedPayload = withNotificationRecipientRole(recipientId, parties, payload);
   await enqueueNotificationEvent(
     client,
-    { eventType, recipientId, payload },
+    { eventType, recipientId, payload: enrichedPayload },
     { deliver: BL_ENABLE_NOTIFICATIONS }
   );
   if (BL_ENABLE_NOTIFICATIONS) {
@@ -50,19 +52,6 @@ export async function createViewingRequest(client, payload) {
     });
     if (!rpcResult.unavailable) {
       const viewingId = rpcResult.data?.viewingId;
-      if (viewingId && payload.agentUserId) {
-        await notifyViewingEvent(client, {
-          eventType: NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED,
-          recipientId: payload.agentUserId,
-          payload: {
-            viewing_id: viewingId,
-            conversation_id: rpcResult.data?.conversationId,
-            listing_id: listingId,
-            requested_date: requestedDate,
-            requested_time: requestedTime,
-          },
-        });
-      }
       return {
         data: {
           id: viewingId,
@@ -98,6 +87,7 @@ export async function createViewingRequest(client, payload) {
     await notifyViewingEvent(client, {
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED,
       recipientId: payload.agentUserId,
+      parties: { agentUserId: payload.agentUserId },
       payload: {
         viewing_id: data.id,
         listing_id: listingId,
@@ -120,6 +110,7 @@ export async function confirmViewing(client, { viewingId, agentUserId, notes }) 
       notes: notes ?? null,
       proposed_date: null,
       proposed_time: null,
+      proposed_by: null,
       updated_at: now,
     })
     .eq("id", viewingId)
@@ -144,6 +135,7 @@ export async function confirmViewing(client, { viewingId, agentUserId, notes }) 
     await notifyViewingEvent(client, {
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
       recipientId: data.requester_id,
+      parties: { agentUserId: data.agent_user_id, requesterId: data.requester_id },
       payload: {
         viewing_id: viewingId,
         listing_id: data.listing_id,
@@ -192,6 +184,7 @@ export async function declineViewing(client, { viewingId, agentUserId, notes }) 
     await notifyViewingEvent(client, {
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED,
       recipientId: data.requester_id,
+      parties: { agentUserId: data.agent_user_id, requesterId: data.requester_id },
       payload: { viewing_id: viewingId, listing_id: data.listing_id },
     });
   }
@@ -212,6 +205,7 @@ export async function proposeViewingReschedule(client, {
     status: VIEWING_STATUS.RESCHEDULED,
     proposed_date: proposedDate,
     proposed_time: proposedTime,
+    proposed_by: asAgent ? "agent" : "buyer",
     notes: notes ?? null,
     updated_at: now,
   };
@@ -227,6 +221,7 @@ export async function proposeViewingReschedule(client, {
     await notifyViewingEvent(client, {
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_RESCHEDULED,
       recipientId,
+      parties: { agentUserId: data?.agent_user_id, requesterId: data?.requester_id },
       payload: {
         viewing_id: viewingId,
         listing_id: data.listing_id,
@@ -240,13 +235,15 @@ export async function proposeViewingReschedule(client, {
   return { data, error: null };
 }
 
-export async function acceptViewingReschedule(client, { viewingId, agentUserId }) {
-  const { data: current, error: fetchError } = await client
-    .from("viewing_requests")
-    .select(VIEWING_SELECT)
-    .eq("id", viewingId)
-    .eq("agent_user_id", agentUserId)
-    .maybeSingle();
+export async function acceptViewingReschedule(client, { viewingId, actorUserId, asAgent = true }) {
+  const expectedProposer = asAgent ? "buyer" : "agent";
+
+  let fetchQuery = client.from("viewing_requests").select(VIEWING_SELECT).eq("id", viewingId);
+  fetchQuery = asAgent
+    ? fetchQuery.eq("agent_user_id", actorUserId)
+    : fetchQuery.eq("requester_id", actorUserId);
+
+  const { data: current, error: fetchError } = await fetchQuery.maybeSingle();
 
   if (fetchError || !current) {
     return { data: null, error: fetchError || { message: "Viewing not found" } };
@@ -254,36 +251,71 @@ export async function acceptViewingReschedule(client, { viewingId, agentUserId }
   if (!current.proposed_date || !current.proposed_time) {
     return { data: null, error: { message: "No proposed time to accept" } };
   }
+  if (current.proposed_by && current.proposed_by !== expectedProposer) {
+    return { data: null, error: { message: "No proposal from the other party to accept" } };
+  }
 
   const now = new Date().toISOString();
-  const { data, error } = await client
+  let updateQuery = client
     .from("viewing_requests")
     .update({
       requested_date: current.proposed_date,
       requested_time: current.proposed_time,
       proposed_date: null,
       proposed_time: null,
+      proposed_by: null,
       status: VIEWING_STATUS.CONFIRMED,
-      confirmed_by: agentUserId,
+      confirmed_by: asAgent ? actorUserId : current.agent_user_id,
       confirmed_at: now,
       updated_at: now,
     })
-    .eq("id", viewingId)
-    .eq("agent_user_id", agentUserId)
-    .select(VIEWING_SELECT)
-    .single();
+    .eq("id", viewingId);
+  updateQuery = asAgent
+    ? updateQuery.eq("agent_user_id", actorUserId)
+    : updateQuery.eq("requester_id", actorUserId);
+
+  const { data, error } = await updateQuery.select(VIEWING_SELECT).single();
 
   if (error) return { data: null, error };
 
-  if (data?.requester_id) {
+  if (data?.conversation_id) {
+    await client
+      .from("conversations")
+      .update({
+        pipeline_stage: CRM_PIPELINE_STAGE.VIEWING_SCHEDULED,
+        stage: CRM_PIPELINE_STAGE.VIEWING_SCHEDULED,
+        updated_at: now,
+      })
+      .eq("id", data.conversation_id);
+  }
+
+  const notifyRecipientId = asAgent ? data?.requester_id : data?.agent_user_id;
+  if (notifyRecipientId) {
     await notifyViewingEvent(client, {
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
-      recipientId: data.requester_id,
+      recipientId: notifyRecipientId,
+      parties: { agentUserId: data.agent_user_id, requesterId: data.requester_id },
       payload: {
         viewing_id: viewingId,
         listing_id: data.listing_id,
         requested_date: data.requested_date,
         requested_time: data.requested_time,
+      },
+    });
+  }
+
+  if (data?.listing_id) {
+    await emitListingEventAfterMutation({
+      client,
+      listingId: data.listing_id,
+      eventType: LISTING_EVENT_TYPES.VIEWING_SCHEDULED,
+      visibility: "public",
+      actorId: actorUserId,
+      actorRole: asAgent ? "agent" : "buyer",
+      payload: {
+        viewing_id: viewingId,
+        requested_date: data.requested_date,
+        requested_time: String(data.requested_time || ""),
       },
     });
   }
@@ -327,6 +359,7 @@ export async function cancelViewing(client, { viewingId, actorUserId, cancelledB
     await notifyViewingEvent(client, {
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CANCELLED,
       recipientId: notifyRecipientId,
+      parties: { agentUserId: data.agent_user_id, requesterId: data.requester_id },
       payload: { viewing_id: viewingId, listing_id: data.listing_id },
     });
   }

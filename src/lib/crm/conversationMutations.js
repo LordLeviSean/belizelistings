@@ -11,6 +11,7 @@ import {
   INQUIRY_STATUS,
   MESSAGE_SENDER_ROLE,
 } from "./crmConstants";
+import { withNotificationRecipientRole } from "./notificationRecipientRoles";
 import { isCrmUnavailable } from "./crmCompat";
 
 /** Disambiguate listing_inquiries embed (PGRST201 when multiple FKs exist). */
@@ -190,13 +191,17 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
       {
         eventType: NOTIFICATION_EVENT_TYPES.NEW_INQUIRY,
         recipientId: agentUserId,
-        payload: {
-          conversation_id: conversationId,
-          message_id: message?.id,
-          inquiry_id: conv?.inquiry_id,
-          listing_id: resolvedListingId,
-          dedupe_key: `buyer_message:${conversationId}:${message?.id ?? now}`,
-        },
+        payload: withNotificationRecipientRole(
+          agentUserId,
+          { agentUserId },
+          {
+            conversation_id: conversationId,
+            message_id: message?.id,
+            inquiry_id: conv?.inquiry_id,
+            listing_id: resolvedListingId,
+            dedupe_key: `buyer_message:${conversationId}:${message?.id ?? now}`,
+          }
+        ),
       },
       { deliver: BL_ENABLE_NOTIFICATIONS }
     );
@@ -283,7 +288,10 @@ export async function sendAgentReply(client, { conversationId, agentUserId, body
       {
         eventType: NOTIFICATION_EVENT_TYPES.AGENT_REPLIED,
         recipientId: conv.buyer_id,
-        payload: { conversation_id: conversationId, message_id: message?.id },
+        payload: withNotificationRecipientRole(conv.buyer_id, { requesterId: conv.buyer_id }, {
+          conversation_id: conversationId,
+          message_id: message?.id,
+        }),
       },
       { deliver: BL_ENABLE_NOTIFICATIONS }
     );
