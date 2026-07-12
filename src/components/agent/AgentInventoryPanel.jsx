@@ -22,6 +22,7 @@ import {
 } from "@/constants/operationalModel";
 import { OWNERSHIP_ACTIONS } from "@/constants/ownershipModel";
 import { getRegionLabel, normalizeRegionSlug } from "@/constants/geographyLayer";
+import { resolveListingEditHref } from "@/lib/listingEditAccess";
 import {
   applyListingLifecycleAction,
   permanentlyDeleteArchivedListing,
@@ -238,8 +239,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
     modal.openModal(MODAL_TYPES.ARCHIVE, { listingId: String(listingId) });
   };
 
-  const editListingHref = (listingId) =>
-    `/dashboard/create?draft=${encodeURIComponent(listingId)}`;
+  const editListingHref = (listingId) => resolveListingEditHref(listingId);
 
   const emptyProps = {
     variant: emptyVariantForFilter(lifecycleFilter),

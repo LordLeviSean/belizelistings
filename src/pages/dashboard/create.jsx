@@ -52,6 +52,12 @@ import {
 } from "@/lib/listingQueries";
 import useUserDashboardStore from "@/stores/useUserDashboardStore";
 import { isCreateWorkspaceEditableListing } from "@/lib/userDashboardListingTruth";
+import {
+  canUserEditListingRow,
+  getCreateWorkspaceListingPatchFilters,
+  isDirectSaveEditLifecycle,
+  requiresSubmitForReviewFlow,
+} from "@/lib/listingEditAccess";
 import { emitUserDashboardMetricsInvalidationAfterNavigation } from "@/lib/userDashboardMetricsBus";
 import { resolveCreateWorkspaceDashboardHref } from "@/lib/createWorkspaceDashboardRoutes";
 import { isProfileComplete, profileCompletionMissingReason } from "@/lib/isProfileComplete";
@@ -214,6 +220,7 @@ export default function DashboardCreatePage() {
   const [remoteImages, setRemoteImages] = useState([]);
   const [pendingUploads, setPendingUploads] = useState([]);
   const [hydratingDraft, setHydratingDraft] = useState(false);
+  const [editLoadError, setEditLoadError] = useState("");
   const [legacyDraftBlocked, setLegacyDraftBlocked] = useState(false);
   const [saveUi, setSaveUi] = useState("idle");
   const [lastSavedAt, setLastSavedAt] = useState(null);
@@ -362,6 +369,7 @@ export default function DashboardCreatePage() {
     if (!router.isReady || !queryDraftId || !user?.id) {
       setLegacyDraftBlocked(false);
       setEditSourceLifecycle("");
+      setEditLoadError("");
       legacyNormalizeAttemptedRef.current = false;
       return undefined;
     }
@@ -374,6 +382,7 @@ export default function DashboardCreatePage() {
     }
     let cancelled = false;
     setHydratingDraft(true);
+    setEditLoadError("");
     setLegacyDraftBlocked(false);
     legacyNormalizeAttemptedRef.current = false;
     (async () => {
@@ -381,19 +390,25 @@ export default function DashboardCreatePage() {
       if (cancelled) return;
       if (error || !data) {
         setHydratingDraft(false);
-        showToast({ type: "error", message: "Could not load this draft." });
+        setEditLoadError("not_found");
+        showToast({ type: "error", message: "This listing could not be found." });
         return;
       }
-      if (String(data.user_id) !== String(user.id)) {
+      if (!canUserEditListingRow({ row: data, userId: user.id, isAdmin })) {
         setHydratingDraft(false);
-        showToast({ type: "error", message: "This draft belongs to another account." });
+        setEditLoadError("forbidden");
+        showToast({
+          type: "error",
+          message: "You do not have permission to edit this listing.",
+        });
         return;
       }
       if (!isCreateWorkspaceEditableListing(data)) {
         setHydratingDraft(false);
+        setEditLoadError("forbidden");
         showToast({
-          type: "info",
-          message: "This listing cannot be edited here — open it from your dashboard.",
+          type: "error",
+          message: "This listing cannot be edited in its current state.",
         });
         return;
       }
@@ -411,7 +426,7 @@ export default function DashboardCreatePage() {
           .from("listings")
           .update(patchPayload)
           .eq("id", queryDraftId)
-          .eq("user_id", user.id);
+          .match(getCreateWorkspaceListingPatchFilters({ userId: user.id, isAdmin }));
         if (patchErr) {
           console.warn("[create-workspace] legacy draft normalize skipped", patchErr?.message ?? patchErr);
         } else {
@@ -422,9 +437,7 @@ export default function DashboardCreatePage() {
       setForm(mapListingRowToCreateForm(hydratedRow));
       setDraftListingId(String(hydratedRow.id));
       const hydratedLifecycle = getLifecycleStatus(hydratedRow);
-      setEditSourceLifecycle(
-        hydratedLifecycle === LISTING_LIFECYCLE.ARCHIVED ? LISTING_LIFECYCLE.ARCHIVED : ""
-      );
+      setEditSourceLifecycle(hydratedLifecycle || "");
       const imgs = (hydratedRow.listing_images || data.listing_images || [])
         .filter(Boolean)
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
@@ -454,7 +467,7 @@ export default function DashboardCreatePage() {
     return () => {
       cancelled = true;
     };
-  }, [router.isReady, queryDraftId, queryResubmit, user?.id, showToast]);
+  }, [router.isReady, queryDraftId, queryResubmit, user?.id, isAdmin, showToast]);
 
   useEffect(() => {
     if (!legacyDraftBlocked) return;
@@ -709,7 +722,7 @@ export default function DashboardCreatePage() {
         );
         const patchResult = await executeListingUpdate(supabase, activeId, payload, {
           mutationFlow,
-          eqFilters: { user_id: user.id },
+          eqFilters: getCreateWorkspaceListingPatchFilters({ userId: user.id, isAdmin }),
         });
         if (patchResult.error) {
           logListingMutationFailureGrouped({
@@ -835,6 +848,7 @@ export default function DashboardCreatePage() {
     persistRemoteImageOrder,
     showToast,
     legacyDraftBlocked,
+    isAdmin,
   ]);
 
   useEffect(() => {
@@ -961,7 +975,8 @@ export default function DashboardCreatePage() {
   ]);
 
   const handleContinue = useCallback(async () => {
-    if (hydratingDraft || legacyDraftBlocked || workspaceStage >= 5) return;
+    const stageCap = requiresSubmitForReviewFlow(editSourceLifecycle) ? 5 : 4;
+    if (hydratingDraft || legacyDraftBlocked || workspaceStage >= stageCap) return;
 
     const stageGate = validateWorkspaceStageForContinue(workspaceStage, form);
     if (!stageGate.ok) {
@@ -977,7 +992,7 @@ export default function DashboardCreatePage() {
       dirty || pendingUploads.length > 0 || !draftListingId;
     if (!needsServerSync && draftListingId) {
       setErrors({});
-      setWorkspaceStage((s) => Math.min(5, s + 1));
+      setWorkspaceStage((s) => Math.min(stageCap, s + 1));
       return;
     }
 
@@ -1012,7 +1027,7 @@ export default function DashboardCreatePage() {
     }
     setErrors({});
     setWorkspaceStage((s) => Math.min(5, s + 1));
-  }, [hydratingDraft, legacyDraftBlocked, workspaceStage, form, dirty, draftListingId, pendingUploads.length, runAutosave, showToast]);
+  }, [hydratingDraft, legacyDraftBlocked, workspaceStage, form, dirty, draftListingId, pendingUploads.length, runAutosave, showToast, editSourceLifecycle]);
 
   const handleBack = useCallback(async () => {
     if (hydratingDraft || legacyDraftBlocked || workspaceStage <= 1) return;
@@ -1655,14 +1670,32 @@ export default function DashboardCreatePage() {
     [form.property_type, form.listing_type, form.market_type, form.category]
   );
 
+  const isEditingExistingListing = Boolean(queryDraftId && draftListingId);
+  const isDirectSaveEdit = isDirectSaveEditLifecycle(editSourceLifecycle);
+  const maxWorkspaceStage = requiresSubmitForReviewFlow(editSourceLifecycle) ? 5 : 4;
+
   const saveLabel =
     saveUi === "saving"
-      ? "Saving draft…"
+      ? isDirectSaveEdit
+        ? "Saving changes…"
+        : "Saving draft…"
       : saveUi === "saved"
         ? "Changes saved"
         : saveUi === "error"
-          ? "Draft not synced"
-          : "Ready";
+          ? isDirectSaveEdit
+            ? "Changes not synced"
+            : "Draft not synced"
+          : hydratingDraft && queryDraftId
+            ? "Loading listing…"
+            : "Ready";
+
+  const workspaceTitle = isEditingExistingListing
+    ? isDirectSaveEdit
+      ? "Edit listing"
+      : "Edit listing draft"
+    : "Create inventory";
+
+  const primarySaveLabel = isDirectSaveEdit ? "Save changes" : "Save draft";
 
   const lastSavedLabel =
     lastSavedAt != null
@@ -1704,7 +1737,7 @@ export default function DashboardCreatePage() {
             <BackButton label="Back" className={cw.backButton} />
           </div>
           <div className={cw.workspaceHeader}>
-            <h1 className={cw.heroTitle}>Create inventory</h1>
+            <h1 className={cw.heroTitle}>{workspaceTitle}</h1>
             <div className={cw.saveRail}>
               <div
                 className={`${cw.savePill} ${
@@ -1726,11 +1759,42 @@ export default function DashboardCreatePage() {
               </div>
               {draftListingId ? (
                 <span className={`${styles.muted} ${cw.metaInline}`}>
-                  Draft ID {draftListingId.slice(0, 8)}…
+                  {isEditingExistingListing ? "Listing" : "Draft"} ID {draftListingId.slice(0, 8)}…
                 </span>
               ) : null}
             </div>
           </div>
+
+          {hydratingDraft && queryDraftId ? (
+            <div className={cw.legacyDraftRefreshBanner} role="status" aria-busy="true">
+              <p className={cw.legacyDraftRefreshTitle}>Loading listing…</p>
+              <p className={cw.legacyDraftRefreshBody}>
+                Pulling your saved details, photos, and status before you edit.
+              </p>
+            </div>
+          ) : null}
+
+          {editLoadError ? (
+            <div className={cw.legacyDraftRefreshBanner} role="alert">
+              <p className={cw.legacyDraftRefreshTitle}>
+                {editLoadError === "not_found"
+                  ? "This listing could not be found."
+                  : "You do not have permission to edit this listing."}
+              </p>
+              <div className={cw.legacyDraftRefreshActions}>
+                <button
+                  type="button"
+                  className={styles.approveButton}
+                  onClick={() => {
+                    allowNextNavRef.current = true;
+                    router.push(resolveCreateWorkspaceDashboardHref({ isAdmin, isRegularUser, role }));
+                  }}
+                >
+                  Back to Dashboard
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {legacyDraftBlocked ? (
             <div className={cw.legacyDraftRefreshBanner} role="status">
@@ -1840,7 +1904,7 @@ export default function DashboardCreatePage() {
             id="create-workspace-form"
             className={cw.createForm}
             onSubmit={(e) => {
-              if (workspaceStage !== 5) {
+              if (workspaceStage !== 5 || !requiresSubmitForReviewFlow(editSourceLifecycle)) {
                 e.preventDefault();
                 return;
               }
@@ -1852,6 +1916,7 @@ export default function DashboardCreatePage() {
             <input type="text" name="fake-field" autoComplete="off" style={{ display: "none" }} />
 
             <div className={cw.workspaceActiveCard} key={workspaceStage}>
+            {!editLoadError && !(hydratingDraft && queryDraftId) ? (
             <div className={cw.stageBody}>
             {workspaceStage === 1 ? (
               <section className={`${cw.glassSection} ${cw.stagePanel}`} aria-labelledby="ws-basics">
@@ -2173,7 +2238,7 @@ export default function DashboardCreatePage() {
               </section>
             ) : null}
 
-            {workspaceStage === 5 ? (
+            {workspaceStage === 5 && requiresSubmitForReviewFlow(editSourceLifecycle) ? (
               <section className={`${cw.glassSection} ${cw.stagePanel}`} aria-labelledby="ws-submit">
                 <h2 className={cw.sectionLabel} id="ws-submit">
                   Submit for review
@@ -2186,7 +2251,9 @@ export default function DashboardCreatePage() {
               </section>
             ) : null}
             </div>
+            ) : null}
 
+            {!editLoadError && !(hydratingDraft && queryDraftId) ? (
             <div className={cw.footerBar}>
               <div className={cw.footerLeft}>
                 {workspaceStage > 1 ? (
@@ -2209,7 +2276,7 @@ export default function DashboardCreatePage() {
                   onClick={() => void handleSaveDraft()}
                   disabled={saveUi === "saving" || hydratingDraft}
                 >
-                  Save draft
+                  {primarySaveLabel}
                 </button>
                 <button
                   type="button"
@@ -2219,7 +2286,7 @@ export default function DashboardCreatePage() {
                 >
                   Save &amp; exit
                 </button>
-                {workspaceStage < 5 ? (
+                {workspaceStage < maxWorkspaceStage ? (
                   <button
                     type="button"
                     className={`${styles.primaryButton} ${cw.footerPrimaryCta}`}
@@ -2228,7 +2295,7 @@ export default function DashboardCreatePage() {
                   >
                     Continue
                   </button>
-                ) : (
+                ) : requiresSubmitForReviewFlow(editSourceLifecycle) ? (
                   <button
                     type="submit"
                     className={`${styles.primaryButton} ${cw.footerPrimaryCta}`}
@@ -2237,9 +2304,19 @@ export default function DashboardCreatePage() {
                   >
                     {showCompletionCard ? "Submitted ✓" : loadingCreate ? "Submitting…" : "Submit for review"}
                   </button>
+                ) : (
+                  <button
+                    type="button"
+                    className={`${styles.primaryButton} ${cw.footerPrimaryCta}`}
+                    onClick={() => void handleSaveAndExit()}
+                    disabled={saveUi === "saving" || hydratingDraft}
+                  >
+                    Save changes
+                  </button>
                 )}
               </div>
             </div>
+            ) : null}
             </div>
           </form>
 

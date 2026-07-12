@@ -310,4 +310,24 @@ describe("listingPersistence buildDraftAutosavePayload", () => {
     expect(p.lifecycle_status).toBe("archived");
     expect(p.moderation_status).toBe("archived");
   });
+
+  test("preserves published lifecycle when editing live inventory", () => {
+    const p = buildDraftAutosavePayload({
+      form: {
+        district: "Belize",
+        title: "Live edit",
+        price: 300,
+        property_type: "house",
+        listing_type: "sale",
+        beds: "3",
+        baths: "2",
+        description: "Updated copy",
+      },
+      authUserId: "u1",
+      sourceLifecycle: "approved",
+    });
+    expect(p.status).toBeUndefined();
+    expect(p.lifecycle_status).toBeUndefined();
+    expect(p.description).toBe("Updated copy");
+  });
 });

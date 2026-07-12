@@ -18,6 +18,9 @@ import { tallyOperationalLifecycleCounts } from "../utils/canonicalListing";
 import { getLifecycleStatus } from "../utils/canonicalListing";
 import { LISTING_LIFECYCLE } from "../constants/operationalModel";
 import { assessLegacyDraftForWorkspace } from "./legacyDraftCompat";
+import { isCreateWorkspaceEditableListing } from "./listingEditAccess";
+
+export { isCreateWorkspaceEditableListing };
 
 /** @typedef {{ activeListings: number, pendingListings: number, archivedListings: number, draftListings: number, rejectedListings: number }} UserDashboardListingCounts */
 
@@ -73,16 +76,6 @@ export function isUserDashboardActiveListing(row) {
 /** @param {object} row */
 export function isUserDashboardArchivedListing(row) {
   return getLifecycleStatus(row) === LISTING_LIFECYCLE.ARCHIVED;
-}
-
-/** Lifecycle values the create workspace may hydrate for owner edits (not published/pending). */
-export function isCreateWorkspaceEditableListing(row) {
-  const lc = getLifecycleStatus(row);
-  return (
-    lc === LISTING_LIFECYCLE.DRAFT ||
-    lc === LISTING_LIFECYCLE.REJECTED ||
-    lc === LISTING_LIFECYCLE.ARCHIVED
-  );
 }
 
 /** My Listings grid: published, draft, rejected — not pending or archived (separate tabs). */

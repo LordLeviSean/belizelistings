@@ -18,6 +18,7 @@ import { getRegionLabel, normalizeRegionSlug } from "@/constants/geographyLayer"
 import { applyListingLifecycleAction, permanentlyDeleteArchivedListing } from "@/utils/ownershipAttribution";
 import { buildModerationResubmitPatch } from "@/lib/listingWriteContract";
 import { getLifecycleStatus } from "@/utils/canonicalListing";
+import { resolveListingEditHref } from "@/lib/listingEditAccess";
 import styles from "@/styles/Dashboard.module.css";
 
 function coverUrl(listing) {
@@ -168,7 +169,7 @@ function UserArchivedListingsPanel({ userId, tier }) {
                     </Link>
                     <Link
                       className={styles.approveButton}
-                      href={`/dashboard/create?draft=${encodeURIComponent(l.id)}`}
+                      href={resolveListingEditHref(l.id)}
                     >
                       Edit
                     </Link>

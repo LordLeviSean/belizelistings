@@ -53,11 +53,12 @@ describe("userDashboardListingTruth", () => {
     expect(filterMyListingsPanelRows(rows).map((r) => r.id)).toEqual([1, 3]);
   });
 
-  test("isCreateWorkspaceEditableListing: draft, rejected, and archived — not published/pending", () => {
-    expect(isCreateWorkspaceEditableListing({ status: "draft" })).toBe(true);
-    expect(isCreateWorkspaceEditableListing({ status: "rejected" })).toBe(true);
-    expect(isCreateWorkspaceEditableListing({ status: "archived" })).toBe(true);
-    expect(isCreateWorkspaceEditableListing({ status: "approved" })).toBe(false);
-    expect(isCreateWorkspaceEditableListing({ status: "pending" })).toBe(false);
+  test("isCreateWorkspaceEditableListing: draft, rejected, archived, published, pending, recently closed", () => {
+    expect(isCreateWorkspaceEditableListing({ id: 1, status: "draft" })).toBe(true);
+    expect(isCreateWorkspaceEditableListing({ id: 2, status: "rejected" })).toBe(true);
+    expect(isCreateWorkspaceEditableListing({ id: 3, status: "archived" })).toBe(true);
+    expect(isCreateWorkspaceEditableListing({ id: 4, status: "approved" })).toBe(true);
+    expect(isCreateWorkspaceEditableListing({ id: 5, status: "pending" })).toBe(true);
+    expect(isCreateWorkspaceEditableListing({ id: 6, status: "recently_sold", sold_at: "2026-07-01" })).toBe(true);
   });
 });

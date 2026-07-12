@@ -28,6 +28,7 @@ import {
   executeListingInsert,
   executeListingUpdate,
 } from "./listingWriteContract";
+import { resolveEditAutosaveLifecycleFields } from "./listingEditAccess";
 import {
   buildCreatedPayload,
   emitListingEventAfterMutation,
@@ -316,14 +317,7 @@ export function buildDraftAutosavePayload({
   const title = writable.title || "Untitled draft";
   const price = Number.isFinite(writable.price) ? writable.price : 0;
 
-  const lifecycleFields =
-    sourceLifecycle === LISTING_LIFECYCLE.ARCHIVED
-      ? buildModerationArchivePatch()
-      : {
-          status: "draft",
-          lifecycle_status: "draft",
-          moderation_status: "draft",
-        };
+  const lifecycleFields = resolveEditAutosaveLifecycleFields(sourceLifecycle);
 
   return {
     ...writable,

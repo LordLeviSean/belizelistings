@@ -38,7 +38,7 @@ import {
   filterMyListingsPanelRowsByStatus,
   sortMyListingsPanelRows,
 } from "@/lib/userDashboardListingTruth";
-import styles from "@/styles/Dashboard.module.css";
+import { resolveListingEditHref } from "@/lib/listingEditAccess";
 
 function coverUrl(listing) {
   const imgs = Array.isArray(listing?.listing_images) ? listing.listing_images : [];
@@ -207,13 +207,10 @@ function UserMyListingsPanel({ userId, tier }) {
   };
 
   const resubmitViaEditor = (listingId) => {
-    router.push(
-      `/dashboard/create?draft=${encodeURIComponent(listingId)}&resubmit=1`
-    );
+    router.push(resolveListingEditHref(listingId, { resubmit: true }));
   };
 
-  const editListingHref = (listingId) =>
-    `/dashboard/create?draft=${encodeURIComponent(listingId)}`;
+  const editListingHref = (listingId) => resolveListingEditHref(listingId);
 
   const emptyProps = useMemo(
     () => ({
@@ -362,7 +359,7 @@ function UserMyListingsPanel({ userId, tier }) {
                           type="button"
                           className={styles.approveButton}
                           onClick={() =>
-                            router.push(`/dashboard/create?draft=${encodeURIComponent(l.id)}`)
+                            router.push(resolveListingEditHref(l.id))
                           }
                         >
                           Continue editing
