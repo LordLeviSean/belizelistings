@@ -285,7 +285,14 @@ export async function fetchListingByIdWithImages(id, isAdmin = false, options = 
   let query = supabase.from("listings").select(listingSelect).eq("id", id);
 
   if (!isAdmin) {
-    query = query.or(`status.eq.${getModerationStatus("approved")},moderation_status.eq.approved`);
+    const approvedOrDual = `status.eq.${getModerationStatus("approved")},moderation_status.eq.approved`;
+    const recentlyClosedOr = [
+      `lifecycle_status.eq.${LISTING_LIFECYCLE.RECENTLY_SOLD}`,
+      `lifecycle_status.eq.${LISTING_LIFECYCLE.RECENTLY_RENTED}`,
+      `status.eq.${LISTING_LIFECYCLE.RECENTLY_SOLD}`,
+      `status.eq.${LISTING_LIFECYCLE.RECENTLY_RENTED}`,
+    ].join(",");
+    query = query.or(`${approvedOrDual},${recentlyClosedOr}`);
   }
 
   let { data: listing, error } = await query.maybeSingle();

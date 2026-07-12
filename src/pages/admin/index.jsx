@@ -378,10 +378,30 @@ export default function AdminPage() {
                 />
               )}
               {activeTab === ADMIN_DASHBOARD_TAB_IDS.OWNER_INBOX && user?.id ? (
-                <AdminOwnerInboxPanel ownerUserId={user.id} section="inquiries" />
+                <AdminOwnerInboxPanel
+                  ownerUserId={user.id}
+                  section="inquiries"
+                  initialConversationId={
+                    typeof router.query.conversation === "string"
+                      ? router.query.conversation
+                      : Array.isArray(router.query.conversation)
+                        ? router.query.conversation[0]
+                        : null
+                  }
+                />
               ) : null}
               {activeTab === ADMIN_DASHBOARD_TAB_IDS.OWNER_VIEWINGS && user?.id ? (
-                <AdminOwnerInboxPanel ownerUserId={user.id} section="viewings" />
+                <AdminOwnerInboxPanel
+                  ownerUserId={user.id}
+                  section="viewings"
+                  initialViewingId={
+                    typeof router.query.viewing === "string"
+                      ? router.query.viewing
+                      : Array.isArray(router.query.viewing)
+                        ? router.query.viewing[0]
+                        : null
+                  }
+                />
               ) : null}
               {activeTab === ADMIN_DASHBOARD_TAB_IDS.MESSAGES ? (
                 <section aria-label="Messages">

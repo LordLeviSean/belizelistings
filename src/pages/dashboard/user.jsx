@@ -465,6 +465,13 @@ export default function UserDashboard() {
                     ownerUserId={user.id}
                     section="inquiries"
                     surface="user"
+                    initialConversationId={
+                      typeof router.query.conversation === "string"
+                        ? router.query.conversation
+                        : Array.isArray(router.query.conversation)
+                          ? router.query.conversation[0]
+                          : null
+                    }
                   />
                 ) : null}
 
@@ -473,6 +480,13 @@ export default function UserDashboard() {
                     ownerUserId={user.id}
                     section="viewings"
                     surface="user"
+                    initialViewingId={
+                      typeof router.query.viewing === "string"
+                        ? router.query.viewing
+                        : Array.isArray(router.query.viewing)
+                          ? router.query.viewing[0]
+                          : null
+                    }
                   />
                 ) : null}
               </div>

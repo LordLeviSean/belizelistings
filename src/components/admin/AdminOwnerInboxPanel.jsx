@@ -17,6 +17,8 @@ export default function AdminOwnerInboxPanel({
   section = "inquiries",
   onRefresh: onRefreshProp,
   surface = "admin",
+  initialConversationId = null,
+  initialViewingId = null,
 }) {
   const [conversations, setConversations] = useState([]);
   const [viewings, setViewings] = useState([]);
@@ -101,6 +103,7 @@ export default function AdminOwnerInboxPanel({
           listingsById={listingsById}
           agentUserId={ownerUserId}
           onRefresh={refresh}
+          initialViewingId={initialViewingId}
         />
       </div>
     );
@@ -124,6 +127,7 @@ export default function AdminOwnerInboxPanel({
         listingsById={listingsById}
         agentUserId={ownerUserId}
         onRefresh={refresh}
+        initialConversationId={initialConversationId}
       />
     </div>
   );
