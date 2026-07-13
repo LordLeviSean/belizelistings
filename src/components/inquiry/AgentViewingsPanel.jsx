@@ -10,6 +10,7 @@ import {
   cancelViewing,
   confirmViewing,
   declineViewing,
+  deleteViewing,
   markViewingCompleted,
   proposeViewingReschedule,
 } from "@/lib/crm/viewingMutations";
@@ -60,6 +61,7 @@ export default function AgentViewingsPanel({
   const [busyId, setBusyId] = useState("");
   const [highlightId, setHighlightId] = useState(initialViewingId);
   const [declineTarget, setDeclineTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [rescheduleId, setRescheduleId] = useState(null);
   const [proposedDate, setProposedDate] = useState("");
   const [proposedTime, setProposedTime] = useState("10:00");
@@ -125,6 +127,24 @@ export default function AgentViewingsPanel({
       setRescheduleId(null);
       showToast({ type: "success", message: "Reschedule proposal sent." });
     }
+  };
+
+  const handleDeleteViewing = async () => {
+    if (!deleteTarget?.id || !agentUserId) return;
+    setBusyId(deleteTarget.id);
+    const { error } = await deleteViewing(supabase, {
+      viewingId: deleteTarget.id,
+      userId: agentUserId,
+      asAgent: true,
+    });
+    setBusyId("");
+    setDeleteTarget(null);
+    if (error) {
+      showToast({ type: "error", message: error.message || "Could not delete viewing." });
+      return;
+    }
+    showToast({ type: "success", message: "Viewing permanently removed from your list." });
+    onRefresh?.();
   };
 
   return (
@@ -333,6 +353,16 @@ export default function AgentViewingsPanel({
                     Archive
                   </button>
                 ) : null}
+                {agentUserId ? (
+                  <button
+                    type="button"
+                    className={listStyles.secondary}
+                    disabled={busyId === row.id}
+                    onClick={() => setDeleteTarget(row)}
+                  >
+                    Delete
+                  </button>
+                ) : null}
                 <span className={listStyles.statusPill}>{viewingStatusLabel(row.status)}</span>
               </div>
             </article>
@@ -348,6 +378,17 @@ export default function AgentViewingsPanel({
         warningText="The buyer will be notified. This cannot be undone."
         confirmLabel="Decline"
         loading={Boolean(busyId && declineTarget?.id === busyId)}
+        requireTypeDelete={false}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => !busyId && setDeleteTarget(null)}
+        onConfirm={() => void handleDeleteViewing()}
+        title="Delete viewing permanently?"
+        warningText="This can't be undone. The viewing will be removed from your account only — the buyer's copy is unaffected."
+        confirmLabel="Delete permanently"
+        loading={Boolean(busyId && deleteTarget?.id === busyId)}
         requireTypeDelete={false}
       />
     </>

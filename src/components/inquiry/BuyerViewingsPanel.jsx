@@ -7,6 +7,7 @@ import { viewingStatusLabel, isActiveViewingStatus } from "@/lib/crm/viewingStat
 import {
   archiveViewing,
   cancelViewing,
+  deleteViewing,
   proposeViewingReschedule,
   acceptViewingReschedule,
 } from "@/lib/crm/viewingMutations";
@@ -45,6 +46,7 @@ export default function BuyerViewingsPanel({
   const [busyId, setBusyId] = useState("");
   const [highlightId, setHighlightId] = useState(initialViewingId);
   const [cancelTarget, setCancelTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [rescheduleId, setRescheduleId] = useState(null);
   const [proposedDate, setProposedDate] = useState("");
   const [proposedTime, setProposedTime] = useState("10:00");
@@ -135,6 +137,24 @@ export default function BuyerViewingsPanel({
       return;
     }
     showToast({ type: "success", message: "Viewing archived." });
+    onRefresh?.();
+  };
+
+  const handleDeleteViewing = async () => {
+    if (!deleteTarget?.id || !buyerUserId) return;
+    setBusyId(deleteTarget.id);
+    const { error } = await deleteViewing(supabase, {
+      viewingId: deleteTarget.id,
+      userId: buyerUserId,
+      asAgent: false,
+    });
+    setBusyId("");
+    setDeleteTarget(null);
+    if (error) {
+      showToast({ type: "error", message: error.message || "Could not delete viewing." });
+      return;
+    }
+    showToast({ type: "success", message: "Viewing permanently removed from your list." });
     onRefresh?.();
   };
 
@@ -280,6 +300,16 @@ export default function BuyerViewingsPanel({
                     Archive
                   </button>
                 ) : null}
+                {buyerUserId ? (
+                  <button
+                    type="button"
+                    className={listStyles.secondary}
+                    disabled={busyId === row.id}
+                    onClick={() => setDeleteTarget(row)}
+                  >
+                    Delete
+                  </button>
+                ) : null}
                 <span className={listStyles.statusPill}>
                   {viewingStatusLabel(row.status, { buyerFacing: true })}
                 </span>
@@ -297,6 +327,17 @@ export default function BuyerViewingsPanel({
         warningText="The agent will be notified. You can request a new viewing later."
         confirmLabel="Cancel viewing"
         loading={Boolean(busyId && cancelTarget?.id === busyId)}
+        requireTypeDelete={false}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => !busyId && setDeleteTarget(null)}
+        onConfirm={() => void handleDeleteViewing()}
+        title="Delete viewing permanently?"
+        warningText="This can't be undone. The viewing will be removed from your account only — the owner's copy is unaffected."
+        confirmLabel="Delete permanently"
+        loading={Boolean(busyId && deleteTarget?.id === busyId)}
         requireTypeDelete={false}
       />
     </>

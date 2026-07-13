@@ -19,6 +19,8 @@ jest.mock("../notifications/notificationEvents", () => ({
 
 import {
   conversationPreviewText,
+  deleteConversationForAgent,
+  deleteConversationForBuyer,
   isAgentConversationUnread,
   isBuyerConversationUnread,
   sendAgentReply,
@@ -156,5 +158,47 @@ describe("conversationMutations", () => {
       }),
       expect.any(Object)
     );
+  });
+
+  test("deleteConversationForBuyer only updates buyer participant column", async () => {
+    const update = jest.fn().mockReturnValue({
+      eq: jest.fn().mockReturnThis(),
+    });
+    const client = {
+      from: jest.fn(() => ({ update })),
+    };
+
+    await deleteConversationForBuyer(client, {
+      conversationId: "conv-1",
+      buyerUserId: "buyer-1",
+    });
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ buyer_deleted_at: expect.any(String) })
+    );
+    const secondEq = update.mock.results[0].value.eq;
+    expect(secondEq).toHaveBeenCalledWith("id", "conv-1");
+    expect(secondEq.mock.results[0].value.eq).toHaveBeenCalledWith("buyer_id", "buyer-1");
+  });
+
+  test("deleteConversationForAgent binds delete to agent participant column", async () => {
+    const update = jest.fn().mockReturnValue({
+      eq: jest.fn().mockReturnThis(),
+    });
+    const client = {
+      from: jest.fn(() => ({ update })),
+    };
+
+    await deleteConversationForAgent(client, {
+      conversationId: "conv-1",
+      agentUserId: "agent-1",
+    });
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ agent_deleted_at: expect.any(String) })
+    );
+    const chain = update.mock.results[0].value;
+    expect(chain.eq).toHaveBeenCalledWith("id", "conv-1");
+    expect(chain.eq.mock.results[0].value.eq).toHaveBeenCalledWith("agent_id", "agent-1");
   });
 });

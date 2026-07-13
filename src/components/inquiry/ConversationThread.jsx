@@ -14,6 +14,7 @@ export default function ConversationThread({
   showBack = false,
   onBack,
   backLabel = "Back",
+  onDelete = null,
 }) {
   if (!conversation) {
     return <p className={styles.threadMuted}>Select a conversation to view the thread.</p>;
@@ -39,6 +40,14 @@ export default function ConversationThread({
             : ""}
         </p>
       </header>
+
+      {onDelete ? (
+        <div className={styles.threadActions}>
+          <button type="button" className={styles.deleteBtn} onClick={onDelete}>
+            Delete conversation
+          </button>
+        </div>
+      ) : null}
 
       <dl className={styles.contactMeta}>
         {conversation.buyer_email ? (

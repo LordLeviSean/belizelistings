@@ -43,9 +43,11 @@ describe("loadBuyerCrmData", () => {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                order: jest.fn().mockReturnValue({
-                  limit: jest.fn().mockReturnValue({
-                    is: jest.fn().mockResolvedValue({ data: [], error: null }),
+                is: jest.fn().mockReturnValue({
+                  order: jest.fn().mockReturnValue({
+                    limit: jest.fn().mockReturnValue({
+                      is: jest.fn().mockResolvedValue({ data: [], error: null }),
+                    }),
                   }),
                 }),
               }),
@@ -56,11 +58,13 @@ describe("loadBuyerCrmData", () => {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                order: jest.fn().mockReturnValue({
-                  limit: jest.fn().mockReturnValue({
-                    is: jest.fn().mockResolvedValue({
-                      data: [{ id: "vr-1", listing_id: 42 }],
-                      error: null,
+                is: jest.fn().mockReturnValue({
+                  order: jest.fn().mockReturnValue({
+                    limit: jest.fn().mockReturnValue({
+                      is: jest.fn().mockResolvedValue({
+                        data: [{ id: "vr-1", listing_id: 42 }],
+                        error: null,
+                      }),
                     }),
                   }),
                 }),
@@ -102,9 +106,11 @@ describe("loadBuyerCrmData", () => {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                order: jest.fn().mockReturnValue({
-                  limit: jest.fn().mockReturnValue({
-                    is: jest.fn().mockResolvedValue({ data: [], error: null }),
+                is: jest.fn().mockReturnValue({
+                  order: jest.fn().mockReturnValue({
+                    limit: jest.fn().mockReturnValue({
+                      is: jest.fn().mockResolvedValue({ data: [], error: null }),
+                    }),
                   }),
                 }),
               }),
@@ -115,9 +121,11 @@ describe("loadBuyerCrmData", () => {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                order: jest.fn().mockReturnValue({
-                  limit: jest.fn().mockReturnValue({
-                    is: jest.fn().mockResolvedValue({ data: [], error: null }),
+                is: jest.fn().mockReturnValue({
+                  order: jest.fn().mockReturnValue({
+                    limit: jest.fn().mockReturnValue({
+                      is: jest.fn().mockResolvedValue({ data: [], error: null }),
+                    }),
                   }),
                 }),
               }),

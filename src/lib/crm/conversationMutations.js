@@ -46,6 +46,7 @@ export async function fetchConversationsForAgent(client, agentUserId, { limit = 
     .from("conversations")
     .select(CONVERSATION_SELECT)
     .eq("agent_id", agentUserId)
+    .is("agent_deleted_at", null)
     .order("updated_at", { ascending: false })
     .limit(limit);
   if (!includeArchived) {
@@ -59,6 +60,7 @@ export async function fetchConversationsForBuyer(client, buyerUserId, { limit = 
     .from("conversations")
     .select(CONVERSATION_SELECT)
     .eq("buyer_id", buyerUserId)
+    .is("buyer_deleted_at", null)
     .order("updated_at", { ascending: false })
     .limit(limit);
   if (!includeArchived) {
@@ -343,4 +345,56 @@ export async function archiveConversationForBuyer(client, { conversationId, buye
     .eq("buyer_id", buyerUserId);
 
   return { error };
+}
+
+const PARTICIPANT_DELETE_CONVERSATION_RPC = "participant_delete_conversation";
+
+/**
+ * Permanently hide a conversation from the deleting participant only.
+ * Prefers secure RPC (auth.uid()); falls back to participant-bound update for tests.
+ */
+export async function deleteConversationForParticipant(
+  client,
+  { conversationId, participantUserId, asAgent }
+) {
+  if (!conversationId || !participantUserId) {
+    return { error: { message: "conversationId and participantUserId are required" } };
+  }
+
+  if (client?.rpc) {
+    const { error } = await client.rpc(PARTICIPANT_DELETE_CONVERSATION_RPC, {
+      p_conversation_id: conversationId,
+    });
+    if (!error) return { error: null };
+    if (!isCrmUnavailable(error)) return { error };
+  }
+
+  const now = new Date().toISOString();
+  const patch = asAgent ? { agent_deleted_at: now } : { buyer_deleted_at: now };
+  let query = client
+    .from("conversations")
+    .update({ ...patch, updated_at: now })
+    .eq("id", conversationId);
+  query = asAgent
+    ? query.eq("agent_id", participantUserId)
+    : query.eq("buyer_id", participantUserId);
+
+  const { error } = await query;
+  return { error };
+}
+
+export async function deleteConversationForAgent(client, { conversationId, agentUserId }) {
+  return deleteConversationForParticipant(client, {
+    conversationId,
+    participantUserId: agentUserId,
+    asAgent: true,
+  });
+}
+
+export async function deleteConversationForBuyer(client, { conversationId, buyerUserId }) {
+  return deleteConversationForParticipant(client, {
+    conversationId,
+    participantUserId: buyerUserId,
+    asAgent: false,
+  });
 }

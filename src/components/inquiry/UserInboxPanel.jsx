@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import { BL_ENABLE_CONVERSATIONS } from "@/lib/featureFlags";
 import { inquiryTypeLabel } from "@/lib/crm/crmConstants";
 import {
   conversationPreviewText,
+  deleteConversationForBuyer,
   fetchConversationMessages,
   isBuyerConversationUnread,
   markConversationReadByBuyer,
@@ -16,6 +18,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import listStyles from "./AgentInquiryList.module.css";
 import inboxStyles from "./AgentInboxPanel.module.css";
 import styles from "./UserInboxPanel.module.css";
+import threadStyles from "./OwnerInquiriesPanel.module.css";
 
 export default function UserInboxPanel({
   conversations = [],
@@ -30,6 +33,8 @@ export default function UserInboxPanel({
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [replyBody, setReplyBody] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const sorted = useMemo(
     () =>
@@ -113,6 +118,24 @@ export default function UserInboxPanel({
     setReplyBody("");
     showToast({ type: "success", message: "Your message has been delivered to the listing agent." });
     await loadMessages(selected.id);
+    onRefresh?.();
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!deleteTarget?.id || !buyerUserId) return;
+    setDeleteBusy(true);
+    const { error } = await deleteConversationForBuyer(supabase, {
+      conversationId: deleteTarget.id,
+      buyerUserId,
+    });
+    setDeleteBusy(false);
+    setDeleteTarget(null);
+    if (error) {
+      showToast({ type: "error", message: error.message || "Could not delete conversation." });
+      return;
+    }
+    showToast({ type: "success", message: "Conversation permanently removed from your messages." });
+    setSelectedId(null);
     onRefresh?.();
   };
 
@@ -204,6 +227,16 @@ export default function UserInboxPanel({
                 </p>
               </header>
 
+              <div className={threadStyles.threadActions}>
+                <button
+                  type="button"
+                  className={threadStyles.deleteBtn}
+                  onClick={() => setDeleteTarget(selected)}
+                >
+                  Delete conversation
+                </button>
+              </div>
+
               <div className={inboxStyles.thread} aria-live="polite" aria-busy={messagesLoading}>
                 {messagesLoading ? (
                   <p className={inboxStyles.threadMuted}>Loading messages…</p>
@@ -253,6 +286,17 @@ export default function UserInboxPanel({
           )}
         </aside>
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => !deleteBusy && setDeleteTarget(null)}
+        onConfirm={() => void handleDeleteConversation()}
+        title="Delete conversation permanently?"
+        warningText="This can't be undone. The thread will be removed from your account only — the owner's copy is unaffected."
+        confirmLabel="Delete permanently"
+        loading={deleteBusy}
+        requireTypeDelete={false}
+      />
     </div>
   );
 }

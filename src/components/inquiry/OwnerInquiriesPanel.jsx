@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import { BL_ENABLE_CONVERSATIONS } from "@/lib/featureFlags";
 import {
@@ -6,6 +7,7 @@ import {
   groupConversationsByListing,
 } from "@/lib/crm/conversationGrouping";
 import {
+  deleteConversationForAgent,
   fetchConversationMessages,
   isAgentConversationUnread,
   markConversationReadByAgent,
@@ -35,6 +37,8 @@ export default function OwnerInquiriesPanel({
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [replyBody, setReplyBody] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const groups = useMemo(
     () => groupConversationsByListing(conversations, listingsById),
@@ -158,6 +162,25 @@ export default function OwnerInquiriesPanel({
     onRefresh?.();
   };
 
+  const handleDeleteConversation = async () => {
+    if (!deleteTarget?.id || !agentUserId) return;
+    setDeleteBusy(true);
+    const { error } = await deleteConversationForAgent(supabase, {
+      conversationId: deleteTarget.id,
+      agentUserId,
+    });
+    setDeleteBusy(false);
+    setDeleteTarget(null);
+    if (error) {
+      showToast({ type: "error", message: error.message || "Could not delete conversation." });
+      return;
+    }
+    showToast({ type: "success", message: "Conversation permanently removed from your inbox." });
+    setSelectedConversationId(null);
+    if (isCompact) setMobilePane("conversations");
+    onRefresh?.();
+  };
+
   if (!BL_ENABLE_CONVERSATIONS) {
     return legacyFallback ?? null;
   }
@@ -224,10 +247,26 @@ export default function OwnerInquiriesPanel({
               showBack={isCompact && mobilePane === "thread"}
               onBack={() => setMobilePane("conversations")}
               backLabel="Conversations"
+              onDelete={
+                selectedConversation?.id
+                  ? () => setDeleteTarget(selectedConversation)
+                  : null
+              }
             />
           </section>
         ) : null}
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => !deleteBusy && setDeleteTarget(null)}
+        onConfirm={() => void handleDeleteConversation()}
+        title="Delete conversation permanently?"
+        warningText="This can't be undone. The thread will be removed from your account only — the buyer's copy is unaffected."
+        confirmLabel="Delete permanently"
+        loading={deleteBusy}
+        requireTypeDelete={false}
+      />
     </div>
   );
 }

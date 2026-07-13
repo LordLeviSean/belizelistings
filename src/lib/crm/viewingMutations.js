@@ -432,11 +432,39 @@ export async function archiveViewing(client, { viewingId, userId, asAgent }) {
   return { data, error };
 }
 
+const PARTICIPANT_DELETE_VIEWING_RPC = "participant_delete_viewing";
+
+/**
+ * Permanently hide a viewing from the deleting participant only.
+ * Prefers secure RPC (auth.uid()); falls back to participant-bound update for tests.
+ */
+export async function deleteViewing(client, { viewingId, userId, asAgent }) {
+  if (!viewingId || !userId) {
+    return { error: { message: "viewingId and userId are required" } };
+  }
+
+  if (client?.rpc) {
+    const { error } = await client.rpc(PARTICIPANT_DELETE_VIEWING_RPC, {
+      p_viewing_id: viewingId,
+    });
+    if (!error) return { error: null };
+    if (!isCrmUnavailable(error)) return { error };
+  }
+
+  const now = new Date().toISOString();
+  const patch = asAgent ? { agent_deleted_at: now } : { requester_deleted_at: now };
+  let query = client.from("viewing_requests").update({ ...patch, updated_at: now }).eq("id", viewingId);
+  query = asAgent ? query.eq("agent_user_id", userId) : query.eq("requester_id", userId);
+  const { data, error } = await query.select("id").single();
+  return { data, error };
+}
+
 export async function fetchViewingsForAgent(client, agentUserId, { limit = 50, includeArchived = false } = {}) {
   let query = client
     .from("viewing_requests")
     .select(VIEWING_SELECT)
     .eq("agent_user_id", agentUserId)
+    .is("agent_deleted_at", null)
     .order("requested_date", { ascending: true })
     .limit(limit);
   if (!includeArchived) {
@@ -450,6 +478,7 @@ export async function fetchViewingsForBuyer(client, buyerUserId, { limit = 50, i
     .from("viewing_requests")
     .select(VIEWING_SELECT)
     .eq("requester_id", buyerUserId)
+    .is("requester_deleted_at", null)
     .order("requested_date", { ascending: false })
     .limit(limit);
   if (!includeArchived) {

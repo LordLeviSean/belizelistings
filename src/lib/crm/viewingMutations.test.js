@@ -35,6 +35,7 @@ import {
   confirmViewing,
   createViewingRequest,
   declineViewing,
+  deleteViewing,
   markViewingCompleted,
   acceptViewingReschedule,
 } from "./viewingMutations";
@@ -301,5 +302,51 @@ describe("viewingMutations", () => {
         requested_date: "2026-07-02",
       })
     );
+  });
+
+  test("deleteViewing as buyer only sets requester_deleted_at for requester", async () => {
+    const update = jest.fn().mockReturnValue({
+      eq: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnValue({
+        single: jest.fn().mockResolvedValue({ data: { id: "v1" }, error: null }),
+      }),
+    });
+    const client = { from: jest.fn(() => ({ update })) };
+
+    await deleteViewing(client, {
+      viewingId: "v1",
+      userId: "buyer-1",
+      asAgent: false,
+    });
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ requester_deleted_at: expect.any(String) })
+    );
+    const chain = update.mock.results[0].value;
+    expect(chain.eq).toHaveBeenCalledWith("id", "v1");
+    expect(chain.eq.mock.results[0].value.eq).toHaveBeenCalledWith("requester_id", "buyer-1");
+  });
+
+  test("deleteViewing as agent only sets agent_deleted_at for listing contact", async () => {
+    const update = jest.fn().mockReturnValue({
+      eq: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnValue({
+        single: jest.fn().mockResolvedValue({ data: { id: "v1" }, error: null }),
+      }),
+    });
+    const client = { from: jest.fn(() => ({ update })) };
+
+    await deleteViewing(client, {
+      viewingId: "v1",
+      userId: "agent-1",
+      asAgent: true,
+    });
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ agent_deleted_at: expect.any(String) })
+    );
+    const chain = update.mock.results[0].value;
+    expect(chain.eq).toHaveBeenCalledWith("id", "v1");
+    expect(chain.eq.mock.results[0].value.eq).toHaveBeenCalledWith("agent_user_id", "agent-1");
   });
 });
