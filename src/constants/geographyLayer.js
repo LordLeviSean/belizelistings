@@ -102,7 +102,7 @@ export const PLATFORM_GEOGRAPHY = [
     mapRegion: "ambergris_caye",
     hasDistrictPage: true,
     routeSlug: "ambergris-caye",
-    aliases: ["ambergris caye", "san pedro island"],
+    aliases: ["ambergris caye"],
   },
   {
     id: "caye-caulker",
@@ -128,7 +128,7 @@ export const PLATFORM_GEOGRAPHY = [
     mapRegion: "ambergris_caye",
     hasDistrictPage: true,
     routeSlug: "san-pedro",
-    aliases: ["san pedro town"],
+    aliases: ["san pedro town", "san pedro island"],
   },
   {
     id: "placencia",
