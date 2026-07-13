@@ -24,6 +24,7 @@ import { recordListingDetailView } from "@/lib/listingDetailViewTracking";
 import useAuth from "../../hooks/useAuth";
 import useRoleAccess from "../../hooks/useRoleAccess";
 import useFavorites from "../../hooks/useFavorites";
+import { formatListingLocation } from "../../lib/geography/formatListingLocation";
 import { getRegionCaption, getRegionLabel } from "../../constants/geographyLayer";
 import { getListingRegionSlug, getLifecycleStatus } from "../../utils/canonicalListing";
 import { LISTING_LIFECYCLE } from "../../constants/operationalModel";
@@ -42,7 +43,12 @@ import { derivePropertyHighlights } from "@/utils/propertyHighlights";
 import { getListingGalleryImages } from "@/utils/listingImage";
 import { isLandInventoryListing } from "../../utils/listingPresentation";
 
-const formatDistrict = (district) => getRegionLabel(district);
+const formatDistrict = (listingOrSlug) => {
+  if (listingOrSlug && typeof listingOrSlug === "object") {
+    return formatListingLocation(listingOrSlug) || getRegionLabel(listingOrSlug.district);
+  }
+  return getRegionLabel(listingOrSlug);
+};
 
 export default function ListingPage() {
   const router = useRouter();
@@ -358,7 +364,7 @@ export default function ListingPage() {
   }
   const isLand = isLandInventoryListing(listing);
   const regionSlug = getListingRegionSlug(listing);
-  const regionLabel = formatDistrict(regionSlug);
+  const regionLabel = formatDistrict(listing) || formatDistrict(regionSlug);
   const regionCaption = getRegionCaption(regionSlug);
   const districtExploreHref = getDistrictExploreHref(regionSlug);
 

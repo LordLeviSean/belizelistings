@@ -22,6 +22,7 @@ import {
   resolveActiveListingCapForTier,
 } from "@/constants/operationalModel";
 import { OWNERSHIP_ACTIONS } from "@/constants/ownershipModel";
+import { formatListingLocation } from "@/lib/geography/formatListingLocation";
 import { getRegionLabel, normalizeRegionSlug } from "@/constants/geographyLayer";
 import { resolveListingEditHref } from "@/lib/listingEditAccess";
 import {
@@ -388,7 +389,8 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
               ? "LegacyDraft"
               : `${lcKey.charAt(0).toUpperCase()}${lcKey.slice(1)}`;
             const thumb = coverUrl(l);
-            const districtLabel = getRegionLabel(normalizeRegionSlug(l.district || ""));
+            const districtLabel =
+              formatListingLocation(l) || getRegionLabel(normalizeRegionSlug(l.district || ""));
 
             return (
               <div

@@ -22,6 +22,7 @@ import {
   getLifecycleLabel,
 } from "@/constants/operationalModel";
 import { OWNERSHIP_ACTIONS } from "@/constants/ownershipModel";
+import { formatListingLocation } from "@/lib/geography/formatListingLocation";
 import { getRegionLabel, normalizeRegionSlug } from "@/constants/geographyLayer";
 import { applyListingLifecycleAction } from "@/utils/ownershipAttribution";
 import {
@@ -301,7 +302,8 @@ function UserMyListingsPanel({ userId, tier }) {
               ? "LegacyDraft"
               : `${lcKey.charAt(0).toUpperCase()}${lcKey.slice(1)}`;
             const thumb = coverUrl(l);
-            const districtLabel = getRegionLabel(normalizeRegionSlug(l.district || ""));
+            const districtLabel =
+              formatListingLocation(l) || getRegionLabel(normalizeRegionSlug(l.district || ""));
             const created = l.created_at ? new Date(l.created_at).toLocaleDateString() : "—";
 
             return (
