@@ -2,11 +2,13 @@
   command = "npm run build"
   publish = ".next"
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Notification queue delivery — configure in Netlify UI → Site configuration → Functions → Scheduled functions,
-# or use an external cron (e.g. cron-job.org) hitting:
-#   GET https://<site>/api/cron/process-notifications
-# Header: Authorization: Bearer <CRON_SECRET>
-# Recommended interval: every 2–5 minutes.
+# Scheduled notification processor — netlify/functions/process-notifications-cron.mjs
+# Requires CRON_SECRET in production env (functions + runtime scope).
+# Manual verify: GET /api/cron/process-notifications with Authorization: Bearer <CRON_SECRET>

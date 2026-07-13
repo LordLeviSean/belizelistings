@@ -36,3 +36,5 @@ test-results/
 
 # Supabase CLI temp files (pooler URLs, etc.)
 supabase/.temp/
+# Local Netlify folder
+.netlify

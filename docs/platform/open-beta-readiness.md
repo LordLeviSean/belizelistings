@@ -188,12 +188,12 @@ Production dependencies blocking:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | SET |
 | `SUPABASE_SERVICE_ROLE_KEY` | SET |
 | `SUPABASE_ACCESS_TOKEN` | NOT SET |
-| `NETLIFY_AUTH_TOKEN` | NOT SET |
-| `NETLIFY_SITE_ID` | NOT SET |
-| `CRON_SECRET` | NOT SET |
+| `NETLIFY_AUTH_TOKEN` | NOT SET (CLI session auth used) |
+| `NETLIFY_SITE_ID` | NOT SET (repo linked via `.netlify/state.json`) |
+| `CRON_SECRET` | **SET** |
 | `E2E_*` test accounts | NOT SET |
 | Supabase CLI authenticated | **YES** — v2.109.1; project `BelizeListings` (`xyepbzezoroaeagzzzui`) linked, ACTIVE_HEALTHY |
-| Netlify CLI authenticated | **NO** — v26.2.0 installed; `netlify login` required |
+| Netlify CLI authenticated | **YES** — linked to `belizelistings` |
 | Playwright / browser automation | AVAILABLE (`@playwright/test` installed) |
 
 Check locally: `npm run check:staging-access`
@@ -209,34 +209,58 @@ Check locally: `npm run check:staging-access`
 
 **2026-07-13 update:** `npx supabase db push --linked` applied 10 pending migrations including all four open-beta targets. `npm run verify:staging-schema` → **all checks OK**.
 
-### Staging variables configured
+### Staging site identified
+
+| Item | Value |
+|------|-------|
+| **Site name** | `belizelistings` |
+| **Site ID** | `94710793-73da-4300-98ed-013164bde3ad` |
+| **URL** | `https://belizelistings.bz` |
+| **Note** | No separate staging subdomain exists in Netlify; this site serves production and readiness verification. |
+
+Linked via `netlify link --id 94710793-73da-4300-98ed-013164bde3ad`.
+
+### Staging variables configured (2026-07-13)
 
 | Variable | Status |
 |----------|--------|
-| `NEXT_PUBLIC_BL_ENABLE_INQUIRIES` | NOT CONFIGURED (Netlify access unavailable) |
-| `NEXT_PUBLIC_BL_ENABLE_CONVERSATIONS` | NOT CONFIGURED |
-| `NEXT_PUBLIC_BL_ENABLE_VIEWING_PERSIST` | NOT CONFIGURED |
-| `NEXT_PUBLIC_BL_ENABLE_NOTIFICATIONS` | NOT CONFIGURED |
-| `NEXT_PUBLIC_BL_ENABLE_LISTING_EVENTS` | NOT CONFIGURED |
-| `CRON_SECRET` | NOT SET locally or in Netlify |
+| `NEXT_PUBLIC_BL_ENABLE_INQUIRIES` | **SET** (`1`) |
+| `NEXT_PUBLIC_BL_ENABLE_CONVERSATIONS` | **SET** (`1`) |
+| `NEXT_PUBLIC_BL_ENABLE_VIEWING_PERSIST` | **SET** (`1`) |
+| `NEXT_PUBLIC_BL_ENABLE_NOTIFICATIONS` | **SET** (`1`) |
+| `NEXT_PUBLIC_BL_ENABLE_LISTING_EVENTS` | **SET** (`1`) |
+| `CRON_SECRET` | **SET** (generated; stored in Netlify + `.env.local`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | **SET** |
 
-**Blocker:** Provide `NETLIFY_AUTH_TOKEN` + staging site ID, or configure manually in Netlify UI and redeploy.
+Configure: `npm run configure:netlify-staging`
 
 ### Staging deployment URL
 
-Not identified in repository. Default E2E target falls back to `https://belizelistings.bz` when `E2E_BASE_URL` unset.
+**https://belizelistings.bz**  
+Deploy `6a55039dbc2a114676b406a3` (2026-07-13) — includes scheduled function + all CRM flags.
 
 ### Cron configuration
 
 | Item | Status |
 |------|--------|
-| Netlify scheduled function | NOT CONFIGURED — `netlify.toml` documents manual setup only |
-| External scheduler | NOT CONFIGURED |
-| `CRON_SECRET` | NOT SET — endpoint fails closed (503) when unset |
+| Netlify scheduled function | **DEPLOYED** — `netlify/functions/process-notifications-cron.mjs` (`*/5 * * * *`) |
+| HTTP fallback | `GET /api/cron/process-notifications` with `Authorization: Bearer <CRON_SECRET>` |
 
 ### Cron verification
 
 | Check | Result |
+|-------|--------|
+| HTTP cron endpoint | **PASS** — `npm run verify:cron-endpoint` → `{ "ok": true, "status": 200 }` |
+| RPC batch processor | **PASS** — callable via service role |
+| Queue → inbox (live event) | **NOT VERIFIED** — queue empty at test time; run after Flow A/B with real accounts |
+
+### Credentials / connections available (updated)
+
+| Credential / connection | Status |
+|-------------------------|--------|
+| `CRON_SECRET` | **SET** (local + Netlify) |
+| Netlify CLI authenticated | **YES** — linked to `belizelistings` |
+| `E2E_*` test accounts | **NOT SET** |
 |-------|--------|
 | HTTP cron endpoint | **NOT RUN** — `CRON_SECRET` unavailable |
 | RPC `process_notification_queue_batch` | **CALLABLE** via service role |
@@ -305,12 +329,11 @@ Viewports configured: 390, 414, 1366, 1440 (Playwright projects).
 ### Remaining actions requiring you
 
 1. ~~Add `DATABASE_URL` or `SUPABASE_ACCESS_TOKEN`~~ — **done** via `npx supabase db push --linked`.
-2. **Configure Netlify staging** env flags + `CRON_SECRET` + redeploy (`netlify login` first).
-3. **Schedule cron** hitting `/api/cron/process-notifications` every 2–5 minutes.
+2. ~~Configure Netlify env flags + `CRON_SECRET` + redeploy~~ — **done** (belizelistings.bz, deploy `6a55039dbc2a114676b406a3`).
+3. ~~Schedule cron~~ — **done** (`process-notifications-cron` every 5 min).
 4. **Provision four test accounts** + listing fixtures; copy to `.env.test.local`.
-5. **Run** `npm run verify:staging-schema` (must show `proposed_by` OK).
-6. **Run** `npm run e2e:staging` and complete manual matrix §4.
-7. **Only then** mark Open Beta gate passed.
+5. **Run** `npm run e2e:staging` and complete manual matrix §4.
+6. **Only then** mark Open Beta gate passed.
 
 ### Open Beta gate status
 

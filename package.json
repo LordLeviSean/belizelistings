@@ -18,6 +18,9 @@
     "check:staging-access": "node scripts/check-staging-access.mjs",
     "verify:staging-schema": "node scripts/verify-staging-schema.mjs",
     "test:notification-delivery": "node scripts/test-notification-delivery.mjs",
+    "verify:cron-endpoint": "node scripts/verify-cron-endpoint.mjs",
+    "configure:netlify-staging": "node scripts/configure-netlify-staging.mjs",
+    "suggest:e2e-listings": "node scripts/suggest-e2e-listing-fixtures.mjs",
     "e2e:staging": "playwright test --config=playwright.config.mjs"
   },
   "dependencies": {

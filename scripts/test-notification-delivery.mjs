@@ -43,10 +43,11 @@ async function main() {
 
   const rpcResult = await processViaRpc(admin);
 
-  let cronResult = { ok: false, skipped: true, reason: "CRON_SECRET or E2E_BASE_URL not set" };
+  let cronResult = { ok: false, skipped: true, reason: "CRON_SECRET not set" };
   const cronSecret = env.CRON_SECRET;
-  const baseUrl = env.E2E_BASE_URL || env.QA_BASE_URL || env.NEXT_PUBLIC_SITE_URL;
-  if (cronSecret && baseUrl) {
+  const baseUrl =
+    env.E2E_BASE_URL || env.QA_BASE_URL || env.NEXT_PUBLIC_SITE_URL || "https://belizelistings.bz";
+  if (cronSecret) {
     cronResult = await processViaCron(baseUrl, cronSecret);
     cronResult.skipped = false;
   }
