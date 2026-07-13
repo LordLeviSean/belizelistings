@@ -1,0 +1,835 @@
+{
+  "generated_at": "2026-07-13T18:28:00.000Z",
+  "canonical_locations": [
+    {
+      "display_name": "Corozal",
+      "slug": "corozal",
+      "type": "district",
+      "parent": null,
+      "selectable_in": [
+        "src/pages/dashboard/create.jsx",
+        "src/components/HomeAdvancedFiltersModal.jsx",
+        "src/components/OperatorListingsPanel.jsx",
+        "src/components/AllListingsPanel.jsx"
+      ],
+      "source_file": "src/constants/geographyLayer.js",
+      "line": 17
+    },
+    {
+      "display_name": "Orange Walk",
+      "slug": "orange-walk",
+      "type": "district",
+      "parent": null,
+      "selectable_in": [
+        "src/pages/dashboard/create.jsx",
+        "src/components/HomeAdvancedFiltersModal.jsx",
+        "src/components/OperatorListingsPanel.jsx",
+        "src/components/AllListingsPanel.jsx"
+      ],
+      "source_file": "src/constants/geographyLayer.js",
+      "line": 30
+    },
+    {
+      "display_name": "Belize",
+      "slug": "belize",
+      "type": "district",
+      "parent": null,
+      "selectable_in": [
+        "src/pages/dashboard/create.jsx",
+        "src/components/HomeAdvancedFiltersModal.jsx",
+        "src/components/OperatorListingsPanel.jsx",
+        "src/components/AllListingsPanel.jsx"
+      ],
+      "source_file": "src/constants/geographyLayer.js",
+      "line": 43
+    },
+    {
+      "display_name": "Cayo",
+      "slug": "cayo",
+      "type": "district",
+      "parent": null,
+      "selectable_in": [
+        "src/pages/dashboard/create.jsx",
+        "src/components/HomeAdvancedFiltersModal.jsx",
+        "src/components/OperatorListingsPanel.jsx",
+        "src/components/AllListingsPanel.jsx"
+      ],
+      "source_file": "src/constants/geographyLayer.js",
+      "line": 56
+    },
+    {
+      "display_name": "Stann Creek",
+      "slug": "stann-creek",
+      "type": "district",
+      "parent": null,
+      "selectable_in": [
+        "src/pages/dashboard/create.jsx",
+        "src/components/HomeAdvancedFiltersModal.jsx",
+        "src/components/OperatorListingsPanel.jsx",
+        "src/components/AllListingsPanel.jsx"
+      ],
+      "source_file": "src/constants/geographyLayer.js",
+      "line": 69
+    },
+    {
+      "display_name": "Toledo",
+      "slug": "toledo",
+      "type": "district",
+      "parent": null,
+      "selectable_in": [
+        "src/pages/dashboard/create.jsx",
+        "src/components/HomeAdvancedFiltersModal.jsx",
+        "src/components/OperatorListingsPanel.jsx",
+        "src/components/AllListingsPanel.jsx"
+      ],
+      "source_file": "src/constants/geographyLayer.js",
+      "line": 82
+    },
+    {
+      "display_name": "Ambergris Caye",
+      "slug": "ambergris-caye",
+      "type": "region",
+      "parent": "belize",
+      "selectable_in": [
+        "src/pages/dashboard/create.jsx",
+        "src/components/HomeAdvancedFiltersModal.jsx",
+        "src/components/OperatorListingsPanel.jsx",
+        "src/components/AllListingsPanel.jsx"
+      ],
+      "source_file": "src/constants/geographyLayer.js",
+      "line": 95
+    },
+    {
+      "display_name": "Caye Caulker",
+      "slug": "caye-caulker",
+      "type": "region",
+      "parent": "belize",
+      "selectable_in": [
+        "src/pages/dashboard/create.jsx",
+        "src/components/HomeAdvancedFiltersModal.jsx",
+        "src/components/OperatorListingsPanel.jsx",
+        "src/components/AllListingsPanel.jsx"
+      ],
+      "source_file": "src/constants/geographyLayer.js",
+      "line": 108
+    },
+    {
+      "display_name": "San Pedro",
+      "slug": "san-pedro",
+      "type": "subregion",
+      "parent": "ambergris-caye",
+      "selectable_in": [
+        "src/pages/dashboard/create.jsx",
+        "src/components/HomeAdvancedFiltersModal.jsx",
+        "src/components/OperatorListingsPanel.jsx",
+        "src/components/AllListingsPanel.jsx"
+      ],
+      "source_file": "src/constants/geographyLayer.js",
+      "line": 121
+    },
+    {
+      "display_name": "Placencia",
+      "slug": "placencia",
+      "type": "subregion",
+      "parent": "stann-creek",
+      "selectable_in": [
+        "src/pages/dashboard/create.jsx",
+        "src/components/HomeAdvancedFiltersModal.jsx",
+        "src/components/OperatorListingsPanel.jsx",
+        "src/components/AllListingsPanel.jsx"
+      ],
+      "source_file": "src/constants/geographyLayer.js",
+      "line": 134
+    },
+    {
+      "display_name": "Belize City",
+      "slug": "belize-city",
+      "type": "subregion",
+      "parent": "belize",
+      "selectable_in": [
+        "src/pages/dashboard/create.jsx",
+        "src/components/HomeAdvancedFiltersModal.jsx",
+        "src/components/OperatorListingsPanel.jsx",
+        "src/components/AllListingsPanel.jsx"
+      ],
+      "source_file": "src/constants/geographyLayer.js",
+      "line": 147
+    }
+  ],
+  "map_locations": [
+    {
+      "map_label": "Corozal",
+      "map_id": "corozal",
+      "parent": null,
+      "svg_group": "corozal",
+      "click_destination": "/listings/district/corozal",
+      "interactive": true,
+      "source": "src/constants/belizeMapRegions.js (derived from geographyLayer mapRegion corozal); public/maps/clean-mainland-districts.svg"
+    },
+    {
+      "map_label": "Orange Walk",
+      "map_id": "orange_walk",
+      "parent": null,
+      "svg_group": "orange_walk",
+      "click_destination": "/listings/district/orange-walk",
+      "interactive": true,
+      "source": "src/constants/belizeMapRegions.js; public/maps/clean-mainland-districts.svg"
+    },
+    {
+      "map_label": "Belize",
+      "map_id": "belize",
+      "parent": null,
+      "svg_group": "belize",
+      "click_destination": "/listings/district/belize",
+      "interactive": true,
+      "source": "src/constants/belizeMapRegions.js; public/maps/clean-mainland-districts.svg"
+    },
+    {
+      "map_label": "Cayo",
+      "map_id": "cayo",
+      "parent": null,
+      "svg_group": "cayo",
+      "click_destination": "/listings/district/cayo",
+      "interactive": true,
+      "source": "src/constants/belizeMapRegions.js; public/maps/clean-mainland-districts.svg"
+    },
+    {
+      "map_label": "Stann Creek",
+      "map_id": "stann_creek",
+      "parent": null,
+      "svg_group": "stann_creek",
+      "click_destination": "/listings/district/stann-creek",
+      "interactive": true,
+      "source": "src/constants/belizeMapRegions.js; public/maps/clean-mainland-districts.svg"
+    },
+    {
+      "map_label": "Toledo",
+      "map_id": "toledo",
+      "parent": null,
+      "svg_group": "toledo",
+      "click_destination": "/listings/district/toledo",
+      "interactive": true,
+      "source": "src/constants/belizeMapRegions.js; public/maps/clean-mainland-districts.svg"
+    },
+    {
+      "map_label": "Ambergris Caye",
+      "map_id": "ambergris_caye",
+      "parent": "belize",
+      "svg_group": "ambergris_caye",
+      "click_destination": "/listings/district/ambergris-caye",
+      "interactive": true,
+      "source": "src/constants/belizeMapRegions.js; public/maps/clean-mainland-districts.svg"
+    },
+    {
+      "map_label": "Caye Caulker",
+      "map_id": "caye_caulker",
+      "parent": "belize",
+      "svg_group": "caye_caulker",
+      "click_destination": "/listings/district/caye-caulker",
+      "interactive": true,
+      "source": "src/constants/belizeMapRegions.js; public/maps/clean-mainland-districts.svg"
+    },
+    {
+      "map_label": "Mainland Base",
+      "map_id": "mainland_base",
+      "parent": null,
+      "svg_group": "mainland_base",
+      "click_destination": null,
+      "interactive": false,
+      "source": "src/constants/belizeMapRegions.js:14; public/maps/clean-mainland-districts.svg:27"
+    }
+  ],
+  "map_only_note": "San Pedro, Placencia, and Belize City are canonical selectable subregions but share parent SVG groups (ambergris_caye, stann_creek, belize) and have no separate map click targets.",
+  "legacy_aliases": [
+    {
+      "legacy_value": "orangewalk",
+      "normalized_value": "orange-walk",
+      "context": "Alias map entry in PLATFORM_GEOGRAPHY",
+      "source": "src/constants/geographyLayer.js:40"
+    },
+    {
+      "legacy_value": "belize-district",
+      "normalized_value": "belize",
+      "context": "Alias map entry for Belize district",
+      "source": "src/constants/geographyLayer.js:53"
+    },
+    {
+      "legacy_value": "stann creek",
+      "normalized_value": "stann-creek",
+      "context": "Alias map entry; also used as raw district string in tests",
+      "source": "src/constants/geographyLayer.js:79; src/utils/canonicalListing.test.js:47"
+    },
+    {
+      "legacy_value": "ambergris caye",
+      "normalized_value": "ambergris-caye",
+      "context": "Alias map entry",
+      "source": "src/constants/geographyLayer.js:105"
+    },
+    {
+      "legacy_value": "san pedro island",
+      "normalized_value": "ambergris-caye",
+      "context": "Alias map entry (island → Ambergris Caye region, not San Pedro subregion)",
+      "source": "src/constants/geographyLayer.js:105"
+    },
+    {
+      "legacy_value": "caye caulker",
+      "normalized_value": "caye-caulker",
+      "context": "Alias map entry",
+      "source": "src/constants/geographyLayer.js:118"
+    },
+    {
+      "legacy_value": "san pedro town",
+      "normalized_value": "san-pedro",
+      "context": "Alias map entry",
+      "source": "src/constants/geographyLayer.js:131"
+    },
+    {
+      "legacy_value": "Belize District",
+      "normalized_value": "belize",
+      "context": "displayCaption on Ambergris Caye, Caye Caulker, Belize City (not a separate slug)",
+      "source": "src/constants/geographyLayer.js:100,113,152"
+    },
+    {
+      "legacy_value": "Belize City",
+      "normalized_value": "belize-city",
+      "context": "Human label resolved via toSlug in resolveListingDistrictSlug",
+      "source": "src/lib/listingPersistence.test.js:160"
+    },
+    {
+      "legacy_value": "BZOW / BZCZL / BZCY / BZTOL / BZSC / BZBZ",
+      "normalized_value": "orange-walk / corozal / cayo / toledo / stann-creek / belize",
+      "context": "Legacy unused map asset public/maps/bz.svg circle IDs",
+      "source": "public/maps/bz.svg"
+    }
+  ],
+  "fixture_locations": [
+    {
+      "location_value": "belize",
+      "files": [
+        "src/data/listings.js",
+        "src/utils/filterListings.test.js",
+        "src/lib/searchFilters.test.js",
+        "src/lib/agentPublicProfile.test.js",
+        "src/lib/listingPersistence.test.js",
+        "src/lib/legacyDraftCompat.test.js",
+        "src/lib/listingWriteContract.test.js",
+        "src/utils/listingIntel.test.js"
+      ],
+      "purpose": "Mock listings, filter/search/persistence tests",
+      "matches_canonical": true
+    },
+    {
+      "location_value": "cayo",
+      "files": [
+        "src/data/listings.js",
+        "src/lib/searchFilters.test.js"
+      ],
+      "purpose": "Mock listings, search filter tests",
+      "matches_canonical": true
+    },
+    {
+      "location_value": "corozal",
+      "files": [
+        "src/data/listings.js",
+        "src/lib/agentPublicProfile.test.js",
+        "src/components/user/UserArchivedListingsPanel.test.js"
+      ],
+      "purpose": "Mock listings, agent profile and archived listings tests",
+      "matches_canonical": true
+    },
+    {
+      "location_value": "orange-walk",
+      "files": [
+        "src/data/listings.js",
+        "src/lib/agentPublicProfile.test.js"
+      ],
+      "purpose": "Mock listings, agent profile tests",
+      "matches_canonical": true
+    },
+    {
+      "location_value": "stann-creek",
+      "files": [
+        "src/data/listings.js"
+      ],
+      "purpose": "Mock listing district field",
+      "matches_canonical": true
+    },
+    {
+      "location_value": "toledo",
+      "files": [
+        "src/data/listings.js"
+      ],
+      "purpose": "Mock listing district field",
+      "matches_canonical": true
+    },
+    {
+      "location_value": "placencia",
+      "files": [
+        "src/lib/crm/buyerCrmData.test.js",
+        "src/components/user/UserMyListingsPanel.test.js",
+        "src/lib/agentDashboardHelpers.test.js"
+      ],
+      "purpose": "CRM, dashboard panel, agent inventory filter tests",
+      "matches_canonical": true
+    },
+    {
+      "location_value": "san-pedro",
+      "files": [
+        "src/utils/filterListings.test.js",
+        "src/utils/canonicalListing.test.js",
+        "src/lib/listingPersistence.test.js"
+      ],
+      "purpose": "Filter, slug resolution, persistence tests",
+      "matches_canonical": true
+    },
+    {
+      "location_value": "ambergris-caye",
+      "files": [
+        "src/utils/filterListings.test.js",
+        "src/utils/canonicalListing.test.js",
+        "src/lib/listingPersistence.test.js"
+      ],
+      "purpose": "Parent region_slug in canonical row tests",
+      "matches_canonical": true
+    },
+    {
+      "location_value": "belize-city",
+      "files": [
+        "src/lib/listingPersistence.test.js"
+      ],
+      "purpose": "resolveListingDistrictSlug from display label",
+      "matches_canonical": true
+    },
+    {
+      "location_value": "stann creek",
+      "files": [
+        "src/utils/canonicalListing.test.js"
+      ],
+      "purpose": "Legacy spaced district string normalization",
+      "matches_canonical": true
+    }
+  ],
+  "free_text_locations": [
+    {
+      "location_or_address": "properties.address",
+      "field": "address",
+      "surface": "Operator PropertiesPanel, operator property detail",
+      "validated": false,
+      "source": "src/components/PropertiesPanel.jsx:69-111; supabase-property-unit-management.sql:11"
+    },
+    {
+      "location_or_address": "properties.district",
+      "field": "district",
+      "surface": "Operator PropertiesPanel create form",
+      "validated": false,
+      "source": "src/components/PropertiesPanel.jsx:70-117"
+    },
+    {
+      "location_or_address": "San Ignacio",
+      "field": "title",
+      "surface": "Mock listing title (district stored as cayo)",
+      "validated": false,
+      "source": "src/data/listings.js:49"
+    },
+    {
+      "location_or_address": "Dangriga",
+      "field": "title",
+      "surface": "Mock listing title (district stored as stann-creek)",
+      "validated": false,
+      "source": "src/data/listings.js:106"
+    },
+    {
+      "location_or_address": "Punta Gorda",
+      "field": "title",
+      "surface": "Mock listing title (district stored as toledo)",
+      "validated": false,
+      "source": "src/data/listings.js:120"
+    },
+    {
+      "location_or_address": "Belmopan",
+      "field": "title",
+      "surface": "Mock listing title (district stored as cayo)",
+      "validated": false,
+      "source": "src/data/listings.js:179"
+    },
+    {
+      "location_or_address": "Belize City Family Home",
+      "field": "title",
+      "surface": "Mock listing title (district stored as belize, not belize-city)",
+      "validated": false,
+      "source": "src/data/listings.js:6-7"
+    },
+    {
+      "location_or_address": "Luxury Ambergris Caye Villa",
+      "field": "title",
+      "surface": "Mock listing title (district stored as belize, not ambergris-caye)",
+      "validated": false,
+      "source": "src/data/listings.js:151-152"
+    },
+    {
+      "location_or_address": "Caye Caulker Beach Bungalow",
+      "field": "title",
+      "surface": "Mock listing title (district stored as belize, not caye-caulker)",
+      "validated": false,
+      "source": "src/data/listings.js:165-166"
+    },
+    {
+      "location_or_address": "Placencia Beach Rental / Placencia Lagoon Lot",
+      "field": "title",
+      "surface": "Mock listing titles (district stored as stann-creek, not placencia subregion)",
+      "validated": false,
+      "source": "src/data/listings.js:92-93,207-208"
+    },
+    {
+      "location_or_address": "listings.district (denormalized slug)",
+      "field": "district",
+      "surface": "All listing persistence; accepts label or slug via resolver",
+      "validated": "partial (must match PLATFORM_GEOGRAPHY on create/submit)",
+      "source": "src/lib/listingPersistence.js; src/pages/dashboard/create.jsx:1224-1226"
+    }
+  ],
+  "seo_routes_search": [
+    {
+      "name_or_slug": "corozal",
+      "usage": "District route, search ?district=, map click",
+      "url_or_parameter": "/listings/district/corozal; ?district=corozal",
+      "source": "src/lib/districtExploreRoutes.js; src/lib/searchFilters.js"
+    },
+    {
+      "name_or_slug": "orange-walk",
+      "usage": "District route, search filter, map click",
+      "url_or_parameter": "/listings/district/orange-walk; ?district=orange-walk",
+      "source": "src/constants/geographyLayer.js:30"
+    },
+    {
+      "name_or_slug": "belize",
+      "usage": "District route, search filter, map click, breadcrumbs",
+      "url_or_parameter": "/listings/district/belize; ?district=belize",
+      "source": "src/components/Breadcrumbs.jsx:11; src/lib/siteMetadata.js:119-121"
+    },
+    {
+      "name_or_slug": "cayo",
+      "usage": "District route, SEO title test",
+      "url_or_parameter": "/listings/district/cayo; ?district=cayo",
+      "source": "src/lib/siteMetadata.test.js:76"
+    },
+    {
+      "name_or_slug": "stann-creek",
+      "usage": "District route, search filter, map click",
+      "url_or_parameter": "/listings/district/stann-creek; ?district=stann-creek",
+      "source": "src/constants/geographyLayer.js:69"
+    },
+    {
+      "name_or_slug": "toledo",
+      "usage": "District route, search filter, map click",
+      "url_or_parameter": "/listings/district/toledo; ?district=toledo",
+      "source": "src/constants/geographyLayer.js:82"
+    },
+    {
+      "name_or_slug": "ambergris-caye",
+      "usage": "District route, search filter, map click",
+      "url_or_parameter": "/listings/district/ambergris-caye; ?district=ambergris-caye",
+      "source": "src/constants/geographyLayer.js:95"
+    },
+    {
+      "name_or_slug": "caye-caulker",
+      "usage": "District route, search filter, map click",
+      "url_or_parameter": "/listings/district/caye-caulker; ?district=caye-caulker",
+      "source": "src/constants/geographyLayer.js:108"
+    },
+    {
+      "name_or_slug": "san-pedro",
+      "usage": "District route (subregion slug), filter child match",
+      "url_or_parameter": "/listings/district/san-pedro; ?district=san-pedro; ?subregion=san-pedro",
+      "source": "src/constants/geographyLayer.js:121; src/pages/listings/district/[district].jsx"
+    },
+    {
+      "name_or_slug": "placencia",
+      "usage": "District route (subregion slug)",
+      "url_or_parameter": "/listings/district/placencia; ?subregion=placencia",
+      "source": "src/constants/geographyLayer.js:134"
+    },
+    {
+      "name_or_slug": "belize-city",
+      "usage": "District route (subregion slug)",
+      "url_or_parameter": "/listings/district/belize-city; ?subregion=belize-city",
+      "source": "src/constants/geographyLayer.js:147"
+    },
+    {
+      "name_or_slug": "subregion",
+      "usage": "District page URL query for child region filter",
+      "url_or_parameter": "?subregion={slug}",
+      "source": "src/pages/listings/district/[district].jsx:46,110-118; docs/discovery/search-architecture.md"
+    }
+  ],
+  "documentation_locations": [],
+  "documentation_note": "No documentation or planning files in the repository contain specific locality examples (e.g. Maya Vista, Ladyville). Docs reference districts conceptually only.",
+  "master_locations": [
+    {
+      "preferred_name": "Ambergris Caye",
+      "variants_aliases": ["ambergris caye", "san pedro island"],
+      "slugs": ["ambergris-caye"],
+      "status": "Canonical and selectable",
+      "tier": "Island / Caye",
+      "sources": ["src/constants/geographyLayer.js:95"]
+    },
+    {
+      "preferred_name": "Belize",
+      "variants_aliases": ["belize-district", "Belize District (displayCaption)"],
+      "slugs": ["belize"],
+      "status": "Canonical and selectable",
+      "tier": "District",
+      "sources": ["src/constants/geographyLayer.js:43"]
+    },
+    {
+      "preferred_name": "Belize City",
+      "variants_aliases": [],
+      "slugs": ["belize-city"],
+      "status": "Canonical and selectable",
+      "tier": "City",
+      "sources": ["src/constants/geographyLayer.js:147", "src/data/listings.js:6 (title only)"]
+    },
+    {
+      "preferred_name": "Belmopan",
+      "variants_aliases": [],
+      "slugs": [],
+      "status": "Referenced but unsupported",
+      "tier": "City",
+      "sources": ["src/data/listings.js:179"]
+    },
+    {
+      "preferred_name": "Cayo",
+      "variants_aliases": [],
+      "slugs": ["cayo"],
+      "status": "Canonical and selectable",
+      "tier": "District",
+      "sources": ["src/constants/geographyLayer.js:56"]
+    },
+    {
+      "preferred_name": "Caye Caulker",
+      "variants_aliases": ["caye caulker"],
+      "slugs": ["caye-caulker"],
+      "status": "Canonical and selectable",
+      "tier": "Island / Caye",
+      "sources": ["src/constants/geographyLayer.js:108"]
+    },
+    {
+      "preferred_name": "Corozal",
+      "variants_aliases": [],
+      "slugs": ["corozal"],
+      "status": "Canonical and selectable",
+      "tier": "District",
+      "sources": ["src/constants/geographyLayer.js:17"]
+    },
+    {
+      "preferred_name": "Dangriga",
+      "variants_aliases": [],
+      "slugs": [],
+      "status": "Referenced but unsupported",
+      "tier": "Town",
+      "sources": ["src/data/listings.js:106"]
+    },
+    {
+      "preferred_name": "Mainland Base",
+      "variants_aliases": [],
+      "slugs": ["mainland_base"],
+      "status": "Map-only",
+      "tier": "Unknown",
+      "sources": ["src/constants/belizeMapRegions.js:14", "public/maps/clean-mainland-districts.svg:27"]
+    },
+    {
+      "preferred_name": "Orange Walk",
+      "variants_aliases": ["orangewalk"],
+      "slugs": ["orange-walk"],
+      "status": "Canonical and selectable",
+      "tier": "District",
+      "sources": ["src/constants/geographyLayer.js:30"]
+    },
+    {
+      "preferred_name": "Placencia",
+      "variants_aliases": [],
+      "slugs": ["placencia"],
+      "status": "Canonical and selectable",
+      "tier": "Town",
+      "sources": ["src/constants/geographyLayer.js:134", "src/data/listings.js:92,207 (titles)"]
+    },
+    {
+      "preferred_name": "Punta Gorda",
+      "variants_aliases": [],
+      "slugs": [],
+      "status": "Referenced but unsupported",
+      "tier": "Town",
+      "sources": ["src/data/listings.js:120"]
+    },
+    {
+      "preferred_name": "San Ignacio",
+      "variants_aliases": [],
+      "slugs": [],
+      "status": "Referenced but unsupported",
+      "tier": "Town",
+      "sources": ["src/data/listings.js:49"]
+    },
+    {
+      "preferred_name": "San Pedro",
+      "variants_aliases": ["san pedro town"],
+      "slugs": ["san-pedro"],
+      "status": "Canonical and selectable",
+      "tier": "Town",
+      "sources": ["src/constants/geographyLayer.js:121"]
+    },
+    {
+      "preferred_name": "Stann Creek",
+      "variants_aliases": ["stann creek"],
+      "slugs": ["stann-creek"],
+      "status": "Canonical and selectable",
+      "tier": "District",
+      "sources": ["src/constants/geographyLayer.js:69"]
+    },
+    {
+      "preferred_name": "Toledo",
+      "variants_aliases": [],
+      "slugs": ["toledo"],
+      "status": "Canonical and selectable",
+      "tier": "District",
+      "sources": ["src/constants/geographyLayer.js:82"]
+    }
+  ],
+  "v1_migration_classification": [
+    {
+      "existing_location": "Corozal",
+      "proposed_region": "Corozal",
+      "proposed_area": null,
+      "proposed_neighborhood_locality": null,
+      "confidence": "High",
+      "notes": "Maps 1:1 to official district"
+    },
+    {
+      "existing_location": "Orange Walk",
+      "proposed_region": "Orange Walk",
+      "proposed_area": null,
+      "proposed_neighborhood_locality": null,
+      "confidence": "High",
+      "notes": "Maps 1:1 to official district"
+    },
+    {
+      "existing_location": "Belize",
+      "proposed_region": "Belize",
+      "proposed_area": null,
+      "proposed_neighborhood_locality": null,
+      "confidence": "High",
+      "notes": "District slug belize; distinct from Belize City subregion"
+    },
+    {
+      "existing_location": "Cayo",
+      "proposed_region": "Cayo",
+      "proposed_area": null,
+      "proposed_neighborhood_locality": null,
+      "confidence": "High",
+      "notes": "Maps 1:1 to official district"
+    },
+    {
+      "existing_location": "Stann Creek",
+      "proposed_region": "Stann Creek",
+      "proposed_area": null,
+      "proposed_neighborhood_locality": null,
+      "confidence": "High",
+      "notes": "District; Placencia is separate subregion under same district"
+    },
+    {
+      "existing_location": "Toledo",
+      "proposed_region": "Toledo",
+      "proposed_area": null,
+      "proposed_neighborhood_locality": null,
+      "confidence": "High",
+      "notes": "Maps 1:1 to official district"
+    },
+    {
+      "existing_location": "Ambergris Caye",
+      "proposed_region": "Belize",
+      "proposed_area": "Ambergris Caye",
+      "proposed_neighborhood_locality": null,
+      "confidence": "High",
+      "notes": "Current type region under belize parentDistrict"
+    },
+    {
+      "existing_location": "Caye Caulker",
+      "proposed_region": "Belize",
+      "proposed_area": "Caye Caulker",
+      "proposed_neighborhood_locality": null,
+      "confidence": "High",
+      "notes": "Current type region under belize parentDistrict"
+    },
+    {
+      "existing_location": "San Pedro",
+      "proposed_region": "Belize",
+      "proposed_area": "San Pedro",
+      "proposed_neighborhood_locality": null,
+      "confidence": "Medium",
+      "notes": "Could be Area under Belize or locality under Ambergris Caye; parent is ambergris-caye today"
+    },
+    {
+      "existing_location": "Placencia",
+      "proposed_region": "Stann Creek",
+      "proposed_area": "Placencia",
+      "proposed_neighborhood_locality": null,
+      "confidence": "High",
+      "notes": "Current subregion under stann-creek"
+    },
+    {
+      "existing_location": "Belize City",
+      "proposed_region": "Belize",
+      "proposed_area": "Belize City",
+      "proposed_neighborhood_locality": null,
+      "confidence": "High",
+      "notes": "Current subregion under belize district"
+    },
+    {
+      "existing_location": "San Ignacio",
+      "proposed_region": "Cayo",
+      "proposed_area": "San Ignacio",
+      "proposed_neighborhood_locality": null,
+      "confidence": "Medium",
+      "notes": "Appears only in mock title; not in PLATFORM_GEOGRAPHY"
+    },
+    {
+      "existing_location": "Belmopan",
+      "proposed_region": "Cayo",
+      "proposed_area": "Belmopan",
+      "proposed_neighborhood_locality": null,
+      "confidence": "Medium",
+      "notes": "Mock title only"
+    },
+    {
+      "existing_location": "Dangriga",
+      "proposed_region": "Stann Creek",
+      "proposed_area": "Dangriga",
+      "proposed_neighborhood_locality": null,
+      "confidence": "Medium",
+      "notes": "Mock title only; distinct from Placencia"
+    },
+    {
+      "existing_location": "Punta Gorda",
+      "proposed_region": "Toledo",
+      "proposed_area": "Punta Gorda",
+      "proposed_neighborhood_locality": null,
+      "confidence": "Medium",
+      "notes": "Mock title only"
+    }
+  ],
+  "totals": {
+    "canonical_selectable_locations": 11,
+    "district_entries": 6,
+    "region_entries": 2,
+    "subregion_entries": 3,
+    "map_regions_interactive": 8,
+    "map_regions_total_svg_groups": 9,
+    "legacy_aliases_explicit": 7,
+    "legacy_aliases_including_captions_and_labels": 10,
+    "unique_test_fixture_location_values": 11,
+    "free_text_only_locality_names": 4,
+    "documentation_only_locations": 0,
+    "total_unique_place_names": 16,
+    "total_unique_slugs": 11,
+    "unsupported_places_referenced": 4
+  }
+}
