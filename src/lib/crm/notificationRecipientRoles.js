@@ -1,26 +1,50 @@
 /**
- * Resolve dashboard recipient_role for notification deep links.
- * @param {'agent'|'buyer'|'user'} side — who receives the notification
+ * Resolve dashboard recipient_role and recipient_side for notification deep links.
  */
-export function notificationRecipientRole(side) {
-  if (side === "agent") return "agent";
-  return "user";
-}
-
-/** @param {string|null|undefined} recipientId @param {string|null|undefined} agentUserId */
-export function isAgentRecipient(recipientId, agentUserId) {
-  if (!recipientId || !agentUserId) return false;
-  return String(recipientId) === String(agentUserId);
+export function isListingOwnerRecipient(recipientId, listingOwnerUserId) {
+  if (!recipientId || !listingOwnerUserId) return false;
+  return String(recipientId) === String(listingOwnerUserId);
 }
 
 /**
- * Build payload fragment with recipient_role for enqueue.
- * @param {string} recipientId
- * @param {{ agentUserId?: string, requesterId?: string }} parties
+ * @param {'agent'|'user'|'admin'} [ownerDashboardRole] — when listing owner uses agent dashboard
  */
 export function withNotificationRecipientRole(recipientId, parties = {}, payload = {}) {
-  const role = isAgentRecipient(recipientId, parties.agentUserId)
-    ? "agent"
-    : "user";
-  return { ...payload, recipient_role: role };
+  const listingOwnerId = parties.agentUserId ?? parties.listingOwnerUserId;
+  const requesterId = parties.requesterId;
+
+  if (isListingOwnerRecipient(recipientId, listingOwnerId)) {
+    const isAgentDashboard = parties.ownerDashboardRole === "agent";
+    return {
+      ...payload,
+      recipient_role: isAgentDashboard ? "agent" : "user",
+      recipient_side: isAgentDashboard ? "agent" : "owner",
+    };
+  }
+
+  if (requesterId && String(recipientId) === String(requesterId)) {
+    return {
+      ...payload,
+      recipient_role: "user",
+      recipient_side: "buyer",
+    };
+  }
+
+  const role = String(payload.recipient_role || parties.fallbackRole || "user").toLowerCase();
+  return {
+    ...payload,
+    recipient_role: role,
+    recipient_side: payload.recipient_side || (role === "agent" ? "agent" : "buyer"),
+  };
+}
+
+/** @deprecated use isListingOwnerRecipient */
+export function isAgentRecipient(recipientId, agentUserId) {
+  return isListingOwnerRecipient(recipientId, agentUserId);
+}
+
+export function notificationRecipientRole(side) {
+  if (side === "agent") return "agent";
+  if (side === "admin") return "admin";
+  return "user";
 }

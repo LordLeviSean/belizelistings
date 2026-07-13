@@ -1,0 +1,22 @@
+/**
+ * Shared light sea-glass tokens for CRM messaging surfaces.
+ * Import alongside panel modules: composes classes via global selectors.
+ */
+:global(:root) {
+  --crm-inbox-bg: rgba(255, 255, 255, 0.9);
+  --crm-conversation-surface: #ffffff;
+  --crm-row-bg: rgba(255, 255, 255, 0.88);
+  --crm-row-selected-bg: rgba(232, 246, 241, 0.95);
+  --crm-row-border: rgba(94, 140, 128, 0.18);
+  --crm-row-selected-border: rgba(72, 130, 118, 0.42);
+  --crm-bubble-incoming: #eef6f3;
+  --crm-bubble-outgoing: #d8eee7;
+  --crm-bubble-system: rgba(248, 252, 250, 0.98);
+  --crm-text-primary: var(--text-primary, #1a3d34);
+  --crm-text-muted: var(--text-secondary, #5a7a72);
+  --crm-text-meta: rgba(74, 110, 100, 0.72);
+  --crm-unread-accent: rgba(56, 120, 104, 0.9);
+  --crm-composer-bg: rgba(255, 255, 255, 0.96);
+  --crm-composer-border: rgba(94, 140, 128, 0.22);
+  --crm-shadow-soft: var(--elev-1, 0 4px 14px rgba(26, 61, 52, 0.06));
+}

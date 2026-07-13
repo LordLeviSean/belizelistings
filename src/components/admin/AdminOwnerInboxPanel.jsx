@@ -104,6 +104,7 @@ export default function AdminOwnerInboxPanel({
           agentUserId={ownerUserId}
           onRefresh={refresh}
           initialViewingId={initialViewingId}
+          surface={surface}
         />
       </div>
     );

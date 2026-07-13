@@ -94,7 +94,7 @@ export default function UserDashboard() {
   const activeTab = useMemo(() => {
     const inferred = resolveUserDashboardTabFromQuery(router.query);
     return USER_TAB_SET.has(inferred) ? inferred : USER_DASHBOARD_TAB_IDS.OVERVIEW;
-  }, [router.query.tab, router.query.conversation, router.query.viewing]);
+  }, [router.query.tab, router.query.conversation, router.query.viewing, router.query.listing]);
 
   const hasOwnedListings = useMemo(
     () =>

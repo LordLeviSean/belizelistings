@@ -3,7 +3,7 @@
   padding: 16px 4px;
   font-size: 0.92rem;
   line-height: 1.55;
-  color: rgba(210, 228, 224, 0.72);
+  color: var(--crm-text-muted);
   max-width: 54ch;
 }
 
@@ -16,26 +16,28 @@
 .card {
   padding: 16px 16px 14px;
   border-radius: 14px;
-  background: rgba(14, 32, 38, 0.42);
-  border: 1px solid rgba(110, 185, 178, 0.18);
+  background: var(--crm-row-bg);
+  border: 1px solid var(--crm-row-border);
+  box-shadow: var(--crm-shadow-soft);
   transition: border-color var(--dur-3) var(--ease-out-soft), box-shadow var(--dur-3) var(--ease-out-soft),
     transform var(--dur-3) var(--ease-out-soft);
 }
 
 .card:hover {
   transform: translateY(var(--hover-lift-xs));
-  border-color: rgba(130, 190, 185, 0.26);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+  border-color: var(--crm-row-selected-border);
+  box-shadow: var(--elev-1, var(--crm-shadow-soft));
 }
 
 .cardUnread {
-  border-color: rgba(212, 175, 122, 0.42);
-  box-shadow: 0 0 0 1px rgba(212, 175, 122, 0.08), 0 4px 16px rgba(212, 175, 122, 0.06);
+  border-color: var(--crm-row-selected-border);
+  box-shadow: 0 0 0 1px rgba(72, 130, 118, 0.08), var(--crm-shadow-soft);
 }
 
 .cardHighlighted {
-  border-color: rgba(130, 190, 185, 0.48);
-  box-shadow: 0 0 0 1px rgba(130, 190, 185, 0.12), 0 10px 28px rgba(0, 0, 0, 0.14);
+  border-color: var(--crm-row-selected-border);
+  background: var(--crm-row-selected-bg);
+  box-shadow: var(--elev-1, var(--crm-shadow-soft));
 }
 
 .cardHead {
@@ -50,26 +52,26 @@
   font-size: 0.72rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(170, 220, 212, 0.72);
+  color: var(--crm-text-meta);
 }
 
 .time {
   font-size: 0.78rem;
-  color: rgba(190, 215, 208, 0.55);
+  color: var(--crm-text-meta);
 }
 
 .listingRef {
   margin: 0 0 8px;
   font-weight: 600;
   font-size: 0.95rem;
-  color: rgba(238, 252, 248, 0.94);
+  color: var(--crm-text-primary);
 }
 
 .body {
   margin: 0 0 12px;
   font-size: 0.88rem;
   line-height: 1.55;
-  color: rgba(215, 235, 230, 0.85);
+  color: var(--crm-text-primary);
   white-space: pre-wrap;
 }
 
@@ -85,16 +87,16 @@
   font-size: 0.68rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(160, 200, 192, 0.55);
+  color: var(--crm-text-meta);
 }
 
 .meta dd {
   margin: 0;
-  color: rgba(228, 245, 240, 0.88);
+  color: var(--crm-text-primary);
 }
 
 .meta a {
-  color: rgba(140, 220, 208, 0.95);
+  color: rgba(56, 120, 104, 0.92);
 }
 
 .actions {
@@ -113,8 +115,8 @@
   font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
-  color: rgba(10, 28, 26, 0.92);
-  background: linear-gradient(135deg, rgba(110, 210, 196, 1), rgba(56, 158, 148, 1));
+  color: rgba(255, 255, 255, 0.96);
+  background: linear-gradient(135deg, rgba(72, 130, 118, 1), rgba(56, 110, 98, 1));
   transition: var(--transition-hover-lift), filter var(--dur-2) var(--ease-out-soft);
 }
 
@@ -135,15 +137,16 @@
   min-height: 44px;
   font-size: 0.84rem;
   cursor: pointer;
-  color: rgba(220, 245, 238, 0.88);
-  background: transparent;
-  border: 1px solid rgba(130, 190, 185, 0.35);
+  color: var(--crm-text-primary);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--crm-row-border);
   transition: var(--transition-surface), transform var(--dur-2) var(--ease-out-soft);
 }
 
 .secondary:hover {
   transform: translateY(var(--hover-lift-xs));
-  border-color: rgba(160, 215, 205, 0.45);
+  border-color: var(--crm-row-selected-border);
+  background: var(--crm-row-selected-bg);
 }
 
 .statusPill {
@@ -152,8 +155,8 @@
   text-transform: uppercase;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(72, 120, 112, 0.35);
-  color: rgba(210, 235, 228, 0.85);
+  background: rgba(216, 238, 231, 0.72);
+  color: var(--crm-text-primary);
 }
 
 @media (max-width: 640px) {

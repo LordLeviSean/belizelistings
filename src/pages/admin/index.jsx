@@ -33,6 +33,7 @@ import AgentUpgradeRequestsPanel from "../../components/admin/AgentUpgradeReques
 import AdminOwnerInboxPanel from "../../components/admin/AdminOwnerInboxPanel";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "../../lib/featureFlags";
 import { loadBuyerCrmData } from "../../lib/crm/buyerCrmData";
+import { resolveAdminDashboardTabFromQuery } from "../../lib/dashboardCrmRoutes";
 import {
   ADMIN_DASHBOARD_TAB_IDS,
   getVisibleAdminDashboardTabs,
@@ -175,9 +176,15 @@ export default function AdminPage() {
   }, [router, roleLoading, user?.id, role]);
 
   useEffect(() => {
-    const tab = typeof router.query.tab === "string" ? router.query.tab : "";
-    setActiveTab(resolveVisibleAdminDashboardTab(tab, visibleTabs));
-  }, [router.query.tab, visibleTabs]);
+    const inferred = resolveAdminDashboardTabFromQuery(router.query);
+    setActiveTab(resolveVisibleAdminDashboardTab(inferred, visibleTabs));
+  }, [
+    router.query.tab,
+    router.query.conversation,
+    router.query.viewing,
+    router.query.listing,
+    visibleTabs,
+  ]);
 
   useEffect(() => {
     if (!isAdmin) return;

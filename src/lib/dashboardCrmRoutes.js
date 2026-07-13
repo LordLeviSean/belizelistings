@@ -13,6 +13,7 @@ export function resolveDashboardCrmPath({
   tab,
   conversationId,
   viewingId,
+  listingId,
 } = {}) {
   const normalizedRole = String(role || "user").trim().toLowerCase();
   const base =
@@ -26,31 +27,125 @@ export function resolveDashboardCrmPath({
   if (tab) params.set("tab", tab);
   if (conversationId) params.set("conversation", String(conversationId));
   if (viewingId) params.set("viewing", String(viewingId));
+  if (listingId) params.set("listing", String(listingId));
 
   const query = params.toString();
   return query ? `${base}?${query}` : base;
 }
 
+function resolveRecipientContext(payload = {}) {
+  const role = String(payload.recipient_role ?? payload.recipientRole ?? "user")
+    .trim()
+    .toLowerCase();
+  const explicitSide = String(payload.recipient_side ?? payload.recipientSide ?? "")
+    .trim()
+    .toLowerCase();
+
+  let side = explicitSide;
+  if (!side) {
+    if (role === "agent") side = "agent";
+    else if (role === "admin") side = "admin";
+    else side = "buyer";
+  }
+
+  return { role, side };
+}
+
+/** Open the exact conversation for message notifications. */
+export function resolveMessageConversationPath({
+  role,
+  side,
+  conversationId,
+} = {}) {
+  const recipientRole = String(role || "user").trim().toLowerCase();
+  const recipientSide = String(side || "buyer").trim().toLowerCase();
+
+  if (recipientRole === "admin") {
+    const tab =
+      recipientSide === "owner"
+        ? ADMIN_DASHBOARD_TAB_IDS.OWNER_INBOX
+        : ADMIN_DASHBOARD_TAB_IDS.MESSAGES;
+    return resolveDashboardCrmPath({ role: "admin", tab, conversationId });
+  }
+
+  if (recipientRole === "agent" || recipientSide === "agent") {
+    return resolveDashboardCrmPath({
+      role: "agent",
+      tab: AGENT_DASHBOARD_TAB_IDS.INQUIRIES,
+      conversationId,
+    });
+  }
+
+  if (recipientSide === "owner") {
+    return resolveDashboardCrmPath({
+      role: "user",
+      tab: USER_DASHBOARD_TAB_IDS.OWNER_INBOX,
+      conversationId,
+    });
+  }
+
+  return resolveDashboardCrmPath({
+    role: "user",
+    tab: USER_DASHBOARD_TAB_IDS.MESSAGES,
+    conversationId,
+  });
+}
+
+/** Open the exact structured viewing request (not only the conversation). */
+export function resolveViewingRequestPath({ role, side, viewingId, conversationId } = {}) {
+  const recipientRole = String(role || "user").trim().toLowerCase();
+  const recipientSide = String(side || "buyer").trim().toLowerCase();
+
+  if (recipientRole === "admin") {
+    const tab =
+      recipientSide === "buyer"
+        ? ADMIN_DASHBOARD_TAB_IDS.MY_VIEWINGS
+        : ADMIN_DASHBOARD_TAB_IDS.OWNER_VIEWINGS;
+    return resolveDashboardCrmPath({ role: "admin", tab, viewingId, conversationId });
+  }
+
+  if (recipientRole === "agent" || recipientSide === "agent") {
+    return resolveDashboardCrmPath({
+      role: "agent",
+      tab: AGENT_DASHBOARD_TAB_IDS.VIEWINGS,
+      viewingId,
+      conversationId,
+    });
+  }
+
+  if (recipientSide === "owner") {
+    return resolveDashboardCrmPath({
+      role: "user",
+      tab: USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS,
+      viewingId,
+      conversationId,
+    });
+  }
+
+  return resolveDashboardCrmPath({
+    role: "user",
+    tab: USER_DASHBOARD_TAB_IDS.MY_VIEWINGS,
+    viewingId,
+    conversationId,
+  });
+}
+
 /** After a buyer sends a listing message, open the correct inbox tab. */
 export function resolvePostInquiryMessagesPath({ role, conversationId } = {}) {
-  const normalizedRole = String(role || "user").trim().toLowerCase();
-  const tab =
-    normalizedRole === "admin"
-      ? ADMIN_DASHBOARD_TAB_IDS.MESSAGES
-      : USER_DASHBOARD_TAB_IDS.MESSAGES;
-
-  return resolveDashboardCrmPath({ role: normalizedRole, tab, conversationId });
+  return resolveMessageConversationPath({
+    role: role || "user",
+    side: "buyer",
+    conversationId,
+  });
 }
 
 /** Buyer viewing deep link with exact viewing id. */
 export function resolveBuyerViewingsPath({ role, viewingId } = {}) {
-  const normalizedRole = String(role || "user").trim().toLowerCase();
-  const tab =
-    normalizedRole === "admin"
-      ? ADMIN_DASHBOARD_TAB_IDS.MY_VIEWINGS
-      : USER_DASHBOARD_TAB_IDS.MY_VIEWINGS;
-
-  return resolveDashboardCrmPath({ role: normalizedRole, tab, viewingId });
+  return resolveViewingRequestPath({
+    role: role || "user",
+    side: "buyer",
+    viewingId,
+  });
 }
 
 /** Owner/agent notification deep links for new inquiry or viewing request. */
@@ -80,7 +175,7 @@ export function resolveOwnerInboxPath({ role, tab, conversationId, viewingId } =
   }
 
   const userOwnerTab =
-    tab === "viewings" || tab === AGENT_DASHBOARD_TAB_IDS.VIEWINGS
+    tab === "viewings" || tab === USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS
       ? USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS
       : tab || USER_DASHBOARD_TAB_IDS.OWNER_INBOX;
 
@@ -92,88 +187,102 @@ export function resolveOwnerInboxPath({ role, tab, conversationId, viewingId } =
   });
 }
 
-function resolveListingManagementPath({ role, listingId } = {}) {
+function resolveListingManagementPath({ role, listingId, toStatus } = {}) {
   const normalizedRole = String(role || "user").trim().toLowerCase();
-  if (listingId) {
-    return `/listing/${listingId}`;
-  }
+  const status = String(toStatus || "").toLowerCase();
+
   if (normalizedRole === "admin") {
-    return resolveDashboardCrmPath({ role, tab: ADMIN_DASHBOARD_TAB_IDS.LISTINGS });
+    if (status === LISTING_LIFECYCLE.PENDING_REVIEW || status === "pending") {
+      return resolveDashboardCrmPath({ role: "admin", tab: ADMIN_DASHBOARD_TAB_IDS.PENDING, listingId });
+    }
+    return resolveDashboardCrmPath({ role: "admin", tab: ADMIN_DASHBOARD_TAB_IDS.LISTINGS, listingId });
   }
+
   if (normalizedRole === "agent") {
-    return resolveDashboardCrmPath({ role, tab: AGENT_DASHBOARD_TAB_IDS.LISTINGS });
+    return resolveDashboardCrmPath({ role: "agent", tab: AGENT_DASHBOARD_TAB_IDS.LISTINGS, listingId });
   }
-  return resolveDashboardCrmPath({ role, tab: USER_DASHBOARD_TAB_IDS.MY_LISTINGS });
+
+  if (status === LISTING_LIFECYCLE.PENDING_REVIEW || status === "pending") {
+    return resolveDashboardCrmPath({ role: "user", tab: USER_DASHBOARD_TAB_IDS.PENDING, listingId });
+  }
+
+  return resolveDashboardCrmPath({ role: "user", tab: USER_DASHBOARD_TAB_IDS.MY_LISTINGS, listingId });
 }
 
 /**
- * Canonical notification destination — exact entity routing per event + recipient role.
+ * Canonical notification destination — exact entity routing per event + recipient role/side.
  * @param {{ eventType: string, role?: string, payload?: Record<string, unknown> }} params
  */
 export function resolveNotificationDestination({ eventType, role, payload = {} } = {}) {
-  const recipientRole = String(
-    payload.recipient_role ?? payload.recipientRole ?? role ?? "user"
-  )
-    .trim()
-    .toLowerCase();
+  const { role: recipientRole, side: recipientSide } = resolveRecipientContext({
+    ...payload,
+    recipient_role: payload.recipient_role ?? payload.recipientRole ?? role ?? "user",
+  });
 
   const conversationId = payload.conversation_id ?? payload.conversationId ?? null;
   const viewingId = payload.viewing_id ?? payload.viewingId ?? null;
   const listingId = payload.listing_id ?? payload.listingId ?? null;
+  const inquiryType = String(payload.inquiry_type ?? payload.inquiryType ?? "general").toLowerCase();
   const toStatus = String(payload.to_status ?? payload.toStatus ?? "").toLowerCase();
 
   switch (eventType) {
     case NOTIFICATION_EVENT_TYPES.NEW_INQUIRY:
-      return resolveOwnerInboxPath({
+      if (inquiryType === "schedule_viewing" && viewingId) {
+        return resolveViewingRequestPath({
+          role: recipientRole,
+          side: recipientSide === "buyer" ? "owner" : recipientSide,
+          viewingId,
+          conversationId,
+        });
+      }
+      return resolveMessageConversationPath({
         role: recipientRole,
+        side: recipientSide === "buyer" ? "owner" : recipientSide,
         conversationId,
-        viewingId: payload.inquiry_type === "schedule_viewing" ? viewingId : null,
       });
 
     case NOTIFICATION_EVENT_TYPES.AGENT_REPLIED:
-      return resolvePostInquiryMessagesPath({ role: recipientRole, conversationId });
-
-    case NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED:
-      return resolveOwnerInboxPath({
+      return resolveMessageConversationPath({
         role: recipientRole,
-        tab: "viewings",
-        viewingId,
+        side: "buyer",
         conversationId,
       });
 
+    case NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED:
     case NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED:
     case NOTIFICATION_EVENT_TYPES.VIEWING_CANCELLED:
     case NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED:
     case NOTIFICATION_EVENT_TYPES.VIEWING_RESCHEDULED:
-      if (recipientRole === "agent" || recipientRole === "admin") {
-        return resolveOwnerInboxPath({
-          role: recipientRole,
-          tab: "viewings",
-          viewingId,
-        });
-      }
-      return resolveBuyerViewingsPath({ role: recipientRole, viewingId });
+      return resolveViewingRequestPath({
+        role: recipientRole,
+        side: recipientSide,
+        viewingId,
+        conversationId,
+      });
 
     case NOTIFICATION_EVENT_TYPES.INQUIRY_ARCHIVED:
-      if (recipientRole === "admin") {
-        return resolveDashboardCrmPath({ role: "admin", tab: ADMIN_DASHBOARD_TAB_IDS.OWNER_INBOX });
-      }
-      if (recipientRole === "agent") {
-        return resolveDashboardCrmPath({ role: "agent", tab: AGENT_DASHBOARD_TAB_IDS.INQUIRIES });
-      }
-      return resolveDashboardCrmPath({ role: "user", tab: USER_DASHBOARD_TAB_IDS.OWNER_INBOX });
+      return resolveMessageConversationPath({
+        role: recipientRole,
+        side: recipientSide === "buyer" ? "owner" : recipientSide,
+        conversationId,
+      });
 
     default:
       if (
         toStatus === LISTING_LIFECYCLE.RECENTLY_SOLD ||
         toStatus === LISTING_LIFECYCLE.RECENTLY_RENTED ||
         toStatus === LISTING_LIFECYCLE.SOLD ||
-        toStatus === LISTING_LIFECYCLE.RENTED
+        toStatus === LISTING_LIFECYCLE.RENTED ||
+        toStatus === LISTING_LIFECYCLE.ARCHIVED ||
+        toStatus === LISTING_LIFECYCLE.EXPIRED ||
+        toStatus === LISTING_LIFECYCLE.PUBLISHED ||
+        toStatus === LISTING_LIFECYCLE.REJECTED ||
+        toStatus === LISTING_LIFECYCLE.PENDING_REVIEW
       ) {
-        return resolveListingManagementPath({ role: recipientRole, listingId });
+        return resolveListingManagementPath({ role: recipientRole, listingId, toStatus });
       }
       if (listingId) {
-        return `/listing/${listingId}`;
+        return resolveListingManagementPath({ role: recipientRole, listingId, toStatus });
       }
       return resolveDashboardCrmPath({ role: recipientRole });
   }
@@ -190,6 +299,9 @@ export function resolveUserDashboardTabFromQuery(query = {}) {
   const viewing = Array.isArray(query.viewing) ? query.viewing[0] : query.viewing;
   if (viewing) return USER_DASHBOARD_TAB_IDS.MY_VIEWINGS;
 
+  const listing = Array.isArray(query.listing) ? query.listing[0] : query.listing;
+  if (listing) return USER_DASHBOARD_TAB_IDS.MY_LISTINGS;
+
   return USER_DASHBOARD_TAB_IDS.OVERVIEW;
 }
 
@@ -204,5 +316,25 @@ export function resolveAgentDashboardTabFromQuery(query = {}) {
   const viewing = Array.isArray(query.viewing) ? query.viewing[0] : query.viewing;
   if (viewing) return AGENT_DASHBOARD_TAB_IDS.VIEWINGS;
 
+  const listing = Array.isArray(query.listing) ? query.listing[0] : query.listing;
+  if (listing) return AGENT_DASHBOARD_TAB_IDS.LISTINGS;
+
   return AGENT_DASHBOARD_TAB_IDS.OVERVIEW;
+}
+
+/** Infer admin dashboard tab from deep-link query when tab is omitted. */
+export function resolveAdminDashboardTabFromQuery(query = {}) {
+  const tabRaw = Array.isArray(query.tab) ? query.tab[0] : query.tab;
+  if (tabRaw) return String(tabRaw).trim().toLowerCase();
+
+  const conversation = Array.isArray(query.conversation) ? query.conversation[0] : query.conversation;
+  if (conversation) return ADMIN_DASHBOARD_TAB_IDS.MESSAGES;
+
+  const viewing = Array.isArray(query.viewing) ? query.viewing[0] : query.viewing;
+  if (viewing) return ADMIN_DASHBOARD_TAB_IDS.MY_VIEWINGS;
+
+  const listing = Array.isArray(query.listing) ? query.listing[0] : query.listing;
+  if (listing) return ADMIN_DASHBOARD_TAB_IDS.LISTINGS;
+
+  return ADMIN_DASHBOARD_TAB_IDS.PENDING;
 }

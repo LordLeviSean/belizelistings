@@ -8,11 +8,11 @@
   margin: 0;
   font-size: 0.82rem;
   font-weight: 600;
-  color: rgba(235, 220, 195, 0.92);
+  color: var(--crm-text-primary);
 }
 
 .unreadDot {
-  color: rgba(212, 175, 122, 0.95);
+  color: var(--crm-unread-accent);
   font-weight: 650;
 }
 
@@ -36,8 +36,9 @@
 .threadPane {
   padding: 16px;
   border-radius: 14px;
-  background: rgba(14, 32, 38, 0.42);
-  border: 1px solid rgba(110, 185, 178, 0.18);
+  background: var(--crm-conversation-surface);
+  border: 1px solid var(--crm-row-border);
+  box-shadow: var(--crm-shadow-soft);
   min-height: 320px;
 }
 
@@ -49,14 +50,14 @@
   margin: 0 0 4px;
   font: inherit;
   font-size: 0.84rem;
-  color: rgba(170, 220, 212, 0.82);
+  color: var(--crm-text-muted);
   cursor: pointer;
   text-align: left;
   min-height: var(--touch-target-min, 44px);
 }
 
 .backBtn:hover {
-  color: rgba(212, 175, 122, 0.92);
+  color: var(--crm-text-primary);
 }
 
 .listingGroupBtn {
@@ -87,13 +88,13 @@
   margin: 0 0 2px;
   font-size: 0.98rem;
   font-weight: 500;
-  color: rgba(235, 245, 243, 0.95);
+  color: var(--crm-text-primary);
 }
 
 .listingGroupMeta {
   margin: 0;
   font-size: 0.82rem;
-  color: rgba(170, 220, 212, 0.68);
+  color: var(--crm-text-meta);
 }
 
 .listingThumbWrap {
@@ -105,7 +106,7 @@
   height: 56px;
   border-radius: 10px;
   object-fit: cover;
-  border: 1px solid rgba(110, 185, 178, 0.16);
+  border: 1px solid var(--crm-row-border);
 }
 
 .listingGroupHead .listingThumb {
@@ -117,8 +118,8 @@
   width: 56px;
   height: 56px;
   border-radius: 10px;
-  background: rgba(20, 48, 54, 0.55);
-  border: 1px solid rgba(110, 185, 178, 0.14);
+  background: var(--crm-bubble-incoming);
+  border: 1px solid var(--crm-row-border);
 }
 
 .convBtn {
@@ -128,7 +129,8 @@
 }
 
 .convBtnSelected {
-  border-color: rgba(212, 175, 122, 0.55) !important;
+  border-color: var(--crm-row-selected-border) !important;
+  background: var(--crm-row-selected-bg) !important;
 }
 
 .convType {
@@ -136,7 +138,7 @@
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(170, 220, 212, 0.62);
+  color: var(--crm-text-meta);
 }
 
 .detailHead {
@@ -147,13 +149,13 @@
   margin: 0 0 4px;
   font-size: 1.05rem;
   font-weight: 500;
-  color: rgba(235, 245, 243, 0.95);
+  color: var(--crm-text-primary);
 }
 
 .detailMeta {
   margin: 0;
   font-size: 0.85rem;
-  color: rgba(170, 220, 212, 0.72);
+  color: var(--crm-text-meta);
 }
 
 .contactMeta {
@@ -168,12 +170,12 @@
   font-size: 0.68rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(160, 200, 192, 0.55);
+  color: var(--crm-text-meta);
 }
 
 .contactMeta dd {
   margin: 0;
-  color: rgba(228, 245, 240, 0.88);
+  color: var(--crm-text-primary);
 }
 
 .thread {
@@ -189,7 +191,7 @@
 .threadMuted {
   margin: 0;
   font-size: 0.88rem;
-  color: rgba(170, 220, 212, 0.62);
+  color: var(--crm-text-muted);
 }
 
 .bubble {
@@ -200,26 +202,33 @@
 
 .bubbleBuyer {
   align-self: flex-start;
-  background: rgba(20, 48, 54, 0.55);
-  border: 1px solid rgba(110, 185, 178, 0.16);
+  background: var(--crm-bubble-incoming);
+  border: 1px solid var(--crm-row-border);
 }
 
 .bubbleAgent {
   align-self: flex-end;
-  background: rgba(212, 175, 122, 0.1);
-  border: 1px solid rgba(212, 175, 122, 0.22);
+  background: var(--crm-bubble-outgoing);
+  border: 1px solid var(--crm-row-selected-border);
+}
+
+.bubbleSystem {
+  align-self: center;
+  background: var(--crm-bubble-system);
+  border: 1px dashed var(--crm-row-border);
+  max-width: 100%;
 }
 
 .bubbleBody {
   margin: 0 0 6px;
   font-size: 0.9rem;
   line-height: 1.5;
-  color: rgba(230, 242, 240, 0.92);
+  color: var(--crm-text-primary);
 }
 
 .bubbleTime {
   font-size: 0.72rem;
-  color: rgba(170, 220, 212, 0.55);
+  color: var(--crm-text-meta);
 }
 
 .composer {
@@ -233,23 +242,23 @@
   font-size: 0.78rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(170, 220, 212, 0.65);
+  color: var(--crm-text-meta);
 }
 
 .composerInput {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(110, 185, 178, 0.22);
-  background: rgba(8, 22, 26, 0.45);
-  color: rgba(235, 245, 243, 0.95);
+  border: 1px solid var(--crm-composer-border);
+  background: var(--crm-composer-bg);
+  color: var(--crm-text-primary);
   font: inherit;
   resize: vertical;
 }
 
 .composerInput:focus {
   outline: none;
-  border-color: rgba(130, 190, 185, 0.42);
+  border-color: var(--crm-row-selected-border);
 }
 
 .mobileThreadOnly {

@@ -257,7 +257,10 @@ describe("viewingMutations", () => {
       expect.objectContaining({
         eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
         recipientId: "agent-1",
-        payload: expect.objectContaining({ recipient_role: "agent" }),
+        payload: expect.objectContaining({
+          recipient_role: "user",
+          recipient_side: "owner",
+        }),
       }),
       expect.any(Object)
     );

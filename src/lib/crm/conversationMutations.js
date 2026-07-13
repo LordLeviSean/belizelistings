@@ -193,7 +193,7 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
         recipientId: agentUserId,
         payload: withNotificationRecipientRole(
           agentUserId,
-          { agentUserId },
+          { agentUserId, listingOwnerUserId: agentUserId },
           {
             conversation_id: conversationId,
             message_id: message?.id,

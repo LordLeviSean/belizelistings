@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import { Bell, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -430,6 +429,34 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
     ? `${nav.navLink} ${nav.navBtn} ${nav.drawerNavLink} ${nav.navPillNotifications}`
     : `${nav.navLink} ${nav.navPillNotifications}`;
 
+  const handleNotificationNavigate = useCallback(
+    async (item) => {
+      const href = item?.href;
+      if (!href) return;
+
+      setOpen(false);
+      onNavigate?.();
+
+      try {
+        await router.push(href);
+        if (item.notificationId && item.unread && user?.id) {
+          await markNotificationRead(supabase, {
+            notificationId: item.notificationId,
+            userId: user.id,
+          });
+        }
+      } catch (err) {
+        if (typeof console !== "undefined") {
+          console.warn("[notifications] navigation failed", {
+            href,
+            message: err?.message || String(err),
+          });
+        }
+      }
+    },
+    [onNavigate, router, user?.id]
+  );
+
   return (
     <div className={`${styles.root}${isDrawer ? ` ${styles.rootDrawer}` : ""}`} ref={rootRef}>
       <button
@@ -484,30 +511,29 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
                 <ul className={styles.list}>
                   {items.map((item) => (
                     <li key={item.id}>
-                      <Link
-                        href={item.href}
+                      <button
+                        type="button"
                         className={`${styles.row} ${item.unread ? styles.rowUnread : ""}`}
-                        onClick={() => {
-                          setOpen(false);
-                          onNavigate?.();
-                          if (item.notificationId && item.unread) {
-                            void markNotificationRead(supabase, {
-                              notificationId: item.notificationId,
-                              userId: user.id,
-                            });
-                          }
-                          if (item.href.startsWith("/dashboard") || item.href.startsWith("/admin")) {
-                            router.prefetch(item.href);
-                          }
+                        onClick={() => void handleNotificationNavigate(item)}
+                        onKeyDown={(e) => {
+                          if (e.key !== "Enter" && e.key !== " ") return;
+                          e.preventDefault();
+                          void handleNotificationNavigate(item);
                         }}
+                        aria-label={[item.title, item.detail, item.when].filter(Boolean).join(". ")}
                       >
-                        <span className={`${styles.glyph} ${styles[`glyph_${item.category}`]}`} aria-hidden />
+                        <span
+                          className={`${styles.glyph} ${styles[`glyph_${item.category}`]}${
+                            item.unread ? ` ${styles.glyphUnread}` : ""
+                          }`}
+                          aria-hidden
+                        />
                         <span className={styles.rowMain}>
                           <span className={styles.rowTitle}>{item.title}</span>
                           {item.detail ? <span className={styles.rowDetail}>{item.detail}</span> : null}
                           {item.when ? <span className={styles.rowWhen}>{item.when}</span> : null}
                         </span>
-                      </Link>
+                      </button>
                     </li>
                   ))}
                 </ul>

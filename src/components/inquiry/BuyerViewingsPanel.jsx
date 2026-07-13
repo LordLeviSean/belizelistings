@@ -13,6 +13,7 @@ import {
 import { useViewingsRealtime } from "@/lib/crm/useViewingsRealtime";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
+import { resolveMessageConversationPath } from "@/lib/dashboardCrmRoutes";
 import listStyles from "./AgentInquiryList.module.css";
 
 function formatViewingSlot(date, time) {
@@ -201,6 +202,18 @@ export default function BuyerViewingsPanel({
                 {row.listing_id ? (
                   <Link className={listStyles.secondary} href={`/listing/${row.listing_id}`}>
                     View listing
+                  </Link>
+                ) : null}
+                {row.conversation_id ? (
+                  <Link
+                    className={listStyles.secondary}
+                    href={resolveMessageConversationPath({
+                      role: "user",
+                      side: "buyer",
+                      conversationId: row.conversation_id,
+                    })}
+                  >
+                    Open conversation
                   </Link>
                 ) : null}
                 {active && buyerUserId ? (

@@ -39,6 +39,7 @@ import {
   sortMyListingsPanelRows,
 } from "@/lib/userDashboardListingTruth";
 import { resolveListingEditHref } from "@/lib/listingEditAccess";
+import styles from "@/styles/Dashboard.module.css";
 
 function coverUrl(listing) {
   const imgs = Array.isArray(listing?.listing_images) ? listing.listing_images : [];

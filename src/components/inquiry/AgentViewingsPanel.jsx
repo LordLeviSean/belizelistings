@@ -16,7 +16,19 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useViewingsRealtime } from "@/lib/crm/useViewingsRealtime";
+import { resolveMessageConversationPath } from "@/lib/dashboardCrmRoutes";
 import listStyles from "./AgentInquiryList.module.css";
+
+function buildConversationHref({ surface = "agent", conversationId }) {
+  if (!conversationId) return null;
+  if (surface === "admin") {
+    return resolveMessageConversationPath({ role: "admin", side: "owner", conversationId });
+  }
+  if (surface === "user") {
+    return resolveMessageConversationPath({ role: "user", side: "owner", conversationId });
+  }
+  return resolveMessageConversationPath({ role: "agent", side: "agent", conversationId });
+}
 
 function formatViewingSlot(date, time) {
   if (!date) return "";
@@ -42,6 +54,7 @@ export default function AgentViewingsPanel({
   agentUserId,
   onRefresh,
   initialViewingId = null,
+  surface = "agent",
 }) {
   const { showToast } = useToast();
   const [busyId, setBusyId] = useState("");
@@ -182,6 +195,14 @@ export default function AgentViewingsPanel({
                 {row.listing_id ? (
                   <Link className={listStyles.secondary} href={`/listing/${row.listing_id}`}>
                     View listing
+                  </Link>
+                ) : null}
+                {row.conversation_id ? (
+                  <Link
+                    className={listStyles.secondary}
+                    href={buildConversationHref({ surface, conversationId: row.conversation_id })}
+                  >
+                    Open conversation
                   </Link>
                 ) : null}
                 {row.status === VIEWING_STATUS.PENDING && agentUserId ? (

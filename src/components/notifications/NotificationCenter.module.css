@@ -172,10 +172,14 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  width: 100%;
   padding: 12px 14px;
   min-height: 44px;
   border-radius: 12px;
   text-decoration: none;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
   color: inherit;
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(223, 235, 230, 0.55);
@@ -210,6 +214,11 @@
 
 .glyph_inquiry {
   background: rgba(95, 168, 154, 0.72);
+}
+
+.glyphUnread {
+  background: var(--crm-unread-accent, rgba(56, 120, 104, 0.9));
+  box-shadow: 0 0 0 2px rgba(236, 248, 244, 0.9);
 }
 
 .glyph_moderation {
