@@ -12,6 +12,7 @@ export const NOTIFICATION_EVENT_TYPES = Object.freeze({
   VIEWING_DECLINED: "viewing_declined",
   VIEWING_RESCHEDULED: "viewing_rescheduled",
   INQUIRY_ARCHIVED: "inquiry_archived",
+  GEOGRAPHIC_UPDATE_V1: "geographic_update_v1",
 });
 
 /**

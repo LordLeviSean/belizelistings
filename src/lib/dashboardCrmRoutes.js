@@ -209,8 +209,15 @@ function resolveListingManagementPath({ role, listingId, toStatus } = {}) {
   return resolveDashboardCrmPath({ role: "user", tab: USER_DASHBOARD_TAB_IDS.MY_LISTINGS, listingId });
 }
 
+export function resolveGeographicUpdateListingsHref(role) {
+  const r = String(role || "user").toLowerCase();
+  if (r === "admin") return `/admin?tab=${ADMIN_DASHBOARD_TAB_IDS.LISTINGS}`;
+  if (r === "agent") return `/dashboard/agent?tab=${AGENT_DASHBOARD_TAB_IDS.LISTINGS}`;
+  if (r === "operator") return `/admin?tab=${ADMIN_DASHBOARD_TAB_IDS.OPERATOR}`;
+  return `/dashboard/user?tab=${USER_DASHBOARD_TAB_IDS.MY_LISTINGS}`;
+}
+
 /**
- * Canonical notification destination — exact entity routing per event + recipient role/side.
  * @param {{ eventType: string, role?: string, payload?: Record<string, unknown> }} params
  */
 export function resolveNotificationDestination({ eventType, role, payload = {} } = {}) {
@@ -226,6 +233,9 @@ export function resolveNotificationDestination({ eventType, role, payload = {} }
   const toStatus = String(payload.to_status ?? payload.toStatus ?? "").toLowerCase();
 
   switch (eventType) {
+    case "geographic_update_v1":
+      return resolveGeographicUpdateListingsHref(recipientRole);
+
     case NOTIFICATION_EVENT_TYPES.NEW_INQUIRY:
       if (inquiryType === "schedule_viewing" && viewingId) {
         return resolveViewingRequestPath({

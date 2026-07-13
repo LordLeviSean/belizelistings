@@ -1,4 +1,4 @@
-import { resolveNotificationDestination } from "@/lib/dashboardCrmRoutes";
+import { resolveNotificationDestination, resolveGeographicUpdateListingsHref } from "@/lib/dashboardCrmRoutes";
 import { NOTIFICATION_EVENT_TYPES } from "./notificationEvents";
 
 /** Editorial categories — calm luxury, operational tone. */
@@ -136,6 +136,17 @@ export function buildNotificationPresentation(eventType, payload = {}) {
         role: recipientRole || "user",
         payload,
       });
+      break;
+
+    case NOTIFICATION_EVENT_TYPES.GEOGRAPHIC_UPDATE_V1:
+      category = NOTIFICATION_CATEGORIES.GUIDANCE;
+      title = "Welcome to the Geographic Update! V1.0";
+      body =
+        "BelizeListings now supports detailed District, City/Town/Village, Neighborhood, Highway and locality information across Belize. Update your current listings now to make sure buyers can find them in the correct area.";
+      entityType = "system";
+      entityId = "geographic-update-v1";
+      dedupeKey = dedupeKey ?? "geographic_update_v1:2026-07-13";
+      href = resolveGeographicUpdateListingsHref(recipientRole || role || "user");
       break;
 
     case NOTIFICATION_EVENT_TYPES.INQUIRY_ARCHIVED:
