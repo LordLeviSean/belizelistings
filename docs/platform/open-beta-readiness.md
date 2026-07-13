@@ -192,8 +192,8 @@ Production dependencies blocking:
 | `NETLIFY_SITE_ID` | NOT SET |
 | `CRON_SECRET` | NOT SET |
 | `E2E_*` test accounts | NOT SET |
-| Supabase CLI authenticated | NOT VERIFIED (no linked project in repo) |
-| Netlify CLI authenticated | NOT VERIFIED |
+| Supabase CLI authenticated | **YES** — v2.109.1; project `BelizeListings` (`xyepbzezoroaeagzzzui`) linked, ACTIVE_HEALTHY |
+| Netlify CLI authenticated | **NO** — v26.2.0 installed; `netlify login` required |
 | Playwright / browser automation | AVAILABLE (`@playwright/test` installed) |
 
 Check locally: `npm run check:staging-access`
@@ -202,22 +202,12 @@ Check locally: `npm run check:staging-access`
 
 | Migration | Applied | Verified |
 |-----------|---------|----------|
-| `20260710190000_listing_owner_metrics.sql` | **BLOCKED** — no `DATABASE_URL` / `SUPABASE_ACCESS_TOKEN` | Not verified |
-| `20260710200000_recently_closed_listing_lifecycle.sql` | **UNKNOWN** | `listings.lifecycle_status` column readable via PostgREST |
-| `20260712120000_p0_marketplace_security.sql` | **PARTIAL** — `create_inquiry_with_conversation` callable; `enqueue_notification_event` still exposes **old** PostgREST signature (`p_payload` before `p_recipient_id`) | Workflow validation passed; secure enqueue RPC not verified |
-| `20260712140000_open_beta_communication_loop.sql` | **NOT APPLIED** | `viewing_requests.proposed_by` column **missing** |
+| `20260710190000_listing_owner_metrics.sql` | **APPLIED** (2026-07-13 via `supabase db push --linked`) | Owner metrics migration in push batch |
+| `20260710200000_recently_closed_listing_lifecycle.sql` | **APPLIED** | `listings.lifecycle_status` column readable |
+| `20260712120000_p0_marketplace_security.sql` | **APPLIED** | `create_inquiry_with_conversation` + `enqueue_notification_event` RPCs callable |
+| `20260712140000_open_beta_communication_loop.sql` | **APPLIED** | `viewing_requests.proposed_by` column readable |
 
-Verify: `npm run verify:staging-schema`
-
-**Blocker:** Add `DATABASE_URL` or `SUPABASE_ACCESS_TOKEN` to `.env.local`, then:
-
-```bash
-node scripts/apply-supabase-migrations.mjs \
-  20260710190000_listing_owner_metrics.sql \
-  20260710200000_recently_closed_listing_lifecycle.sql \
-  20260712120000_p0_marketplace_security.sql \
-  20260712140000_open_beta_communication_loop.sql
-```
+**2026-07-13 update:** `npx supabase db push --linked` applied 10 pending migrations including all four open-beta targets. `npm run verify:staging-schema` → **all checks OK**.
 
 ### Staging variables configured
 
@@ -299,10 +289,11 @@ Viewports configured: 390, 414, 1366, 1440 (Playwright projects).
 
 ### Failures discovered
 
-1. **`viewing_requests.proposed_by` missing** — migration `20260712140000` not applied; Flow B buyer accept + labels will fail on live DB until applied.
-2. **No database migration credentials** — cannot apply pending SQL from CI/agent environment.
-3. **No Netlify staging access** — cannot enable feature flags or configure cron remotely.
-4. **No E2E test accounts** — Playwright flows cannot execute.
+1. **`viewing_requests.proposed_by` missing** — **RESOLVED** 2026-07-13 via `supabase db push --linked`.
+2. **`enqueue_notification_event` old signature** — **RESOLVED** — P0 migration applied; schema verification passes.
+3. **No database migration credentials** — **RESOLVED** for Supabase CLI path (`db push --linked` works without `DATABASE_URL`).
+4. **No Netlify access** — cannot set flags or cron remotely.
+5. **No test accounts** — E2E and manual matrix blocked.
 
 ### Fixes made (this session)
 
@@ -313,8 +304,8 @@ Viewports configured: 390, 414, 1366, 1440 (Playwright projects).
 
 ### Remaining actions requiring you
 
-1. **Add `DATABASE_URL` or `SUPABASE_ACCESS_TOKEN`** to `.env.local` and apply the four pending migrations.
-2. **Configure Netlify staging** env flags + `CRON_SECRET` + redeploy.
+1. ~~Add `DATABASE_URL` or `SUPABASE_ACCESS_TOKEN`~~ — **done** via `npx supabase db push --linked`.
+2. **Configure Netlify staging** env flags + `CRON_SECRET` + redeploy (`netlify login` first).
 3. **Schedule cron** hitting `/api/cron/process-notifications` every 2–5 minutes.
 4. **Provision four test accounts** + listing fixtures; copy to `.env.test.local`.
 5. **Run** `npm run verify:staging-schema` (must show `proposed_by` OK).
