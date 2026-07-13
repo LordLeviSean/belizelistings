@@ -30,7 +30,12 @@ import useSeaFlowMode from "../hooks/useSeaFlowMode";
 import useSeaFlowIntensity from "../hooks/useSeaFlowIntensity";
 import { seaFlowIntensityStyle } from "../utils/seaFlowIntensity";
 import { useFavoriteSignupPrompt } from "../components/FavoriteSignupPromptProvider";
-import PremiumEmptyState from "../components/ui/PremiumEmptyState";
+import useAuth from "../hooks/useAuth";
+import useRoleAccess from "../hooks/useRoleAccess";
+import useUserRole from "../hooks/useUserRole";
+import GeographicUpdateModal from "../components/home/GeographicUpdateModal";
+import { isGeographicUpdateModalEligible } from "../lib/geography/geographicUpdateLaunch";
+import { supabase } from "../lib/supabaseClient";
 
 import styles from "../styles/HomeMapFirst.module.css";
 
@@ -70,6 +75,9 @@ function listingMatchesHaystack(listing, qNorm) {
 
 export default function HomePage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { role } = useRoleAccess(user?.id);
+  const { profile } = useUserRole();
 
   const [listingsData, setListingsData] = useState([]);
   const [listingsLoading, setListingsLoading] = useState(true);
@@ -77,6 +85,19 @@ export default function HomePage() {
   const [searchSubmitting, setSearchSubmitting] = useState(false);
   const [carouselIndexById, setCarouselIndexById] = useState({});
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [geoUpdateOpen, setGeoUpdateOpen] = useState(false);
+
+  useEffect(() => {
+    if (
+      isGeographicUpdateModalEligible({
+        authenticated: Boolean(user?.id),
+        role,
+        profile,
+      })
+    ) {
+      setGeoUpdateOpen(true);
+    }
+  }, [user?.id, role, profile]);
   const [compactSearchPlaceholder, setCompactSearchPlaceholder] = useState(false);
   const featuredScrollRef = useRef(null);
   const featuredPausedRef = useRef(false);
@@ -584,6 +605,13 @@ export default function HomePage() {
       </main>
 
       <HomeAdvancedFiltersModal isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} />
+      <GeographicUpdateModal
+        open={geoUpdateOpen}
+        onClose={() => setGeoUpdateOpen(false)}
+        user={user}
+        role={role}
+        supabase={supabase}
+      />
     </div>
   );
 }
