@@ -14,7 +14,11 @@
     "qa:desktop": "node scripts/qa/run-desktop.mjs",
     "qa:screenshots": "node scripts/qa/run-screenshots.mjs",
     "qa:lighthouse": "node scripts/qa/run-lighthouse.mjs",
-    "qa:visual": "node scripts/qa/run-visual.mjs"
+    "qa:visual": "node scripts/qa/run-visual.mjs",
+    "check:staging-access": "node scripts/check-staging-access.mjs",
+    "verify:staging-schema": "node scripts/verify-staging-schema.mjs",
+    "test:notification-delivery": "node scripts/test-notification-delivery.mjs",
+    "e2e:staging": "playwright test --config=playwright.config.mjs"
   },
   "dependencies": {
     "@marsidev/react-turnstile": "^1.5.3",

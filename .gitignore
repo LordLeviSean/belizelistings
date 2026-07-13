@@ -29,5 +29,10 @@ Thumbs.db
 # Local QA screenshots (not committed)
 qa-screenshots/
 
+# Playwright staging E2E artifacts
+e2e-results/
+playwright-report/
+test-results/
+
 # Supabase CLI temp files (pooler URLs, etc.)
 supabase/.temp/
