@@ -16,6 +16,8 @@ import {
   getRegionLabel,
   normalizeRegionSlug,
 } from "../../constants/geographyLayer";
+import GeographySelector from "../../components/geography/GeographySelector";
+import { validateGeographyForm } from "../../lib/geography/legacyGeoBackfill";
 import {
   LISTING_LIFECYCLE,
   PLATFORM_TIERS,
@@ -186,7 +188,12 @@ function validateWorkspaceStageForContinue(stage, form) {
     if (!String(form.property_type || "").trim()) {
       nextErrors.property_type = "Select a property type.";
     }
-    if (!resolveListingDistrictSlug(form)) nextErrors.district = "Select a region.";
+    if (form.map_region_slug) {
+      const geo = validateGeographyForm(form);
+      if (!geo.ok) Object.assign(nextErrors, geo.errors);
+    } else if (!resolveListingDistrictSlug(form)) {
+      nextErrors.district = "Select a region.";
+    }
     const price = Number(form.price);
     if (form.price !== "" && form.price != null && (Number.isNaN(price) || price < 0)) {
       nextErrors.price = "Enter a valid price.";
@@ -1221,9 +1228,14 @@ export default function DashboardCreatePage() {
     if (!property_type || !PROPERTY_TYPES.includes(property_type)) {
       nextErrors.property_type = "Select a valid property type.";
     }
-    const districtSlugs = getSelectableRegions().map((region) => region.slug);
-    if (!district || !districtSlugs.includes(district)) {
-      nextErrors.district = "Select a valid region.";
+    if (form.map_region_slug) {
+      const geo = validateGeographyForm(form);
+      if (!geo.ok) Object.assign(nextErrors, geo.errors);
+    } else {
+      const districtSlugs = getSelectableRegions().map((region) => region.slug);
+      if (!district || !districtSlugs.includes(district)) {
+        nextErrors.district = "Select a valid region.";
+      }
     }
     if (Number.isNaN(price) || price <= 0) nextErrors.price = "Enter a valid price.";
     return {
@@ -1959,17 +1971,13 @@ export default function DashboardCreatePage() {
                     {prefilledFields.property_type ? <p className={styles.muted}>Prefilled from Unit</p> : null}
                     {errors.property_type ? <p className={cw.inputError}>{errors.property_type}</p> : null}
                   </div>
-                  <div>
-                    <select className={cw.select} value={form.district} onChange={setField("district")}>
-                      <option value="">Region</option>
-                      {DISTRICTS.map((value) => (
-                        <option key={value} value={value}>
-                          {value}
-                        </option>
-                      ))}
-                    </select>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <GeographySelector
+                      value={form}
+                      errors={errors}
+                      onChange={(geoPatch) => setForm((prev) => ({ ...prev, ...geoPatch }))}
+                    />
                     {prefilledFields.district ? <p className={styles.muted}>Prefilled from Unit</p> : null}
-                    {errors.district ? <p className={cw.inputError}>{errors.district}</p> : null}
                   </div>
                   <div>
                     <select className={cw.select} value={form.listing_type} onChange={setField("listing_type")}>

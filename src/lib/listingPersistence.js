@@ -1,4 +1,8 @@
 import { normalizeRegionSlug, getRegionByAny } from "../constants/geographyLayer";
+import {
+  buildGeographyPayloadFromForm,
+  validateGeographyForm,
+} from "./geography/legacyGeoBackfill";
 import { sanitizeAmenitiesArray } from "../constants/listingAmenities";
 import { isLandInventoryListing } from "../utils/listingPresentation";
 import { isTerminalDashboardCountError } from "./supabaseCompat";
@@ -121,6 +125,10 @@ async function runMinimalListingInsertProbe(supabase, originalPayload) {
  * @returns {string}
  */
 export function resolveListingDistrictSlug(form = {}) {
+  if (form?.map_region_slug) {
+    const geo = buildGeographyPayloadFromForm(form);
+    return geo.district || normalizeRegionSlug(form.map_region_slug);
+  }
   const candidates = [form?.district, form?.subregion_slug, form?.region_slug].filter(Boolean);
   for (const raw of candidates) {
     const slug = normalizeRegionSlug(raw);
@@ -136,8 +144,16 @@ export function resolveListingDistrictSlug(form = {}) {
 export function validateListingDraftContract({ form = {}, authUserId = null } = {}) {
   const errors = {};
   if (!authUserId) errors.auth = "Sign in to save your draft.";
+
+  if (form?.map_region_slug) {
+    const geoCheck = validateGeographyForm(form);
+    if (!geoCheck.ok) Object.assign(errors, geoCheck.errors);
+  } else {
+    const district = resolveListingDistrictSlug(form);
+    if (!district) errors.district = "Select a region.";
+  }
+
   const district = resolveListingDistrictSlug(form);
-  if (!district) errors.district = "Select a region.";
   const property_type = String(form?.property_type ?? "").trim().toLowerCase();
   if (!property_type) errors.property_type = "Select a property type.";
   const listing_type = String(form?.listing_type ?? "sale").trim().toLowerCase();
@@ -158,11 +174,15 @@ function buildListingCoreFields({
   authUserId,
   linkedUnitId = "",
 }) {
-  const selectedSlug = resolveListingDistrictSlug(form);
+  const geoFields = form?.map_region_slug
+    ? buildGeographyPayloadFromForm(form)
+    : null;
+
+  const selectedSlug = geoFields?.district || resolveListingDistrictSlug(form);
   const meta = getRegionByAny(selectedSlug);
-  let regionSlug = selectedSlug;
-  let subregionSlug = null;
-  if (meta?.type === "subregion" && meta.parentDistrict) {
+  let regionSlug = geoFields?.region_slug || selectedSlug;
+  let subregionSlug = geoFields?.subregion_slug ?? null;
+  if (!geoFields && meta?.type === "subregion" && meta.parentDistrict) {
     regionSlug = normalizeRegionSlug(meta.parentDistrict);
     subregionSlug = selectedSlug;
   }
@@ -203,6 +223,12 @@ function buildListingCoreFields({
     district: selectedSlug,
     region_slug: regionSlug,
     subregion_slug: subregionSlug,
+    map_region_slug: geoFields?.map_region_slug || null,
+    community_id: geoFields?.community_id || null,
+    locality_id: geoFields?.locality_id || null,
+    highway_id: geoFields?.highway_id || null,
+    highway_mile: geoFields?.highway_mile ?? null,
+    locality_not_listed_text: geoFields?.locality_not_listed_text || null,
     listing_type: listingType,
     beds,
     baths,

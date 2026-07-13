@@ -1,0 +1,58 @@
+.root {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(48, 72, 68, 0.88);
+}
+
+.req {
+  color: rgba(180, 80, 60, 0.85);
+}
+
+.searchInput,
+.mileInput {
+  width: 100%;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.nativeSelect {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  height: 0;
+  width: 0;
+}
+
+.error {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(180, 70, 55, 0.95);
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(72, 96, 92, 0.72);
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(56, 80, 76, 0.85);
+  cursor: pointer;
+}

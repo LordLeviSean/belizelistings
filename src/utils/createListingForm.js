@@ -1,4 +1,5 @@
 import { getRegionLabel, normalizeRegionSlug } from "../constants/geographyLayer";
+import { mapLegacyListingToGeography } from "../lib/geography/legacyGeoBackfill";
 import { amenitiesFromListingRow, sanitizeAmenitiesArray } from "../constants/listingAmenities";
 import { isLandInventoryListing } from "./listingPresentation";
 
@@ -9,6 +10,13 @@ export const CREATE_FORM_INITIAL = Object.freeze({
   price: "",
   property_type: "",
   district: "",
+  map_region_slug: "",
+  community_id: "",
+  locality_id: "",
+  highway_id: "",
+  highway_mile: "",
+  locality_not_listed: false,
+  locality_not_listed_note: "",
   listing_type: "sale",
   beds: "",
   baths: "",
@@ -23,6 +31,22 @@ export const CREATE_FORM_INITIAL = Object.freeze({
  * District select uses human labels from geographyLayer.
  */
 export function mapListingRowToCreateForm(listing = {}) {
+  const geo =
+    listing.map_region_slug
+      ? {
+          map_region_slug: listing.map_region_slug,
+          community_id: listing.community_id || listing.highway_id || "",
+          locality_id: listing.locality_id || "",
+          highway_id: listing.highway_id || "",
+          highway_mile:
+            listing.highway_mile != null && listing.highway_mile !== ""
+              ? String(listing.highway_mile)
+              : "",
+          locality_not_listed: Boolean(listing.locality_not_listed_text),
+          locality_not_listed_note: listing.locality_not_listed_text || "",
+        }
+      : mapLegacyListingToGeography(listing);
+
   const districtSlug = normalizeRegionSlug(
     listing.subregion_slug || listing.region_slug || listing.district || ""
   );
@@ -34,6 +58,13 @@ export function mapListingRowToCreateForm(listing = {}) {
     price: listing.price != null && listing.price !== "" ? String(listing.price) : "",
     property_type: PROPERTY_TYPES.includes(pt) ? pt : "",
     district: districtLabel,
+    map_region_slug: geo.map_region_slug || listing.map_region_slug || "",
+    community_id: geo.community_id || listing.community_id || "",
+    locality_id: geo.locality_id || listing.locality_id || "",
+    highway_id: geo.highway_id || listing.highway_id || "",
+    highway_mile: geo.highway_mile || "",
+    locality_not_listed: geo.locality_not_listed || false,
+    locality_not_listed_note: geo.locality_not_listed_note || "",
     listing_type: listing.listing_type === "rent" ? "rent" : "sale",
     beds:
       listing.beds != null && Number(listing.beds) > 0 ? String(listing.beds) : "",
@@ -91,6 +122,11 @@ export function createSyntheticListingForPreview(form, remoteImages, pendingLoca
     beds: bedsPreview,
     baths: bathsPreview,
     district: districtSlug || form.district,
+    map_region_slug: form.map_region_slug || "",
+    community_id: form.community_id || "",
+    locality_id: form.locality_id || "",
+    highway_id: form.highway_id || "",
+    highway_mile: form.highway_mile || "",
     property_type: String(form.property_type || "").trim(),
     listing_type: listingType,
     /** Helps homepage-style card badge match production listing rows */
