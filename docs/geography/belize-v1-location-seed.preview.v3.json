@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-13T21:06:00.397301+00:00",
+  "generated_at": "2026-07-13T21:28:00.747695+00:00",
   "version": "1.0-seed-preview-v3",
   "status": "approved_reference_not_wired",
   "ui_hierarchy": [
@@ -174,9 +174,7 @@
     "Na Lum Cah spelling variants",
     "Crique Trosa (secondary lists)"
   ],
-  "requires_review": [
-    "John Smith Road"
-  ],
+  "requires_review": [],
   "locations": [
     {
       "display_order": 1,
@@ -8733,7 +8731,7 @@
       ],
       "location_type": "road_corridor",
       "ui_tier": "Road Corridor",
-      "verification_status": "requires_review",
+      "verification_status": "verified_common_usage",
       "source_refs": [
         "E&B / RE"
       ]
@@ -9154,6 +9152,6 @@
     "islands_cayes": 5,
     "communities_total": 232,
     "total_geography_records": 387,
-    "records_requires_review": 1
+    "records_requires_review": 0
   }
 }

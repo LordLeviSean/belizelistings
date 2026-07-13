@@ -265,7 +265,7 @@ ALIAS_ONLY_HIGHWAY = [
 
 ROAD_CORRIDORS = [
     ("Burrell Boom Road", ["belize"], "verified_official"),
-    ("John Smith Road", ["belize"], "requires_review"),
+    ("John Smith Road", ["belize"], "verified_common_usage"),
     ("San Antonio Road", ["toledo"], "verified_common_usage"),
     ("Jalacte Road", ["toledo"], "verified_official"),
     ("Placencia Road", ["stann-creek"], "verified_common_usage"),
