@@ -8,6 +8,7 @@ import ShareListingIconButton from "./ShareListingIconButton";
 import homeStyles from "../styles/HomeMapFirst.module.css";
 import favoriteStyles from "../styles/FavoriteButton.module.css";
 import { BELIZE_MAP_REGION_CONFIG } from "../constants/belizeMapRegions";
+import { formatListingLocation } from "@/lib/geography/formatListingLocation";
 import { getRegionCaption, getRegionLabel, normalizeRegionSlug } from "../constants/geographyLayer";
 import { getListingRegionSlug, getLifecycleStatus } from "../utils/canonicalListing";
 import { LISTING_LIFECYCLE } from "../constants/operationalModel";
@@ -197,9 +198,8 @@ export default function ListingCard({
   const isRentBadge = status === "FOR RENT";
   const isRecentlyClosedBadge = status === "RECENTLY SOLD" || status === "RECENTLY RENTED";
   const isVerified = isListingCardVerified(listing);
-  const canonicalRegionSlug = getListingRegionSlug(listing) || "belize";
-  const district = districtLabel(canonicalRegionSlug);
-  const districtCaption = getRegionCaption(canonicalRegionSlug);
+  const locationLabel = formatListingLocation(listing) || districtLabel(getListingRegionSlug(listing) || "belize");
+  const districtCaption = listing.map_region_slug ? null : getRegionCaption(getListingRegionSlug(listing));
 
   const isLand = useMemo(() => isLandInventoryListing(listing), [listing]);
 
@@ -361,7 +361,7 @@ export default function ListingCard({
                 ·
               </span>
               <MapPin />
-              <span>{district}</span>
+              <span>{locationLabel}</span>
             </span>
           ) : (
             <>
@@ -376,7 +376,7 @@ export default function ListingCard({
                 </span>
               ) : null}
               <span>
-                <MapPin /> {district}
+                <MapPin /> {locationLabel}
               </span>
             </>
           )}
