@@ -87,6 +87,34 @@ const CHECKS = [
       return { ok: exists, detail: exists ? "rpc callable" : msg };
     },
   },
+  {
+    id: "geo_map_regions table",
+    migration: "20260713210000_belize_geography_v1_seed.sql",
+    async run(admin) {
+      const { count, error } = await admin.from("geo_map_regions").select("*", { count: "exact", head: true });
+      return { ok: !error && count === 8, detail: error?.message || `count=${count}` };
+    },
+  },
+  {
+    id: "backfill_listing_geography_v1 rpc",
+    migration: "20260713220000_belize_geography_v1_backfill.sql",
+    async run(admin) {
+      const { error } = await admin.rpc("backfill_listing_geography_v1");
+      const msg = String(error?.message || "");
+      const exists = !msg.includes("Could not find the function");
+      return { ok: exists, detail: exists ? "rpc callable" : msg };
+    },
+  },
+  {
+    id: "broadcast_geographic_update_v1 rpc",
+    migration: "20260713230000_geographic_update_notification.sql",
+    async run(admin) {
+      const { error } = await admin.rpc("broadcast_geographic_update_v1");
+      const msg = String(error?.message || "");
+      const exists = !msg.includes("Could not find the function");
+      return { ok: exists, detail: exists ? "rpc callable" : msg };
+    },
+  },
 ];
 
 async function main() {

@@ -1,4 +1,4 @@
--- BelizeListings — Geography V1 seed (from belize-v1-location-seed.preview.v3.json)
+-- BelizeListings Geography V1 seed (belize-v1-location-seed.preview.v3.json)
 -- Auto-generated Belize Geography V1 seed
 -- Source: belize-v1-location-seed.preview.v3.json
 -- Generated: 2026-07-13T21:28:10.965Z

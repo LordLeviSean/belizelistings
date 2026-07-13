@@ -37,6 +37,30 @@ describe("searchFilters", () => {
     },
   ];
 
+  test("parseSearchFiltersFromQuery reads geography hierarchy params", () => {
+    const filters = parseSearchFiltersFromQuery({
+      region: "cayo",
+      community: "area-cayo-san-ignacio",
+      locality: "loc-cayo-san-ignacio-downtown",
+    });
+    expect(filters.mapRegion).toBe("cayo");
+    expect(filters.communityId).toBe("area-cayo-san-ignacio");
+    expect(filters.localityId).toBe("loc-cayo-san-ignacio-downtown");
+  });
+
+  test("applySearchFilters respects community filter", () => {
+    const rows = [
+      { id: "1", map_region_slug: "cayo", community_id: "area-cayo-san-ignacio", district: "cayo" },
+      { id: "2", map_region_slug: "corozal", community_id: "area-corozal-corozal", district: "corozal" },
+    ];
+    const filters = {
+      ...getDefaultSearchFilters(),
+      mapRegion: "cayo",
+      communityId: "area-cayo-san-ignacio",
+    };
+    expect(applySearchFilters(rows, filters).map((l) => l.id)).toEqual(["1"]);
+  });
+
   test("parseSearchFiltersFromQuery reads canonical params", () => {
     const filters = parseSearchFiltersFromQuery({
       q: "beach",

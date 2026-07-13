@@ -7,7 +7,7 @@ import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import ListingMediaImage from "@/components/listing/ListingMediaImage";
 import { IMAGE_QUALITY_THUMB, IMAGE_SIZES_DASHBOARD_THUMB } from "@/constants/imageQuality";
 import { getModerationStatus } from "@/utils/canonicalListing";
-import { getRegionLabel, normalizeRegionSlug } from "@/constants/geographyLayer";
+import { formatListingLocation } from "@/lib/geography/formatListingLocation";
 import styles from "@/styles/Dashboard.module.css";
 
 function coverUrl(listing) {
@@ -75,7 +75,7 @@ function UserPendingListingsPanel() {
         {!showSkeleton &&
           pendingRows.map((l) => {
             const thumb = coverUrl(l);
-            const districtLabel = getRegionLabel(normalizeRegionSlug(l.district || ""));
+            const districtLabel = formatListingLocation(l) || "Belize";
             const submitted = l.updated_at || l.created_at;
             const submittedLabel = submitted
               ? new Date(submitted).toLocaleDateString(undefined, {

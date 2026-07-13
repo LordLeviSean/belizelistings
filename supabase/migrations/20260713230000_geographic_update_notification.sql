@@ -23,7 +23,7 @@ BEGIN
     FROM public.profiles p
     WHERE lower(COALESCE(p.role, 'user')) IN ('user', 'agent', 'admin', 'operator')
       AND (
-        EXISTS (SELECT 1 FROM public.listings l WHERE l.user_id = p.id OR l.listed_by = p.id OR l.managed_by = p.id)
+        EXISTS (SELECT 1 FROM public.listings l WHERE l.user_id = p.id)
         OR lower(COALESCE(p.role, 'user')) IN ('agent', 'admin', 'operator')
       )
   LOOP

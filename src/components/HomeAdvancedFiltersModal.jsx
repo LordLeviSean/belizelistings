@@ -1,11 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/router";
 import { X } from "lucide-react";
-import { getSelectableRegions } from "../constants/geographyLayer";
+import GeographyDiscoveryFilters from "./geography/GeographyDiscoveryFilters";
 import { buildSearchRouterQuery } from "../lib/searchFilters";
 import styles from "./HomeAdvancedFiltersModal.module.css";
-
-const DISTRICT_ENTRIES = getSelectableRegions();
 
 const MARKET_OPTIONS = [
   { label: "All", value: "all" },
@@ -16,14 +14,22 @@ const MARKET_OPTIONS = [
 export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
-  const [districtSlug, setDistrictSlug] = useState("");
+  const [geography, setGeography] = useState({
+    mapRegion: "",
+    district: "",
+    communityId: "",
+    localityId: "",
+  });
   const [market, setMarket] = useState("all");
 
   const handleApply = useCallback(() => {
     const qs = buildSearchRouterQuery({
       q: keyword.trim(),
-      district: districtSlug,
+      district: geography.district || geography.mapRegion,
       subregion: "",
+      mapRegion: geography.mapRegion,
+      communityId: geography.communityId,
+      localityId: geography.localityId,
       market,
       minPrice: "",
       maxPrice: "",
@@ -36,7 +42,7 @@ export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
     const queryString = new URLSearchParams(qs).toString();
     void router.push(queryString ? `/search?${queryString}` : "/search");
     onClose();
-  }, [router, keyword, districtSlug, market, onClose]);
+  }, [router, keyword, geography, market, onClose]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -83,7 +89,9 @@ export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
             <X strokeWidth={1.85} size={18} />
           </button>
         </div>
-        <p className={styles.dialogHint}>Filter by geography and market intent. Keywords combine with text search.</p>
+        <p className={styles.dialogHint}>
+          Filter by district, community, and locality. Keywords combine with text search.
+        </p>
         <label className={styles.field}>
           <span className={styles.label}>Keywords</span>
           <input
@@ -94,21 +102,7 @@ export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
             placeholder="Neighborhood, type, waterfront…"
           />
         </label>
-        <label className={styles.field}>
-          <span className={styles.label}>Region</span>
-          <select
-            className={styles.select}
-            value={districtSlug}
-            onChange={(e) => setDistrictSlug(e.target.value)}
-          >
-            <option value="">All regions</option>
-            {DISTRICT_ENTRIES.map((region) => (
-              <option key={region.id} value={region.slug}>
-                {region.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <GeographyDiscoveryFilters value={geography} onChange={setGeography} />
         <fieldset className={styles.field}>
           <legend className={styles.label}>Market</legend>
           <div className={styles.segmentedControl} role="tablist" aria-label="Market type">

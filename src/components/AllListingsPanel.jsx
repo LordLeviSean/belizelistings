@@ -20,7 +20,9 @@ import useUserRole from "../hooks/useUserRole";
 import DeleteConfirmationModal from "./DeleteConfirmationModal";
 import { MODAL_TYPES, useModalController } from "@/hooks/useModalController";
 import ArchiveListingModal from "./listing/ArchiveListingModal";
-import { getSelectableRegions } from "../constants/geographyLayer";
+import GeographyLocationEditLink from "@/components/geography/GeographyLocationEditLink";
+import { formatListingLocation } from "@/lib/geography/formatListingLocation";
+import { resolveListingEditHref } from "@/lib/listingEditAccess";
 import {
   getArchiveStatus,
   getLifecycleLabel,
@@ -51,7 +53,6 @@ const EDITOR_STEPS = [
   { id: "verify", label: "Review" },
   { id: "preview", label: "Preview" },
 ];
-const REGION_OPTIONS = getSelectableRegions();
 const STATUS_FILTERS = [
   { label: "All", value: "all" },
   { label: "Published", value: "approved" },
@@ -497,7 +498,6 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
       {
         title: editForm.title.trim(),
         price: Number(editForm.price || 0),
-        district: editForm.district.trim(),
         listing_type: editForm.listing_type,
         property_type: editForm.property_type,
         beds: editForm.beds === "" ? null : Number(editForm.beds),
@@ -546,15 +546,8 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
       );
     }
     if (stepId === "location") {
-      return (
-        <select className={styles.select} value={editForm.district} onChange={(event) => setEditForm((prev) => ({ ...prev, district: event.target.value }))}>
-          {REGION_OPTIONS.map((region) => (
-            <option key={region.slug} value={region.slug}>
-              {region.label}
-            </option>
-          ))}
-        </select>
-      );
+      const listing = listings.find((l) => String(l.id) === String(modal.payload?.listingId));
+      return <GeographyLocationEditLink listing={listing} />;
     }
     if (stepId === "pricing") {
       return (
@@ -586,10 +579,12 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
       );
     }
     if (stepId === "verify") {
+      const listing = listings.find((l) => String(l.id) === String(modal.payload?.listingId));
+      const locationOk = Boolean(formatListingLocation(listing));
       return (
         <div className={styles.modalForm}>
           <p className={styles.muted}>Ready for review: {editForm.title && editForm.price ? "Yes" : "Needs detail"}</p>
-          <p className={styles.muted}>Verification pending: {editForm.district ? "Structured" : "Incomplete location"}</p>
+          <p className={styles.muted}>Location: {locationOk ? formatListingLocation(listing) : "Edit in listing workspace"}</p>
           <p className={styles.muted}>Approved for publishing: {editForm.status === "approved" ? "Approved" : "Pending state"}</p>
         </div>
       );
@@ -662,7 +657,7 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
               <>
                 <p><strong>{listing.title || "Untitled listing"}</strong></p>
                 <p className={styles.muted}>
-                  {listing.district || "Unknown region"} · {listing.listing_type || "unknown"}
+                  {formatListingLocation(listing) || "Unknown region"} · {listing.listing_type || "unknown"}
                   {rowIsLand ? "" : ` · ${listing.beds ?? 0} bd / ${listing.baths ?? 0} ba`}
                 </p>
                 {isArchived ? (
@@ -802,10 +797,10 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
                 <p className={styles.muted} style={{ margin: "0 0 6px" }}>Live Public Preview</p>
                 <ListingCard
                   listing={{
+                    ...(listings.find((l) => String(l.id) === String(editingId)) || {}),
                     id: editingId || "edit-preview",
                     title: editForm.title || "Belize Property",
                     price: Number(editForm.price || 0),
-                    district: editForm.district || "belize",
                     property_type: editForm.property_type || "house",
                     listing_type: editForm.listing_type || "sale",
                     beds: Number(editForm.beds || 0),

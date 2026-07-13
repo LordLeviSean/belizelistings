@@ -2,12 +2,12 @@ import { ADMIN_DASHBOARD_TAB_IDS } from "@/constants/dashboardAdminConfig";
 import { AGENT_DASHBOARD_TAB_IDS } from "@/constants/dashboardAgentConfig";
 import { USER_DASHBOARD_TAB_IDS } from "@/constants/dashboardUserConfig";
 
-/** Launch window: July 13–14, 2026 America/Belize (UTC-6, no DST). */
+/** Launch window through July 16, 2026 11:59:59 p.m. America/Belize (UTC-6). */
 export const GEOGRAPHIC_UPDATE_LAUNCH_WINDOW = Object.freeze({
   timezone: "America/Belize",
   startUtc: "2026-07-13T06:00:00.000Z",
-  endUtc: "2026-07-15T05:59:59.999Z",
-  label: "2026-07-13 through end of 2026-07-14 (America/Belize)",
+  endUtc: "2026-07-17T05:59:59.999Z",
+  label: "2026-07-13 through 2026-07-16 11:59:59 p.m. America/Belize",
 });
 
 export const GEOGRAPHIC_UPDATE_NOTIFICATION = Object.freeze({

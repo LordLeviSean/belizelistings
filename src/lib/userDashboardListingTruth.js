@@ -19,6 +19,7 @@ import { getLifecycleStatus } from "../utils/canonicalListing";
 import { LISTING_LIFECYCLE } from "../constants/operationalModel";
 import { assessLegacyDraftForWorkspace } from "./legacyDraftCompat";
 import { isCreateWorkspaceEditableListing } from "./listingEditAccess";
+import { formatListingLocation } from "./geography/formatListingLocation";
 
 export { isCreateWorkspaceEditableListing };
 
@@ -137,8 +138,8 @@ export function filterMyListingsPanelRowsBySearch(rows, query) {
   if (!q) return rows || [];
   return (rows || []).filter((r) => {
     const title = String(r?.title || "").toLowerCase();
-    const district = String(r?.district || "").toLowerCase();
-    return title.includes(q) || district.includes(q);
+    const location = String(formatListingLocation(r) || r?.district || "").toLowerCase();
+    return title.includes(q) || location.includes(q);
   });
 }
 
@@ -151,12 +152,12 @@ export function sortMyListingsPanelRows(rows, sortKey) {
   const list = [...(rows || [])];
   const ts = (r) => new Date(r?.updated_at || r?.created_at || 0).getTime();
   const price = (r) => Number(r?.price) || 0;
-  const district = (r) => String(r?.district || "").toLowerCase();
+  const location = (r) => String(formatListingLocation(r) || r?.district || "").toLowerCase();
   list.sort((a, b) => {
     if (key === MY_LISTINGS_SORT_KEYS.OLDEST) return ts(a) - ts(b);
     if (key === MY_LISTINGS_SORT_KEYS.PRICE_DESC) return price(b) - price(a);
     if (key === MY_LISTINGS_SORT_KEYS.PRICE_ASC) return price(a) - price(b);
-    if (key === MY_LISTINGS_SORT_KEYS.DISTRICT) return district(a).localeCompare(district(b));
+    if (key === MY_LISTINGS_SORT_KEYS.DISTRICT) return location(a).localeCompare(location(b));
     return ts(b) - ts(a);
   });
   return list;

@@ -196,6 +196,13 @@ export default function SearchPage() {
           resultCount={loading ? undefined : filteredListings.length}
           activeChips={activeChips}
           onRemoveChip={handleRemoveChip}
+          geographyFilters={{
+            mapRegion: filters.mapRegion,
+            district: filters.district,
+            communityId: filters.communityId,
+            localityId: filters.localityId,
+          }}
+          onGeographyFiltersChange={(patch) => patchFilters(patch)}
         />
 
         <section className={styles.grid} aria-busy={loading}>

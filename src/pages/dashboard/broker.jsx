@@ -12,6 +12,8 @@ import {
   AgentActivityFeed,
   ListingIntelStrip,
 } from "@/components/operational";
+import { formatListingLocation } from "@/lib/geography/formatListingLocation";
+import { getMapRegionBySlug } from "@/lib/geography/belizeGeographyV1";
 import { getListingRegionSlug } from "@/utils/canonicalListing";
 import { LISTING_HEALTH_TIER } from "@/constants/operationalIntel";
 import { evaluateListingIntel } from "@/utils/listingIntel";
@@ -68,8 +70,9 @@ export default function BrokerDashboard() {
     let staleCandidates = 0;
     let weakHealth = 0;
     for (const row of teamListings) {
-      const slug = getListingRegionSlug(row) || row?.district || "unknown";
-      districtCounts[slug] = (districtCounts[slug] || 0) + 1;
+      const slug = getListingRegionSlug(row) || row?.map_region_slug || row?.district || "unknown";
+      const label = formatListingLocation(row) || getMapRegionBySlug(slug)?.name || slug;
+      districtCounts[label] = (districtCounts[label] || 0) + 1;
       const lc = getLifecycleStatus(row);
       if (lc === LISTING_LIFECYCLE.PUBLISHED) {
         const intel = evaluateListingIntel(row);
@@ -144,9 +147,9 @@ export default function BrokerDashboard() {
                 <div className={styles.card} style={{ marginBottom: 18 }}>
                   <p className={styles.draftResumeTitle}>Top districts</p>
                   <ul style={{ margin: 0, paddingLeft: 18 }}>
-                    {insights.topDistricts.map(([slug, n]) => (
-                      <li key={slug}>
-                        <strong>{slug}</strong> — {n} listing{n === 1 ? "" : "s"}
+                    {insights.topDistricts.map(([label, n]) => (
+                      <li key={label}>
+                        <strong>{label}</strong> — {n} listing{n === 1 ? "" : "s"}
                       </li>
                     ))}
                   </ul>

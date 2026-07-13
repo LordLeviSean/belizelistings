@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import GeographyDiscoveryFilters from "./geography/GeographyDiscoveryFilters";
 import { ChevronUp, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   PROPERTY_TYPE_OPTIONS,
@@ -62,6 +63,8 @@ export default function FilterBar({
   resultCount,
   activeChips = [],
   onRemoveChip,
+  geographyFilters,
+  onGeographyFiltersChange,
 }) {
   const advancedPanelId = useId();
   const marketValue = listingType === "for-sale" ? "for-sale" : listingType;
@@ -229,6 +232,10 @@ export default function FilterBar({
 
       {!showFilterSummary && showAdvanced ? (
         <div className={styles.advancedPanel} id={advancedPanelId} role="region" aria-label="Advanced filters">
+          <GeographyDiscoveryFilters
+            value={geographyFilters || {}}
+            onChange={onGeographyFiltersChange}
+          />
           <label className={styles.advancedField}>
             <span className={styles.advancedLabel}>Property type</span>
             <select value={propertyType} onChange={(event) => onPropertyTypeChange?.(event.target.value)}>

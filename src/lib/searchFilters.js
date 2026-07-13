@@ -14,6 +14,8 @@ import {
 import { getLifecycleStatus, getListingRegionSlug } from "../utils/canonicalListing";
 import { filterListings } from "../utils/filterListings";
 import { isListingCardVerified } from "../utils/listingVerification";
+import { listingMatchesGeographyFilters, geographyFilterChipLabels } from "./geography/geographySearchFilters";
+import { formatListingLocation } from "./geography/formatListingLocation";
 import { cleanQuery } from "../utils/queryStringify";
 
 /**
@@ -21,6 +23,9 @@ import { cleanQuery } from "../utils/queryStringify";
  * @property {string} q
  * @property {string} district
  * @property {string} subregion
+ * @property {string} mapRegion
+ * @property {string} communityId
+ * @property {string} localityId
  * @property {"all"|"sale"|"rent"} market
  * @property {string} minPrice
  * @property {string} maxPrice
@@ -52,6 +57,9 @@ export function getDefaultSearchFilters() {
     q: "",
     district: "",
     subregion: "",
+    mapRegion: "",
+    communityId: "",
+    localityId: "",
     market: "all",
     minPrice: "",
     maxPrice: "",
@@ -93,6 +101,9 @@ export function parseSearchFiltersFromQuery(query, { isReady = true } = {}) {
     q: String(qv(query.q ?? query.query) || "").trim(),
     district: String(qv(query.district) || "").trim(),
     subregion: String(qv(query.subregion) || "").trim(),
+    mapRegion: String(qv(query.region ?? query.mapRegion) || qv(query.district) || "").trim(),
+    communityId: String(qv(query.community ?? query.communityId) || "").trim(),
+    localityId: String(qv(query.locality ?? query.localityId) || "").trim(),
     market,
     minPrice: String(qv(query.minPrice) || "").trim(),
     maxPrice: String(qv(query.maxPrice) || "").trim(),
@@ -111,8 +122,11 @@ export function parseSearchFiltersFromQuery(query, { isReady = true } = {}) {
 export function buildSearchRouterQuery(filters) {
   return cleanQuery({
     q: filters.q?.trim() || undefined,
-    district: filters.district || undefined,
+    district: filters.district || filters.mapRegion || undefined,
     subregion: filters.subregion || undefined,
+    region: filters.mapRegion || filters.district || undefined,
+    community: filters.communityId || undefined,
+    locality: filters.localityId || undefined,
     market: filters.market && filters.market !== "all" ? filters.market : undefined,
     minPrice: filters.minPrice || undefined,
     maxPrice: filters.maxPrice || undefined,
@@ -127,7 +141,7 @@ export function buildSearchRouterQuery(filters) {
 /** @param {string} queryNorm Lowercased trimmed query */
 export function listingMatchesSearchQuery(listing, queryNorm) {
   if (!queryNorm) return true;
-  const district = getRegionLabel(getListingRegionSlug(listing));
+  const district = formatListingLocation(listing) || getRegionLabel(getListingRegionSlug(listing));
   const haystack = `${listing?.title || ""} ${district} ${listing?.property_type || ""} ${getLifecycleStatus(listing)} ${listing?.price || ""}`;
   return haystack.toLowerCase().includes(queryNorm);
 }
@@ -176,6 +190,7 @@ export function applySearchFilters(listings, filters) {
     beds: numericOrNull(filters.beds),
     baths: numericOrNull(filters.baths),
   }).filter((listing) => {
+    if (!listingMatchesGeographyFilters(listing, filters)) return false;
     if (!listingMatchesSubregion(listing, filters)) return false;
     if (!listingMatchesPropertyType(listing, filters.propertyType)) return false;
     if (filters.verifiedOnly && !isListingCardVerified(listing)) return false;
@@ -207,8 +222,17 @@ export function getActiveFilterChips(filters) {
   const q = String(filters.q || "").trim();
   if (q) chips.push({ key: "q", label: `"${q}"` });
 
-  if (filters.district) {
-    chips.push({ key: "district", label: getRegionLabel(filters.district) });
+  if (filters.communityId) {
+    const c = geographyFilterChipLabels({ communityId: filters.communityId });
+    chips.push(...c);
+  }
+  if (filters.localityId) {
+    const l = geographyFilterChipLabels({ localityId: filters.localityId });
+    chips.push(...l.filter((x) => x.key === "localityId"));
+  }
+  if (filters.mapRegion || filters.district) {
+    const r = geographyFilterChipLabels({ mapRegion: filters.mapRegion || filters.district });
+    chips.push(...r.filter((x) => x.key === "mapRegion"));
   }
   if (filters.subregion) {
     chips.push({ key: "subregion", label: getRegionLabel(filters.subregion) });
@@ -238,6 +262,9 @@ export function hasActiveSearchFilters(filters) {
     filters.q !== defaults.q ||
     filters.district !== defaults.district ||
     filters.subregion !== defaults.subregion ||
+    filters.mapRegion !== defaults.mapRegion ||
+    filters.communityId !== defaults.communityId ||
+    filters.localityId !== defaults.localityId ||
     filters.market !== defaults.market ||
     filters.minPrice !== defaults.minPrice ||
     filters.maxPrice !== defaults.maxPrice ||
@@ -258,6 +285,22 @@ export function removeFilterChip(filters, chipKey) {
       break;
     case "district":
       next.district = "";
+      next.mapRegion = "";
+      next.communityId = "";
+      next.localityId = "";
+      break;
+    case "mapRegion":
+      next.mapRegion = "";
+      next.district = "";
+      next.communityId = "";
+      next.localityId = "";
+      break;
+    case "communityId":
+      next.communityId = "";
+      next.localityId = "";
+      break;
+    case "localityId":
+      next.localityId = "";
       break;
     case "subregion":
       next.subregion = "";

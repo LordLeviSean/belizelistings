@@ -14,7 +14,7 @@ import {
   resolveActiveListingCapForTier,
 } from "@/constants/operationalModel";
 import { OWNERSHIP_ACTIONS } from "@/constants/ownershipModel";
-import { getRegionLabel, normalizeRegionSlug } from "@/constants/geographyLayer";
+import { formatListingLocation } from "@/lib/geography/formatListingLocation";
 import { applyListingLifecycleAction, permanentlyDeleteArchivedListing } from "@/utils/ownershipAttribution";
 import { buildModerationResubmitPatch } from "@/lib/listingWriteContract";
 import { getLifecycleStatus } from "@/utils/canonicalListing";
@@ -123,7 +123,7 @@ function UserArchivedListingsPanel({ userId, tier }) {
         {!showSkeleton &&
           archivedRows.map((l) => {
             const thumb = coverUrl(l);
-            const districtLabel = getRegionLabel(normalizeRegionSlug(l.district || ""));
+            const districtLabel = formatListingLocation(l) || "Belize";
             const archivedAt = l.archived_at || l.updated_at || l.created_at;
             const archivedLabel = archivedAt
               ? new Date(archivedAt).toLocaleDateString()

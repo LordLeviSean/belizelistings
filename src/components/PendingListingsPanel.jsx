@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 import { fetchProfileRowsByIds } from "../lib/profileSelectContract";
 import { traceAction } from "../lib/trace";
 import { useToast } from "./ui/ToastProvider";
-import { getRegionLabel } from "../constants/geographyLayer";
+import { formatListingLocation } from "@/lib/geography/formatListingLocation";
 import { getModerationStatus, getRepublishStatus, LISTING_LIFECYCLE } from "../constants/operationalModel";
 import { clearAllFavoritesForListing } from "../lib/favorites";
 import { getLifecycleStatus } from "../utils/canonicalListing";
@@ -28,10 +28,6 @@ import { IMAGE_QUALITY_THUMB, IMAGE_SIZES_DASHBOARD_THUMB } from "../constants/i
 import { formatProfileDisplayLabel } from "../lib/profileDisplayName";
 import { invalidateApprovedListingsCache } from "../lib/approvedListingsCache";
 import useUserDashboardStore from "../stores/useUserDashboardStore";
-
-function formatDistrict(district = "") {
-  return getRegionLabel(district);
-}
 
 export default function PendingListingsPanel({ onAction, profilesRevision = 0 }) {
   const router = useRouter();
@@ -234,7 +230,7 @@ export default function PendingListingsPanel({ onAction, profilesRevision = 0 })
             <div className={styles.pendingBody}>
               <div className={styles.pendingMeta}>
                 <p className={styles.pendingTitle}><strong>{listing.title || "Untitled listing"}</strong></p>
-                <p className={styles.pendingPrice}>{Number(listing.price || 0).toLocaleString()} BZD · {formatDistrict(listing.district)}</p>
+                <p className={styles.pendingPrice}>{Number(listing.price || 0).toLocaleString()} BZD · {formatListingLocation(listing) || "Belize"}</p>
                 <p className={styles.pendingSubtle}>Owner: {ownerMap[String(listing.user_id)] || String(listing.user_id || "Unknown")}</p>
                 <p className={styles.pendingSubtle}>{formatOperationalTimestamp(listing.created_at)}</p>
                 <ListingOwnershipMeta listing={listing} ownerMap={ownerMap} />

@@ -12,7 +12,8 @@ import ListingOwnershipMeta from "./ListingOwnershipMeta";
 import DeleteConfirmationModal from "./DeleteConfirmationModal";
 import { MODAL_TYPES, useModalController } from "@/hooks/useModalController";
 import ArchiveListingModal from "./listing/ArchiveListingModal";
-import { getSelectableRegions } from "../constants/geographyLayer";
+import GeographyLocationEditLink from "@/components/geography/GeographyLocationEditLink";
+import { formatListingLocation } from "@/lib/geography/formatListingLocation";
 import { getArchiveStatus, getModerationStatus, getRepublishStatus, LISTING_LIFECYCLE } from "../constants/operationalModel";
 import styles from "../styles/Dashboard.module.css";
 import { getLifecycleStatus, isPubliclyVisibleListing } from "../utils/canonicalListing";
@@ -41,8 +42,6 @@ const EDITOR_STEPS = [
   { id: "verify", label: "Review" },
   { id: "preview", label: "Preview" },
 ];
-const REGION_OPTIONS = getSelectableRegions();
-
 export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -359,7 +358,6 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
       {
         title: editForm.title.trim(),
         price: Number(editForm.price || 0),
-        district: editForm.district.trim(),
         listing_type: editForm.listing_type,
         property_type: editForm.property_type,
         beds: editForm.beds === "" ? null : Number(editForm.beds),
@@ -409,15 +407,8 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
       );
     }
     if (stepId === "location") {
-      return (
-        <select className={styles.select} value={editForm.district} onChange={(event) => setEditForm((prev) => ({ ...prev, district: event.target.value }))}>
-          {REGION_OPTIONS.map((region) => (
-            <option key={region.slug} value={region.slug}>
-              {region.label}
-            </option>
-          ))}
-        </select>
-      );
+      const listing = listings.find((l) => String(l.id) === String(modal.payload?.listingId));
+      return <GeographyLocationEditLink listing={listing} />;
     }
     if (stepId === "pricing") {
       return (
@@ -449,10 +440,12 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
       );
     }
     if (stepId === "verify") {
+      const listing = listings.find((l) => String(l.id) === String(modal.payload?.listingId));
+      const locationOk = Boolean(formatListingLocation(listing));
       return (
         <div className={styles.modalForm}>
           <p className={styles.muted}>Ready for review: {editForm.title && editForm.price ? "Yes" : "Needs detail"}</p>
-          <p className={styles.muted}>Verification pending: {editForm.district ? "Structured" : "Incomplete location"}</p>
+          <p className={styles.muted}>Location: {locationOk ? formatListingLocation(listing) : "Edit in listing workspace"}</p>
           <p className={styles.muted}>Approved for publishing: {editForm.status === "approved" ? "Approved" : "Pending state"}</p>
         </div>
       );
@@ -666,10 +659,10 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
                 <p className={styles.muted} style={{ margin: "0 0 6px" }}>Live Public Preview</p>
                 <ListingCard
                   listing={{
+                    ...(listings.find((l) => String(l.id) === String(editingId)) || {}),
                     id: editingId || "edit-preview",
                     title: editForm.title || "Belize Property",
                     price: Number(editForm.price || 0),
-                    district: editForm.district || "belize",
                     property_type: editForm.property_type || "house",
                     listing_type: editForm.listing_type || "sale",
                     beds: Number(editForm.beds || 0),

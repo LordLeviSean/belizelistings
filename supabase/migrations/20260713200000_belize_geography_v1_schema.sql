@@ -141,7 +141,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS geo_aliases_norm_target_region_unique
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.geo_locality_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  listing_id uuid REFERENCES public.listings (id) ON DELETE SET NULL,
+  listing_id bigint REFERENCES public.listings (id) ON DELETE SET NULL,
   map_region_id text,
   community_id text,
   proposed_name text NOT NULL,
