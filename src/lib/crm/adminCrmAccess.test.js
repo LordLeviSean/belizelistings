@@ -15,14 +15,14 @@ import { fetchViewingsForBuyer } from "./viewingMutations";
 describe("admin CRM access", () => {
   test("normalizeAdminDashboardTab maps legacy tabs to unified surfaces", () => {
     expect(normalizeAdminDashboardTab("messages")).toBe("inbox");
-    expect(normalizeAdminDashboardTab("owner-viewings")).toBe("viewing-requests");
+    expect(normalizeAdminDashboardTab("owner-viewings")).toBe("viewings");
     expect(normalizeAdminDashboardTab("unknown")).toBe("pending");
   });
 
-  test("visible admin tabs include unified Inbox and Viewing Requests", () => {
+  test("visible admin tabs include unified Inbox and Viewings", () => {
     const tabs = getVisibleAdminDashboardTabs();
     const ids = tabs.map((t) => t.id);
-    expect(ids).toEqual(expect.arrayContaining(["inbox", "viewing-requests"]));
+    expect(ids).toEqual(expect.arrayContaining(["inbox", "viewings"]));
     expect(ids).not.toContain("messages");
     expect(ids).not.toContain("my-viewings");
   });

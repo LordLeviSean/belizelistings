@@ -11,24 +11,24 @@ export const AGENT_DASHBOARD_TAB_IDS = Object.freeze({
   OVERVIEW: "overview",
   LISTINGS: "listings",
   INBOX: "inbox",
-  VIEWING_REQUESTS: "viewing-requests",
+  VIEWINGS: "viewings",
   PROFILE: "profile",
   /** @deprecated */
   INQUIRIES: "inquiries",
-  /** @deprecated */
-  VIEWINGS: "viewings",
+  /** @deprecated use VIEWINGS */
+  VIEWING_REQUESTS: "viewing-requests",
 });
 
 const LEGACY_AGENT_TAB_ALIASES = Object.freeze({
   [AGENT_DASHBOARD_TAB_IDS.INQUIRIES]: AGENT_DASHBOARD_TAB_IDS.INBOX,
-  [AGENT_DASHBOARD_TAB_IDS.VIEWINGS]: AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
+  [AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS]: AGENT_DASHBOARD_TAB_IDS.VIEWINGS,
 });
 
 export const AGENT_DASHBOARD_TABS = Object.freeze([
   { id: AGENT_DASHBOARD_TAB_IDS.OVERVIEW, label: "Overview" },
   { id: AGENT_DASHBOARD_TAB_IDS.LISTINGS, label: "Listings" },
   { id: AGENT_DASHBOARD_TAB_IDS.INBOX, label: "Inbox", crm: true },
-  { id: AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS, label: "Viewing Requests", crm: true },
+  { id: AGENT_DASHBOARD_TAB_IDS.VIEWINGS, label: "Viewings", crm: true },
   { id: AGENT_DASHBOARD_TAB_IDS.PROFILE, label: "Profile" },
 ]);
 

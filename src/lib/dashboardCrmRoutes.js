@@ -89,7 +89,7 @@ export function resolveViewingRequestPath({ role, side, viewingId, conversationI
   if (recipientRole === "admin") {
     return resolveDashboardCrmPath({
       role: "admin",
-      tab: ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
+      tab: ADMIN_DASHBOARD_TAB_IDS.VIEWINGS,
       viewingId,
       conversationId,
     });
@@ -98,7 +98,7 @@ export function resolveViewingRequestPath({ role, side, viewingId, conversationI
   if (recipientRole === "agent" || side === "agent") {
     return resolveDashboardCrmPath({
       role: "agent",
-      tab: AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
+      tab: AGENT_DASHBOARD_TAB_IDS.VIEWINGS,
       viewingId,
       conversationId,
     });
@@ -106,7 +106,7 @@ export function resolveViewingRequestPath({ role, side, viewingId, conversationI
 
   return resolveDashboardCrmPath({
     role: "user",
-    tab: USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
+    tab: USER_DASHBOARD_TAB_IDS.VIEWINGS,
     viewingId,
     conversationId,
   });
@@ -136,8 +136,8 @@ export function resolveOwnerInboxPath({ role, tab, conversationId, viewingId } =
 
   if (normalizedRole === "admin") {
     const adminTab =
-      tab === "viewings" || tab === ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS
-        ? ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS
+      tab === "viewings" || tab === ADMIN_DASHBOARD_TAB_IDS.VIEWINGS
+        ? ADMIN_DASHBOARD_TAB_IDS.VIEWINGS
         : tab || ADMIN_DASHBOARD_TAB_IDS.INBOX;
     return resolveDashboardCrmPath({
       role,
@@ -149,8 +149,8 @@ export function resolveOwnerInboxPath({ role, tab, conversationId, viewingId } =
 
   if (normalizedRole === "agent") {
     const agentTab =
-      tab === "viewings" || tab === AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS
-        ? AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS
+      tab === "viewings" || tab === AGENT_DASHBOARD_TAB_IDS.VIEWINGS
+        ? AGENT_DASHBOARD_TAB_IDS.VIEWINGS
         : tab || AGENT_DASHBOARD_TAB_IDS.INBOX;
     return resolveDashboardCrmPath({
       role,
@@ -161,8 +161,8 @@ export function resolveOwnerInboxPath({ role, tab, conversationId, viewingId } =
   }
 
   const userTab =
-    tab === "viewings" || tab === USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS
-      ? USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS
+    tab === "viewings" || tab === USER_DASHBOARD_TAB_IDS.VIEWINGS
+      ? USER_DASHBOARD_TAB_IDS.VIEWINGS
       : tab || USER_DASHBOARD_TAB_IDS.INBOX;
 
   return resolveDashboardCrmPath({
@@ -256,6 +256,13 @@ export function resolveNotificationDestination({ eventType, role, payload = {} }
         viewingId,
       });
 
+    case NOTIFICATION_EVENT_TYPES.VIEWING_COMPLETED:
+      return resolveViewingRequestPath({
+        role: recipientRole,
+        side: recipientSide,
+        viewingId,
+      });
+
     case NOTIFICATION_EVENT_TYPES.INQUIRY_ARCHIVED:
       return resolveMessageConversationPath({
         role: recipientRole,
@@ -290,8 +297,8 @@ export function resolveUserDashboardTabFromQuery(query = {}) {
   if (tabRaw) {
     const normalized = String(tabRaw).trim().toLowerCase();
     if (normalized === "messages" || normalized === "owner-inbox") return USER_DASHBOARD_TAB_IDS.INBOX;
-    if (normalized === "my-viewings" || normalized === "owner-viewings") {
-      return USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS;
+    if (normalized === "my-viewings" || normalized === "owner-viewings" || normalized === "viewing-requests") {
+      return USER_DASHBOARD_TAB_IDS.VIEWINGS;
     }
     return normalized;
   }
@@ -300,7 +307,7 @@ export function resolveUserDashboardTabFromQuery(query = {}) {
   if (conversation) return USER_DASHBOARD_TAB_IDS.INBOX;
 
   const viewing = Array.isArray(query.viewing) ? query.viewing[0] : query.viewing;
-  if (viewing) return USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS;
+  if (viewing) return USER_DASHBOARD_TAB_IDS.VIEWINGS;
 
   const listing = Array.isArray(query.listing) ? query.listing[0] : query.listing;
   if (listing) return USER_DASHBOARD_TAB_IDS.MY_LISTINGS;
@@ -313,7 +320,7 @@ export function resolveAgentDashboardTabFromQuery(query = {}) {
   if (tabRaw) {
     const normalized = String(tabRaw).trim().toLowerCase();
     if (normalized === "inquiries") return AGENT_DASHBOARD_TAB_IDS.INBOX;
-    if (normalized === "viewings") return AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS;
+    if (normalized === "viewings" || normalized === "viewing-requests") return AGENT_DASHBOARD_TAB_IDS.VIEWINGS;
     return normalized;
   }
 
@@ -321,7 +328,7 @@ export function resolveAgentDashboardTabFromQuery(query = {}) {
   if (conversation) return AGENT_DASHBOARD_TAB_IDS.INBOX;
 
   const viewing = Array.isArray(query.viewing) ? query.viewing[0] : query.viewing;
-  if (viewing) return AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS;
+  if (viewing) return AGENT_DASHBOARD_TAB_IDS.VIEWINGS;
 
   const listing = Array.isArray(query.listing) ? query.listing[0] : query.listing;
   if (listing) return AGENT_DASHBOARD_TAB_IDS.LISTINGS;
@@ -334,8 +341,8 @@ export function resolveAdminDashboardTabFromQuery(query = {}) {
   if (tabRaw) {
     const normalized = String(tabRaw).trim().toLowerCase();
     if (normalized === "messages" || normalized === "owner-inbox") return ADMIN_DASHBOARD_TAB_IDS.INBOX;
-    if (normalized === "my-viewings" || normalized === "owner-viewings") {
-      return ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS;
+    if (normalized === "my-viewings" || normalized === "owner-viewings" || normalized === "viewing-requests") {
+      return ADMIN_DASHBOARD_TAB_IDS.VIEWINGS;
     }
     return normalized;
   }
@@ -344,7 +351,7 @@ export function resolveAdminDashboardTabFromQuery(query = {}) {
   if (conversation) return ADMIN_DASHBOARD_TAB_IDS.INBOX;
 
   const viewing = Array.isArray(query.viewing) ? query.viewing[0] : query.viewing;
-  if (viewing) return ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS;
+  if (viewing) return ADMIN_DASHBOARD_TAB_IDS.VIEWINGS;
 
   const listing = Array.isArray(query.listing) ? query.listing[0] : query.listing;
   if (listing) return ADMIN_DASHBOARD_TAB_IDS.LISTINGS;

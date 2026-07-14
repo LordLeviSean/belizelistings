@@ -127,7 +127,7 @@ export default function UserDashboard() {
   useEffect(() => {
     if (
       activeTab !== USER_DASHBOARD_TAB_IDS.INBOX &&
-      activeTab !== USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS
+      activeTab !== USER_DASHBOARD_TAB_IDS.VIEWINGS
     ) {
       return;
     }
@@ -446,8 +446,8 @@ export default function UserDashboard() {
                   </section>
                 ) : null}
 
-                {activeTab === USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS ? (
-                  <section aria-label="Viewing Requests">
+                {activeTab === USER_DASHBOARD_TAB_IDS.VIEWINGS ? (
+                  <section aria-label="Viewings">
                     {buyerCrmLoading && !buyerViewings.length && !hasOwnedListings ? (
                       <div className={loadingStyles.hydratingPanel} aria-busy="true" />
                     ) : null}
@@ -455,7 +455,7 @@ export default function UserDashboard() {
                       <div style={{ marginBottom: hasOwnedListings ? 24 : 0 }}>
                         {hasOwnedListings ? (
                           <h3 className={styles.userActionHeadline} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
-                            Your viewing requests
+                            Your viewings
                           </h3>
                         ) : null}
                         <BuyerViewingsPanel
@@ -488,7 +488,7 @@ export default function UserDashboard() {
                       />
                     ) : null}
                     {!buyerViewings.length && !hasOwnedListings && !buyerCrmLoading ? (
-                      <p className={styles.muted}>No viewing requests yet — schedule a viewing from any listing page.</p>
+                      <p className={styles.muted}>No viewings yet — schedule a viewing from any listing page.</p>
                     ) : null}
                   </section>
                 ) : null}

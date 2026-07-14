@@ -13,10 +13,10 @@ import {
 } from "./dashboardUserConfig";
 
 describe("dashboardUserConfig communication tabs", () => {
-  test("shows unified Inbox and Viewing Requests for all CRM users", () => {
+  test("shows unified Inbox and Viewings for all CRM users", () => {
     const buyerIds = getVisibleUserDashboardTabs({ hasOwnedListings: false }).map((t) => t.id);
     expect(buyerIds).toContain(USER_DASHBOARD_TAB_IDS.INBOX);
-    expect(buyerIds).toContain(USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS);
+    expect(buyerIds).toContain(USER_DASHBOARD_TAB_IDS.VIEWINGS);
     expect(buyerIds).not.toContain(USER_DASHBOARD_TAB_IDS.MESSAGES);
     expect(buyerIds).not.toContain(USER_DASHBOARD_TAB_IDS.MY_VIEWINGS);
   });
@@ -24,7 +24,7 @@ describe("dashboardUserConfig communication tabs", () => {
   test("owner users see same unified tabs without legacy owner labels", () => {
     const ownerIds = getVisibleUserDashboardTabs({ hasOwnedListings: true }).map((t) => t.id);
     expect(ownerIds).toContain(USER_DASHBOARD_TAB_IDS.INBOX);
-    expect(ownerIds).toContain(USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS);
+    expect(ownerIds).toContain(USER_DASHBOARD_TAB_IDS.VIEWINGS);
     expect(ownerIds).not.toContain(USER_DASHBOARD_TAB_IDS.OWNER_INBOX);
     expect(ownerIds).not.toContain(USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS);
   });
@@ -32,12 +32,14 @@ describe("dashboardUserConfig communication tabs", () => {
   test("legacy tab URLs map to unified tabs", () => {
     expect(normalizeUserDashboardTab("messages")).toBe(USER_DASHBOARD_TAB_IDS.INBOX);
     expect(normalizeUserDashboardTab("owner-inbox")).toBe(USER_DASHBOARD_TAB_IDS.INBOX);
-    expect(normalizeUserDashboardTab("my-viewings")).toBe(USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS);
-    expect(normalizeUserDashboardTab("owner-viewings")).toBe(USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS);
+    expect(normalizeUserDashboardTab("my-viewings")).toBe(USER_DASHBOARD_TAB_IDS.VIEWINGS);
+    expect(normalizeUserDashboardTab("owner-viewings")).toBe(USER_DASHBOARD_TAB_IDS.VIEWINGS);
+    expect(normalizeUserDashboardTab("viewing-requests")).toBe(USER_DASHBOARD_TAB_IDS.VIEWINGS);
   });
 
-  test("Inbox tab label is Inbox not Owner Inbox", () => {
-    const inbox = getVisibleUserDashboardTabs().find((t) => t.id === USER_DASHBOARD_TAB_IDS.INBOX);
-    expect(inbox?.label).toBe("Inbox");
+  test("Inbox and Viewings tab labels", () => {
+    const tabs = getVisibleUserDashboardTabs();
+    expect(tabs.find((t) => t.id === USER_DASHBOARD_TAB_IDS.INBOX)?.label).toBe("Inbox");
+    expect(tabs.find((t) => t.id === USER_DASHBOARD_TAB_IDS.VIEWINGS)?.label).toBe("Viewings");
   });
 });

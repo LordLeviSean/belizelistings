@@ -93,7 +93,7 @@ export default function AgentDashboard() {
   const visibleTabs = useMemo(
     () =>
       AGENT_DASHBOARD_TABS.filter((tab) => {
-        if (tab.crm && tab.id === AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS && !BL_ENABLE_VIEWING_PERSIST) {
+        if (tab.crm && tab.id === AGENT_DASHBOARD_TAB_IDS.VIEWINGS && !BL_ENABLE_VIEWING_PERSIST) {
           return false;
         }
         return true;
@@ -211,7 +211,7 @@ export default function AgentDashboard() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (activeTab !== AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS) return;
+    if (activeTab !== AGENT_DASHBOARD_TAB_IDS.VIEWINGS) return;
     loadViewings();
   }, [activeTab, loadViewings]);
 
@@ -413,8 +413,8 @@ export default function AgentDashboard() {
                   </section>
                 ) : null}
 
-                {activeTab === AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS ? (
-                  <section aria-label="Viewing requests">
+                {activeTab === AGENT_DASHBOARD_TAB_IDS.VIEWINGS ? (
+                  <section aria-label="Viewings">
                     <p className={styles.muted} style={{ marginBottom: 16, maxWidth: "62ch" }}>
                       Confirm, reschedule, or complete property viewings requested from your listings.
                     </p>

@@ -7,23 +7,26 @@ export const ADMIN_DASHBOARD_TAB_IDS = Object.freeze({
   OPERATOR: "operator",
   UPGRADES: "upgrades",
   INBOX: "inbox",
+  VIEWINGS: "viewings",
+  /** @deprecated use VIEWINGS */
   VIEWING_REQUESTS: "viewing-requests",
   /** @deprecated */
   MESSAGES: "messages",
   MY_INQUIRIES: "my-inquiries",
-  /** @deprecated */
+  /** @deprecated use VIEWINGS */
   MY_VIEWINGS: "my-viewings",
   /** @deprecated */
   OWNER_INBOX: "owner-inbox",
-  /** @deprecated */
+  /** @deprecated use VIEWINGS */
   OWNER_VIEWINGS: "owner-viewings",
 });
 
 const LEGACY_TAB_ALIASES = Object.freeze({
   [ADMIN_DASHBOARD_TAB_IDS.MESSAGES]: ADMIN_DASHBOARD_TAB_IDS.INBOX,
   [ADMIN_DASHBOARD_TAB_IDS.OWNER_INBOX]: ADMIN_DASHBOARD_TAB_IDS.INBOX,
-  [ADMIN_DASHBOARD_TAB_IDS.MY_VIEWINGS]: ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
-  [ADMIN_DASHBOARD_TAB_IDS.OWNER_VIEWINGS]: ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
+  [ADMIN_DASHBOARD_TAB_IDS.MY_VIEWINGS]: ADMIN_DASHBOARD_TAB_IDS.VIEWINGS,
+  [ADMIN_DASHBOARD_TAB_IDS.OWNER_VIEWINGS]: ADMIN_DASHBOARD_TAB_IDS.VIEWINGS,
+  [ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS]: ADMIN_DASHBOARD_TAB_IDS.VIEWINGS,
 });
 
 export const ADMIN_DASHBOARD_TABS = Object.freeze([
@@ -39,8 +42,8 @@ export const ADMIN_DASHBOARD_TABS = Object.freeze([
     conversations: true,
   },
   {
-    id: ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
-    label: "Viewing Requests",
+    id: ADMIN_DASHBOARD_TAB_IDS.VIEWINGS,
+    label: "Viewings",
     crm: true,
     viewing: true,
   },
@@ -79,7 +82,7 @@ export function getVisibleAdminDashboardTabs() {
     if (!crmEnabled) return false;
     if (tab.conversations && !BL_ENABLE_CONVERSATIONS) return false;
     if (
-      tab.id === ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS &&
+      tab.id === ADMIN_DASHBOARD_TAB_IDS.VIEWINGS &&
       !BL_ENABLE_VIEWING_PERSIST &&
       !BL_ENABLE_CONVERSATIONS
     ) {

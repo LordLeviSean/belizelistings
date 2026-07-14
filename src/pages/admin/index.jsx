@@ -109,7 +109,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (
       activeTab !== ADMIN_DASHBOARD_TAB_IDS.INBOX &&
-      activeTab !== ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS
+      activeTab !== ADMIN_DASHBOARD_TAB_IDS.VIEWINGS
     ) {
       return;
     }
@@ -419,12 +419,12 @@ export default function AdminPage() {
                   ) : null}
                 </section>
               ) : null}
-              {activeTab === ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS ? (
-                <section aria-label="Viewing Requests">
+              {activeTab === ADMIN_DASHBOARD_TAB_IDS.VIEWINGS ? (
+                <section aria-label="Viewings">
                   {buyerViewings.length > 0 ? (
                     <div style={{ marginBottom: 24 }}>
                       <h3 className={styles.sectionTitle} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
-                        Your viewing requests
+                        Your viewings
                       </h3>
                       <BuyerViewingsPanel
                         viewings={buyerViewings}

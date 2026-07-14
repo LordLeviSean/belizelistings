@@ -36,7 +36,7 @@ describe("dashboardCrmRoutes", () => {
     expect(href).toBe("/dashboard/user?tab=inbox&conversation=conv-7");
   });
 
-  test("resolveNotificationDestination routes viewing_requested to Viewing Requests", () => {
+  test("resolveNotificationDestination routes viewing_requested to Viewings", () => {
     const href = resolveNotificationDestination({
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED,
       payload: {
@@ -45,25 +45,25 @@ describe("dashboardCrmRoutes", () => {
         recipient_side: "owner",
       },
     });
-    expect(href).toBe("/dashboard/user?tab=viewing-requests&viewing=view-3");
+    expect(href).toBe("/dashboard/user?tab=viewings&viewing=view-3");
   });
 
-  test("resolveNotificationDestination opens Viewing Requests for buyer viewing events", () => {
+  test("resolveNotificationDestination opens Viewings for buyer viewing events", () => {
     const href = resolveNotificationDestination({
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
       role: "user",
       payload: { viewing_id: "view-9", recipient_side: "buyer" },
     });
-    expect(href).toBe("/dashboard/user?tab=viewing-requests&viewing=view-9");
+    expect(href).toBe("/dashboard/user?tab=viewings&viewing=view-9");
   });
 
-  test("resolveNotificationDestination routes agent viewing request to agent Viewing Requests", () => {
+  test("resolveNotificationDestination routes agent viewing request to agent Viewings", () => {
     const href = resolveNotificationDestination({
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED,
       role: "agent",
       payload: { viewing_id: "view-3", recipient_role: "agent", recipient_side: "agent" },
     });
-    expect(href).toBe("/dashboard/agent?tab=viewing-requests&viewing=view-3");
+    expect(href).toBe("/dashboard/agent?tab=viewings&viewing=view-3");
   });
 
   test("resolveNotificationDestination routes agent inquiry to agent Inbox", () => {
@@ -78,12 +78,12 @@ describe("dashboardCrmRoutes", () => {
     expect(href).toBe("/dashboard/agent?tab=inbox&conversation=conv-55");
   });
 
-  test("legacy messages tab query resolves to inbox", () => {
+  test("legacy tab query resolves to unified surfaces", () => {
     expect(resolveUserDashboardTabFromQuery({ tab: "messages" })).toBe(USER_DASHBOARD_TAB_IDS.INBOX);
-    expect(resolveUserDashboardTabFromQuery({ tab: "my-viewings" })).toBe(
-      USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS
-    );
+    expect(resolveUserDashboardTabFromQuery({ tab: "my-viewings" })).toBe(USER_DASHBOARD_TAB_IDS.VIEWINGS);
+    expect(resolveUserDashboardTabFromQuery({ tab: "viewing-requests" })).toBe(USER_DASHBOARD_TAB_IDS.VIEWINGS);
     expect(resolveAgentDashboardTabFromQuery({ tab: "inquiries" })).toBe(AGENT_DASHBOARD_TAB_IDS.INBOX);
+    expect(resolveAgentDashboardTabFromQuery({ tab: "viewing-requests" })).toBe(AGENT_DASHBOARD_TAB_IDS.VIEWINGS);
     expect(resolveAdminDashboardTabFromQuery({ tab: "owner-inbox" })).toBe(ADMIN_DASHBOARD_TAB_IDS.INBOX);
   });
 
@@ -93,9 +93,9 @@ describe("dashboardCrmRoutes", () => {
     ).toBe("/dashboard/user?tab=inbox&conversation=c1");
   });
 
-  test("resolveViewingRequestPath uses Viewing Requests tab", () => {
+  test("resolveViewingRequestPath uses Viewings tab", () => {
     expect(resolveViewingRequestPath({ role: "user", side: "owner", viewingId: "v1" })).toBe(
-      "/dashboard/user?tab=viewing-requests&viewing=v1"
+      "/dashboard/user?tab=viewings&viewing=v1"
     );
   });
 

@@ -17,24 +17,27 @@ export const USER_DASHBOARD_TAB_IDS = Object.freeze({
   PROFILE: "profile",
   /** Unified inbox — buyer messages + owner listing inquiries */
   INBOX: "inbox",
-  /** Unified viewing requests — buyer submissions + owner requests */
+  /** Unified viewing management — requests through completion */
+  VIEWINGS: "viewings",
+  /** @deprecated use VIEWINGS */
   VIEWING_REQUESTS: "viewing-requests",
   /** @deprecated use INBOX */
   MESSAGES: "messages",
   MY_INQUIRIES: "my-inquiries",
-  /** @deprecated use VIEWING_REQUESTS */
+  /** @deprecated use VIEWINGS */
   MY_VIEWINGS: "my-viewings",
   /** @deprecated use INBOX */
   OWNER_INBOX: "owner-inbox",
-  /** @deprecated use VIEWING_REQUESTS */
+  /** @deprecated use VIEWINGS */
   OWNER_VIEWINGS: "owner-viewings",
 });
 
 const LEGACY_TAB_ALIASES = Object.freeze({
   [USER_DASHBOARD_TAB_IDS.MESSAGES]: USER_DASHBOARD_TAB_IDS.INBOX,
   [USER_DASHBOARD_TAB_IDS.OWNER_INBOX]: USER_DASHBOARD_TAB_IDS.INBOX,
-  [USER_DASHBOARD_TAB_IDS.MY_VIEWINGS]: USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
-  [USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS]: USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
+  [USER_DASHBOARD_TAB_IDS.MY_VIEWINGS]: USER_DASHBOARD_TAB_IDS.VIEWINGS,
+  [USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS]: USER_DASHBOARD_TAB_IDS.VIEWINGS,
+  [USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS]: USER_DASHBOARD_TAB_IDS.VIEWINGS,
 });
 
 /** Shared tab metadata for `/dashboard/user`. */
@@ -52,8 +55,8 @@ export const USER_DASHBOARD_TABS = Object.freeze([
     conversations: true,
   },
   {
-    id: USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
-    label: "Viewing Requests",
+    id: USER_DASHBOARD_TAB_IDS.VIEWINGS,
+    label: "Viewings",
     crm: true,
     viewing: true,
   },
@@ -96,7 +99,7 @@ export function getVisibleUserDashboardTabs({ hasOwnedListings: _hasOwnedListing
     if (!crmTabsEnabled) return false;
     if (tab.conversations && !BL_ENABLE_CONVERSATIONS) return false;
     if (
-      tab.id === USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS &&
+      tab.id === USER_DASHBOARD_TAB_IDS.VIEWINGS &&
       !BL_ENABLE_VIEWING_PERSIST &&
       !BL_ENABLE_CONVERSATIONS
     ) {
