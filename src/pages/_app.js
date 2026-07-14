@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import "@/styles/globals.css";
-import "@/styles/CrmMessagingTokens.module.css";
+import "@/styles/CrmMessagingTokens.css";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/router";
 import { PageTitleProvider } from "@/components/PageTitleProvider";

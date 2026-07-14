@@ -122,7 +122,7 @@ export default function ListingViewingModal({ open, onClose, listing, user }) {
         }
         return;
       }
-      showToast({ type: "success", message: "Viewing request sent. The agent will follow up." });
+      showToast({ type: "success", message: "Viewing sent. The agent will follow up." });
       setNote("");
       onClose?.();
     } finally {

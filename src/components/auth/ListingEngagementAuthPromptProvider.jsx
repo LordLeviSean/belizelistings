@@ -30,7 +30,7 @@ const COPY = {
   [LISTING_ENGAGEMENT_ACTIONS.VIEWING]: {
     kicker: "Members participate",
     title: "Sign in to schedule a viewing",
-    body: "Viewing requests are saved to your account so agents can confirm times and you can track updates.",
+    body: "Viewings are saved to your account so agents can confirm times and you can track updates.",
     primary: "Continue to sign in",
   },
 };

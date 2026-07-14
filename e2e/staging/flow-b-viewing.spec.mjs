@@ -30,7 +30,7 @@ test.describe("Flow B — Viewing reschedule", () => {
 
       await signIn(ownerPage, ACCOUNTS.owner.email, ACCOUNTS.owner.password);
       await ownerPage.goto("/dashboard/user?tab=owner-viewings");
-      const viewingCard = ownerPage.getByRole("feed", { name: "Viewing requests" }).locator("article").first();
+      const viewingCard = ownerPage.getByRole("feed", { name: "Viewings" }).locator("article").first();
       await expect(viewingCard).toBeVisible({ timeout: 30_000 });
 
       await viewingCard.getByRole("button", { name: "Propose new time" }).click();
@@ -39,14 +39,14 @@ test.describe("Flow B — Viewing reschedule", () => {
       await viewingCard.getByRole("button", { name: "Send proposal" }).click();
       await expect(viewingCard.getByText(/Buyer proposed|Reschedule/i)).toBeVisible({ timeout: 15_000 }).catch(() => {});
 
-      await buyerPage.goto("/dashboard/user?tab=my-viewings");
-      const buyerCard = buyerPage.getByRole("feed", { name: "My viewings" }).locator("article").first();
+      await buyerPage.goto("/dashboard/user?tab=viewings");
+      const buyerCard = buyerPage.getByRole("feed", { name: "Viewings" }).locator("article").first();
       await expect(buyerCard.getByText(/Agent proposed/i)).toBeVisible({ timeout: 30_000 });
       await buyerCard.getByRole("button", { name: "Accept proposed time" }).click();
       await expect(buyerCard.getByText(/confirmed/i)).toBeVisible({ timeout: 30_000 });
 
       await ownerPage.reload();
-      await expect(ownerPage.getByRole("feed", { name: "Viewing requests" }).getByText(/confirmed/i).first()).toBeVisible({
+      await expect(ownerPage.getByRole("feed", { name: "Viewings" }).getByText(/confirmed/i).first()).toBeVisible({
         timeout: 30_000,
       });
     } finally {

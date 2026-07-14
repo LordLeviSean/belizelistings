@@ -409,7 +409,7 @@ export default function UserDashboard() {
                       <div style={{ marginBottom: hasOwnedListings ? 24 : 0 }}>
                         {hasOwnedListings ? (
                           <h3 className={styles.userActionHeadline} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
-                            Your messages
+                            Your Inbox
                           </h3>
                         ) : null}
                         <UserInboxPanel
@@ -441,7 +441,7 @@ export default function UserDashboard() {
                       />
                     ) : null}
                     {!buyerConversations.length && !hasOwnedListings && !buyerCrmLoading ? (
-                      <p className={styles.muted}>No messages yet — use Message via BelizeListings on a listing to start a conversation.</p>
+                      <p className={styles.muted}>Nothing in your Inbox yet — use Message via BelizeListings on a listing to start a conversation.</p>
                     ) : null}
                   </section>
                 ) : null}

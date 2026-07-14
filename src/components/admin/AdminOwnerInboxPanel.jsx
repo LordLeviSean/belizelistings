@@ -56,7 +56,7 @@ export default function AdminOwnerInboxPanel({
   if (!BL_ENABLE_CONVERSATIONS && !BL_ENABLE_VIEWING_PERSIST) {
     return (
       <p className={styles.muted}>
-        Enable CRM conversation or viewing flags to access owner inbox for your listings.
+        Enable CRM conversation or viewing flags to access Inbox for your listings.
       </p>
     );
   }
@@ -85,7 +85,7 @@ export default function AdminOwnerInboxPanel({
         title={surface === "user" ? "No listing inquiries yet" : "No listings on your account"}
         description={
           surface === "user"
-            ? "Create a listing to receive inquiries and viewing requests here."
+            ? "Create a listing to receive inquiries and viewings here."
             : "Create a listing to receive inquiries here, or use operator tools for listings owned by other users."
         }
       />
@@ -96,7 +96,7 @@ export default function AdminOwnerInboxPanel({
     return (
       <div>
         <p className={styles.muted} style={{ marginBottom: 16, maxWidth: "62ch" }}>
-          Viewing requests for listings you own. Confirm or reschedule from the same panel agents use.
+          Viewings for listings you own. Confirm or reschedule from the same panel agents use.
         </p>
         <AgentViewingsPanel
           viewings={viewings}
@@ -121,7 +121,7 @@ export default function AdminOwnerInboxPanel({
   return (
     <div>
       <p className={styles.muted} style={{ marginBottom: 16, maxWidth: "62ch" }}>
-        Messages for listings you own (where you are the listing agent). Buyer threads stay grouped by listing.
+        Inbox for listings you own (where you are the listing agent). Buyer threads stay grouped by listing.
       </p>
       <OwnerInquiriesPanel
         conversations={conversations}

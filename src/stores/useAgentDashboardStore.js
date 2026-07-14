@@ -10,6 +10,7 @@ import { isTransientNetworkError, isTerminalDashboardCountError, isMissingTableE
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES } from "@/lib/featureFlags";
 import { resolveUserDashboardListingCap } from "@/constants/dashboardAgentConfig";
 import { countOwnerInboxUnread } from "@/lib/crm/conversationGrouping";
+import { filterInboxConversations } from "@/lib/crm/conversationFilters";
 import { fetchConversationsForAgent } from "@/lib/crm/conversationMutations";
 import { fetchInquiriesForAgent } from "@/lib/listingInquiries";
 import { INQUIRY_STATUS } from "@/constants/inquiryModel";
@@ -317,7 +318,7 @@ const useAgentDashboardStore = create((set, get) => ({
       if (genAtStart !== loadGen || !get()._sessionUserId) return;
       if (error) return;
 
-      const unread = countOwnerInboxUnread(data || []);
+      const unread = countOwnerInboxUnread(filterInboxConversations(data || []));
       patchIfChanged(set, get, { unreadInquiryCount: unread });
     } finally {
       if (!quiet && genAtStart === loadGen) {

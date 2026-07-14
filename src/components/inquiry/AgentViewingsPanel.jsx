@@ -399,7 +399,7 @@ export default function AgentViewingsPanel({
         isOpen={Boolean(declineTarget)}
         onClose={() => setDeclineTarget(null)}
         onConfirm={() => void handleDecline()}
-        title="Decline viewing request?"
+        title="Decline viewing?"
         warningText="The buyer will be notified. This cannot be undone."
         confirmLabel="Decline"
         loading={Boolean(busyId && declineTarget?.id === busyId)}

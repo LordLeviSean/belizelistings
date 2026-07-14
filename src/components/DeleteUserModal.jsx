@@ -20,7 +20,7 @@ const REMOVAL_ITEMS = [
   { label: "Profile & sign-in", Icon: User },
   { label: "All listings & media", Icon: Home },
   { label: "Favorites & notifications", Icon: Heart },
-  { label: "Messages & inquiries", Icon: MessageCircle },
+  { label: "Inbox & inquiries", Icon: MessageCircle },
   { label: "Agent requests", Icon: Shield },
 ];
 

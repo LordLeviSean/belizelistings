@@ -134,7 +134,7 @@ export default function UserInboxPanel({
       showToast({ type: "error", message: error.message || "Could not delete conversation." });
       return;
     }
-    showToast({ type: "success", message: "Conversation permanently removed from your messages." });
+    showToast({ type: "success", message: "Conversation permanently removed from your Inbox." });
     setSelectedId(null);
     onRefresh?.();
   };
@@ -167,7 +167,7 @@ export default function UserInboxPanel({
   return (
     <div className={inboxStyles.shell}>
       <p className={styles.lede}>
-        Messages you send from listing pages appear here. Replies from agents land in the same thread.
+        Conversations you start from listing pages appear here. Replies from agents land in the same thread.
       </p>
 
       {unreadCount > 0 ? (

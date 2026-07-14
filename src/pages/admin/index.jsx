@@ -388,7 +388,7 @@ export default function AdminPage() {
                   {buyerConversations.length > 0 ? (
                     <div style={{ marginBottom: 24 }}>
                       <h3 className={styles.sectionTitle} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
-                        Your messages
+                        Your Inbox
                       </h3>
                       <UserInboxPanel
                         conversations={buyerConversations}

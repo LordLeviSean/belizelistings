@@ -3,7 +3,7 @@ import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import styles from "./AgentInquiryList.module.css";
 
 function channelLabel(c) {
-  if (c === INQUIRY_CHANNEL.VIEWING) return "Viewing request";
+  if (c === INQUIRY_CHANNEL.VIEWING) return "Viewing";
   if (c === INQUIRY_CHANNEL.QUESTION) return "Question";
   return "Contact";
 }

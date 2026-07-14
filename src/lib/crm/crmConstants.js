@@ -108,7 +108,7 @@ export function resolveInboxGroupId(conversation) {
 export function inquiryTypeLabel(type) {
   switch (type) {
     case INQUIRY_TYPE.SCHEDULE_VIEWING:
-      return "Viewing request";
+      return "Viewing";
     case INQUIRY_TYPE.MAKE_OFFER:
       return "Offer inquiry";
     case INQUIRY_TYPE.RENTAL:

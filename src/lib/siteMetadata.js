@@ -12,7 +12,7 @@ export const PAGE_TITLES = Object.freeze({
   search: `Search Listings${TITLE_SEPARATOR}${SITE_NAME}`,
   favorites: `Favorites${TITLE_SEPARATOR}${SITE_NAME}`,
   dashboard: `Dashboard${TITLE_SEPARATOR}${SITE_NAME}`,
-  messages: `Messages${TITLE_SEPARATOR}${SITE_NAME}`,
+  messages: `Inbox${TITLE_SEPARATOR}${SITE_NAME}`,
   notifications: `Notifications${TITLE_SEPARATOR}${SITE_NAME}`,
   login: `Login${TITLE_SEPARATOR}${SITE_NAME}`,
   register: `Create Account${TITLE_SEPARATOR}${SITE_NAME}`,
@@ -26,8 +26,10 @@ export const PAGE_DESCRIPTIONS = Object.freeze({
     "Learn what BelizeListings is, why we built it for Belize, what you can do today, and where the platform is heading.",
 });
 
-const MESSAGES_TAB_IDS = new Set([
+const INBOX_TAB_IDS = new Set([
+  USER_DASHBOARD_TAB_IDS.INBOX,
   USER_DASHBOARD_TAB_IDS.MESSAGES,
+  ADMIN_DASHBOARD_TAB_IDS.INBOX,
   ADMIN_DASHBOARD_TAB_IDS.MESSAGES,
 ]);
 
@@ -85,7 +87,7 @@ function normalizeTab(raw) {
 export function resolveDashboardTabTitle(tab) {
   const normalized = normalizeTab(tab);
   if (!normalized) return null;
-  if (MESSAGES_TAB_IDS.has(normalized)) return PAGE_TITLES.messages;
+  if (INBOX_TAB_IDS.has(normalized)) return PAGE_TITLES.messages;
   if (NOTIFICATIONS_TAB_IDS.has(normalized)) return PAGE_TITLES.notifications;
   return null;
 }

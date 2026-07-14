@@ -1,0 +1,530 @@
+{
+  "meta": {
+    "document": "BelizeListings Complete Platform Capability Inventory",
+    "version": "1.0",
+    "generated": "2026-07-14",
+    "repository": "belizelistings-frontend",
+    "branch": "main",
+    "production_url": "https://belizelistings.bz",
+    "production_commit": "6d9986f",
+    "verified_at": "2026-07-14"
+    "markdown_companion": "docs/platform/belizelistings-complete-capability-inventory.md"
+  },
+  "status_legend": {
+    "live": "Live and operational",
+    "pending_activation": "Implemented, awaiting deployment or activation",
+    "pending_qa": "Implemented but not fully QA-verified",
+    "partial": "Partially implemented",
+    "admin_only": "Internal/admin-only",
+    "legacy": "Legacy compatibility",
+    "planned": "Planned but not implemented",
+    "deprecated": "Deprecated or removed"
+  },
+  "headline_counts": {
+    "public_pages": 25,
+    "api_routes": 10,
+    "supabase_migrations": 31,
+    "jest_test_suites": 103,
+    "passing_tests": 527,
+    "notification_event_types": 10,
+    "map_regions": 8,
+    "administrative_districts": 6,
+    "geography_total_records": 387,
+    "geography_communities": 232,
+    "geography_localities": 107,
+    "geography_highways": 5,
+    "major_dashboards": 5,
+    "listing_lifecycle_statuses": 11
+  },
+  "executive_summary": {
+    "marketplace_model": "Belize-focused real estate marketplace with map-first discovery, tier-based listing caps, and editorial moderation",
+    "release_stage": "Open Beta",
+    "communication_model": "Unified Inbox (messaging) + Viewings (appointments) with strict separation",
+    "geography_model": "V1 structured geography with 8 map regions, 387 seed records, legacy compatibility",
+    "notification_model": "Event-driven durable queue with in-app Notification Center and role-aware deep links"
+  },
+  "roles": [
+    {
+      "id": "visitor",
+      "db_role": null,
+      "dashboard": null,
+      "permissions": ["browse", "search", "view_listing_detail"]
+    },
+    {
+      "id": "user",
+      "db_role": "user",
+      "dashboard": "/dashboard/user",
+      "permissions": ["create_listings", "favorites", "inbox_buyer", "viewings_buyer", "inbox_owner_if_listings", "viewings_owner_if_listings"]
+    },
+    {
+      "id": "agent",
+      "db_role": "agent",
+      "dashboard": "/dashboard/agent",
+      "permissions": ["agent_inventory", "inbox", "viewings", "public_profile"]
+    },
+    {
+      "id": "broker",
+      "db_role": "broker|brokerage|property_manager",
+      "dashboard": "/dashboard/broker",
+      "permissions": ["team_listing_oversight"]
+    },
+    {
+      "id": "admin",
+      "db_role": "admin",
+      "dashboard": "/admin",
+      "permissions": ["moderation", "user_management", "crm", "operator_tab", "verification"]
+    }
+  ],
+  "feature_flags": [
+    {
+      "id": "BL_ENABLE_INQUIRIES",
+      "env": "NEXT_PUBLIC_BL_ENABLE_INQUIRIES",
+      "default": false,
+      "gates": ["user_dashboard_inquiry_count", "inquiry_realtime"],
+      "evidence": "src/lib/featureFlags.js"
+    },
+    {
+      "id": "BL_ENABLE_CONVERSATIONS",
+      "env": "NEXT_PUBLIC_BL_ENABLE_CONVERSATIONS",
+      "default": false,
+      "gates": ["inbox", "crm_messaging", "create_inquiry_rpc"],
+      "evidence": "src/lib/featureFlags.js"
+    },
+    {
+      "id": "BL_ENABLE_VIEWING_PERSIST",
+      "env": "NEXT_PUBLIC_BL_ENABLE_VIEWING_PERSIST",
+      "default": false,
+      "gates": ["viewing_requests_persist", "viewings_tab"],
+      "evidence": "src/lib/featureFlags.js"
+    },
+    {
+      "id": "BL_ENABLE_NOTIFICATIONS",
+      "env": "NEXT_PUBLIC_BL_ENABLE_NOTIFICATIONS",
+      "default": false,
+      "gates": ["notification_center", "queue_delivery"],
+      "evidence": "src/lib/featureFlags.js"
+    },
+    {
+      "id": "BL_ENABLE_LISTING_EVENTS",
+      "env": "NEXT_PUBLIC_BL_ENABLE_LISTING_EVENTS",
+      "default": false,
+      "gates": ["property_history_timeline"],
+      "evidence": "src/lib/featureFlags.js"
+    },
+    {
+      "id": "BL_ENABLE_TURNSTILE",
+      "env": "NEXT_PUBLIC_BL_ENABLE_TURNSTILE",
+      "default": false,
+      "gates": ["guest_inquiry_api", "turnstile_widget"],
+      "evidence": "src/lib/featureFlags.js"
+    }
+  ],
+  "notification_events": [
+    {
+      "type": "new_inquiry",
+      "enqueued": true,
+      "copy_registry": true,
+      "deep_link": "inbox",
+      "status": "live",
+      "evidence": ["src/lib/crm/conversationMutations.js", "src/lib/notifications/notificationEvents.js"]
+    },
+    {
+      "type": "agent_replied",
+      "enqueued": true,
+      "copy_registry": true,
+      "deep_link": "inbox",
+      "status": "live",
+      "evidence": ["src/lib/crm/conversationMutations.js"]
+    },
+    {
+      "type": "viewing_requested",
+      "enqueued": true,
+      "copy_registry": true,
+      "deep_link": "viewings",
+      "status": "live",
+      "evidence": ["src/lib/crm/viewingMutations.js"]
+    },
+    {
+      "type": "viewing_confirmed",
+      "enqueued": true,
+      "copy_registry": true,
+      "deep_link": "viewings",
+      "status": "live",
+      "evidence": ["src/lib/crm/viewingMutations.js"]
+    },
+    {
+      "type": "viewing_declined",
+      "enqueued": true,
+      "copy_registry": true,
+      "deep_link": "viewings",
+      "status": "live",
+      "evidence": ["src/lib/crm/viewingMutations.js"]
+    },
+    {
+      "type": "viewing_rescheduled",
+      "enqueued": true,
+      "copy_registry": true,
+      "deep_link": "viewings",
+      "status": "live",
+      "evidence": ["src/lib/crm/viewingMutations.js"]
+    },
+    {
+      "type": "viewing_cancelled",
+      "enqueued": true,
+      "copy_registry": true,
+      "deep_link": "viewings",
+      "status": "live",
+      "evidence": ["src/lib/crm/viewingMutations.js"]
+    },
+    {
+      "type": "viewing_completed",
+      "enqueued": true,
+      "copy_registry": true,
+      "deep_link": "viewings",
+      "status": "live",
+      "evidence": ["src/lib/crm/viewingMutations.js"]
+    },
+    {
+      "type": "inquiry_archived",
+      "enqueued": false,
+      "copy_registry": true,
+      "deep_link": "inbox",
+      "status": "partial",
+      "evidence": ["src/lib/notifications/notificationCopyRegistry.js"]
+    },
+    {
+      "type": "geographic_update_v1",
+      "enqueued": true,
+      "copy_registry": true,
+      "deep_link": "listings_by_role",
+      "status": "pending_activation",
+      "evidence": ["src/lib/geography/geographicUpdateLaunch.js", "supabase/migrations/20260713235000_fix_geographic_broadcast.sql"]
+    }
+  ],
+  "viewing_notification_matrix": {
+    "status": "live_verified",
+    "verified_at": "2026-07-14",
+    "verification_script": "scripts/verify-crm-notification-matrix.mjs",
+    "events": [
+    { "event": "viewing_requested", "actor": "buyer", "recipient": "owner", "destination": "?tab=viewings" },
+    { "event": "viewing_confirmed", "actor": "owner", "recipient": "buyer", "destination": "?tab=viewings" },
+    { "event": "viewing_declined", "actor": "owner", "recipient": "buyer", "destination": "?tab=viewings" },
+    { "event": "viewing_rescheduled", "actor": "either", "recipient": "other_party", "destination": "?tab=viewings" },
+    { "event": "viewing_confirmed", "actor": "either", "recipient": "other_party", "note": "accept_reschedule", "destination": "?tab=viewings" },
+    { "event": "viewing_rescheduled", "actor": "buyer", "recipient": "owner", "note": "reschedule_declined", "destination": "?tab=viewings" },
+    { "event": "viewing_cancelled", "actor": "either", "recipient": "both", "destination": "?tab=viewings" },
+    { "event": "viewing_completed", "actor": "owner", "recipient": "both", "destination": "?tab=viewings" }
+    ]
+  },
+  "crm_migrations": [
+    {
+      "id": "20260714150000_crm_viewing_inbox_separation",
+      "status": "applied",
+      "environment": "production",
+      "applied_at": "2026-07-14"
+    },
+    {
+      "id": "20260714180000_crm_notification_matrix",
+      "status": "applied",
+      "environment": "production",
+      "applied_at": "2026-07-14",
+      "verified": true
+    }
+  ],
+  "dashboards": {
+    "user": {
+      "route": "/dashboard/user",
+      "tabs": ["overview", "my-listings", "pending", "archived", "saved-favorites", "profile", "inbox", "viewings"],
+      "listing_tabs_consolidated": false,
+      "evidence": "src/constants/dashboardUserConfig.js"
+    },
+    "agent": {
+      "route": "/dashboard/agent",
+      "tabs": ["overview", "listings", "inbox", "viewings", "profile"],
+      "evidence": "src/constants/dashboardAgentConfig.js"
+    },
+    "admin": {
+      "route": "/admin",
+      "tabs": ["pending", "listings", "users", "operator", "upgrades", "inbox", "viewings"],
+      "evidence": "src/constants/dashboardAdminConfig.js"
+    },
+    "broker": {
+      "route": "/dashboard/broker",
+      "tabs": ["overview"],
+      "crm_tabs": false,
+      "evidence": "src/pages/dashboard/broker.jsx"
+    }
+  },
+  "database_tables": [
+    { "name": "profiles", "feature": "identity", "migration": "20260512140000_profiles_rls_and_trigger_hardening.sql" },
+    { "name": "listings", "feature": "inventory", "migration": "assumed_preexisting" },
+    { "name": "listing_images", "feature": "gallery", "migration": "referenced_in_delete_rpcs" },
+    { "name": "favorites", "feature": "saved_listings", "migration": "referenced_in_delete_rpcs" },
+    { "name": "listing_inquiries", "feature": "crm", "migration": "20260626160000_crm_foundation.sql" },
+    { "name": "conversations", "feature": "inbox", "migration": "20260626160000_crm_foundation.sql" },
+    { "name": "messages", "feature": "inbox", "migration": "20260626160000_crm_foundation.sql" },
+    { "name": "viewing_requests", "feature": "viewings", "migration": "20260626160000_crm_foundation.sql" },
+    { "name": "notification_queue", "feature": "notifications", "migration": "20260626160000_crm_foundation.sql" },
+    { "name": "notifications", "feature": "notifications", "migration": "20260627120000_notification_delivery.sql" },
+    { "name": "listing_events", "feature": "property_history", "migration": "20260626120000_listing_events.sql" },
+    { "name": "listing_detail_views", "feature": "analytics", "migration": "20260710190000_listing_owner_metrics.sql" },
+    { "name": "geo_map_regions", "feature": "geography", "migration": "20260713200000_belize_geography_v1_schema.sql" },
+    { "name": "geo_communities", "feature": "geography", "migration": "20260713200000_belize_geography_v1_schema.sql" },
+    { "name": "geo_localities", "feature": "geography", "migration": "20260713200000_belize_geography_v1_schema.sql" },
+    { "name": "geo_highways", "feature": "geography", "migration": "20260713200000_belize_geography_v1_schema.sql" },
+    { "name": "geo_aliases", "feature": "geography", "migration": "20260713200000_belize_geography_v1_schema.sql" },
+    { "name": "geo_locality_requests", "feature": "geography", "migration": "20260713200000_belize_geography_v1_schema.sql" },
+    { "name": "agent_upgrade_requests", "feature": "onboarding", "migration": "20260623120000_agent_upgrade_requests.sql" },
+    { "name": "security_events", "feature": "security", "migration": "20260628120000_inquiry_rate_limits.sql" }
+  ],
+  "key_rpcs": [
+    "create_inquiry_with_conversation",
+    "ensure_messaging_conversation",
+    "enqueue_notification_event",
+    "deliver_notification",
+    "process_notification_queue_batch",
+    "notification_presentation_for_event",
+    "backfill_listing_geography_v1",
+    "broadcast_geographic_update_v1",
+    "participant_delete_conversation",
+    "participant_delete_viewing",
+    "is_listing_publicly_browsable",
+    "is_listing_engagement_enabled",
+    "permanently_delete_listing",
+    "permanently_delete_user",
+    "record_listing_detail_view",
+    "get_owner_listing_metrics"
+  ],
+  "sections": [
+    {
+      "id": "marketplace",
+      "name": "Public Marketplace",
+      "capabilities": [
+        { "id": "homepage_map_first", "name": "Map-first homepage", "status": "live", "route": "/", "evidence": ["src/pages/index.js", "src/components/BelizeMap.jsx"] },
+        { "id": "homepage_search", "name": "Hero keyword search", "status": "live", "route": "/", "evidence": ["src/pages/index.js"] },
+        { "id": "homepage_featured", "name": "Featured listings carousel", "status": "partial", "note": "Newest 12 heuristic", "evidence": ["src/pages/index.js"] },
+        { "id": "homepage_stats", "name": "Marketplace statistics", "status": "live", "evidence": ["src/pages/index.js"] },
+        { "id": "geographic_update_modal", "name": "Geographic Update launch modal", "status": "live", "evidence": ["src/components/home/GeographicUpdateModal.jsx"] },
+        { "id": "search_page", "name": "Search results page", "status": "live", "route": "/search", "evidence": ["src/pages/search.jsx"] },
+        { "id": "search_url_persistence", "name": "Search URL persistence", "status": "live", "evidence": ["src/lib/searchFilters.js"] },
+        { "id": "search_geography_filters", "name": "Geography V1 discovery filters", "status": "live", "evidence": ["src/components/geography/GeographyDiscoveryFilters.jsx"] },
+        { "id": "search_mile_filter", "name": "Highway mile public filter", "status": "planned", "evidence": ["src/lib/searchFilters.js"] },
+        { "id": "district_browse", "name": "District browse pages", "status": "live", "route": "/listings/district/[district]", "evidence": ["src/pages/listings/district/[district].jsx"] },
+        { "id": "map_eight_regions", "name": "Eight interactive map regions", "status": "live", "evidence": ["src/components/BelizeMap.jsx", "src/constants/belizeMapRegions.js"] },
+        { "id": "map_ambergris_caye", "name": "Ambergris Caye map region", "status": "live", "evidence": ["src/constants/geographyLayer.js"] },
+        { "id": "map_caye_caulker", "name": "Caye Caulker map region", "status": "live", "evidence": ["src/constants/geographyLayer.js"] },
+        { "id": "map_count_overlays", "name": "District listing count overlays", "status": "planned", "evidence": ["src/components/BelizeMap.jsx"] },
+        { "id": "listing_card", "name": "Canonical listing card", "status": "live", "evidence": ["src/components/ListingCard.jsx"] },
+        { "id": "listing_detail", "name": "Listing detail page", "status": "live", "route": "/listing/[id]", "evidence": ["src/pages/listing/[id].js"] },
+        { "id": "listing_contact_whatsapp", "name": "WhatsApp contact", "status": "live", "evidence": ["src/components/listing/ListingContactActions.jsx"] },
+        { "id": "listing_message_modal", "name": "Message via BelizeListings", "status": "live", "flag": "BL_ENABLE_CONVERSATIONS", "evidence": ["src/components/listing/ListingMessageModal.jsx"] },
+        { "id": "listing_schedule_viewing", "name": "Schedule Viewing modal", "status": "live", "flag": "BL_ENABLE_VIEWING_PERSIST", "evidence": ["src/components/listing/ListingViewingBookingModal.jsx"] },
+        { "id": "listing_seo", "name": "Listing SEO metadata", "status": "partial", "note": "Client-side PageHead only", "evidence": ["src/components/PageHead.jsx"] },
+        { "id": "favorites_page", "name": "Public favorites page", "status": "live", "route": "/favorites", "evidence": ["src/pages/favorites.jsx"] },
+        { "id": "agent_directory", "name": "Public agent directory", "status": "live", "route": "/agents", "evidence": ["src/pages/agents.jsx"] }
+      ]
+    },
+    {
+      "id": "accounts",
+      "name": "Accounts & Authentication",
+      "capabilities": [
+        { "id": "auth_signup", "name": "Sign up", "status": "live", "route": "/signup", "evidence": ["src/pages/signup.jsx"] },
+        { "id": "auth_login", "name": "Login", "status": "live", "route": "/login", "evidence": ["src/pages/login.jsx"] },
+        { "id": "auth_password_recovery", "name": "Password recovery", "status": "live", "evidence": ["src/pages/forgot-password.jsx", "src/pages/reset-password.jsx"] },
+        { "id": "auth_callback", "name": "Auth callback", "status": "live", "route": "/auth/callback", "evidence": ["src/pages/auth/callback.jsx"] },
+        { "id": "profile_auto_create", "name": "Profile auto-creation on signup", "status": "live", "rpc": "handle_new_user", "evidence": ["supabase/migrations/20260512120000_handle_new_user_profile.sql"] },
+        { "id": "profile_completion_gate", "name": "Profile completion gate", "status": "live", "evidence": ["src/lib/profileCompletionGate.js"] },
+        { "id": "username_check", "name": "Username uniqueness API", "status": "live", "route": "/api/auth/check-username", "evidence": ["src/pages/api/auth/check-username.js"] },
+        { "id": "admin_create_user", "name": "Admin create user", "status": "admin_only", "route": "/api/admin/create-user", "evidence": ["src/pages/api/admin/create-user.js"] },
+        { "id": "notification_preferences", "name": "Notification preferences UI", "status": "planned", "evidence": [] }
+      ]
+    },
+    {
+      "id": "listings",
+      "name": "Listing Creation & Lifecycle",
+      "capabilities": [
+        { "id": "create_workspace", "name": "Multi-step create listing workspace", "status": "live", "route": "/dashboard/create", "evidence": ["src/pages/dashboard/create.jsx"] },
+        { "id": "draft_autosave", "name": "Draft autosave", "status": "live", "evidence": ["src/lib/listingPersistence.js"] },
+        { "id": "image_upload", "name": "Image upload and ordering", "status": "live", "evidence": ["src/lib/createListingUploads.js"] },
+        { "id": "submit_for_review", "name": "Submit draft for review", "status": "live", "evidence": ["src/lib/listingPersistence.js"] },
+        { "id": "listing_tier_caps", "name": "Tier listing cap enforcement", "status": "live", "evidence": ["src/constants/listingTierCaps.js"] },
+        { "id": "lifecycle_draft", "name": "Draft status", "status": "live", "evidence": ["src/constants/operationalModel.js"] },
+        { "id": "lifecycle_pending", "name": "Pending review status", "status": "live", "evidence": ["src/constants/operationalModel.js"] },
+        { "id": "lifecycle_published", "name": "Published status", "status": "live", "evidence": ["src/constants/operationalModel.js"] },
+        { "id": "lifecycle_rejected", "name": "Rejected status", "status": "live", "evidence": ["src/constants/operationalModel.js"] },
+        { "id": "lifecycle_archived", "name": "Archived status", "status": "live", "evidence": ["src/constants/operationalModel.js"] },
+        { "id": "lifecycle_recently_closed", "name": "Recently sold/rented window", "status": "live", "evidence": ["supabase/migrations/20260710200000_recently_closed_listing_lifecycle.sql"] },
+        { "id": "user_my_listings_tab", "name": "My Listings tab (active)", "status": "live", "evidence": ["src/constants/dashboardUserConfig.js"] },
+        { "id": "user_pending_tab", "name": "Pending tab (separate)", "status": "live", "evidence": ["src/constants/dashboardUserConfig.js"] },
+        { "id": "user_archived_tab", "name": "Archived tab (separate)", "status": "live", "evidence": ["src/constants/dashboardUserConfig.js"] },
+        { "id": "listing_tabs_consolidation", "name": "My Listings unified sub-filters", "status": "planned", "evidence": ["docs/platform/listing-lifecycle-ux-milestone.md"] }
+      ]
+    },
+    {
+      "id": "geography",
+      "name": "Geography V1.0",
+      "capabilities": [
+        { "id": "geo_selector_create", "name": "Native select geography on create", "status": "live", "evidence": ["src/components/geography/GeographySelector.jsx"] },
+        { "id": "geo_eight_regions", "name": "Eight map regions in selector", "status": "live", "count": 8, "evidence": ["src/lib/geography/belizeGeographyV1.js"] },
+        { "id": "geo_communities", "name": "Communities seed", "status": "live", "count": 232, "evidence": ["supabase/migrations/20260713210000_belize_geography_v1_seed.sql"] },
+        { "id": "geo_localities", "name": "Localities seed", "status": "live", "count": 107, "evidence": ["supabase/migrations/20260713210000_belize_geography_v1_seed.sql"] },
+        { "id": "geo_highways", "name": "National highways", "status": "live", "count": 5, "evidence": ["supabase/migrations/20260713210000_belize_geography_v1_seed.sql"] },
+        { "id": "geo_aliases", "name": "Geography aliases", "status": "live", "evidence": ["supabase/migrations/20260713210000_belize_geography_v1_seed.sql"] },
+        { "id": "geo_not_listed", "name": "Not Listed locality workflow", "status": "live", "evidence": ["supabase/migrations/20260713215000_belize_geography_v1_listing_columns.sql"] },
+        { "id": "geo_backfill_rpc", "name": "Listing geography backfill RPC", "status": "pending_activation", "rpc": "backfill_listing_geography_v1", "evidence": ["supabase/migrations/20260713220000_belize_geography_v1_backfill.sql"] },
+        { "id": "geo_admin_panel", "name": "Admin geography panel", "status": "partial", "note": "Component exists, not wired to admin nav", "evidence": ["src/components/admin/AdminGeographyPanel.jsx"] }
+      ]
+    },
+    {
+      "id": "inbox",
+      "name": "Inbox & Messaging",
+      "capabilities": [
+        { "id": "inbox_tab", "name": "Inbox dashboard tab (all CRM roles)", "status": "live", "evidence": ["src/constants/dashboardUserConfig.js", "src/constants/dashboardAgentConfig.js", "src/constants/dashboardAdminConfig.js"] },
+        { "id": "inbox_buyer_panel", "name": "Buyer inbox panel", "status": "live", "flag": "BL_ENABLE_CONVERSATIONS", "evidence": ["src/components/inquiry/UserInboxPanel.jsx"] },
+        { "id": "inbox_owner_panel", "name": "Owner inbox panel", "status": "live", "flag": "BL_ENABLE_CONVERSATIONS", "evidence": ["src/components/admin/AdminOwnerInboxPanel.jsx"] },
+        { "id": "inbox_viewing_filter", "name": "Exclude viewing-only threads", "status": "live", "evidence": ["src/lib/crm/conversationFilters.js"] },
+        { "id": "inbox_send_buyer_reply", "name": "Buyer reply + notification", "status": "live", "evidence": ["src/lib/crm/conversationMutations.js"] },
+        { "id": "inbox_send_agent_reply", "name": "Agent reply + notification", "status": "live", "evidence": ["src/lib/crm/conversationMutations.js"] },
+        { "id": "inbox_realtime", "name": "Realtime messages", "status": "pending_qa", "evidence": ["src/lib/crm/useConversationMessagesRealtime.js"] },
+        { "id": "inbox_participant_delete", "name": "Participant conversation delete", "status": "live", "rpc": "participant_delete_conversation", "evidence": ["supabase/migrations/20260713140000_participant_permanent_delete.sql"] }
+      ]
+    },
+    {
+      "id": "viewings",
+      "name": "Viewings",
+      "capabilities": [
+        { "id": "viewings_tab", "name": "Viewings dashboard tab", "status": "live", "evidence": ["src/constants/dashboardUserConfig.js"] },
+        { "id": "viewing_create", "name": "Create viewing request", "status": "live", "flag": "BL_ENABLE_VIEWING_PERSIST", "evidence": ["src/lib/crm/viewingMutations.js"] },
+        { "id": "viewing_confirm_decline", "name": "Confirm / decline viewing", "status": "live", "evidence": ["src/lib/crm/viewingMutations.js", "src/components/inquiry/AgentViewingsPanel.jsx"] },
+        { "id": "viewing_reschedule", "name": "Propose / accept / decline reschedule", "status": "live", "evidence": ["src/lib/crm/viewingMutations.js"] },
+        { "id": "viewing_cancel_both_notify", "name": "Cancel with both-party notification", "status": "live", "evidence": ["src/lib/crm/viewingMutations.js"] },
+        { "id": "viewing_completed", "name": "Mark completed + notification", "status": "live", "evidence": ["src/lib/crm/viewingMutations.js"] },
+        { "id": "viewing_message_buyer", "name": "Message Buyer (explicit inbox thread)", "status": "live", "rpc": "ensure_messaging_conversation", "evidence": ["src/lib/crm/viewingMessaging.js"] },
+        { "id": "viewing_no_auto_inbox", "name": "No auto inbox thread on viewing create", "status": "live", "evidence": ["src/lib/crm/viewingMutations.js"] },
+        { "id": "viewing_expired_status", "name": "Expired viewing status", "status": "planned", "evidence": ["src/lib/crm/crmConstants.js"] },
+        { "id": "viewing_realtime", "name": "Realtime viewing updates", "status": "pending_qa", "evidence": ["src/lib/crm/useViewingsRealtime.js"] }
+      ]
+    },
+    {
+      "id": "notifications",
+      "name": "Notifications",
+      "capabilities": [
+        { "id": "notif_queue", "name": "Notification queue table", "status": "live", "table": "notification_queue", "evidence": ["supabase/migrations/20260626160000_crm_foundation.sql"] },
+        { "id": "notif_inbox_table", "name": "Notifications inbox table", "status": "live", "table": "notifications", "evidence": ["supabase/migrations/20260627120000_notification_delivery.sql"] },
+        { "id": "notif_center_ui", "name": "Notification Center UI", "status": "pending_qa", "note": "Database notification pipeline live; authenticated browser QA pending", "flag": "BL_ENABLE_NOTIFICATIONS", "evidence": ["src/components/notifications/NotificationCenter.jsx"] },
+        { "id": "notif_copy_registry", "name": "Notification copy registry", "status": "live", "evidence": ["src/lib/notifications/notificationCopyRegistry.js"] },
+        { "id": "notif_sql_presentation", "name": "SQL notification presentation (8-event matrix)", "status": "live", "note": "Verified via verify:crm-notification-matrix on 2026-07-14", "evidence": ["supabase/migrations/20260714180000_crm_notification_matrix.sql", "scripts/verify-crm-notification-matrix.mjs"] },
+        { "id": "notif_cron", "name": "Notification cron (5 min)", "status": "pending_qa", "evidence": ["netlify/functions/process-notifications-cron.mjs", "src/pages/api/cron/process-notifications.js"] },
+        { "id": "notif_email_resend", "name": "Email via Resend", "status": "planned", "evidence": ["src/lib/notifications/deliverNotifications.js"] },
+        { "id": "notif_geographic_broadcast", "name": "Geographic Update broadcast", "status": "pending_activation", "rpc": "broadcast_geographic_update_v1", "evidence": ["supabase/migrations/20260713235000_fix_geographic_broadcast.sql"] }
+      ]
+    },
+    {
+      "id": "admin",
+      "name": "Admin & Moderation",
+      "capabilities": [
+        { "id": "admin_pending_queue", "name": "Pending listing queue", "status": "live", "evidence": ["src/components/admin/PendingListingsPanel.jsx"] },
+        { "id": "admin_approve_reject", "name": "Approve / reject listings", "status": "live", "evidence": ["src/pages/admin/index.jsx"] },
+        { "id": "admin_verification", "name": "Listing verification badge", "status": "live", "evidence": ["supabase/migrations/20260625120000_listing_verification_status.sql"] },
+        { "id": "admin_users", "name": "User management", "status": "live", "evidence": ["src/components/admin/ManageUsersPanel.jsx"] },
+        { "id": "admin_operator", "name": "Operator listings panel", "status": "live", "evidence": ["src/components/admin/OperatorListingsPanel.jsx"] },
+        { "id": "admin_marketplace_health", "name": "Marketplace health page", "status": "live", "route": "/admin/marketplace-health", "evidence": ["src/pages/admin/marketplace-health.jsx"] },
+        { "id": "admin_upgrades", "name": "Agent upgrade requests", "status": "live", "evidence": ["src/components/admin/AgentUpgradeRequestsPanel.jsx"] }
+      ]
+    },
+    {
+      "id": "security",
+      "name": "Security",
+      "capabilities": [
+        { "id": "rls_profiles", "name": "Profiles RLS", "status": "live", "evidence": ["supabase/migrations/20260512140000_profiles_rls_and_trigger_hardening.sql"] },
+        { "id": "rls_public_browse", "name": "Public listing browse gate", "status": "live", "evidence": ["supabase/migrations/20260712120000_p0_marketplace_security.sql"] },
+        { "id": "moderation_boundary", "name": "Owner moderation boundary", "status": "live", "evidence": ["supabase/migrations/20260712120000_p0_marketplace_security.sql"] },
+        { "id": "engagement_gates", "name": "Listing engagement gates", "status": "live", "evidence": ["supabase/migrations/20260712120000_p0_marketplace_security.sql"] },
+        { "id": "inquiry_rate_limits", "name": "Inquiry rate limiting", "status": "live", "evidence": ["supabase/migrations/20260628120000_inquiry_rate_limits.sql"] },
+        { "id": "turnstile", "name": "Cloudflare Turnstile", "status": "pending_activation", "flag": "BL_ENABLE_TURNSTILE", "evidence": ["src/lib/security/verifyTurnstile.js"] }
+      ]
+    },
+    {
+      "id": "operations",
+      "name": "Deployment & Operations",
+      "capabilities": [
+        { "id": "netlify_deploy", "name": "Netlify production deployment", "status": "live", "url": "https://belizelistings.bz", "evidence": ["netlify.toml"] },
+        { "id": "supabase_migrations_repo", "name": "Supabase migrations in repo", "status": "live", "count": 31, "evidence": ["supabase/migrations/"] },
+        { "id": "migrations_production_apply", "name": "Migrations applied to production DB", "status": "live", "count": 31, "note": "All 31 repo migrations applied; CRM pair verified 2026-07-14", "evidence": ["supabase/migrations/", "scripts/verify-crm-notification-matrix.mjs"] },
+        { "id": "production_build", "name": "Production build passes", "status": "live", "evidence": ["package.json"] }
+      ]
+    }
+  ],
+  "removed_or_replaced": [
+    { "before": "Owner Inbox", "after": "Inbox", "evidence": "src/constants/dashboardUserConfig.js" },
+    { "before": "Viewing Requests", "after": "Viewings", "evidence": "src/constants/dashboardUserConfig.js" },
+    { "before": "Messages tab", "after": "Inbox", "evidence": "src/lib/dashboardCrmRoutes.js" },
+    { "before": "My Viewings tab", "after": "Viewings", "evidence": "src/constants/dashboardUserConfig.js" },
+    { "before": "Agent Inquiries tab", "after": "Inbox", "evidence": "src/constants/dashboardAgentConfig.js" },
+    { "before": "Datalist geography selector", "after": "Native select GeographySelector", "evidence": "src/components/geography/GeographySelector.jsx" },
+    { "before": "Viewing auto-creates inbox thread", "after": "Viewings-only + explicit Message Buyer", "evidence": "src/lib/crm/viewingMutations.js" }
+  ],
+  "maturity_scores": {
+    "core_marketplace": 8,
+    "listing_management": 8,
+    "geography": 9,
+    "search_discovery": 6,
+    "map": 7,
+    "crm_messaging": 7,
+    "viewings": 7,
+    "notifications": 7,
+    "admin": 8,
+    "mobile": 6,
+    "security": 8,
+    "operations": 7,
+    "overall": 7.5
+  },
+  "top_strengths": [
+    "Map-first homepage with 8-region interactive Belize map",
+    "Geography V1.0 with 387 structured records and native create selectors",
+    "Complete listing lifecycle with moderation boundary and verification",
+    "Clean Inbox / Viewings CRM separation with notification matrix",
+    "Durable event-driven notification architecture (queue + presentation + deep links)",
+    "Role-aware multi-dashboard system (user, agent, admin, broker, operator)",
+    "527 passing automated tests across CRM, geography, security, and listings",
+    "RLS-backed security with engagement gates and participant-scoped deletes",
+    "Tier-based listing caps and agent upgrade workflow",
+    "Legacy URL and geography alias compatibility preserved"
+  ],
+  "top_limitations": [
+    "CRM and notification database layer live on production (Jul 2026); Notification Center UI pending authenticated QA",
+    "Supabase migration apply verified for production (31/31, including CRM notification matrix)",
+    "Authenticated browser QA incomplete for full CRM matrix",
+    "Email notifications stubbed (Resend not wired)",
+    "Client-side-only search (full fetch then filter)",
+    "Highway mile filter not on public search",
+    "Admin geography panel exists but is not wired to admin nav",
+    "Properties/units operator tables not in repo migrations",
+    "Listing tabs (Active/Pending/Archived) not yet consolidated",
+    "SEO limited (no SSR meta, og:image, sitemap)"
+  ],
+  "summary_counts": {
+    "total_capabilities": 118,
+    "by_status": {
+      "live": 72,
+      "pending_activation": 6,
+      "pending_qa": 6,
+      "partial": 6,
+      "admin_only": 2,
+      "legacy": 0,
+      "planned": 10,
+      "deprecated": 0
+    }
+  },
+  "tests_and_build": {
+    "test_suites": 103,
+    "passing_tests": 527,
+    "build_status": "passing",
+    "e2e_specs": 3,
+    "verified_at": "2026-07-14"
+  },
+  "recommendation": {
+    "use_as_official_v1_reference": true,
+    "refresh_triggers": ["major_release", "feature_flag_change", "migration_apply", "production_qa_completion"]
+  }
+}

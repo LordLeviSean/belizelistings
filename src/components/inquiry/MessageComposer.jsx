@@ -2,7 +2,7 @@ import listStyles from "./AgentInquiryList.module.css";
 import styles from "./OwnerInquiriesPanel.module.css";
 
 export default function MessageComposer({
-  id = "owner-inbox-reply",
+  id = "inbox-reply",
   label = "Reply",
   placeholder = "Write a calm, professional reply…",
   value,

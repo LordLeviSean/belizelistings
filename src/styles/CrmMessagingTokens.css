@@ -1,8 +1,8 @@
 /**
  * Shared light sea-glass tokens for CRM messaging surfaces.
- * Import alongside panel modules: composes classes via global selectors.
+ * Plain global stylesheet — imported once from _app.js.
  */
-:global(:root) {
+:root {
   --crm-inbox-bg: rgba(255, 255, 255, 0.9);
   --crm-conversation-surface: #ffffff;
   --crm-row-bg: rgba(255, 255, 255, 0.88);

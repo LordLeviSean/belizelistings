@@ -39,12 +39,12 @@ test.describe("Flow A — Messaging", () => {
       expect(conversationId).toBeTruthy();
 
       await signIn(ownerPage, ACCOUNTS.owner.email, ACCOUNTS.owner.password);
-      await ownerPage.goto(`/dashboard/user?tab=owner-inbox&conversation=${conversationId}`);
+      await ownerPage.goto(`/dashboard/user?tab=inbox&conversation=${conversationId}`);
       await expect(ownerPage.getByText(messageBody)).toBeVisible({ timeout: 30_000 });
 
       await ownerReplyInInbox(ownerPage, conversationId, ownerReply);
 
-      await buyerPage.goto(`/dashboard/user?tab=messages&conversation=${conversationId}`);
+      await buyerPage.goto(`/dashboard/user?tab=inbox&conversation=${conversationId}`);
       await expect(buyerPage.getByText(ownerReply)).toBeVisible({ timeout: 45_000 });
 
       const panel = await openNotificationsPanel(buyerPage);

@@ -83,7 +83,7 @@ export default function BuyerViewingsPanel({
       showToast({ type: "error", message: error.message || "Could not cancel viewing." });
       return;
     }
-    showToast({ type: "success", message: "Viewing request cancelled." });
+    showToast({ type: "success", message: "Viewing cancelled." });
     onRefresh?.();
   };
 
@@ -351,7 +351,7 @@ export default function BuyerViewingsPanel({
         isOpen={Boolean(cancelTarget)}
         onClose={() => setCancelTarget(null)}
         onConfirm={() => void handleCancel()}
-        title="Cancel viewing request?"
+        title="Cancel viewing?"
         warningText="The agent will be notified. You can request a new viewing later."
         confirmLabel="Cancel viewing"
         loading={Boolean(busyId && cancelTarget?.id === busyId)}
