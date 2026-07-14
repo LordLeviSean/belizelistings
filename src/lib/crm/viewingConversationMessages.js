@@ -11,18 +11,62 @@ export const VIEWING_SYSTEM_MESSAGE = Object.freeze({
   CANCELLED: "The scheduled viewing was cancelled.",
 });
 
+const BELIZE_TZ = "America/Belize";
+
+function parseBelizeViewingInstant(date, time) {
+  if (!date) return null;
+  const timeStr = time ? String(time).slice(0, 5) : "12:00";
+  const dt = new Date(`${date}T${timeStr}:00`);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+/** Card/notification copy: Wednesday, July 15 · 8:00 AM */
 export function formatViewingSlotLabel(date, time) {
-  if (!date) return "the proposed time";
-  const timeStr = time ? String(time).slice(0, 5) : "";
-  const dt = new Date(`${date}T${timeStr || "12:00"}:00`);
-  if (Number.isNaN(dt.getTime())) return `${date}${timeStr ? ` at ${timeStr}` : ""}`;
-  return dt.toLocaleString(undefined, {
+  const dt = parseBelizeViewingInstant(date, time);
+  if (!dt) {
+    const timeStr = time ? String(time).slice(0, 5) : "";
+    return date ? `${date}${timeStr ? ` at ${timeStr}` : ""}` : "the proposed time";
+  }
+  const weekday = dt.toLocaleDateString("en-US", {
+    weekday: "long",
+    timeZone: BELIZE_TZ,
+  });
+  const monthDay = dt.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
-    year: "numeric",
-    hour: timeStr ? "numeric" : undefined,
-    minute: timeStr ? "2-digit" : undefined,
+    timeZone: BELIZE_TZ,
   });
+  const timeLabel = time
+    ? dt.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: BELIZE_TZ,
+      })
+    : "";
+  return timeLabel ? `${weekday}, ${monthDay} · ${timeLabel}` : `${weekday}, ${monthDay}`;
+}
+
+/** Compact card label: Wed, Jul 15 at 8:00 AM */
+export function formatViewingSlotCompact(date, time) {
+  const dt = parseBelizeViewingInstant(date, time);
+  if (!dt) {
+    const timeStr = time ? String(time).slice(0, 5) : "";
+    return date ? `${date}${timeStr ? ` ${timeStr}` : ""}` : "";
+  }
+  const datePart = dt.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: BELIZE_TZ,
+  });
+  const timePart = time
+    ? dt.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: BELIZE_TZ,
+      })
+    : "";
+  return timePart ? `${datePart} at ${timePart}` : datePart;
 }
 
 /**

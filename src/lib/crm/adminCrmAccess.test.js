@@ -13,19 +13,18 @@ import { fetchViewingsForAgent } from "./viewingMutations";
 import { fetchViewingsForBuyer } from "./viewingMutations";
 
 describe("admin CRM access", () => {
-  test("normalizeAdminDashboardTab accepts buyer and owner CRM tabs", () => {
-    expect(normalizeAdminDashboardTab("messages")).toBe("messages");
-    expect(normalizeAdminDashboardTab("owner-viewings")).toBe("owner-viewings");
+  test("normalizeAdminDashboardTab maps legacy tabs to unified surfaces", () => {
+    expect(normalizeAdminDashboardTab("messages")).toBe("inbox");
+    expect(normalizeAdminDashboardTab("owner-viewings")).toBe("viewing-requests");
     expect(normalizeAdminDashboardTab("unknown")).toBe("pending");
   });
 
-  test("visible admin tabs include buyer and owner CRM surfaces when flags enabled", () => {
+  test("visible admin tabs include unified Inbox and Viewing Requests", () => {
     const tabs = getVisibleAdminDashboardTabs();
     const ids = tabs.map((t) => t.id);
-    expect(ids).toEqual(
-      expect.arrayContaining(["messages", "my-viewings", "owner-inbox", "owner-viewings"])
-    );
-    expect(ids).not.toContain("my-inquiries");
+    expect(ids).toEqual(expect.arrayContaining(["inbox", "viewing-requests"]));
+    expect(ids).not.toContain("messages");
+    expect(ids).not.toContain("my-viewings");
   });
 
   test("fetchConversationsForAgent scopes by listing owner agent_id", () => {

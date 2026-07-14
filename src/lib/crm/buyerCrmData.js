@@ -1,6 +1,7 @@
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "../featureFlags";
 import { fetchInquiriesForBuyer } from "./inquiryMutations";
 import { fetchConversationsForBuyer } from "./conversationMutations";
+import { filterInboxConversations } from "./conversationFilters";
 import { fetchViewingsForBuyer } from "./viewingMutations";
 
 const LISTING_SELECT =
@@ -41,7 +42,7 @@ export async function loadBuyerCrmData(client, buyerUserId) {
   if (BL_ENABLE_CONVERSATIONS) {
     tasks.push(
       fetchConversationsForBuyer(client, buyerUserId).then(({ data, error }) => {
-        conversations = data || [];
+        conversations = filterInboxConversations(data || []);
         if (error) errors.conversations = error;
       })
     );

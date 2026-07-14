@@ -1,11 +1,10 @@
-import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_NOTIFICATIONS, BL_ENABLE_VIEWING_PERSIST } from "../featureFlags";
+import { BL_ENABLE_NOTIFICATIONS, BL_ENABLE_VIEWING_PERSIST } from "../featureFlags";
 import { triggerNotificationDelivery } from "../notifications/notificationEvents";
 import { emitListingEventAfterMutation } from "../listingEvents/writeListingEvent";
 import { LISTING_EVENT_TYPES } from "../listingEvents/listingEventTypes";
 import { enqueueNotificationEvent, NOTIFICATION_EVENT_TYPES } from "../notifications/notificationEvents";
-import { CRM_PIPELINE_STAGE, INQUIRY_TYPE, VIEWING_STATUS } from "./crmConstants";
+import { CRM_PIPELINE_STAGE, VIEWING_STATUS } from "./crmConstants";
 import { coerceListingIdForDb, isCrmUnavailable } from "./crmCompat";
-import { createInquiryWithConversation } from "./inquiryMutations";
 import { withNotificationRecipientRole } from "./notificationRecipientRoles";
 import {
   appendViewingSystemMessage,
@@ -37,40 +36,9 @@ export async function createViewingRequest(client, payload) {
     return { data: null, error: { message: "listingId, requestedDate, and requestedTime are required" } };
   }
 
-  if (BL_ENABLE_VIEWING_PERSIST && BL_ENABLE_CONVERSATIONS && client?.rpc) {
-    const message =
-      payload.message ??
-      payload.notes ??
-      `Viewing requested for ${requestedDate} at ${requestedTime}.`;
-    const rpcResult = await createInquiryWithConversation(client, {
-      listingId,
-      agentUserId: payload.agentUserId,
-      senderUserId: payload.requesterId ?? null,
-      senderName: payload.requesterName ?? null,
-      senderEmail: payload.requesterEmail ?? null,
-      senderPhone: payload.requesterPhone ?? null,
-      inquiryType: INQUIRY_TYPE.SCHEDULE_VIEWING,
-      message,
-      preferredContactMethod: payload.preferredContactMethod ?? "email",
-      requestedDate,
-      requestedTime,
-    });
-    if (!rpcResult.unavailable) {
-      const viewingId = rpcResult.data?.viewingId;
-      return {
-        data: {
-          id: viewingId,
-          conversationId: rpcResult.data?.conversationId,
-          inquiryId: rpcResult.data?.id,
-        },
-        error: rpcResult.error,
-      };
-    }
-  }
-
   const row = {
     listing_id: listingId,
-    conversation_id: payload.conversationId ?? null,
+    conversation_id: null,
     requester_id: payload.requesterId ?? null,
     requester_email: payload.requesterEmail ?? null,
     requester_name: payload.requesterName ?? null,
@@ -89,6 +57,7 @@ export async function createViewingRequest(client, payload) {
     return { data: null, error, unavailable: true };
   }
   if (!error && data?.id && payload.agentUserId) {
+    const slotLabel = formatViewingSlotLabel(requestedDate, requestedTime);
     await notifyViewingEvent(client, {
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED,
       recipientId: payload.agentUserId,
@@ -96,8 +65,12 @@ export async function createViewingRequest(client, payload) {
       payload: {
         viewing_id: data.id,
         listing_id: listingId,
+        listing_title: payload.listingTitle ?? null,
         requested_date: requestedDate,
         requested_time: requestedTime,
+        slot_label: slotLabel,
+        recipient_role: "user",
+        recipient_side: "owner",
       },
     });
   }

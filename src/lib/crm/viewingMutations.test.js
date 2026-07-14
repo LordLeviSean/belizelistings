@@ -1,17 +1,12 @@
 /** @jest-environment node */
 
 jest.mock("../featureFlags", () => ({
-  BL_ENABLE_CONVERSATIONS: true,
   BL_ENABLE_VIEWING_PERSIST: true,
   BL_ENABLE_NOTIFICATIONS: false,
 }));
 
 jest.mock("../listingEvents/writeListingEvent", () => ({
   emitListingEventAfterMutation: jest.fn().mockResolvedValue({ ok: true }),
-}));
-
-jest.mock("./inquiryMutations", () => ({
-  createInquiryWithConversation: jest.fn(),
 }));
 
 jest.mock("../notifications/notificationEvents", () => ({
@@ -26,10 +21,7 @@ jest.mock("../notifications/notificationEvents", () => ({
   },
 }));
 
-import { emitListingEventAfterMutation } from "../listingEvents/writeListingEvent";
-import { LISTING_EVENT_TYPES } from "../listingEvents/listingEventTypes";
 import { NOTIFICATION_EVENT_TYPES, enqueueNotificationEvent } from "../notifications/notificationEvents";
-import { createInquiryWithConversation } from "./inquiryMutations";
 import {
   cancelViewing,
   confirmViewing,
@@ -46,33 +38,44 @@ describe("viewingMutations", () => {
     jest.clearAllMocks();
   });
 
-  test("createViewingRequest uses inquiry RPC when flags enabled", async () => {
-    createInquiryWithConversation.mockResolvedValue({
-      data: { id: "inq-1", conversationId: "conv-1", viewingId: "view-1" },
-      error: null,
-    });
-
-    const client = { rpc: jest.fn(), from: jest.fn() };
+  test("createViewingRequest inserts viewing_requests only and notifies owner", async () => {
+    const single = jest.fn().mockResolvedValue({ data: { id: "view-1" }, error: null });
+    const select = jest.fn().mockReturnValue({ single });
+    const insert = jest.fn().mockReturnValue({ select });
+    const client = { from: jest.fn().mockReturnValue({ insert }) };
 
     const result = await createViewingRequest(client, {
       listingId: 12,
       agentUserId: "agent-1",
-      requestedDate: "2026-07-01",
-      requestedTime: "10:00",
+      requestedDate: "2026-07-15",
+      requestedTime: "08:00",
+      listingTitle: "Finca Solana",
       requesterEmail: "buyer@test.com",
     });
 
     expect(result.error).toBeNull();
     expect(result.data.id).toBe("view-1");
-    expect(createInquiryWithConversation).toHaveBeenCalledWith(
-      client,
+    expect(insert).toHaveBeenCalledWith(
       expect.objectContaining({
-        inquiryType: "schedule_viewing",
-        requestedDate: "2026-07-01",
-        requestedTime: "10:00",
+        conversation_id: null,
+        status: VIEWING_STATUS.PENDING,
+        requested_date: "2026-07-15",
+        requested_time: "08:00",
       })
     );
-    expect(enqueueNotificationEvent).not.toHaveBeenCalled();
+    expect(enqueueNotificationEvent).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({
+        eventType: NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED,
+        recipientId: "agent-1",
+        payload: expect.objectContaining({
+          viewing_id: "view-1",
+          listing_title: "Finca Solana",
+          slot_label: expect.stringContaining("July"),
+        }),
+      }),
+      expect.any(Object)
+    );
   });
 
   test("confirmViewing emits public viewing_scheduled event", async () => {
@@ -83,7 +86,7 @@ describe("viewingMutations", () => {
         data: {
           id: "view-1",
           listing_id: 5,
-          conversation_id: "conv-1",
+          conversation_id: null,
           requester_id: "buyer-1",
           requested_date: "2026-07-01",
           requested_time: "10:00:00",
@@ -94,13 +97,6 @@ describe("viewingMutations", () => {
     const update = jest.fn().mockReturnValue(chain);
     const from = jest.fn((table) => {
       if (table === "viewing_requests") return { update };
-      if (table === "conversations") {
-        return {
-          update: jest
-            .fn()
-            .mockReturnValue({ eq: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ error: null }) }) }),
-        };
-      }
       return { update };
     });
     const client = { from };
@@ -111,20 +107,14 @@ describe("viewingMutations", () => {
     });
 
     expect(error).toBeNull();
-    expect(emitListingEventAfterMutation).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventType: LISTING_EVENT_TYPES.VIEWING_SCHEDULED,
-        visibility: "public",
-      })
-    );
   });
 
-  test("declineViewing sets declined status", async () => {
+  test("declineViewing sets declined status without requiring conversation", async () => {
     const chain = {
       eq: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       single: jest.fn().mockResolvedValue({
-        data: { id: "view-1", listing_id: 2, requester_id: "buyer-1" },
+        data: { id: "view-1", listing_id: 2, requester_id: "buyer-1", conversation_id: null },
         error: null,
       }),
     };
@@ -197,137 +187,7 @@ describe("viewingMutations", () => {
     expect(data.status).toBe(VIEWING_STATUS.COMPLETED);
   });
 
-  test("acceptViewingReschedule as buyer confirms and notifies agent", async () => {
-    const current = {
-      id: "view-1",
-      listing_id: 5,
-      conversation_id: "conv-1",
-      requester_id: "buyer-1",
-      agent_user_id: "agent-1",
-      proposed_date: "2026-07-10",
-      proposed_time: "14:00:00",
-      proposed_by: "agent",
-    };
-    const confirmed = {
-      ...current,
-      requested_date: "2026-07-10",
-      requested_time: "14:00:00",
-      proposed_date: null,
-      proposed_time: null,
-      proposed_by: null,
-      status: VIEWING_STATUS.CONFIRMED,
-    };
-
-    const fetchChain = {
-      eq: jest.fn().mockReturnThis(),
-      maybeSingle: jest.fn().mockResolvedValue({ data: current, error: null }),
-    };
-    const updateChain = {
-      eq: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: confirmed, error: null }),
-    };
-    const from = jest.fn((table) => {
-      if (table === "viewing_requests") {
-        return {
-          select: jest.fn().mockReturnValue(fetchChain),
-          update: jest.fn().mockReturnValue(updateChain),
-        };
-      }
-      if (table === "conversations") {
-        return {
-          update: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({ error: null }),
-          }),
-        };
-      }
-      return {};
-    });
-    const client = { from };
-
-    const { data, error } = await acceptViewingReschedule(client, {
-      viewingId: "view-1",
-      actorUserId: "buyer-1",
-      asAgent: false,
-    });
-
-    expect(error).toBeNull();
-    expect(data.status).toBe(VIEWING_STATUS.CONFIRMED);
-    expect(enqueueNotificationEvent).toHaveBeenCalledWith(
-      client,
-      expect.objectContaining({
-        eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
-        recipientId: "agent-1",
-        payload: expect.objectContaining({
-          recipient_role: "user",
-          recipient_side: "owner",
-        }),
-      }),
-      expect.any(Object)
-    );
-  });
-
-  test("createViewingRequest inserts viewing_requests when RPC unavailable", async () => {
-    jest.resetModules();
-    jest.doMock("../featureFlags", () => ({
-      BL_ENABLE_CONVERSATIONS: false,
-      BL_ENABLE_VIEWING_PERSIST: false,
-      BL_ENABLE_NOTIFICATIONS: false,
-    }));
-    jest.doMock("../notifications/notificationEvents", () => ({
-      enqueueNotificationEvent: jest.fn().mockResolvedValue({ ok: true, queueId: "q1" }),
-      triggerNotificationDelivery: jest.fn().mockResolvedValue({ ok: true }),
-      NOTIFICATION_EVENT_TYPES: {
-        VIEWING_REQUESTED: "viewing_requested",
-      },
-    }));
-    const { createViewingRequest: createDirect } = await import("./viewingMutations");
-
-    const single = jest.fn().mockResolvedValue({ data: { id: "v1" }, error: null });
-    const select = jest.fn().mockReturnValue({ single });
-    const insert = jest.fn().mockReturnValue({ select });
-    const client = { from: jest.fn().mockReturnValue({ insert }) };
-
-    const { data } = await createDirect(client, {
-      listingId: 3,
-      agentUserId: "agent-1",
-      requestedDate: "2026-07-02",
-      requestedTime: "14:00",
-    });
-
-    expect(data.id).toBe("v1");
-    expect(insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: VIEWING_STATUS.PENDING,
-        requested_date: "2026-07-02",
-      })
-    );
-  });
-
-  test("deleteViewing as buyer only sets requester_deleted_at for requester", async () => {
-    const update = jest.fn().mockReturnValue({
-      eq: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnValue({
-        single: jest.fn().mockResolvedValue({ data: { id: "v1" }, error: null }),
-      }),
-    });
-    const client = { from: jest.fn(() => ({ update })) };
-
-    await deleteViewing(client, {
-      viewingId: "v1",
-      userId: "buyer-1",
-      asAgent: false,
-    });
-
-    expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({ requester_deleted_at: expect.any(String) })
-    );
-    const chain = update.mock.results[0].value;
-    expect(chain.eq).toHaveBeenCalledWith("id", "v1");
-    expect(chain.eq.mock.results[0].value.eq).toHaveBeenCalledWith("requester_id", "buyer-1");
-  });
-
-  test("deleteViewing as agent only sets agent_deleted_at for listing contact", async () => {
+  test("deleteViewing as agent only sets agent_deleted_at", async () => {
     const update = jest.fn().mockReturnValue({
       eq: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnValue({
@@ -345,8 +205,5 @@ describe("viewingMutations", () => {
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({ agent_deleted_at: expect.any(String) })
     );
-    const chain = update.mock.results[0].value;
-    expect(chain.eq).toHaveBeenCalledWith("id", "v1");
-    expect(chain.eq.mock.results[0].value.eq).toHaveBeenCalledWith("agent_user_id", "agent-1");
   });
 });

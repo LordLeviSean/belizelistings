@@ -9,7 +9,6 @@ import UserDashboardMetrics from "@/components/user/UserDashboardMetrics";
 import UserMyListingsPanel from "@/components/user/UserMyListingsPanel";
 import UserPendingListingsPanel from "@/components/user/UserPendingListingsPanel";
 import UserArchivedListingsPanel from "@/components/user/UserArchivedListingsPanel";
-import BuyerInquiriesPanel from "@/components/inquiry/BuyerInquiriesPanel";
 import BuyerViewingsPanel from "@/components/inquiry/BuyerViewingsPanel";
 import UserInboxPanel from "@/components/inquiry/UserInboxPanel";
 import AdminOwnerInboxPanel from "@/components/admin/AdminOwnerInboxPanel";
@@ -31,6 +30,8 @@ import {
   formatListingRemainingLabel,
   formatTryCreateRemainderChip,
   getVisibleUserDashboardTabs,
+  normalizeUserDashboardTab,
+  resolveVisibleUserDashboardTab,
   userHasOwnedListings,
 } from "@/constants/dashboardUserConfig";
 import { resolveUserDashboardTabFromQuery } from "@/lib/dashboardCrmRoutes";
@@ -38,13 +39,6 @@ import styles from "@/styles/Dashboard.module.css";
 import loadingStyles from "@/styles/UserDashboard.module.css";
 
 const USER_TAB_SET = new Set(Object.values(USER_DASHBOARD_TAB_IDS));
-
-function normalizeUserDashboardTab(raw) {
-  const s = String(Array.isArray(raw) ? raw[0] : raw || "")
-    .trim()
-    .toLowerCase();
-  return USER_TAB_SET.has(s) ? s : USER_DASHBOARD_TAB_IDS.OVERVIEW;
-}
 
 export default function UserDashboard() {
   const router = useRouter();
@@ -91,11 +85,6 @@ export default function UserDashboard() {
     [profile?.username]
   );
 
-  const activeTab = useMemo(() => {
-    const inferred = resolveUserDashboardTabFromQuery(router.query);
-    return USER_TAB_SET.has(inferred) ? inferred : USER_DASHBOARD_TAB_IDS.OVERVIEW;
-  }, [router.query.tab, router.query.conversation, router.query.viewing, router.query.listing]);
-
   const hasOwnedListings = useMemo(
     () =>
       userHasOwnedListings({
@@ -112,6 +101,11 @@ export default function UserDashboard() {
     () => getVisibleUserDashboardTabs({ hasOwnedListings }),
     [hasOwnedListings]
   );
+
+  const activeTab = useMemo(() => {
+    const inferred = resolveUserDashboardTabFromQuery(router.query);
+    return resolveVisibleUserDashboardTab(inferred, visibleTabs);
+  }, [router.query.tab, router.query.conversation, router.query.viewing, router.query.listing, visibleTabs]);
 
   const [buyerInquiries, setBuyerInquiries] = useState([]);
   const [buyerViewings, setBuyerViewings] = useState([]);
@@ -132,9 +126,8 @@ export default function UserDashboard() {
 
   useEffect(() => {
     if (
-      activeTab !== USER_DASHBOARD_TAB_IDS.MY_INQUIRIES &&
-      activeTab !== USER_DASHBOARD_TAB_IDS.MY_VIEWINGS &&
-      activeTab !== USER_DASHBOARD_TAB_IDS.MESSAGES
+      activeTab !== USER_DASHBOARD_TAB_IDS.INBOX &&
+      activeTab !== USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS
     ) {
       return;
     }
@@ -407,15 +400,37 @@ export default function UserDashboard() {
                   <ProfileCompletionPanel />
                 ) : null}
 
-                {activeTab === USER_DASHBOARD_TAB_IDS.MESSAGES ? (
-                  <section aria-label="Messages">
-                    {buyerCrmLoading && !buyerConversations.length ? (
+                {activeTab === USER_DASHBOARD_TAB_IDS.INBOX ? (
+                  <section aria-label="Inbox">
+                    {buyerCrmLoading && !buyerConversations.length && !hasOwnedListings ? (
                       <div className={loadingStyles.hydratingPanel} aria-busy="true" />
-                    ) : (
-                      <UserInboxPanel
-                        conversations={buyerConversations}
-                        buyerUserId={user?.id}
-                        onRefresh={loadBuyerCrm}
+                    ) : null}
+                    {buyerConversations.length > 0 ? (
+                      <div style={{ marginBottom: hasOwnedListings ? 24 : 0 }}>
+                        {hasOwnedListings ? (
+                          <h3 className={styles.userActionHeadline} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
+                            Your messages
+                          </h3>
+                        ) : null}
+                        <UserInboxPanel
+                          conversations={buyerConversations}
+                          buyerUserId={user?.id}
+                          onRefresh={loadBuyerCrm}
+                          initialConversationId={
+                            typeof router.query.conversation === "string"
+                              ? router.query.conversation
+                              : Array.isArray(router.query.conversation)
+                                ? router.query.conversation[0]
+                                : null
+                          }
+                        />
+                      </div>
+                    ) : null}
+                    {hasOwnedListings && user?.id ? (
+                      <AdminOwnerInboxPanel
+                        ownerUserId={user.id}
+                        section="inquiries"
+                        surface="user"
                         initialConversationId={
                           typeof router.query.conversation === "string"
                             ? router.query.conversation
@@ -424,30 +439,45 @@ export default function UserDashboard() {
                               : null
                         }
                       />
-                    )}
+                    ) : null}
+                    {!buyerConversations.length && !hasOwnedListings && !buyerCrmLoading ? (
+                      <p className={styles.muted}>No messages yet — use Message via BelizeListings on a listing to start a conversation.</p>
+                    ) : null}
                   </section>
                 ) : null}
 
-                {activeTab === USER_DASHBOARD_TAB_IDS.MY_INQUIRIES ? (
-                  <section aria-label="My inquiries">
-                    {buyerCrmLoading && !buyerInquiries.length ? (
+                {activeTab === USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS ? (
+                  <section aria-label="Viewing Requests">
+                    {buyerCrmLoading && !buyerViewings.length && !hasOwnedListings ? (
                       <div className={loadingStyles.hydratingPanel} aria-busy="true" />
-                    ) : (
-                      <BuyerInquiriesPanel inquiries={buyerInquiries} />
-                    )}
-                  </section>
-                ) : null}
-
-                {activeTab === USER_DASHBOARD_TAB_IDS.MY_VIEWINGS ? (
-                  <section aria-label="My viewings">
-                    {buyerCrmLoading && !buyerViewings.length ? (
-                      <div className={loadingStyles.hydratingPanel} aria-busy="true" />
-                    ) : (
-                      <BuyerViewingsPanel
-                        viewings={buyerViewings}
-                        listingsById={buyerListingsById}
-                        buyerUserId={user?.id}
-                        onRefresh={loadBuyerCrm}
+                    ) : null}
+                    {buyerViewings.length > 0 ? (
+                      <div style={{ marginBottom: hasOwnedListings ? 24 : 0 }}>
+                        {hasOwnedListings ? (
+                          <h3 className={styles.userActionHeadline} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
+                            Your viewing requests
+                          </h3>
+                        ) : null}
+                        <BuyerViewingsPanel
+                          viewings={buyerViewings}
+                          listingsById={buyerListingsById}
+                          buyerUserId={user?.id}
+                          onRefresh={loadBuyerCrm}
+                          initialViewingId={
+                            typeof router.query.viewing === "string"
+                              ? router.query.viewing
+                              : Array.isArray(router.query.viewing)
+                                ? router.query.viewing[0]
+                                : null
+                          }
+                        />
+                      </div>
+                    ) : null}
+                    {hasOwnedListings && user?.id ? (
+                      <AdminOwnerInboxPanel
+                        ownerUserId={user.id}
+                        section="viewings"
+                        surface="user"
                         initialViewingId={
                           typeof router.query.viewing === "string"
                             ? router.query.viewing
@@ -456,38 +486,11 @@ export default function UserDashboard() {
                               : null
                         }
                       />
-                    )}
+                    ) : null}
+                    {!buyerViewings.length && !hasOwnedListings && !buyerCrmLoading ? (
+                      <p className={styles.muted}>No viewing requests yet — schedule a viewing from any listing page.</p>
+                    ) : null}
                   </section>
-                ) : null}
-
-                {activeTab === USER_DASHBOARD_TAB_IDS.OWNER_INBOX && user?.id ? (
-                  <AdminOwnerInboxPanel
-                    ownerUserId={user.id}
-                    section="inquiries"
-                    surface="user"
-                    initialConversationId={
-                      typeof router.query.conversation === "string"
-                        ? router.query.conversation
-                        : Array.isArray(router.query.conversation)
-                          ? router.query.conversation[0]
-                          : null
-                    }
-                  />
-                ) : null}
-
-                {activeTab === USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS && user?.id ? (
-                  <AdminOwnerInboxPanel
-                    ownerUserId={user.id}
-                    section="viewings"
-                    surface="user"
-                    initialViewingId={
-                      typeof router.query.viewing === "string"
-                        ? router.query.viewing
-                        : Array.isArray(router.query.viewing)
-                          ? router.query.viewing[0]
-                          : null
-                    }
-                  />
                 ) : null}
               </div>
             </DashboardShell>

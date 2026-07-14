@@ -18,10 +18,11 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useViewingsRealtime } from "@/lib/crm/useViewingsRealtime";
 import { resolveMessageConversationPath } from "@/lib/dashboardCrmRoutes";
+import { formatViewingSlotCompact } from "@/lib/crm/viewingConversationMessages";
 import listStyles from "./AgentInquiryList.module.css";
 
-function buildConversationHref({ surface = "agent", conversationId }) {
-  if (!conversationId) return null;
+function buildConversationHref({ surface = "agent", conversationId, viewing }) {
+  if (!conversationId || !viewing?.has_messaging_thread) return null;
   if (surface === "admin") {
     return resolveMessageConversationPath({ role: "admin", side: "owner", conversationId });
   }
@@ -29,20 +30,6 @@ function buildConversationHref({ surface = "agent", conversationId }) {
     return resolveMessageConversationPath({ role: "user", side: "owner", conversationId });
   }
   return resolveMessageConversationPath({ role: "agent", side: "agent", conversationId });
-}
-
-function formatViewingSlot(date, time) {
-  if (!date) return "";
-  const timeStr = time ? String(time).slice(0, 5) : "";
-  const dt = new Date(`${date}T${timeStr || "12:00"}:00`);
-  if (Number.isNaN(dt.getTime())) return `${date}${timeStr ? ` ${timeStr}` : ""}`;
-  return dt.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: timeStr ? "numeric" : undefined,
-    minute: timeStr ? "2-digit" : undefined,
-  });
 }
 
 function isPendingLike(status) {
@@ -175,7 +162,7 @@ export default function AgentViewingsPanel({
               <header className={listStyles.cardHead}>
                 <span className={listStyles.channel}>Viewing request</span>
                 <time className={listStyles.time} dateTime={row.requested_date}>
-                  {formatViewingSlot(row.requested_date, row.requested_time)}
+                  {formatViewingSlotCompact(row.requested_date, row.requested_time)}
                 </time>
               </header>
               <p className={listStyles.listingRef}>{title}</p>
@@ -187,7 +174,7 @@ export default function AgentViewingsPanel({
               </dl>
               {buyerProposed ? (
                 <p className={listStyles.body}>
-                  Buyer proposed: {formatViewingSlot(row.proposed_date, row.proposed_time)}
+                  Buyer proposed: {formatViewingSlotCompact(row.proposed_date, row.proposed_time)}
                 </p>
               ) : null}
               {showRescheduleForm ? (
@@ -217,10 +204,10 @@ export default function AgentViewingsPanel({
                     View listing
                   </Link>
                 ) : null}
-                {row.conversation_id ? (
+                {row.conversation_id && row.has_messaging_thread ? (
                   <Link
                     className={listStyles.secondary}
-                    href={buildConversationHref({ surface, conversationId: row.conversation_id })}
+                    href={buildConversationHref({ surface, conversationId: row.conversation_id, viewing: row })}
                   >
                     Open conversation
                   </Link>

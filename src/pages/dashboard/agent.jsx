@@ -24,6 +24,7 @@ import {
   AGENT_DASHBOARD_TABS,
   AGENT_INVENTORY_FILTERS,
   formatListingRemainingLabel,
+  normalizeAgentDashboardTab,
   USER_DASHBOARD_FINITE_CAP_THRESHOLD,
 } from "@/constants/dashboardAgentConfig";
 import { INQUIRY_STATUS } from "@/constants/inquiryModel";
@@ -31,6 +32,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { updateInquiryStatus } from "@/lib/listingInquiries";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
 import { fetchConversationsForAgent } from "@/lib/crm/conversationMutations";
+import { filterInboxConversations } from "@/lib/crm/conversationFilters";
 import { fetchViewingsForAgent } from "@/lib/crm/viewingMutations";
 import { useToast } from "@/components/ui/ToastProvider";
 import { resolveAgentDashboardTabFromQuery } from "@/lib/dashboardCrmRoutes";
@@ -38,13 +40,6 @@ import styles from "@/styles/Dashboard.module.css";
 import loadingStyles from "@/styles/UserDashboard.module.css";
 
 const AGENT_TAB_SET = new Set(Object.values(AGENT_DASHBOARD_TAB_IDS));
-
-function normalizeAgentDashboardTab(raw) {
-  const s = String(Array.isArray(raw) ? raw[0] : raw || "")
-    .trim()
-    .toLowerCase();
-  return AGENT_TAB_SET.has(s) ? s : AGENT_DASHBOARD_TAB_IDS.OVERVIEW;
-}
 
 export default function AgentDashboard() {
   const router = useRouter();
@@ -98,7 +93,7 @@ export default function AgentDashboard() {
   const visibleTabs = useMemo(
     () =>
       AGENT_DASHBOARD_TABS.filter((tab) => {
-        if (tab.crm && tab.id === AGENT_DASHBOARD_TAB_IDS.VIEWINGS && !BL_ENABLE_VIEWING_PERSIST) {
+        if (tab.crm && tab.id === AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS && !BL_ENABLE_VIEWING_PERSIST) {
           return false;
         }
         return true;
@@ -199,11 +194,11 @@ export default function AgentDashboard() {
     setConversationsLoading(true);
     const { data, error } = await fetchConversationsForAgent(supabase, user.id);
     setConversationsLoading(false);
-    if (!error) setConversationRows(data || []);
+    if (!error) setConversationRows(filterInboxConversations(data || []));
   }, [user?.id]);
 
   useEffect(() => {
-    if (activeTab !== AGENT_DASHBOARD_TAB_IDS.INQUIRIES) return;
+    if (activeTab !== AGENT_DASHBOARD_TAB_IDS.INBOX) return;
     loadConversations();
   }, [activeTab, loadConversations]);
 
@@ -216,7 +211,7 @@ export default function AgentDashboard() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (activeTab !== AGENT_DASHBOARD_TAB_IDS.VIEWINGS) return;
+    if (activeTab !== AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS) return;
     loadViewings();
   }, [activeTab, loadViewings]);
 
@@ -313,7 +308,7 @@ export default function AgentDashboard() {
                       onClick={() => selectTab(tab.id)}
                     >
                       {tab.label}
-                      {tab.id === AGENT_DASHBOARD_TAB_IDS.INQUIRIES && unreadInquiryCount > 0
+                      {tab.id === AGENT_DASHBOARD_TAB_IDS.INBOX && unreadInquiryCount > 0
                         ? ` (${unreadInquiryCount})`
                         : ""}
                     </button>
@@ -368,8 +363,8 @@ export default function AgentDashboard() {
                   />
                 ) : null}
 
-                {activeTab === AGENT_DASHBOARD_TAB_IDS.INQUIRIES ? (
-                  <section aria-label="Lead inbox">
+                {activeTab === AGENT_DASHBOARD_TAB_IDS.INBOX ? (
+                  <section aria-label="Inbox">
                     <p className={styles.muted} style={{ marginBottom: 16, maxWidth: "62ch" }}>
                       Buyer messages from listing pages route here.
                       {BL_ENABLE_CONVERSATIONS
@@ -418,7 +413,7 @@ export default function AgentDashboard() {
                   </section>
                 ) : null}
 
-                {activeTab === AGENT_DASHBOARD_TAB_IDS.VIEWINGS ? (
+                {activeTab === AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS ? (
                   <section aria-label="Viewing requests">
                     <p className={styles.muted} style={{ marginBottom: 16, maxWidth: "62ch" }}>
                       Confirm, reschedule, or complete property viewings requested from your listings.

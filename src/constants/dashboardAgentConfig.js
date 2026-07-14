@@ -10,18 +10,37 @@ export { resolveUserDashboardListingCap, formatListingRemainingLabel };
 export const AGENT_DASHBOARD_TAB_IDS = Object.freeze({
   OVERVIEW: "overview",
   LISTINGS: "listings",
-  INQUIRIES: "inquiries",
-  VIEWINGS: "viewings",
+  INBOX: "inbox",
+  VIEWING_REQUESTS: "viewing-requests",
   PROFILE: "profile",
+  /** @deprecated */
+  INQUIRIES: "inquiries",
+  /** @deprecated */
+  VIEWINGS: "viewings",
+});
+
+const LEGACY_AGENT_TAB_ALIASES = Object.freeze({
+  [AGENT_DASHBOARD_TAB_IDS.INQUIRIES]: AGENT_DASHBOARD_TAB_IDS.INBOX,
+  [AGENT_DASHBOARD_TAB_IDS.VIEWINGS]: AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
 });
 
 export const AGENT_DASHBOARD_TABS = Object.freeze([
   { id: AGENT_DASHBOARD_TAB_IDS.OVERVIEW, label: "Overview" },
   { id: AGENT_DASHBOARD_TAB_IDS.LISTINGS, label: "Listings" },
-  { id: AGENT_DASHBOARD_TAB_IDS.INQUIRIES, label: "Inquiries" },
-  { id: AGENT_DASHBOARD_TAB_IDS.VIEWINGS, label: "Viewings", crm: true },
+  { id: AGENT_DASHBOARD_TAB_IDS.INBOX, label: "Inbox", crm: true },
+  { id: AGENT_DASHBOARD_TAB_IDS.VIEWING_REQUESTS, label: "Viewing Requests", crm: true },
   { id: AGENT_DASHBOARD_TAB_IDS.PROFILE, label: "Profile" },
 ]);
+
+export function normalizeAgentDashboardTab(raw) {
+  const s = String(Array.isArray(raw) ? raw[0] : raw || "")
+    .trim()
+    .toLowerCase();
+  if (!s) return AGENT_DASHBOARD_TAB_IDS.OVERVIEW;
+  const canonical = LEGACY_AGENT_TAB_ALIASES[s] || s;
+  const valid = new Set([...Object.values(AGENT_DASHBOARD_TAB_IDS), ...Object.keys(LEGACY_AGENT_TAB_ALIASES)]);
+  return valid.has(s) || valid.has(canonical) ? canonical : AGENT_DASHBOARD_TAB_IDS.OVERVIEW;
+}
 
 export const AGENT_INVENTORY_FILTERS = Object.freeze({
   ALL: "all",

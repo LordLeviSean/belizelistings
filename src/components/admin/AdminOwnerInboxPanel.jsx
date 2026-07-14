@@ -33,7 +33,7 @@ export default function AdminOwnerInboxPanel({
     const { conversations: convRows, viewings: viewingRows, listingsById: map, errors } =
       await loadOwnerInboxData(supabase, ownerUserId);
     if (errors?.conversations) {
-      setLoadError(errors.conversations.message || "Could not load owner inbox.");
+      setLoadError(errors.conversations.message || "Could not load inbox.");
     }
     setConversations(convRows);
     setViewings(viewingRows);
@@ -70,7 +70,7 @@ export default function AdminOwnerInboxPanel({
       <PremiumEmptyState
         variant="generic"
         compact
-        title="Could not load owner inbox"
+        title="Could not load inbox"
         description={loadError}
         primary={{ label: "Try again", onClick: () => void refresh() }}
       />
@@ -82,7 +82,7 @@ export default function AdminOwnerInboxPanel({
       <PremiumEmptyState
         variant="inquiries"
         compact
-        title={surface === "user" ? "No owner inbox yet" : "No listings on your account"}
+        title={surface === "user" ? "No listing inquiries yet" : "No listings on your account"}
         description={
           surface === "user"
             ? "Create a listing to receive inquiries and viewing requests here."

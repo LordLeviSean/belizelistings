@@ -108,9 +108,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (
-      activeTab !== ADMIN_DASHBOARD_TAB_IDS.MESSAGES &&
-      activeTab !== ADMIN_DASHBOARD_TAB_IDS.MY_INQUIRIES &&
-      activeTab !== ADMIN_DASHBOARD_TAB_IDS.MY_VIEWINGS
+      activeTab !== ADMIN_DASHBOARD_TAB_IDS.INBOX &&
+      activeTab !== ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS
     ) {
       return;
     }
@@ -384,41 +383,31 @@ export default function AdminPage() {
                   }}
                 />
               )}
-              {activeTab === ADMIN_DASHBOARD_TAB_IDS.OWNER_INBOX && user?.id ? (
-                <AdminOwnerInboxPanel
-                  ownerUserId={user.id}
-                  section="inquiries"
-                  initialConversationId={
-                    typeof router.query.conversation === "string"
-                      ? router.query.conversation
-                      : Array.isArray(router.query.conversation)
-                        ? router.query.conversation[0]
-                        : null
-                  }
-                />
-              ) : null}
-              {activeTab === ADMIN_DASHBOARD_TAB_IDS.OWNER_VIEWINGS && user?.id ? (
-                <AdminOwnerInboxPanel
-                  ownerUserId={user.id}
-                  section="viewings"
-                  initialViewingId={
-                    typeof router.query.viewing === "string"
-                      ? router.query.viewing
-                      : Array.isArray(router.query.viewing)
-                        ? router.query.viewing[0]
-                        : null
-                  }
-                />
-              ) : null}
-              {activeTab === ADMIN_DASHBOARD_TAB_IDS.MESSAGES ? (
-                <section aria-label="Messages">
-                  {buyerCrmLoading && !buyerConversations.length ? (
-                    <div className={loadingStyles.hydratingPanel} aria-busy="true" />
-                  ) : (
-                    <UserInboxPanel
-                      conversations={buyerConversations}
-                      buyerUserId={user?.id}
-                      onRefresh={loadBuyerCrm}
+              {activeTab === ADMIN_DASHBOARD_TAB_IDS.INBOX ? (
+                <section aria-label="Inbox">
+                  {buyerConversations.length > 0 ? (
+                    <div style={{ marginBottom: 24 }}>
+                      <h3 className={styles.sectionTitle} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
+                        Your messages
+                      </h3>
+                      <UserInboxPanel
+                        conversations={buyerConversations}
+                        buyerUserId={user?.id}
+                        onRefresh={loadBuyerCrm}
+                        initialConversationId={
+                          typeof router.query.conversation === "string"
+                            ? router.query.conversation
+                            : Array.isArray(router.query.conversation)
+                              ? router.query.conversation[0]
+                              : null
+                        }
+                      />
+                    </div>
+                  ) : null}
+                  {user?.id ? (
+                    <AdminOwnerInboxPanel
+                      ownerUserId={user.id}
+                      section="inquiries"
                       initialConversationId={
                         typeof router.query.conversation === "string"
                           ? router.query.conversation
@@ -427,30 +416,44 @@ export default function AdminPage() {
                             : null
                       }
                     />
-                  )}
+                  ) : null}
                 </section>
               ) : null}
-              {activeTab === ADMIN_DASHBOARD_TAB_IDS.MY_INQUIRIES ? (
-                <section aria-label="My inquiries">
-                  {buyerCrmLoading && !buyerInquiries.length ? (
-                    <div className={loadingStyles.hydratingPanel} aria-busy="true" />
-                  ) : (
-                    <BuyerInquiriesPanel inquiries={buyerInquiries} />
-                  )}
-                </section>
-              ) : null}
-              {activeTab === ADMIN_DASHBOARD_TAB_IDS.MY_VIEWINGS ? (
-                <section aria-label="My viewings">
-                  {buyerCrmLoading && !buyerViewings.length ? (
-                    <div className={loadingStyles.hydratingPanel} aria-busy="true" />
-                  ) : (
-                    <BuyerViewingsPanel
-                      viewings={buyerViewings}
-                      listingsById={buyerListingsById}
-                      buyerUserId={user?.id}
-                      onRefresh={loadBuyerCrm}
+              {activeTab === ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS ? (
+                <section aria-label="Viewing Requests">
+                  {buyerViewings.length > 0 ? (
+                    <div style={{ marginBottom: 24 }}>
+                      <h3 className={styles.sectionTitle} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
+                        Your viewing requests
+                      </h3>
+                      <BuyerViewingsPanel
+                        viewings={buyerViewings}
+                        listingsById={buyerListingsById}
+                        buyerUserId={user?.id}
+                        onRefresh={loadBuyerCrm}
+                        initialViewingId={
+                          typeof router.query.viewing === "string"
+                            ? router.query.viewing
+                            : Array.isArray(router.query.viewing)
+                              ? router.query.viewing[0]
+                              : null
+                        }
+                      />
+                    </div>
+                  ) : null}
+                  {user?.id ? (
+                    <AdminOwnerInboxPanel
+                      ownerUserId={user.id}
+                      section="viewings"
+                      initialViewingId={
+                        typeof router.query.viewing === "string"
+                          ? router.query.viewing
+                          : Array.isArray(router.query.viewing)
+                            ? router.query.viewing[0]
+                            : null
+                      }
                     />
-                  )}
+                  ) : null}
                 </section>
               ) : null}
             </section>

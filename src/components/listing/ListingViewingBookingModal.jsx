@@ -209,6 +209,7 @@ export default function ListingViewingBookingModal({
         requesterName: guestName.trim() || user?.user_metadata?.full_name || null,
         requestedDate: selectedDate,
         requestedTime: selectedTime,
+        listingTitle: listing.title || null,
         message: message.trim() || null,
       });
       if (error) {
@@ -223,7 +224,7 @@ export default function ListingViewingBookingModal({
         }
         return;
       }
-      if (!data?.id && !data?.conversationId) {
+      if (!data?.id) {
         showToast({
           type: "error",
           message: "Your viewing request could not be saved. Please try again.",

@@ -1,4 +1,5 @@
 import { resolveNotificationDestination, resolveGeographicUpdateListingsHref } from "@/lib/dashboardCrmRoutes";
+import { formatViewingSlotLabel } from "@/lib/crm/viewingConversationMessages";
 import { NOTIFICATION_EVENT_TYPES } from "./notificationEvents";
 
 /** Editorial categories — calm luxury, operational tone. */
@@ -71,10 +72,19 @@ export function buildNotificationPresentation(eventType, payload = {}) {
     case NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED:
       category = NOTIFICATION_CATEGORIES.INQUIRY;
       title = "New viewing request";
-      body = "A buyer requested a property viewing — review and confirm the slot.";
+      {
+        const listingTitle = payload.listing_title ?? payload.listingTitle ?? "your listing";
+        const slotLabel =
+          payload.slot_label ??
+          payload.slotLabel ??
+          formatViewingSlotLabel(payload.requested_date, payload.requested_time);
+        body = slotLabel
+          ? `A buyer requested a viewing for ${listingTitle} on ${slotLabel}.`
+          : `A buyer requested a viewing for ${listingTitle}.`;
+      }
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
-      dedupeKey = dedupeKey ?? `viewing_requested:${viewingId ?? conversationId ?? ""}`;
+      dedupeKey = dedupeKey ?? `viewing_requested:${viewingId ?? ""}`;
       href = resolveNotificationDestination({
         eventType,
         role: recipientRole || "agent",

@@ -6,14 +6,26 @@ export const ADMIN_DASHBOARD_TAB_IDS = Object.freeze({
   USERS: "users",
   OPERATOR: "operator",
   UPGRADES: "upgrades",
+  INBOX: "inbox",
+  VIEWING_REQUESTS: "viewing-requests",
+  /** @deprecated */
   MESSAGES: "messages",
   MY_INQUIRIES: "my-inquiries",
+  /** @deprecated */
   MY_VIEWINGS: "my-viewings",
+  /** @deprecated */
   OWNER_INBOX: "owner-inbox",
+  /** @deprecated */
   OWNER_VIEWINGS: "owner-viewings",
 });
 
-/** Operational + marketplace CRM tabs for `/admin`. */
+const LEGACY_TAB_ALIASES = Object.freeze({
+  [ADMIN_DASHBOARD_TAB_IDS.MESSAGES]: ADMIN_DASHBOARD_TAB_IDS.INBOX,
+  [ADMIN_DASHBOARD_TAB_IDS.OWNER_INBOX]: ADMIN_DASHBOARD_TAB_IDS.INBOX,
+  [ADMIN_DASHBOARD_TAB_IDS.MY_VIEWINGS]: ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
+  [ADMIN_DASHBOARD_TAB_IDS.OWNER_VIEWINGS]: ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
+});
+
 export const ADMIN_DASHBOARD_TABS = Object.freeze([
   { id: ADMIN_DASHBOARD_TAB_IDS.PENDING, label: "Pending", operational: true },
   { id: ADMIN_DASHBOARD_TAB_IDS.LISTINGS, label: "Listings", operational: true },
@@ -21,32 +33,35 @@ export const ADMIN_DASHBOARD_TABS = Object.freeze([
   { id: ADMIN_DASHBOARD_TAB_IDS.OPERATOR, label: "Operator", operational: true },
   { id: ADMIN_DASHBOARD_TAB_IDS.UPGRADES, label: "Upgrades", operational: true },
   {
-    id: ADMIN_DASHBOARD_TAB_IDS.MESSAGES,
-    label: "Messages",
-    buyer: true,
+    id: ADMIN_DASHBOARD_TAB_IDS.INBOX,
+    label: "Inbox",
+    crm: true,
     conversations: true,
   },
-  { id: ADMIN_DASHBOARD_TAB_IDS.MY_INQUIRIES, label: "My Inquiries", buyer: true, crm: true },
-  { id: ADMIN_DASHBOARD_TAB_IDS.MY_VIEWINGS, label: "My Viewings", buyer: true, crm: true },
-  { id: ADMIN_DASHBOARD_TAB_IDS.OWNER_INBOX, label: "Owner Inbox", owner: true, conversations: true },
   {
-    id: ADMIN_DASHBOARD_TAB_IDS.OWNER_VIEWINGS,
+    id: ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
     label: "Viewing Requests",
-    owner: true,
     crm: true,
+    viewing: true,
   },
 ]);
 
-const ADMIN_TAB_SET = new Set(Object.values(ADMIN_DASHBOARD_TAB_IDS));
+const ADMIN_TAB_SET = new Set([
+  ...Object.values(ADMIN_DASHBOARD_TAB_IDS),
+  ...Object.keys(LEGACY_TAB_ALIASES),
+]);
 
 export function normalizeAdminDashboardTab(raw) {
   const s = String(Array.isArray(raw) ? raw[0] : raw || "")
     .trim()
     .toLowerCase();
-  return ADMIN_TAB_SET.has(s) ? s : ADMIN_DASHBOARD_TAB_IDS.PENDING;
+  if (!s) return ADMIN_DASHBOARD_TAB_IDS.PENDING;
+  const canonical = LEGACY_TAB_ALIASES[s] || s;
+  return ADMIN_TAB_SET.has(s) || ADMIN_TAB_SET.has(canonical)
+    ? canonical
+    : ADMIN_DASHBOARD_TAB_IDS.PENDING;
 }
 
-/** Normalize tab id and ensure it is visible under current feature flags. */
 export function resolveVisibleAdminDashboardTab(
   raw,
   visibleTabs = getVisibleAdminDashboardTabs()
@@ -60,21 +75,15 @@ export function resolveVisibleAdminDashboardTab(
 export function getVisibleAdminDashboardTabs() {
   const crmEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS || BL_ENABLE_VIEWING_PERSIST;
   return ADMIN_DASHBOARD_TABS.filter((tab) => {
-    if (tab.buyer || tab.owner) {
-      if (!crmEnabled) return false;
-      if (tab.conversations && !BL_ENABLE_CONVERSATIONS) return false;
-      if (tab.id === ADMIN_DASHBOARD_TAB_IDS.MY_INQUIRIES) {
-        if (!BL_ENABLE_INQUIRIES && !BL_ENABLE_CONVERSATIONS) return false;
-        if (BL_ENABLE_CONVERSATIONS) return false;
-      }
-      if (
-        (tab.id === ADMIN_DASHBOARD_TAB_IDS.MY_VIEWINGS ||
-          tab.id === ADMIN_DASHBOARD_TAB_IDS.OWNER_VIEWINGS) &&
-        !BL_ENABLE_VIEWING_PERSIST &&
-        !BL_ENABLE_CONVERSATIONS
-      ) {
-        return false;
-      }
+    if (!tab.crm) return true;
+    if (!crmEnabled) return false;
+    if (tab.conversations && !BL_ENABLE_CONVERSATIONS) return false;
+    if (
+      tab.id === ADMIN_DASHBOARD_TAB_IDS.VIEWING_REQUESTS &&
+      !BL_ENABLE_VIEWING_PERSIST &&
+      !BL_ENABLE_CONVERSATIONS
+    ) {
+      return false;
     }
     return true;
   });

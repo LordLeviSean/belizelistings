@@ -16,7 +16,7 @@ describe("notificationCopyRegistry", () => {
     });
     expect(pres.category).toBe(NOTIFICATION_CATEGORIES.INQUIRY);
     expect(pres.title).toMatch(/inquiry/i);
-    expect(pres.href).toBe("/dashboard/agent?tab=inquiries&conversation=conv-1");
+    expect(pres.href).toBe("/dashboard/agent?tab=inbox&conversation=conv-1");
     expect(pres.dedupeKey).toBe("new_inquiry:inq-1");
   });
 
@@ -35,16 +35,22 @@ describe("notificationCopyRegistry", () => {
       recipient_role: "user",
     });
     expect(pres.dedupeKey).toBe("agent_replied:c1:m1");
-    expect(pres.href).toBe("/dashboard/user?tab=messages&conversation=c1");
+    expect(pres.href).toBe("/dashboard/user?tab=inbox&conversation=c1");
   });
 
-  test("viewing_requested routes agent to viewings tab", () => {
+  test("viewing_requested includes listing and slot in body", () => {
     const pres = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED, {
       viewing_id: "v1",
       listing_id: 12,
+      listing_title: "Finca Solana",
+      slot_label: "Wednesday, July 15 · 8:00 AM",
+      recipient_role: "agent",
+      recipient_side: "agent",
     });
-    expect(pres.title).toMatch(/viewing request/i);
-    expect(pres.href).toBe("/dashboard/agent?tab=viewings&viewing=v1");
+    expect(pres.title).toBe("New viewing request");
+    expect(pres.body).toContain("Finca Solana");
+    expect(pres.body).toContain("Wednesday, July 15");
+    expect(pres.href).toBe("/dashboard/agent?tab=viewing-requests&viewing=v1");
   });
 
   test("mapNotificationRowToCenterItem preserves unread state", () => {
@@ -61,6 +67,6 @@ describe("notificationCopyRegistry", () => {
     expect(item.unread).toBe(true);
     expect(item.id).toBe("notif-n1");
     expect(item.notificationId).toBe("n1");
-    expect(item.href).toBe("/dashboard/user?tab=my-viewings&viewing=v1");
+    expect(item.href).toBe("/dashboard/user?tab=viewing-requests&viewing=v1");
   });
 });

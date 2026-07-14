@@ -1,5 +1,6 @@
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
 import { fetchConversationsForAgent } from "./conversationMutations";
+import { filterInboxConversations } from "./conversationFilters";
 import { fetchViewingsForAgent } from "./viewingMutations";
 
 const LISTING_SELECT = "id,title,listing_images(id,image_url,position)";
@@ -35,7 +36,7 @@ export async function loadOwnerInboxData(client, ownerUserId) {
   if (BL_ENABLE_CONVERSATIONS) {
     tasks.push(
       fetchConversationsForAgent(client, ownerUserId).then(({ data, error }) => {
-        conversations = data || [];
+        conversations = filterInboxConversations(data || []);
         if (error) errors.conversations = error;
       })
     );

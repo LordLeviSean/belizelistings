@@ -9,40 +9,35 @@ jest.mock("../lib/featureFlags", () => ({
 import {
   USER_DASHBOARD_TAB_IDS,
   getVisibleUserDashboardTabs,
-  userHasOwnedListings,
+  normalizeUserDashboardTab,
 } from "./dashboardUserConfig";
 
-describe("dashboardUserConfig owner parity", () => {
-  test("userHasOwnedListings is false with zero lifecycle counts", () => {
-    expect(userHasOwnedListings()).toBe(false);
-    expect(userHasOwnedListings({ activeListings: 0, pendingListings: 0 })).toBe(false);
+describe("dashboardUserConfig communication tabs", () => {
+  test("shows unified Inbox and Viewing Requests for all CRM users", () => {
+    const buyerIds = getVisibleUserDashboardTabs({ hasOwnedListings: false }).map((t) => t.id);
+    expect(buyerIds).toContain(USER_DASHBOARD_TAB_IDS.INBOX);
+    expect(buyerIds).toContain(USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS);
+    expect(buyerIds).not.toContain(USER_DASHBOARD_TAB_IDS.MESSAGES);
+    expect(buyerIds).not.toContain(USER_DASHBOARD_TAB_IDS.MY_VIEWINGS);
   });
 
-  test("userHasOwnedListings is true when any listing lifecycle count is positive", () => {
-    expect(userHasOwnedListings({ draftListings: 1 })).toBe(true);
-    expect(userHasOwnedListings({ rejectedListings: 2 })).toBe(true);
+  test("owner users see same unified tabs without legacy owner labels", () => {
+    const ownerIds = getVisibleUserDashboardTabs({ hasOwnedListings: true }).map((t) => t.id);
+    expect(ownerIds).toContain(USER_DASHBOARD_TAB_IDS.INBOX);
+    expect(ownerIds).toContain(USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS);
+    expect(ownerIds).not.toContain(USER_DASHBOARD_TAB_IDS.OWNER_INBOX);
+    expect(ownerIds).not.toContain(USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS);
   });
 
-  test("getVisibleUserDashboardTabs hides owner tabs without owned listings", () => {
-    const ids = getVisibleUserDashboardTabs({ hasOwnedListings: false }).map((t) => t.id);
-    expect(ids).not.toContain(USER_DASHBOARD_TAB_IDS.OWNER_INBOX);
-    expect(ids).not.toContain(USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS);
-    expect(ids).toEqual(
-      expect.arrayContaining([
-        USER_DASHBOARD_TAB_IDS.MESSAGES,
-        USER_DASHBOARD_TAB_IDS.MY_VIEWINGS,
-      ])
-    );
-    expect(ids).not.toContain(USER_DASHBOARD_TAB_IDS.MY_INQUIRIES);
+  test("legacy tab URLs map to unified tabs", () => {
+    expect(normalizeUserDashboardTab("messages")).toBe(USER_DASHBOARD_TAB_IDS.INBOX);
+    expect(normalizeUserDashboardTab("owner-inbox")).toBe(USER_DASHBOARD_TAB_IDS.INBOX);
+    expect(normalizeUserDashboardTab("my-viewings")).toBe(USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS);
+    expect(normalizeUserDashboardTab("owner-viewings")).toBe(USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS);
   });
 
-  test("getVisibleUserDashboardTabs shows owner tabs when user owns listings and flags enabled", () => {
-    const ids = getVisibleUserDashboardTabs({ hasOwnedListings: true }).map((t) => t.id);
-    expect(ids).toEqual(
-      expect.arrayContaining([
-        USER_DASHBOARD_TAB_IDS.OWNER_INBOX,
-        USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS,
-      ])
-    );
+  test("Inbox tab label is Inbox not Owner Inbox", () => {
+    const inbox = getVisibleUserDashboardTabs().find((t) => t.id === USER_DASHBOARD_TAB_IDS.INBOX);
+    expect(inbox?.label).toBe("Inbox");
   });
 });

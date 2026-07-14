@@ -1,8 +1,5 @@
 /**
  * Curated copy + metric keys for `/dashboard/user`.
- *
- * Tier caps: `listingTierCaps.js` (public 5, agent 25, brokerage 100; optional
- * `NEXT_PUBLIC_BETA_LISTING_CAP_OVERRIDE` for QA).
  */
 import { resolveActiveListingCapForTier } from "@/constants/operationalModel";
 import {
@@ -18,11 +15,26 @@ export const USER_DASHBOARD_TAB_IDS = Object.freeze({
   ARCHIVED: "archived",
   SAVED_FAVORITES: "saved-favorites",
   PROFILE: "profile",
+  /** Unified inbox — buyer messages + owner listing inquiries */
+  INBOX: "inbox",
+  /** Unified viewing requests — buyer submissions + owner requests */
+  VIEWING_REQUESTS: "viewing-requests",
+  /** @deprecated use INBOX */
   MESSAGES: "messages",
   MY_INQUIRIES: "my-inquiries",
+  /** @deprecated use VIEWING_REQUESTS */
   MY_VIEWINGS: "my-viewings",
+  /** @deprecated use INBOX */
   OWNER_INBOX: "owner-inbox",
+  /** @deprecated use VIEWING_REQUESTS */
   OWNER_VIEWINGS: "owner-viewings",
+});
+
+const LEGACY_TAB_ALIASES = Object.freeze({
+  [USER_DASHBOARD_TAB_IDS.MESSAGES]: USER_DASHBOARD_TAB_IDS.INBOX,
+  [USER_DASHBOARD_TAB_IDS.OWNER_INBOX]: USER_DASHBOARD_TAB_IDS.INBOX,
+  [USER_DASHBOARD_TAB_IDS.MY_VIEWINGS]: USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
+  [USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS]: USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
 });
 
 /** Shared tab metadata for `/dashboard/user`. */
@@ -33,26 +45,36 @@ export const USER_DASHBOARD_TABS = Object.freeze([
   { id: USER_DASHBOARD_TAB_IDS.ARCHIVED, label: "Archived" },
   { id: USER_DASHBOARD_TAB_IDS.SAVED_FAVORITES, label: "Saved Favorites" },
   { id: USER_DASHBOARD_TAB_IDS.PROFILE, label: "Profile" },
-  { id: USER_DASHBOARD_TAB_IDS.MESSAGES, label: "Messages", crm: true, conversations: true },
-  { id: USER_DASHBOARD_TAB_IDS.MY_INQUIRIES, label: "My Inquiries", crm: true },
-  { id: USER_DASHBOARD_TAB_IDS.MY_VIEWINGS, label: "My Viewings", crm: true },
   {
-    id: USER_DASHBOARD_TAB_IDS.OWNER_INBOX,
-    label: "Owner Inbox",
-    owner: true,
+    id: USER_DASHBOARD_TAB_IDS.INBOX,
+    label: "Inbox",
+    crm: true,
     conversations: true,
   },
   {
-    id: USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS,
+    id: USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS,
     label: "Viewing Requests",
-    owner: true,
     crm: true,
+    viewing: true,
   },
 ]);
 
-/**
- * True when the user has posted at least one listing in any lifecycle state.
- */
+const USER_TAB_SET = new Set([
+  ...Object.values(USER_DASHBOARD_TAB_IDS),
+  ...Object.keys(LEGACY_TAB_ALIASES),
+]);
+
+export function normalizeUserDashboardTab(raw) {
+  const s = String(Array.isArray(raw) ? raw[0] : raw || "")
+    .trim()
+    .toLowerCase();
+  if (!s) return USER_DASHBOARD_TAB_IDS.OVERVIEW;
+  const canonical = LEGACY_TAB_ALIASES[s] || s;
+  return USER_TAB_SET.has(s) || USER_TAB_SET.has(canonical)
+    ? canonical
+    : USER_DASHBOARD_TAB_IDS.OVERVIEW;
+}
+
 export function userHasOwnedListings({
   activeListings = 0,
   pendingListings = 0,
@@ -65,31 +87,33 @@ export function userHasOwnedListings({
   );
 }
 
-/** Buyer + conditional owner CRM tabs for `/dashboard/user`. */
-export function getVisibleUserDashboardTabs({ hasOwnedListings = false } = {}) {
-  const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
+/** Buyer + owner CRM tabs for `/dashboard/user`. */
+export function getVisibleUserDashboardTabs({ hasOwnedListings: _hasOwnedListings = false } = {}) {
+  const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS || BL_ENABLE_VIEWING_PERSIST;
 
   return USER_DASHBOARD_TABS.filter((tab) => {
-    if (tab.owner) {
-      if (!hasOwnedListings) return false;
-      if (tab.conversations && !BL_ENABLE_CONVERSATIONS) return false;
-      if (
-        tab.id === USER_DASHBOARD_TAB_IDS.OWNER_VIEWINGS &&
-        !BL_ENABLE_VIEWING_PERSIST &&
-        !BL_ENABLE_CONVERSATIONS
-      ) {
-        return false;
-      }
-      return true;
-    }
+    if (!tab.crm) return true;
+    if (!crmTabsEnabled) return false;
     if (tab.conversations && !BL_ENABLE_CONVERSATIONS) return false;
-    if (tab.id === USER_DASHBOARD_TAB_IDS.MY_INQUIRIES) {
-      if (!BL_ENABLE_INQUIRIES && !BL_ENABLE_CONVERSATIONS) return false;
-      if (BL_ENABLE_CONVERSATIONS) return false;
+    if (
+      tab.id === USER_DASHBOARD_TAB_IDS.VIEWING_REQUESTS &&
+      !BL_ENABLE_VIEWING_PERSIST &&
+      !BL_ENABLE_CONVERSATIONS
+    ) {
+      return false;
     }
-    if (tab.crm && !crmTabsEnabled) return false;
     return true;
   });
+}
+
+export function resolveVisibleUserDashboardTab(
+  raw,
+  visibleTabs = getVisibleUserDashboardTabs()
+) {
+  const normalized = normalizeUserDashboardTab(raw);
+  const visibleIds = new Set(visibleTabs.map((tab) => tab.id));
+  if (visibleIds.has(normalized)) return normalized;
+  return visibleTabs[0]?.id ?? USER_DASHBOARD_TAB_IDS.OVERVIEW;
 }
 
 export const USER_DASHBOARD_METRIC_KEYS = Object.freeze({
@@ -147,36 +171,22 @@ export const USER_DASHBOARD_COPY = Object.freeze({
 });
 
 export const USER_DASHBOARD_PLACEHOLDERS = Object.freeze([
-  { key: "messages", title: "Messages", hint: "A calm inbox for conversations around your saved homes." },
+  { key: "inbox", title: "Inbox", hint: "A calm inbox for conversations around your saved homes and listings." },
   { key: "appointments", title: "Appointment Requests", hint: "Schedule tours when this channel opens." },
 ]);
 
-/** Above this cap we treat listing slots as unlimited for CTA disable + "(N remaining)" chip. */
 export const USER_DASHBOARD_FINITE_CAP_THRESHOLD = 512;
 
-/**
- * @param {string} tier from `useUserRole` / `resolveTierFromProfile`
- * @returns {number}
- */
 export function resolveUserDashboardListingCap(tier) {
   const quotaCap = resolveActiveListingCapForTier(tier);
   return quotaCap != null ? quotaCap : 99999;
 }
 
-/**
- * @param {number} remaining
- * @returns {string} e.g. "5 Remaining"
- */
 export function formatListingRemainingLabel(remaining) {
   const n = Math.max(0, Math.floor(Number(remaining) || 0));
   return `${n} Remaining`;
 }
 
-/**
- * @param {number} remaining
- * @param {number} cap
- * @returns {string}
- */
 export function formatTryCreateRemainderChip(remaining, cap) {
   if (cap >= USER_DASHBOARD_FINITE_CAP_THRESHOLD) return "";
   const n = Math.max(0, Math.floor(Number(remaining) || 0));
