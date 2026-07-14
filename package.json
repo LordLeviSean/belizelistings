@@ -17,6 +17,7 @@
     "qa:visual": "node scripts/qa/run-visual.mjs",
     "check:staging-access": "node scripts/check-staging-access.mjs",
     "verify:staging-schema": "node scripts/verify-staging-schema.mjs",
+    "verify:crm-notification-matrix": "node scripts/verify-crm-notification-matrix.mjs",
     "test:notification-delivery": "node scripts/test-notification-delivery.mjs",
     "verify:cron-endpoint": "node scripts/verify-cron-endpoint.mjs",
     "configure:netlify-staging": "node scripts/configure-netlify-staging.mjs",
