@@ -10,6 +10,7 @@ import {
   deleteViewing,
   proposeViewingReschedule,
   acceptViewingReschedule,
+  rejectViewingReschedule,
 } from "@/lib/crm/viewingMutations";
 import { useViewingsRealtime } from "@/lib/crm/useViewingsRealtime";
 import { supabase } from "@/lib/supabaseClient";
@@ -158,9 +159,26 @@ export default function BuyerViewingsPanel({
     onRefresh?.();
   };
 
+  const handleDeclineProposedTime = async (viewingId) => {
+    if (!buyerUserId) return;
+    setBusyId(viewingId);
+    const { error } = await rejectViewingReschedule(supabase, {
+      viewingId,
+      actorUserId: buyerUserId,
+      asAgent: false,
+    });
+    setBusyId("");
+    if (error) {
+      showToast({ type: "error", message: error.message || "Could not decline proposed time." });
+      return;
+    }
+    showToast({ type: "success", message: "Proposed time declined — the owner has been notified." });
+    onRefresh?.();
+  };
+
   return (
     <>
-      <div className={listStyles.list} role="feed" aria-label="My viewings">
+      <div className={listStyles.list} role="feed" aria-label="Viewings">
         {viewings.map((row) => {
           const title =
             listingsById?.[row.listing_id]?.title ||
@@ -239,14 +257,24 @@ export default function BuyerViewingsPanel({
                 {active && buyerUserId ? (
                   <>
                     {agentProposed ? (
-                      <button
-                        type="button"
-                        className={listStyles.primary}
-                        disabled={busyId === row.id}
-                        onClick={() => void handleAcceptReschedule(row.id)}
-                      >
-                        Accept proposed time
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          className={listStyles.primary}
+                          disabled={busyId === row.id}
+                          onClick={() => void handleAcceptReschedule(row.id)}
+                        >
+                          Accept proposed time
+                        </button>
+                        <button
+                          type="button"
+                          className={listStyles.secondary}
+                          disabled={busyId === row.id}
+                          onClick={() => void handleDeclineProposedTime(row.id)}
+                        >
+                          Decline proposed time
+                        </button>
+                      </>
                     ) : null}
                     {showRescheduleForm ? (
                       <>

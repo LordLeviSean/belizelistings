@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
@@ -19,10 +20,11 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { useViewingsRealtime } from "@/lib/crm/useViewingsRealtime";
 import { resolveMessageConversationPath } from "@/lib/dashboardCrmRoutes";
 import { formatViewingSlotCompact } from "@/lib/crm/viewingConversationMessages";
+import { openMessagingConversationForViewing } from "@/lib/crm/viewingMessaging";
 import listStyles from "./AgentInquiryList.module.css";
 
-function buildConversationHref({ surface = "agent", conversationId, viewing }) {
-  if (!conversationId || !viewing?.has_messaging_thread) return null;
+function buildConversationHref({ surface = "agent", conversationId }) {
+  if (!conversationId) return null;
   if (surface === "admin") {
     return resolveMessageConversationPath({ role: "admin", side: "owner", conversationId });
   }
@@ -44,6 +46,7 @@ export default function AgentViewingsPanel({
   initialViewingId = null,
   surface = "agent",
 }) {
+  const router = useRouter();
   const { showToast } = useToast();
   const [busyId, setBusyId] = useState("");
   const [highlightId, setHighlightId] = useState(initialViewingId);
@@ -134,9 +137,35 @@ export default function AgentViewingsPanel({
     onRefresh?.();
   };
 
+  const handleMessageBuyer = async (row) => {
+    if (!agentUserId || !row?.requester_id) {
+      showToast({
+        type: "info",
+        message: "This buyer has no account — use email if shown on the request.",
+      });
+      return;
+    }
+    setBusyId(row.id);
+    const { data, error } = await openMessagingConversationForViewing(supabase, {
+      viewing: row,
+      agentUserId,
+    });
+    setBusyId("");
+    if (error) {
+      showToast({ type: "error", message: error.message || "Could not open inbox." });
+      return;
+    }
+    const href = buildConversationHref({ surface, conversationId: data?.conversationId });
+    if (href) {
+      await router.push(href);
+      return;
+    }
+    showToast({ type: "error", message: "Could not open inbox." });
+  };
+
   return (
     <>
-      <div className={listStyles.list} role="feed" aria-label="Viewing requests">
+      <div className={listStyles.list} role="feed" aria-label="Viewings">
         {viewings.map((row) => {
           const title =
             listingsById?.[row.listing_id]?.title ||
@@ -160,16 +189,23 @@ export default function AgentViewingsPanel({
                 .join(" ")}
             >
               <header className={listStyles.cardHead}>
-                <span className={listStyles.channel}>Viewing request</span>
+                <span className={listStyles.channel}>Viewing appointment</span>
                 <time className={listStyles.time} dateTime={row.requested_date}>
                   {formatViewingSlotCompact(row.requested_date, row.requested_time)}
                 </time>
               </header>
-              <p className={listStyles.listingRef}>{title}</p>
               <dl className={listStyles.meta}>
                 <div>
-                  <dt>Requester</dt>
+                  <dt>Property</dt>
+                  <dd>{title}</dd>
+                </div>
+                <div>
+                  <dt>Requested by</dt>
                   <dd>{requester}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{viewingStatusLabel(row.status)}</dd>
                 </div>
               </dl>
               {buyerProposed ? (
@@ -204,13 +240,15 @@ export default function AgentViewingsPanel({
                     View listing
                   </Link>
                 ) : null}
-                {row.conversation_id && row.has_messaging_thread ? (
-                  <Link
+                {row.requester_id && agentUserId ? (
+                  <button
+                    type="button"
                     className={listStyles.secondary}
-                    href={buildConversationHref({ surface, conversationId: row.conversation_id, viewing: row })}
+                    disabled={busyId === row.id}
+                    onClick={() => void handleMessageBuyer(row)}
                   >
-                    Open conversation
-                  </Link>
+                    Message buyer
+                  </button>
                 ) : null}
                 {row.status === VIEWING_STATUS.PENDING && agentUserId ? (
                   <>
