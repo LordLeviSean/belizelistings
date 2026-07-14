@@ -6,6 +6,7 @@ import { enqueueNotificationEvent, NOTIFICATION_EVENT_TYPES } from "../notificat
 import { CRM_PIPELINE_STAGE, VIEWING_STATUS } from "./crmConstants";
 import { coerceListingIdForDb, isCrmUnavailable } from "./crmCompat";
 import { withNotificationRecipientRole } from "./notificationRecipientRoles";
+import { buildViewingNotificationPayload } from "../notifications/crmNotificationHelpers";
 import {
   appendViewingSystemMessage,
   formatViewingSlotLabel,
@@ -15,15 +16,40 @@ import {
 const VIEWING_SELECT =
   "id,listing_id,conversation_id,requester_id,requester_email,requester_name,agent_user_id,requested_date,requested_time,proposed_date,proposed_time,proposed_by,status,notes,message,confirmed_at,created_at,updated_at";
 
+async function fetchListingTitle(client, listingId) {
+  if (!listingId || !client?.from) return null;
+  const table = client.from("listings");
+  if (!table?.select) return null;
+  const { data } = await table.select("title").eq("id", listingId).maybeSingle();
+  return data?.title ?? null;
+}
+
 async function notifyViewingEvent(client, { eventType, recipientId, payload, parties = {} }) {
-  const enrichedPayload = withNotificationRecipientRole(recipientId, parties, payload);
+  let enriched = { ...payload };
+  if (!enriched.listing_title && enriched.listing_id) {
+    const title = await fetchListingTitle(client, enriched.listing_id);
+    if (title) enriched.listing_title = title;
+  }
+  enriched = withNotificationRecipientRole(recipientId, parties, enriched);
   await enqueueNotificationEvent(
     client,
-    { eventType, recipientId, payload: enrichedPayload },
+    { eventType, recipientId, payload: enriched },
     { deliver: BL_ENABLE_NOTIFICATIONS }
   );
   if (BL_ENABLE_NOTIFICATIONS) {
     await triggerNotificationDelivery(client, { limit: 5 });
+  }
+}
+
+async function notifyViewingParties(client, {
+  eventType,
+  recipientIds = [],
+  payload,
+  parties = {},
+}) {
+  const unique = [...new Set(recipientIds.filter(Boolean))];
+  for (const recipientId of unique) {
+    await notifyViewingEvent(client, { eventType, recipientId, payload, parties });
   }
 }
 
@@ -66,6 +92,8 @@ export async function createViewingRequest(client, payload) {
         viewing_id: data.id,
         listing_id: listingId,
         listing_title: payload.listingTitle ?? null,
+        requester_name: payload.requesterName ?? null,
+        sender_name: payload.requesterName ?? null,
         requested_date: requestedDate,
         requested_time: requestedTime,
         slot_label: slotLabel,
@@ -117,16 +145,15 @@ export async function confirmViewing(client, { viewingId, agentUserId, notes }) 
   }
 
   if (data?.requester_id) {
+    const notifyPayload = buildViewingNotificationPayload(data, {}, {
+      viewing_id: viewingId,
+      dedupe_key: `viewing_confirmed:${viewingId}`,
+    });
     await notifyViewingEvent(client, {
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
       recipientId: data.requester_id,
       parties: { agentUserId: data.agent_user_id, listingOwnerUserId: data.agent_user_id, requesterId: data.requester_id },
-      payload: {
-        viewing_id: viewingId,
-        listing_id: data.listing_id,
-        requested_date: data.requested_date,
-        requested_time: data.requested_time,
-      },
+      payload: notifyPayload,
     });
   }
 
@@ -178,7 +205,10 @@ export async function declineViewing(client, { viewingId, agentUserId, notes }) 
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED,
       recipientId: data.requester_id,
       parties: { agentUserId: data.agent_user_id, listingOwnerUserId: data.agent_user_id, requesterId: data.requester_id },
-      payload: { viewing_id: viewingId, listing_id: data.listing_id },
+      payload: buildViewingNotificationPayload(data, {}, {
+        viewing_id: viewingId,
+        dedupe_key: `viewing_declined:${viewingId}`,
+      }),
     });
   }
 
@@ -224,13 +254,13 @@ export async function proposeViewingReschedule(client, {
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_RESCHEDULED,
       recipientId,
       parties: { agentUserId: data?.agent_user_id, listingOwnerUserId: data?.agent_user_id, requesterId: data?.requester_id },
-      payload: {
+      payload: buildViewingNotificationPayload(data, {}, {
         viewing_id: viewingId,
-        listing_id: data.listing_id,
         proposed_date: proposedDate,
         proposed_time: proposedTime,
         proposed_by: asAgent ? "agent" : "buyer",
-      },
+        dedupe_key: `viewing_rescheduled:${viewingId}:${proposedDate}:${proposedTime}`,
+      }),
     });
   }
 
@@ -304,12 +334,10 @@ export async function acceptViewingReschedule(client, { viewingId, actorUserId, 
       eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
       recipientId: notifyRecipientId,
       parties: { agentUserId: data.agent_user_id, listingOwnerUserId: data.agent_user_id, requesterId: data.requester_id },
-      payload: {
+      payload: buildViewingNotificationPayload(data, {}, {
         viewing_id: viewingId,
-        listing_id: data.listing_id,
-        requested_date: data.requested_date,
-        requested_time: data.requested_time,
-      },
+        dedupe_key: `viewing_confirmed:${viewingId}:accepted`,
+      }),
     });
   }
 
@@ -345,7 +373,20 @@ export async function markViewingCompleted(client, { viewingId, agentUserId }) {
     .select(VIEWING_SELECT)
     .single();
 
-  return { data, error };
+  if (error) return { data: null, error };
+
+  const notifyPayload = buildViewingNotificationPayload(data, {}, {
+    viewing_id: viewingId,
+    dedupe_key: `viewing_completed:${viewingId}`,
+  });
+  await notifyViewingParties(client, {
+    eventType: NOTIFICATION_EVENT_TYPES.VIEWING_COMPLETED,
+    recipientIds: [data?.requester_id, data?.agent_user_id],
+    parties: { agentUserId: data?.agent_user_id, listingOwnerUserId: data?.agent_user_id, requesterId: data?.requester_id },
+    payload: notifyPayload,
+  });
+
+  return { data, error: null };
 }
 
 export async function cancelViewing(client, { viewingId, actorUserId, cancelledByAgent = true }) {
@@ -371,15 +412,16 @@ export async function cancelViewing(client, { viewingId, actorUserId, cancelledB
     });
   }
 
-  const notifyRecipientId = cancelledByAgent ? data?.requester_id : data?.agent_user_id;
-  if (notifyRecipientId) {
-    await notifyViewingEvent(client, {
-      eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CANCELLED,
-      recipientId: notifyRecipientId,
-      parties: { agentUserId: data.agent_user_id, listingOwnerUserId: data.agent_user_id, requesterId: data.requester_id },
-      payload: { viewing_id: viewingId, listing_id: data.listing_id },
-    });
-  }
+  const notifyPayload = buildViewingNotificationPayload(data, {}, {
+    viewing_id: viewingId,
+    dedupe_key: `viewing_cancelled:${viewingId}`,
+  });
+  await notifyViewingParties(client, {
+    eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CANCELLED,
+    recipientIds: [data?.requester_id, data?.agent_user_id],
+    parties: { agentUserId: data.agent_user_id, listingOwnerUserId: data.agent_user_id, requesterId: data.requester_id },
+    payload: notifyPayload,
+  });
 
   if (data?.listing_id) {
     await emitListingEventAfterMutation({
@@ -390,6 +432,60 @@ export async function cancelViewing(client, { viewingId, actorUserId, cancelledB
       actorId: actorUserId,
       actorRole: cancelledByAgent ? "agent" : "buyer",
       payload: { viewing_id: viewingId },
+    });
+  }
+
+  return { data, error: null };
+}
+
+/** Buyer declines an agent-proposed reschedule — reverts to prior slot and notifies owner. */
+export async function rejectViewingReschedule(client, { viewingId, actorUserId, asAgent = false }) {
+  if (asAgent) {
+    return { data: null, error: { message: "Only the buyer may decline a proposed time." } };
+  }
+
+  let fetchQuery = client.from("viewing_requests").select(VIEWING_SELECT).eq("id", viewingId);
+  fetchQuery = fetchQuery.eq("requester_id", actorUserId);
+
+  const { data: current, error: fetchError } = await fetchQuery.maybeSingle();
+  if (fetchError || !current) {
+    return { data: null, error: fetchError || { message: "Viewing not found" } };
+  }
+  if (current.status !== VIEWING_STATUS.RESCHEDULED || current.proposed_by !== "agent") {
+    return { data: null, error: { message: "No agent proposal to decline" } };
+  }
+
+  const now = new Date().toISOString();
+  const restoreStatus = current.confirmed_at ? VIEWING_STATUS.CONFIRMED : VIEWING_STATUS.PENDING;
+
+  const { data, error } = await client
+    .from("viewing_requests")
+    .update({
+      status: restoreStatus,
+      proposed_date: null,
+      proposed_time: null,
+      proposed_by: null,
+      updated_at: now,
+    })
+    .eq("id", viewingId)
+    .eq("requester_id", actorUserId)
+    .select(VIEWING_SELECT)
+    .single();
+
+  if (error) return { data: null, error };
+
+  if (data?.agent_user_id) {
+    await notifyViewingEvent(client, {
+      eventType: NOTIFICATION_EVENT_TYPES.VIEWING_RESCHEDULED,
+      recipientId: data.agent_user_id,
+      parties: { agentUserId: data.agent_user_id, listingOwnerUserId: data.agent_user_id, requesterId: data.requester_id },
+      payload: buildViewingNotificationPayload(data, {}, {
+        viewing_id: viewingId,
+        sender_name: data.requester_name,
+        requester_name: data.requester_name,
+        reschedule_declined: true,
+        dedupe_key: `viewing_reschedule_declined:${viewingId}`,
+      }),
     });
   }
 

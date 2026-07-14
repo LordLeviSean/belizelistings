@@ -1,5 +1,9 @@
 import { resolveNotificationDestination, resolveGeographicUpdateListingsHref } from "@/lib/dashboardCrmRoutes";
-import { formatViewingSlotLabel } from "@/lib/crm/viewingConversationMessages";
+import {
+  resolveListingTitle,
+  resolveSenderName,
+  resolveSlotLabel,
+} from "@/lib/notifications/crmNotificationHelpers";
 import { NOTIFICATION_EVENT_TYPES } from "./notificationEvents";
 
 /** Editorial categories — calm luxury, operational tone. */
@@ -11,13 +15,14 @@ export const NOTIFICATION_CATEGORIES = Object.freeze({
   GUIDANCE: "guidance",
 });
 
+function appendSlotLine(body, slotLabel) {
+  if (!slotLabel) return body;
+  return `${body}\n${slotLabel}`;
+}
+
 /**
  * Build presentation fields for a notification event.
  * Mirrors SQL `notification_presentation_for_event` for client-side previews/tests.
- *
- * @param {string} eventType
- * @param {Record<string, unknown>} [payload]
- * @returns {{ category: string, title: string, body: string, entityType: string|null, entityId: string|null, dedupeKey: string, href: string }}
  */
 export function buildNotificationPresentation(eventType, payload = {}) {
   const inquiryId = payload.inquiry_id ?? payload.inquiryId ?? null;
@@ -28,6 +33,9 @@ export function buildNotificationPresentation(eventType, payload = {}) {
   const inquiryType = payload.inquiry_type ?? payload.inquiryType ?? "general";
   const explicitDedupe = payload.dedupe_key ?? payload.dedupeKey ?? null;
   const recipientRole = payload.recipient_role ?? payload.recipientRole ?? null;
+  const listingTitle = resolveListingTitle(payload);
+  const senderName = resolveSenderName(payload);
+  const slotLabel = resolveSlotLabel(payload);
 
   let category = NOTIFICATION_CATEGORIES.SYSTEM;
   let title = "Operational update";
@@ -40,112 +48,107 @@ export function buildNotificationPresentation(eventType, payload = {}) {
   switch (eventType) {
     case NOTIFICATION_EVENT_TYPES.NEW_INQUIRY:
       category = NOTIFICATION_CATEGORIES.INQUIRY;
-      title = "New inquiry on your listing";
-      body =
-        inquiryType === "schedule_viewing"
-          ? "A buyer requested a viewing time."
-          : "A buyer left a note—your response keeps the conversation moving.";
-      entityType = "inquiry";
-      entityId = inquiryId ? String(inquiryId) : conversationId ? String(conversationId) : null;
-      dedupeKey = dedupeKey ?? `new_inquiry:${inquiryId ?? conversationId ?? ""}`;
-      href = resolveNotificationDestination({
-        eventType,
-        role: recipientRole || "agent",
-        payload,
-      });
+      if (inquiryType === "schedule_viewing") {
+        title = "New viewing request";
+        body = appendSlotLine(
+          `${senderName} requested a viewing for ${listingTitle}.`,
+          slotLabel
+        );
+      } else {
+        title = "New message received";
+        body = `${senderName} sent you a message about ${listingTitle}.`;
+      }
+      entityType = "conversation";
+      entityId = conversationId ? String(conversationId) : inquiryId ? String(inquiryId) : null;
+      dedupeKey = dedupeKey ?? `new_inquiry:${messageId ?? inquiryId ?? conversationId ?? ""}`;
+      href = resolveNotificationDestination({ eventType, role: recipientRole || "agent", payload });
       break;
 
     case NOTIFICATION_EVENT_TYPES.AGENT_REPLIED:
       category = NOTIFICATION_CATEGORIES.INQUIRY;
-      title = "Your agent replied";
-      body = "A new message is waiting in your conversation.";
+      title = "You received a reply";
+      body = `You received a reply about ${listingTitle}.`;
       entityType = "conversation";
       entityId = conversationId ? String(conversationId) : null;
       dedupeKey = dedupeKey ?? `agent_replied:${conversationId ?? ""}:${messageId ?? ""}`;
-      href = resolveNotificationDestination({
-        eventType,
-        role: recipientRole || "user",
-        payload,
-      });
+      href = resolveNotificationDestination({ eventType, role: recipientRole || "user", payload });
       break;
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED:
       category = NOTIFICATION_CATEGORIES.INQUIRY;
       title = "New viewing request";
-      {
-        const listingTitle = payload.listing_title ?? payload.listingTitle ?? "your listing";
-        const slotLabel =
-          payload.slot_label ??
-          payload.slotLabel ??
-          formatViewingSlotLabel(payload.requested_date, payload.requested_time);
-        body = slotLabel
-          ? `A buyer requested a viewing for ${listingTitle} on ${slotLabel}.`
-          : `A buyer requested a viewing for ${listingTitle}.`;
-      }
+      body = appendSlotLine(
+        `${senderName} requested a viewing for ${listingTitle}.`,
+        slotLabel?.replace(" · ", " • ")
+      );
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
       dedupeKey = dedupeKey ?? `viewing_requested:${viewingId ?? ""}`;
-      href = resolveNotificationDestination({
-        eventType,
-        role: recipientRole || "agent",
-        payload,
-      });
+      href = resolveNotificationDestination({ eventType, role: recipientRole || "agent", payload });
       break;
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED:
       category = NOTIFICATION_CATEGORIES.INQUIRY;
       title = "Viewing confirmed";
-      body = "Your requested viewing time has been confirmed.";
+      body = appendSlotLine(
+        `Your viewing for ${listingTitle} has been confirmed.`,
+        slotLabel?.replace(" · ", " • ")
+      );
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
       dedupeKey = dedupeKey ?? `viewing_confirmed:${viewingId ?? ""}`;
-      href = resolveNotificationDestination({
-        eventType,
-        role: recipientRole || "user",
-        payload,
-      });
+      href = resolveNotificationDestination({ eventType, role: recipientRole || "user", payload });
       break;
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_CANCELLED:
       category = NOTIFICATION_CATEGORIES.INQUIRY;
       title = "Viewing cancelled";
-      body = "A scheduled viewing was cancelled.";
+      body = `A viewing for ${listingTitle} was cancelled.`;
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
       dedupeKey = dedupeKey ?? `viewing_cancelled:${viewingId ?? ""}`;
-      href = resolveNotificationDestination({
-        eventType,
-        role: recipientRole || "user",
-        payload,
-      });
+      href = resolveNotificationDestination({ eventType, role: recipientRole || "user", payload });
       break;
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED:
       category = NOTIFICATION_CATEGORIES.INQUIRY;
       title = "Viewing declined";
-      body = "The agent could not accommodate your requested viewing time.";
+      body = `Your viewing request for ${listingTitle} was declined.`;
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
       dedupeKey = dedupeKey ?? `viewing_declined:${viewingId ?? ""}`;
-      href = resolveNotificationDestination({
-        eventType,
-        role: recipientRole || "user",
-        payload,
-      });
+      href = resolveNotificationDestination({ eventType, role: recipientRole || "user", payload });
       break;
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_RESCHEDULED:
       category = NOTIFICATION_CATEGORIES.INQUIRY;
-      title = "Viewing reschedule proposed";
-      body = "A new time was proposed for your viewing — review and respond.";
+      if (payload.reschedule_declined || payload.rescheduleDeclined) {
+        title = "Reschedule declined";
+        body = `${senderName} declined the proposed viewing time for ${listingTitle}.`;
+        dedupeKey = dedupeKey ?? `viewing_reschedule_declined:${viewingId ?? ""}`;
+      } else {
+        title = "Viewing rescheduled";
+        body = appendSlotLine(
+          `A new viewing time has been proposed for ${listingTitle}.`,
+          slotLabel?.replace(" · ", " • ")
+        );
+        dedupeKey =
+          dedupeKey ??
+          `viewing_rescheduled:${viewingId ?? ""}:${payload.proposed_date ?? payload.proposedDate ?? ""}`;
+      }
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
-      dedupeKey = dedupeKey ?? `viewing_rescheduled:${viewingId ?? ""}`;
-      href = resolveNotificationDestination({
-        eventType,
-        role: recipientRole || "user",
-        payload,
-      });
+      href = resolveNotificationDestination({ eventType, role: recipientRole || "user", payload });
+      break;
+
+    case NOTIFICATION_EVENT_TYPES.VIEWING_COMPLETED:
+      category = NOTIFICATION_CATEGORIES.INQUIRY;
+      title = "Viewing completed";
+      body = `Your viewing for ${listingTitle} is marked complete.`;
+      entityType = "viewing";
+      entityId = viewingId ? String(viewingId) : null;
+      dedupeKey = dedupeKey ?? `viewing_completed:${viewingId ?? ""}`;
+      href = resolveNotificationDestination({ eventType, role: recipientRole || "user", payload });
       break;
 
     case NOTIFICATION_EVENT_TYPES.GEOGRAPHIC_UPDATE_V1:
@@ -156,7 +159,7 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "system";
       entityId = "geographic-update-v1";
       dedupeKey = dedupeKey ?? "geographic_update_v1:2026-07-13";
-      href = resolveGeographicUpdateListingsHref(recipientRole || role || "user");
+      href = resolveGeographicUpdateListingsHref(recipientRole || "user");
       break;
 
     case NOTIFICATION_EVENT_TYPES.INQUIRY_ARCHIVED:
@@ -166,11 +169,7 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "inquiry";
       entityId = inquiryId ? String(inquiryId) : null;
       dedupeKey = dedupeKey ?? `inquiry_archived:${inquiryId ?? ""}`;
-      href = resolveNotificationDestination({
-        eventType,
-        role: recipientRole || "agent",
-        payload,
-      });
+      href = resolveNotificationDestination({ eventType, role: recipientRole || "agent", payload });
       break;
 
     default:
@@ -188,7 +187,6 @@ export function buildNotificationPresentation(eventType, payload = {}) {
 
 /**
  * Map a notifications table row to NotificationCenter item shape.
- * @param {Record<string, unknown>} row
  */
 export function mapNotificationRowToCenterItem(row) {
   const payload =

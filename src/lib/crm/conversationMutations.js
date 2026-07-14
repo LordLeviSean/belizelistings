@@ -11,6 +11,7 @@ import {
   INQUIRY_STATUS,
   MESSAGE_SENDER_ROLE,
 } from "./crmConstants";
+import { buildInboxMessagePayload } from "../notifications/crmNotificationHelpers";
 import { withNotificationRecipientRole } from "./notificationRecipientRoles";
 import { isCrmUnavailable } from "./crmCompat";
 
@@ -140,7 +141,7 @@ export async function markConversationReadByBuyer(client, { conversationId, buye
   return { error };
 }
 
-export async function sendBuyerReply(client, { conversationId, buyerUserId, body, listingId }) {
+export async function sendBuyerReply(client, { conversationId, buyerUserId, body, listingId, listingTitle, senderName }) {
   const text = String(body || "").trim();
   if (!text) {
     return { data: null, error: { message: "Message body required" } };
@@ -166,7 +167,7 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
 
   const { data: conv } = await client
     .from("conversations")
-    .select("agent_id,listing_id,inquiry_id")
+    .select("agent_id,listing_id,inquiry_id,buyer_name")
     .eq("id", conversationId)
     .eq("buyer_id", buyerUserId)
     .maybeSingle();
@@ -188,6 +189,8 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
   const agentUserId = conv?.agent_id;
 
   if (agentUserId) {
+    const resolvedTitle = listingTitle ?? null;
+    const resolvedSender = senderName ?? conv?.buyer_name ?? null;
     await enqueueNotificationEvent(
       client,
       {
@@ -196,13 +199,16 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
         payload: withNotificationRecipientRole(
           agentUserId,
           { agentUserId, listingOwnerUserId: agentUserId },
-          {
-            conversation_id: conversationId,
-            message_id: message?.id,
-            inquiry_id: conv?.inquiry_id,
-            listing_id: resolvedListingId,
-            dedupe_key: `buyer_message:${conversationId}:${message?.id ?? now}`,
-          }
+          buildInboxMessagePayload({
+            conversationId,
+            messageId: message?.id,
+            inquiryId: conv?.inquiry_id,
+            listingId: resolvedListingId,
+            listingTitle: resolvedTitle,
+            senderName: resolvedSender,
+            recipientSide: "owner",
+            dedupePrefix: "buyer_message",
+          })
         ),
       },
       { deliver: BL_ENABLE_NOTIFICATIONS }
@@ -228,7 +234,7 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
   return { data: message, error: null };
 }
 
-export async function sendAgentReply(client, { conversationId, agentUserId, body, listingId }) {
+export async function sendAgentReply(client, { conversationId, agentUserId, body, listingId, listingTitle }) {
   const text = String(body || "").trim();
   if (!text) {
     return { data: null, error: { message: "Message body required" } };
@@ -284,22 +290,28 @@ export async function sendAgentReply(client, { conversationId, agentUserId, body
       .eq("id", conv.inquiry_id);
   }
 
+  const resolvedListingId = listingId ?? conv?.listing_id;
+
   if (conv?.buyer_id) {
     await enqueueNotificationEvent(
       client,
       {
         eventType: NOTIFICATION_EVENT_TYPES.AGENT_REPLIED,
         recipientId: conv.buyer_id,
-        payload: withNotificationRecipientRole(conv.buyer_id, { requesterId: conv.buyer_id }, {
-          conversation_id: conversationId,
-          message_id: message?.id,
-        }),
+        payload: withNotificationRecipientRole(conv.buyer_id, { requesterId: conv.buyer_id }, buildInboxMessagePayload({
+          conversationId,
+          messageId: message?.id,
+          inquiryId: conv.inquiry_id,
+          listingId: resolvedListingId,
+          listingTitle: listingTitle ?? null,
+          recipientSide: "buyer",
+          dedupePrefix: "agent_replied",
+        })),
       },
       { deliver: BL_ENABLE_NOTIFICATIONS }
     );
   }
 
-  const resolvedListingId = listingId ?? conv?.listing_id;
   if (resolvedListingId) {
     await emitListingEventAfterMutation({
       client,

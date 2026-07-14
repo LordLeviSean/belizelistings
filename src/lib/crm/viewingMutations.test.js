@@ -18,6 +18,7 @@ jest.mock("../notifications/notificationEvents", () => ({
     VIEWING_DECLINED: "viewing_declined",
     VIEWING_CANCELLED: "viewing_cancelled",
     VIEWING_RESCHEDULED: "viewing_rescheduled",
+    VIEWING_COMPLETED: "viewing_completed",
   },
 }));
 
@@ -163,6 +164,7 @@ describe("viewingMutations", () => {
       cancelledByAgent: false,
     });
     expect(error).toBeNull();
+    expect(enqueueNotificationEvent).toHaveBeenCalledTimes(2);
     expect(enqueueNotificationEvent).toHaveBeenCalledWith(
       client,
       expect.objectContaining({ eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CANCELLED }),
@@ -170,14 +172,36 @@ describe("viewingMutations", () => {
     );
   });
 
-  test("markViewingCompleted updates status", async () => {
+  test("markViewingCompleted updates status and notifies both parties", async () => {
     const chain = {
       eq: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: { id: "view-1", status: VIEWING_STATUS.COMPLETED }, error: null }),
+      single: jest.fn().mockResolvedValue({
+        data: {
+          id: "view-1",
+          status: VIEWING_STATUS.COMPLETED,
+          listing_id: 2,
+          requester_id: "buyer-1",
+          agent_user_id: "agent-1",
+          requested_date: "2026-07-15",
+          requested_time: "08:00",
+        },
+        error: null,
+      }),
     };
     const client = {
-      from: jest.fn(() => ({ update: jest.fn().mockReturnValue(chain) })),
+      from: jest.fn((table) => {
+        if (table === "listings") {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockResolvedValue({ data: { title: "Finca" }, error: null }),
+              }),
+            }),
+          };
+        }
+        return { update: jest.fn().mockReturnValue(chain) };
+      }),
     };
     const { data, error } = await markViewingCompleted(client, {
       viewingId: "view-1",
@@ -185,6 +209,7 @@ describe("viewingMutations", () => {
     });
     expect(error).toBeNull();
     expect(data.status).toBe(VIEWING_STATUS.COMPLETED);
+    expect(enqueueNotificationEvent).toHaveBeenCalledTimes(2);
   });
 
   test("deleteViewing as agent only sets agent_deleted_at", async () => {
