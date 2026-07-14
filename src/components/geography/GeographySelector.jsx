@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
 import {
   getAreaOptionsForMapRegion,
   getLocalityOptionsForCommunity,
-  getMapRegionsForSelector,
+  getMapRegionOptionsForSelector,
   isHighwaySelection,
 } from "@/lib/geography/belizeGeographyV1";
 import styles from "./GeographySelector.module.css";
 
-function SearchableSelect({
+function NativeSelect({
   id,
   label,
   value,
@@ -18,74 +17,33 @@ function SearchableSelect({
   error,
   required,
 }) {
-  const [query, setQuery] = useState("");
-  const selected = options.find((o) => o.id === value);
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return options;
-    return options.filter(
-      (o) =>
-        o.label.toLowerCase().includes(q) ||
-        o.name?.toLowerCase().includes(q) ||
-        o.slug?.toLowerCase().includes(q)
-    );
-  }, [options, query]);
-
-  useEffect(() => {
-    if (selected) setQuery(selected.label);
-    else if (!value) setQuery("");
-  }, [value, selected]);
-
   return (
     <div className={styles.field}>
       <label htmlFor={id} className={styles.label}>
         {label}
         {required ? <span className={styles.req}> *</span> : null}
       </label>
-      <input
-        id={id}
-        className={styles.searchInput}
-        list={`${id}-list`}
-        value={query}
-        placeholder={placeholder}
-        disabled={disabled}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          const hit = options.find(
-            (o) => o.label.toLowerCase() === e.target.value.trim().toLowerCase()
-          );
-          if (hit) onChange(hit.id);
-          else if (!e.target.value.trim()) onChange("");
-        }}
-        onBlur={() => {
-          if (selected) setQuery(selected.label);
-        }}
-      />
-      <datalist id={`${id}-list`}>
-        {filtered.map((o) => (
-          <option key={o.id} value={o.label} />
-        ))}
-      </datalist>
       <select
-        className={styles.nativeSelect}
-        aria-hidden="true"
-        tabIndex={-1}
+        id={id}
+        className={styles.select}
         value={value || ""}
         disabled={disabled}
-        onChange={(e) => {
-          onChange(e.target.value);
-          const hit = options.find((o) => o.id === e.target.value);
-          if (hit) setQuery(hit.label);
-        }}
+        onChange={(e) => onChange(e.target.value)}
+        aria-invalid={error ? "true" : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
       >
         <option value="">{placeholder}</option>
-        {filtered.map((o) => (
+        {options.map((o) => (
           <option key={o.id} value={o.id}>
             {o.label}
           </option>
         ))}
       </select>
-      {error ? <p className={styles.error}>{error}</p> : null}
+      {error ? (
+        <p id={`${id}-error`} className={styles.error} role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -104,7 +62,7 @@ export default function GeographySelector({
   const localityId = value.locality_id || "";
   const highwayMile = value.highway_mile ?? "";
 
-  const mapRegions = getMapRegionsForSelector();
+  const mapRegionOptions = getMapRegionOptionsForSelector();
   const areaOptions = mapRegionSlug ? getAreaOptionsForMapRegion(mapRegionSlug) : [];
   const selectedArea = areaOptions.find((o) => o.id === areaId);
   const isHighway = selectedArea?.kind === "highway";
@@ -144,19 +102,9 @@ export default function GeographySelector({
     emit(patch);
   };
 
-  const mapRegionOptions = mapRegions.map((mr) => ({
-    id: mr.slug,
-    slug: mr.slug,
-    name: mr.name,
-    label:
-      mr.slug === "ambergris-caye" || mr.slug === "caye-caulker"
-        ? mr.name
-        : `${mr.name} District`,
-  }));
-
   return (
     <div className={styles.root}>
-      <SearchableSelect
+      <NativeSelect
         id="geo-map-region"
         label="District / Region"
         value={mapRegionSlug}
@@ -168,7 +116,7 @@ export default function GeographySelector({
         required
       />
 
-      <SearchableSelect
+      <NativeSelect
         id="geo-area"
         label="City / Town / Village"
         value={areaId}
@@ -200,7 +148,7 @@ export default function GeographySelector({
         </div>
       ) : localityOptions.length > 0 ? (
         <>
-          <SearchableSelect
+          <NativeSelect
             id="geo-locality"
             label="Neighborhood / Locality"
             value={localityId}
@@ -231,7 +179,7 @@ export default function GeographySelector({
               </label>
               <input
                 id="geo-not-listed-note"
-                className={styles.searchInput}
+                className={styles.textInput}
                 value={value.locality_not_listed_note || ""}
                 disabled={disabled}
                 onChange={(e) => emit({ locality_not_listed_note: e.target.value })}

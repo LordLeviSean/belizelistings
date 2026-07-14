@@ -6,6 +6,18 @@ import { normalizeRegionSlug } from "../../constants/geographyLayer";
 
 const DATA = BELIZE_GEOGRAPHY_V1;
 
+/** Approved display order for Create Listing District / Region (not alphabetical). */
+export const MAP_REGION_SELECTOR_ORDER = Object.freeze([
+  "corozal",
+  "orange-walk",
+  "belize",
+  "cayo",
+  "stann-creek",
+  "toledo",
+  "ambergris-caye",
+  "caye-caulker",
+]);
+
 const byMapRegionId = new Map();
 const byCommunityId = new Map();
 const byLocalityId = new Map();
@@ -79,10 +91,10 @@ function initIndexes() {
 
   // Sort children for stable UI
   for (const [, list] of communitiesByMapRegion) {
-    list.sort((a, b) => a.name.localeCompare(b.name));
+    list.sort(sortByDisplayName);
   }
   for (const [, list] of localitiesByCommunity) {
-    list.sort((a, b) => a.name.localeCompare(b.name));
+    list.sort(sortByDisplayName);
   }
 }
 
@@ -96,10 +108,25 @@ export function getGeographyTotals() {
   return DATA.totals || {};
 }
 
-/** Eight interactive map regions in display order. */
+/** Eight interactive map regions in approved Create Listing order. */
 export function getMapRegionsForSelector() {
   initIndexes();
-  return [...DATA.mapRegions].sort((a, b) => a.display_order - b.display_order);
+  const order = new Map(MAP_REGION_SELECTOR_ORDER.map((slug, index) => [slug, index]));
+  return [...DATA.mapRegions].sort(
+    (a, b) => (order.get(a.slug) ?? 99) - (order.get(b.slug) ?? 99)
+  );
+}
+
+export function getMapRegionOptionsForSelector() {
+  return getMapRegionsForSelector().map((mr) => ({
+    id: mr.slug,
+    slug: mr.slug,
+    name: mr.name,
+    label:
+      mr.slug === "ambergris-caye" || mr.slug === "caye-caulker"
+        ? mr.name
+        : `${mr.name} District`,
+  }));
 }
 
 export function getMapRegionBySlug(slug) {
@@ -130,15 +157,24 @@ export function getHighwayById(id) {
 
 function communityTypeLabel(c) {
   if (!c) return "Community";
-  return c.ui_tier || c.location_type || "Community";
+  const raw = c.ui_tier || c.location_type || "community";
+  if (raw === "mennonite_community") return "Village";
+  if (raw === "road_corridor") return "Road Corridor";
+  if (raw === "highway") return "Highway";
+  if (raw === "city") return "City";
+  if (raw === "town") return "Town";
+  if (raw === "village") return "Village";
+  if (raw === "caye") return "Caye";
+  const titled = String(raw).replace(/_/g, " ");
+  return titled.charAt(0).toUpperCase() + titled.slice(1);
 }
 
 function formatCommunityOptionLabel(c) {
-  const type = communityTypeLabel(c);
-  if (type === "City" || type === "Town" || type === "Village" || type === "Caye") {
-    return `${type}: ${c.name}`;
-  }
-  return `${type} — ${c.name}`;
+  return `${c.name} — ${communityTypeLabel(c)}`;
+}
+
+function sortByDisplayName(a, b) {
+  return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
 }
 
 /** Second-tier options: settlements, highways, road corridors for a map region. */
@@ -161,7 +197,7 @@ export function getAreaOptionsForMapRegion(mapRegionSlug) {
     name: hw.name,
     kind: "highway",
     location_type: "highway",
-    label: `Highway — ${hw.name}`,
+    label: `${hw.name} — Highway`,
     map_region_id: mr.id,
     approx_mile_max: hw.approx_mile_max,
   }));
@@ -171,10 +207,10 @@ export function getAreaOptionsForMapRegion(mapRegionSlug) {
     name: rc.name,
     kind: "road_corridor",
     location_type: "road_corridor",
-    label: `Road — ${rc.name}`,
+    label: `${rc.name} — Road Corridor`,
     map_region_id: mr.id,
   }));
-  return [...settlements, ...highways, ...roads].sort((a, b) => a.label.localeCompare(b.label));
+  return [...settlements, ...highways, ...roads].sort(sortByDisplayName);
 }
 
 export function getLocalityOptionsForCommunity(communityId) {
@@ -193,10 +229,15 @@ export function isHighwaySelection(selection) {
   return selection?.kind === "highway" || String(selection?.location_type || "").includes("highway");
 }
 
-export function validateHighwayMile(highwayId, mileRaw) {
+export function validateHighwayMile(highwayId, mileRaw, { required = false } = {}) {
   const hw = getHighwayById(highwayId);
   if (!hw) return { ok: false, error: "Select a highway." };
-  const mile = Number(String(mileRaw ?? "").trim());
+  const raw = String(mileRaw ?? "").trim();
+  if (!raw) {
+    if (required) return { ok: false, error: "Enter a mile marker." };
+    return { ok: true, mile: null };
+  }
+  const mile = Number(raw);
   if (!Number.isFinite(mile) || mile <= 0) {
     return { ok: false, error: "Enter a valid mile marker." };
   }

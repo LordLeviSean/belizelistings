@@ -6,8 +6,19 @@ import {
 } from "./belizeGeographyV1";
 
 describe("belizeGeographyV1", () => {
-  test("exposes eight map regions", () => {
-    expect(getMapRegionsForSelector()).toHaveLength(8);
+  test("exposes eight map regions in approved order", () => {
+    const regions = getMapRegionsForSelector();
+    expect(regions).toHaveLength(8);
+    expect(regions.map((r) => r.slug)).toEqual([
+      "corozal",
+      "orange-walk",
+      "belize",
+      "cayo",
+      "stann-creek",
+      "toledo",
+      "ambergris-caye",
+      "caye-caulker",
+    ]);
   });
 
   test("Corozal San Pedro is isolated from Ambergris San Pedro", () => {

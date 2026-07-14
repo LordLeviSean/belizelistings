@@ -188,12 +188,8 @@ function validateWorkspaceStageForContinue(stage, form) {
     if (!String(form.property_type || "").trim()) {
       nextErrors.property_type = "Select a property type.";
     }
-    if (form.map_region_slug) {
-      const geo = validateGeographyForm(form);
-      if (!geo.ok) Object.assign(nextErrors, geo.errors);
-    } else if (!resolveListingDistrictSlug(form)) {
-      nextErrors.district = "Select a region.";
-    }
+    const geo = validateGeographyForm(form);
+    if (!geo.ok) Object.assign(nextErrors, geo.errors);
     const price = Number(form.price);
     if (form.price !== "" && form.price != null && (Number.isNaN(price) || price < 0)) {
       nextErrors.price = "Enter a valid price.";
@@ -1228,15 +1224,8 @@ export default function DashboardCreatePage() {
     if (!property_type || !PROPERTY_TYPES.includes(property_type)) {
       nextErrors.property_type = "Select a valid property type.";
     }
-    if (form.map_region_slug) {
-      const geo = validateGeographyForm(form);
-      if (!geo.ok) Object.assign(nextErrors, geo.errors);
-    } else {
-      const districtSlugs = getSelectableRegions().map((region) => region.slug);
-      if (!district || !districtSlugs.includes(district)) {
-        nextErrors.district = "Select a valid region.";
-      }
-    }
+    const geo = validateGeographyForm(form);
+    if (!geo.ok) Object.assign(nextErrors, geo.errors);
     if (Number.isNaN(price) || price <= 0) nextErrors.price = "Enter a valid price.";
     return {
       ok: Object.keys(nextErrors).length === 0,

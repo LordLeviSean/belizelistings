@@ -15,6 +15,7 @@ export const CREATE_FORM_INITIAL = Object.freeze({
   locality_id: "",
   highway_id: "",
   highway_mile: "",
+  road_corridor_id: "",
   locality_not_listed: false,
   locality_not_listed_note: "",
   listing_type: "sale",
@@ -35,9 +36,10 @@ export function mapListingRowToCreateForm(listing = {}) {
     listing.map_region_slug
       ? {
           map_region_slug: listing.map_region_slug,
-          community_id: listing.community_id || listing.highway_id || "",
+          community_id: listing.community_id || "",
           locality_id: listing.locality_id || "",
           highway_id: listing.highway_id || "",
+          road_corridor_id: listing.road_corridor_id || "",
           highway_mile:
             listing.highway_mile != null && listing.highway_mile !== ""
               ? String(listing.highway_mile)
@@ -59,10 +61,14 @@ export function mapListingRowToCreateForm(listing = {}) {
     property_type: PROPERTY_TYPES.includes(pt) ? pt : "",
     district: districtLabel,
     map_region_slug: geo.map_region_slug || listing.map_region_slug || "",
-    community_id: geo.community_id || listing.community_id || "",
-    locality_id: geo.locality_id || listing.locality_id || "",
-    highway_id: geo.highway_id || listing.highway_id || "",
-    highway_mile: geo.highway_mile || "",
+    community_id: listing.community_id || geo.community_id || "",
+    locality_id: listing.locality_id || geo.locality_id || "",
+    highway_id: listing.highway_id || geo.highway_id || "",
+    road_corridor_id: listing.road_corridor_id || "",
+    highway_mile:
+      listing.highway_mile != null && listing.highway_mile !== ""
+        ? String(listing.highway_mile)
+        : "",
     locality_not_listed: geo.locality_not_listed || false,
     locality_not_listed_note: geo.locality_not_listed_note || "",
     listing_type: listing.listing_type === "rent" ? "rent" : "sale",

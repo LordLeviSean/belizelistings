@@ -145,13 +145,8 @@ export function validateListingDraftContract({ form = {}, authUserId = null } = 
   const errors = {};
   if (!authUserId) errors.auth = "Sign in to save your draft.";
 
-  if (form?.map_region_slug) {
-    const geoCheck = validateGeographyForm(form);
-    if (!geoCheck.ok) Object.assign(errors, geoCheck.errors);
-  } else {
-    const district = resolveListingDistrictSlug(form);
-    if (!district) errors.district = "Select a region.";
-  }
+  const geoCheck = validateGeographyForm(form);
+  if (!geoCheck.ok) Object.assign(errors, geoCheck.errors);
 
   const district = resolveListingDistrictSlug(form);
   const property_type = String(form?.property_type ?? "").trim().toLowerCase();

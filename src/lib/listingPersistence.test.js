@@ -16,6 +16,27 @@ describe("listingPersistence write contract integration", () => {
 });
 
 describe("listingPersistence buildCreateListingPayload", () => {
+  test("structured geography preserved in create payload", () => {
+    const p = buildCreateListingPayload({
+      form: {
+        map_region_slug: "stann-creek",
+        highway_id: "highway-hummingbird-highway",
+        highway_mile: "12",
+        title: "t",
+        price: 1,
+        property_type: "land",
+        listing_type: "sale",
+        beds: 0,
+        baths: 0,
+      },
+      authUserId: "u1",
+    });
+    expect(p.map_region_slug).toBe("stann-creek");
+    expect(p.highway_id).toBe("highway-hummingbird-highway");
+    expect(p.highway_mile).toBe(12);
+    expect(p.community_id).toBeNull();
+  });
+
   test("parent region only: Belize", () => {
     const p = buildCreateListingPayload({
       form: { district: "Belize", title: "t", price: 1, property_type: "house", listing_type: "sale", beds: 0, baths: 0 },
@@ -162,22 +183,27 @@ describe("listingPersistence district contract", () => {
     expect(resolveListingDistrictSlug({ subregion_slug: "san-pedro" })).toBe("san-pedro");
   });
 
-  test("validateListingDraftContract rejects missing district", () => {
+  test("validateListingDraftContract rejects missing structured geography", () => {
     const v = validateListingDraftContract({
       form: { property_type: "house", listing_type: "sale" },
       authUserId: "u1",
     });
     expect(v.ok).toBe(false);
-    expect(v.errors.district).toBeTruthy();
+    expect(v.errors.map_region_slug).toBeTruthy();
   });
 
-  test("validateListingDraftContract accepts minimal draft fields", () => {
+  test("validateListingDraftContract accepts structured geography", () => {
     const v = validateListingDraftContract({
-      form: { district: "Belize", property_type: "house", listing_type: "sale" },
+      form: {
+        map_region_slug: "belize",
+        community_id: "area-belize-belize-city",
+        property_type: "house",
+        listing_type: "sale",
+      },
       authUserId: "u1",
     });
     expect(v.ok).toBe(true);
-    expect(v.district).toBe("belize");
+    expect(v.district).toBeTruthy();
   });
 });
 

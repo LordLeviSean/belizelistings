@@ -104,7 +104,7 @@ export function validateGeographyForm(form = {}) {
   }
 
   if (isHighwaySelection(selected) || form.highway_id) {
-    const mileCheck = validateHighwayMile(areaId, form.highway_mile);
+    const mileCheck = validateHighwayMile(areaId, form.highway_mile, { required: false });
     if (!mileCheck.ok) errors.highway_mile = mileCheck.error;
   } else if (form.locality_id) {
     const community = getCommunityById(areaId);

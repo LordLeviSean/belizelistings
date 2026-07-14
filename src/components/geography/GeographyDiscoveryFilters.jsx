@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import {
   getAreaOptionsForMapRegion,
   getLocalityOptionsForCommunity,
-  getMapRegionsForSelector,
+  getMapRegionOptionsForSelector,
 } from "@/lib/geography/belizeGeographyV1";
 import styles from "./GeographySelector.module.css";
 
@@ -14,7 +14,7 @@ export default function GeographyDiscoveryFilters({ value = {}, onChange, disabl
   const communityId = value.communityId || "";
   const localityId = value.localityId || "";
 
-  const mapRegions = useMemo(() => getMapRegionsForSelector(), []);
+  const mapRegions = useMemo(() => getMapRegionOptionsForSelector(), []);
   const areaOptions = mapRegion ? getAreaOptionsForMapRegion(mapRegion) : [];
   const localityOptions = communityId
     ? getLocalityOptionsForCommunity(communityId).map((l) => ({
@@ -46,9 +46,7 @@ export default function GeographyDiscoveryFilters({ value = {}, onChange, disabl
           <option value="">All regions</option>
           {mapRegions.map((mr) => (
             <option key={mr.id} value={mr.slug}>
-              {mr.slug === "ambergris-caye" || mr.slug === "caye-caulker"
-                ? mr.name
-                : `${mr.name} District`}
+              {mr.label}
             </option>
           ))}
         </select>
