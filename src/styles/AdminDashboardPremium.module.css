@@ -1,9 +1,15 @@
 /**
  * Admin-only premium frame — decorative shell around /admin.
+ * Compound selectors (.adminPage.adminPage, etc.) beat Dashboard.module.css
+ * at equal specificity regardless of CSS bundle order.
  * Must not reduce contrast on data surfaces (tables, badges, forms).
  */
 
 .adminPage {
+  composes: page from "./Dashboard.module.css";
+}
+
+.adminPage.adminPage {
   position: relative;
   background:
     repeating-linear-gradient(
@@ -22,6 +28,15 @@
     ),
     radial-gradient(ellipse 80% 56% at 50% 0%, rgba(88, 52, 36, 0.22), transparent 68%),
     linear-gradient(168deg, #3d2618 0%, #2a1810 38%, #1f120c 100%);
+}
+
+.main {
+  composes: main from "./Dashboard.module.css";
+}
+
+.main.main {
+  position: relative;
+  z-index: 2;
 }
 
 .frame {
@@ -88,11 +103,6 @@
     );
 }
 
-.main {
-  position: relative;
-  z-index: 2;
-}
-
 .contentWell {
   position: relative;
   z-index: 2;
@@ -107,7 +117,7 @@
 }
 
 /* Neon accent — active admin nav tab only (via global class hook). */
-.adminPage :global(.adminTabNeonActive) {
+.adminPage.adminPage :global(.adminTabNeonActive) {
   box-shadow:
     0 0 0 1px rgba(72, 220, 196, 0.35) inset,
     0 0 18px rgba(56, 200, 176, 0.42),
@@ -122,8 +132,8 @@
     border-color var(--dur-3) var(--ease-out-soft);
 }
 
-.lampTarget:hover,
-.lampTarget:focus-within {
+.lampTarget.lampTarget:hover,
+.lampTarget.lampTarget:focus-within {
   box-shadow:
     var(--elev-2),
     0 0 0 1px rgba(255, 220, 170, 0.18) inset,
@@ -138,8 +148,8 @@
     transform var(--dur-2) var(--ease-out-soft);
 }
 
-.adminPrimaryAction:hover:not(:disabled),
-.adminPrimaryAction:focus-visible {
+.adminPrimaryAction.adminPrimaryAction:hover:not(:disabled),
+.adminPrimaryAction.adminPrimaryAction:focus-visible {
   box-shadow:
     var(--elev-2),
     0 0 16px rgba(64, 220, 196, 0.45),
@@ -152,10 +162,10 @@
     transition-duration: 0.01ms !important;
   }
 
-  .lampTarget:hover,
-  .lampTarget:focus-within,
-  .adminPrimaryAction:hover:not(:disabled),
-  .adminPrimaryAction:focus-visible {
+  .lampTarget.lampTarget:hover,
+  .lampTarget.lampTarget:focus-within,
+  .adminPrimaryAction.adminPrimaryAction:hover:not(:disabled),
+  .adminPrimaryAction.adminPrimaryAction:focus-visible {
     box-shadow: var(--elev-1);
   }
 }

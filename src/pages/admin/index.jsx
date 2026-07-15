@@ -316,12 +316,12 @@ export default function AdminPage() {
   if (!isAdmin) return null;
 
   return (
-    <div className={`${styles.page} ${premiumStyles.adminPage}`}>
+    <div className={premiumStyles.adminPage}>
       <div className={premiumStyles.silkLeft} aria-hidden />
       <div className={premiumStyles.silkRight} aria-hidden />
       <div className={premiumStyles.silkHeader} aria-hidden />
       <SiteNav active="dashboard" />
-      <main className={`${styles.main} ${premiumStyles.main}`}>
+      <main className={premiumStyles.main}>
         <div className={premiumStyles.frame}>
           <DashboardShell
             roleKey={DASHBOARD_ROLE.admin}
