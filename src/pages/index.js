@@ -17,7 +17,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 import BelizeMap from "../components/BelizeMap";
-import AmbientPalmBackdrop from "../components/AmbientPalmBackdrop";
 import SiteNav from "../components/SiteNav";
 import ListingCard from "../components/ListingCard";
 import PremiumEmptyState from "../components/ui/PremiumEmptyState";
@@ -377,7 +376,6 @@ export default function HomePage() {
           }}
         />
       ) : null}
-      <AmbientPalmBackdrop />
       <SiteNav active="browse" />
 
       <main id="home-main-content" className={styles.pageMain} tabIndex={-1}>

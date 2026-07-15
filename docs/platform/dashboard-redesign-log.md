@@ -89,7 +89,7 @@ Safety cap: `HOME_LOADING_MAX_MS` (2500ms) — never blocks unbounded.
 | Timing | Progressive — fast devices ~500–800ms, average ~1s, slow up to ~2s |
 | Reduced motion | Minimal fade; stages collapse (`advanceLoadingStage`) |
 | Accessibility | Overlay `aria-hidden`; Escape skips; focus → `#home-main-content` |
-| Visual world | Dark underwater palette aligned with Learn More archive (deep teal, cyan glow) |
+| Visual world | Dark seagrass homepage (`#0d2b22`→`#1f4d3b`); loading transition uses matching palette with stronger turquoise sweep |
 
 ### Homepage loading priority
 
