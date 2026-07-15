@@ -59,7 +59,14 @@ export default function GeographicUpdateModal({ open, onClose, user, role, supab
         >
           {GEOGRAPHIC_UPDATE_MODAL_COPY.primaryCta}
         </button>
-        <button type="button" className={styles.secondaryBtn} onClick={() => dismiss("explore")}>
+        <button
+          type="button"
+          className={styles.secondaryBtn}
+          onClick={async () => {
+            await dismiss("explore");
+            router.push(GEOGRAPHIC_UPDATE_MODAL_COPY.learnMoreHref);
+          }}
+        >
           {GEOGRAPHIC_UPDATE_MODAL_COPY.secondaryCta}
         </button>
         <button type="button" className={styles.tertiaryLink} onClick={() => dismiss("dismiss")}>

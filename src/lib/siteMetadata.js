@@ -16,14 +16,14 @@ export const PAGE_TITLES = Object.freeze({
   notifications: `Notifications${TITLE_SEPARATOR}${SITE_NAME}`,
   login: `Login${TITLE_SEPARATOR}${SITE_NAME}`,
   register: `Create Account${TITLE_SEPARATOR}${SITE_NAME}`,
-  learnMore: `Learn More${TITLE_SEPARATOR}${SITE_NAME}`,
+  learnMore: `BelizeListings Updates${TITLE_SEPARATOR}Built for Belize`,
   admin: `Admin Dashboard${TITLE_SEPARATOR}${SITE_NAME}`,
 });
 
 /** Route-specific meta descriptions (fallback: SITE_TAGLINE). */
 export const PAGE_DESCRIPTIONS = Object.freeze({
   learnMore:
-    "Learn what BelizeListings is, why we built it for Belize, what you can do today, and where the platform is heading.",
+    "Explore BelizeListings updates, including structured Belize geography, Inbox and Viewings, map-first discovery, and our Open Beta journey.",
 });
 
 const INBOX_TAB_IDS = new Set([

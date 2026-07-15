@@ -1,30 +1,36 @@
 import { ADMIN_DASHBOARD_TAB_IDS } from "@/constants/dashboardAdminConfig";
 import { AGENT_DASHBOARD_TAB_IDS } from "@/constants/dashboardAgentConfig";
 import { USER_DASHBOARD_TAB_IDS } from "@/constants/dashboardUserConfig";
+import { getGeographicUpdatePlatformEntry } from "@/constants/platformUpdates";
+
+const GEO_UPDATE = getGeographicUpdatePlatformEntry();
 
 /** Launch window — visitor local calendar dates (auto-expires after end date). */
 export const GEOGRAPHIC_UPDATE_LAUNCH_WINDOW = Object.freeze({
-  localStartDate: "2026-07-13",
-  localEndDate: "2026-07-16",
+  localStartDate: GEO_UPDATE?.modalStart || "2026-07-13",
+  localEndDate: GEO_UPDATE?.modalEnd || "2026-07-16",
   timezone: "America/Belize",
   startUtc: "2026-07-13T06:00:00.000Z",
   endUtc: "2026-07-17T05:59:59.999Z",
-  label: "2026-07-13 through 2026-07-16 (visitor local calendar dates)",
+  label: `${GEO_UPDATE?.modalStart || "2026-07-13"} through ${GEO_UPDATE?.modalEnd || "2026-07-16"} (visitor local calendar dates)`,
 });
 
 export const GEOGRAPHIC_UPDATE_NOTIFICATION = Object.freeze({
-  eventType: "geographic_update_v1",
-  dedupeKey: "geographic_update_v1:2026-07-13",
-  title: "Welcome to the Geographic Update! V1.0",
-  body: "BelizeListings now supports detailed District, City/Town/Village, Neighborhood, Highway and locality information across Belize. Update your current listings now to make sure buyers can find them in the correct area.",
-  cta: "Update My Listings",
+  eventType: GEO_UPDATE?.notificationEventType || "geographic_update_v1",
+  dedupeKey: GEO_UPDATE?.notificationDedupeKey || "geographic_update_v1:2026-07-13",
+  title: `${GEO_UPDATE?.title || "Welcome to the Geographic Update!"} ${GEO_UPDATE?.version || "V1.0"}`,
+  body:
+    GEO_UPDATE?.modalSummary ||
+    "BelizeListings now supports detailed District, City/Town/Village, Neighborhood, Highway and locality information across Belize. Update your current listings now to make sure buyers can find them in the correct area.",
+  cta: GEO_UPDATE?.primaryCta?.label || "Update My Listings",
 });
 
 export const GEOGRAPHIC_UPDATE_MODAL_COPY = Object.freeze({
   title: GEOGRAPHIC_UPDATE_NOTIFICATION.title,
-  body: "BelizeListings now includes detailed locations across Belize—from districts and towns to neighborhoods, villages, highways and mile markers.\n\nAlready have a listing? Update it now so buyers can find it in the correct area.",
+  body: `${GEO_UPDATE?.summary || ""}\n\nAlready have a listing? Update it now so buyers can find it in the correct area.`,
   primaryCta: GEOGRAPHIC_UPDATE_NOTIFICATION.cta,
   secondaryCta: "Explore the Update",
+  learnMoreHref: `/learn-more#${GEO_UPDATE?.slug || "geographic-update-v1"}`,
 });
 
 const SESSION_KEY_PREFIX = "bl_geo_update_modal_session";

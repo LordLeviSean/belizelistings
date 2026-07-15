@@ -3,6 +3,7 @@
 import {
   GEOGRAPHIC_UPDATE_LAUNCH_WINDOW,
   GEOGRAPHIC_UPDATE_NOTIFICATION,
+  GEOGRAPHIC_UPDATE_MODAL_COPY,
   getVisitorLocalDateKey,
   hasSeenGeographicUpdateModalThisSession,
   isGeographicUpdateModalEligible,
@@ -17,6 +18,10 @@ describe("geographicUpdateLaunch", () => {
 
   test("dedupe key is deterministic", () => {
     expect(GEOGRAPHIC_UPDATE_NOTIFICATION.dedupeKey).toBe("geographic_update_v1:2026-07-13");
+  });
+
+  test("modal explore CTA targets archived learn-more geographic entry", () => {
+    expect(GEOGRAPHIC_UPDATE_MODAL_COPY.learnMoreHref).toBe("/learn-more#geographic-update-v1");
   });
 
   test("role-aware deep links", () => {

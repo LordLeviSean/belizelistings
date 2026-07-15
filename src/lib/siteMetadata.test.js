@@ -78,6 +78,7 @@ describe("resolveRouteTitle", () => {
 
   test("learn more title", () => {
     expect(resolveRouteTitle("/learn-more")).toBe(PAGE_TITLES.learnMore);
+    expect(PAGE_TITLES.learnMore).toContain("BelizeListings Updates");
   });
 });
 
