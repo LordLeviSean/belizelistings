@@ -14,10 +14,12 @@ export default function ListingInteractionModal({
   onClose,
   title,
   titleId: titleIdProp,
+  eyebrow = null,
   children,
   footer = null,
   compact = false,
   panelClassName = "",
+  backdropClassName = "",
   onEscape,
   dismissOnBackdrop = true,
 }) {
@@ -61,7 +63,9 @@ export default function ListingInteractionModal({
 
   if (!isOpen || !mounted) return null;
 
-  const backdropClass = [styles.backdrop, compact ? styles.backdropCompact : ""].filter(Boolean).join(" ");
+  const backdropClass = [styles.backdrop, compact ? styles.backdropCompact : "", backdropClassName]
+    .filter(Boolean)
+    .join(" ");
   const panelClass = [styles.panel, panelClassName].filter(Boolean).join(" ");
 
   return createPortal(
@@ -75,9 +79,12 @@ export default function ListingInteractionModal({
     >
       <div className={panelClass} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className={styles.head}>
-          <h2 id={titleId} className={styles.title}>
-            {title}
-          </h2>
+          <div className={styles.headText}>
+            {eyebrow ? <div className={styles.eyebrowWrap}>{eyebrow}</div> : null}
+            <h2 id={titleId} className={styles.title}>
+              {title}
+            </h2>
+          </div>
           <button type="button" className={styles.close} aria-label="Close" onClick={() => onClose?.()}>
             <X size={18} aria-hidden />
           </button>

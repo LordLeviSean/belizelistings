@@ -60,4 +60,22 @@ describe("ListingInteractionModal", () => {
     );
     expect(document.body.querySelector('[role="dialog"]')).toBeNull();
   });
+
+  test("renders optional eyebrow above title", () => {
+    renderModal(
+      <ListingInteractionModal
+        isOpen
+        onClose={() => {}}
+        title="Geographic update"
+        eyebrow={<span>Platform update</span>}
+      >
+        <p>Body</p>
+      </ListingInteractionModal>
+    );
+
+    const dialog = document.body.querySelector('[role="dialog"]');
+    expect(dialog.textContent).toMatch(/Platform update/i);
+    expect(dialog.textContent).toMatch(/Geographic update/i);
+    expect(document.body.querySelector(`.${modalStyles.eyebrowWrap}`)).toBeTruthy();
+  });
 });

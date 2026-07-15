@@ -59,10 +59,19 @@
 
 .head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 10px;
+}
+
+.headText {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.eyebrowWrap {
+  margin-bottom: 8px;
 }
 
 .title {

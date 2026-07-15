@@ -1,0 +1,108 @@
+.geoBackdrop {
+  background: rgba(22, 42, 38, 0.52);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.geoPanel {
+  width: min(520px, 100%);
+  padding: 18px 18px 16px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(56, 120, 104, 0.95);
+}
+
+.body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(52, 78, 72, 0.88);
+  white-space: pre-line;
+}
+
+.actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.primaryBtn,
+.secondaryBtn {
+  width: 100%;
+  min-height: var(--touch-target-min);
+  border-radius: 12px;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 650;
+  font-family: inherit;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition:
+    border-color var(--dur-2) var(--ease-out-soft),
+    background var(--dur-2) var(--ease-out-soft),
+    transform var(--dur-2) var(--ease-out-soft),
+    box-shadow var(--dur-2) var(--ease-out-soft);
+}
+
+.primaryBtn {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(252, 254, 253, 0.98);
+  background: linear-gradient(152deg, rgba(72, 128, 116, 0.96), rgba(44, 86, 80, 0.98));
+  box-shadow: var(--elev-1);
+}
+
+.primaryBtn:hover:not(:disabled) {
+  transform: translateY(var(--hover-lift-xs));
+  box-shadow: var(--elev-2);
+}
+
+.secondaryBtn {
+  border: 1px solid rgba(94, 140, 128, 0.34);
+  color: rgba(38, 72, 66, 0.94);
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.secondaryBtn:hover:not(:disabled) {
+  border-color: rgba(72, 130, 118, 0.48);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.tertiaryLink {
+  justify-self: center;
+  margin-top: 2px;
+  padding: 6px 4px;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 550;
+  font-family: inherit;
+  color: var(--text-tertiary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.tertiaryLink:hover {
+  color: rgba(56, 96, 88, 0.88);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primaryBtn,
+  .secondaryBtn {
+    transition-duration: 0.01ms !important;
+  }
+
+  .primaryBtn:hover:not(:disabled) {
+    transform: none;
+  }
+}

@@ -1,23 +1,25 @@
-import { useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { useRouter } from "next/router";
-import modalStyles from "@/components/user/UserUpgradePathModal.module.css";
+import { MapPin } from "lucide-react";
+import ListingInteractionModal from "@/components/listing/ListingInteractionModal";
 import {
   GEOGRAPHIC_UPDATE_MODAL_COPY,
   markGeographicUpdateModalSeen,
   resolveGeographicUpdateListingsHref,
 } from "@/lib/geography/geographicUpdateLaunch";
+import styles from "./GeographicUpdateModal.module.css";
 
 export default function GeographicUpdateModal({ open, onClose, user, role, supabase }) {
   const router = useRouter();
+  const primaryRef = useRef(null);
 
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose?.();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+    const timer = window.setTimeout(() => {
+      primaryRef.current?.focus();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [open]);
 
   if (!open) return null;
 
@@ -29,47 +31,41 @@ export default function GeographicUpdateModal({ open, onClose, user, role, supab
   };
 
   return (
-    <div
-      className={modalStyles.overlay}
-      role="presentation"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) dismiss("dismiss");
-      }}
+    <ListingInteractionModal
+      isOpen={open}
+      onClose={() => dismiss("dismiss")}
+      title={GEOGRAPHIC_UPDATE_MODAL_COPY.title}
+      titleId="geo-update-title"
+      eyebrow={
+        <span className={styles.eyebrow}>
+          <MapPin size={13} strokeWidth={2.25} aria-hidden />
+          PLATFORM UPDATE
+        </span>
+      }
+      backdropClassName={styles.geoBackdrop}
+      panelClassName={styles.geoPanel}
+      dismissOnBackdrop
     >
-      <div
-        className={modalStyles.panel}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="geo-update-title"
-      >
-        <h2 id="geo-update-title" className={modalStyles.headline}>
-          {GEOGRAPHIC_UPDATE_MODAL_COPY.title}
-        </h2>
-        <p className={modalStyles.subtext}>{GEOGRAPHIC_UPDATE_MODAL_COPY.body}</p>
-        <div className={modalStyles.options}>
-          <button
-            type="button"
-            className={modalStyles.optionBtn}
-            onClick={async () => {
-              await dismiss("cta");
-              router.push(href);
-            }}
-          >
-            <strong>{GEOGRAPHIC_UPDATE_MODAL_COPY.primaryCta}</strong>
-          </button>
-          <button
-            type="button"
-            className={modalStyles.closeBtn}
-            style={{ width: "100%", marginTop: 8 }}
-            onClick={() => dismiss("explore")}
-          >
-            {GEOGRAPHIC_UPDATE_MODAL_COPY.secondaryCta}
-          </button>
-          <button type="button" className={modalStyles.closeBtn} onClick={() => dismiss("dismiss")}>
-            Not Now
-          </button>
-        </div>
+      <p className={styles.body}>{GEOGRAPHIC_UPDATE_MODAL_COPY.body}</p>
+      <div className={styles.actions}>
+        <button
+          ref={primaryRef}
+          type="button"
+          className={styles.primaryBtn}
+          onClick={async () => {
+            await dismiss("cta");
+            router.push(href);
+          }}
+        >
+          {GEOGRAPHIC_UPDATE_MODAL_COPY.primaryCta}
+        </button>
+        <button type="button" className={styles.secondaryBtn} onClick={() => dismiss("explore")}>
+          {GEOGRAPHIC_UPDATE_MODAL_COPY.secondaryCta}
+        </button>
+        <button type="button" className={styles.tertiaryLink} onClick={() => dismiss("dismiss")}>
+          Not now
+        </button>
       </div>
-    </div>
+    </ListingInteractionModal>
   );
 }

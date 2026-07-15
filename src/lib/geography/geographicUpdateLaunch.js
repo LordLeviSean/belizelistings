@@ -2,12 +2,14 @@ import { ADMIN_DASHBOARD_TAB_IDS } from "@/constants/dashboardAdminConfig";
 import { AGENT_DASHBOARD_TAB_IDS } from "@/constants/dashboardAgentConfig";
 import { USER_DASHBOARD_TAB_IDS } from "@/constants/dashboardUserConfig";
 
-/** Launch window through July 16, 2026 11:59:59 p.m. America/Belize (UTC-6). */
+/** Launch window — visitor local calendar dates (auto-expires after end date). */
 export const GEOGRAPHIC_UPDATE_LAUNCH_WINDOW = Object.freeze({
+  localStartDate: "2026-07-13",
+  localEndDate: "2026-07-16",
   timezone: "America/Belize",
   startUtc: "2026-07-13T06:00:00.000Z",
   endUtc: "2026-07-17T05:59:59.999Z",
-  label: "2026-07-13 through 2026-07-16 11:59:59 p.m. America/Belize",
+  label: "2026-07-13 through 2026-07-16 (visitor local calendar dates)",
 });
 
 export const GEOGRAPHIC_UPDATE_NOTIFICATION = Object.freeze({
@@ -25,13 +27,22 @@ export const GEOGRAPHIC_UPDATE_MODAL_COPY = Object.freeze({
   secondaryCta: "Explore the Update",
 });
 
-const LS_KEY = "bl_geo_update_modal_seen_v1";
+const SESSION_KEY_PREFIX = "bl_geo_update_modal_session";
+
+/** YYYY-MM-DD in the visitor's local timezone. */
+export function getVisitorLocalDateKey(now = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
 
 export function isWithinGeographicUpdateLaunchWindow(now = new Date()) {
-  const t = now.getTime();
+  const localDate = getVisitorLocalDateKey(now);
   return (
-    t >= Date.parse(GEOGRAPHIC_UPDATE_LAUNCH_WINDOW.startUtc) &&
-    t <= Date.parse(GEOGRAPHIC_UPDATE_LAUNCH_WINDOW.endUtc)
+    localDate >= GEOGRAPHIC_UPDATE_LAUNCH_WINDOW.localStartDate &&
+    localDate <= GEOGRAPHIC_UPDATE_LAUNCH_WINDOW.localEndDate
   );
 }
 
@@ -48,49 +59,45 @@ export function resolveGeographicUpdateListingsHref(role) {
   return `/dashboard/user?tab=${USER_DASHBOARD_TAB_IDS.MY_LISTINGS}`;
 }
 
-export function hasSeenGeographicUpdateModalLocal() {
+function sessionStorageKey(now = new Date()) {
+  return `${SESSION_KEY_PREFIX}_${getVisitorLocalDateKey(now)}`;
+}
+
+export function hasSeenGeographicUpdateModalThisSession(now = new Date()) {
   if (typeof window === "undefined") return false;
   try {
-    return window.localStorage.getItem(LS_KEY) === "1";
+    return window.sessionStorage.getItem(sessionStorageKey(now)) === "1";
   } catch {
     return false;
   }
 }
 
-export function markGeographicUpdateModalSeenLocal() {
+export function markGeographicUpdateModalSeenThisSession(now = new Date()) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(LS_KEY, "1");
+    window.sessionStorage.setItem(sessionStorageKey(now), "1");
   } catch {
     /* ignore */
   }
 }
 
-/**
- * @param {{ id?: string, geographic_update_modal_seen_at?: string|null }} profile
- */
-export function hasSeenGeographicUpdateModal(profile) {
-  if (profile?.geographic_update_modal_seen_at) return true;
-  return hasSeenGeographicUpdateModalLocal();
-}
-
-export function isGeographicUpdateModalEligible({ authenticated, role, profile, now } = {}) {
+export function isGeographicUpdateModalEligible({ authenticated, role, now } = {}) {
   if (!authenticated || !canManageListingsRole(role)) return false;
   if (!isWithinGeographicUpdateLaunchWindow(now)) return false;
-  if (hasSeenGeographicUpdateModal(profile)) return false;
+  if (hasSeenGeographicUpdateModalThisSession(now)) return false;
   return true;
 }
 
 /**
- * Persist dismissal — profile field when available, localStorage fallback.
+ * Persist dismissal for this browser session; profile timestamp when signed in (analytics only).
  */
-export async function markGeographicUpdateModalSeen(userId, supabase, { action } = {}) {
-  markGeographicUpdateModalSeenLocal();
-  if (!userId || !supabase?.from) return { ok: true, local: true };
-  const now = new Date().toISOString();
+export async function markGeographicUpdateModalSeen(userId, supabase, { action, now = new Date() } = {}) {
+  markGeographicUpdateModalSeenThisSession(now);
+  if (!userId || !supabase?.from) return { ok: true, session: true };
+  const seenAt = (now instanceof Date ? now : new Date(now)).toISOString();
   const { error } = await supabase
     .from("profiles")
-    .update({ geographic_update_modal_seen_at: now })
+    .update({ geographic_update_modal_seen_at: seenAt })
     .eq("id", userId);
   if (error) return { ok: false, error, action };
   return { ok: true, action };

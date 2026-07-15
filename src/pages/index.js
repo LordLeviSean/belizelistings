@@ -92,12 +92,11 @@ export default function HomePage() {
       isGeographicUpdateModalEligible({
         authenticated: Boolean(user?.id),
         role,
-        profile,
       })
     ) {
       setGeoUpdateOpen(true);
     }
-  }, [user?.id, role, profile]);
+  }, [user?.id, role]);
   const [compactSearchPlaceholder, setCompactSearchPlaceholder] = useState(false);
   const featuredScrollRef = useRef(null);
   const featuredPausedRef = useRef(false);
