@@ -59,7 +59,32 @@ describe("notificationCopyRegistry", () => {
     expect(pres.title).toBe("New viewing request");
     expect(pres.body).toContain("Finca Solana");
     expect(pres.body).toContain("July 15");
+    expect(pres.entityId).toBe("v1");
     expect(pres.href).toBe("/dashboard/agent?tab=viewings&viewing=v1");
+  });
+
+  test("viewing_declined preserves viewing entity_id for deep link", () => {
+    const pres = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED, {
+      viewing_id: "v-decline-1",
+      listing_title: "Finca Solana",
+      recipient_role: "user",
+    });
+    expect(pres.title).toBe("Viewing declined");
+    expect(pres.entityId).toBe("v-decline-1");
+    expect(pres.href).toBe("/dashboard/user?tab=viewings&viewing=v-decline-1");
+  });
+
+  test("viewing_rescheduled preserves viewing entity_id for deep link", () => {
+    const pres = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.VIEWING_RESCHEDULED, {
+      viewing_id: "v-resched-1",
+      listing_title: "Finca Solana",
+      slot_label: "Thursday, July 16 · 10:30 AM",
+      proposed_date: "2026-07-16",
+      recipient_role: "agent",
+    });
+    expect(pres.title).toBe("Viewing rescheduled");
+    expect(pres.entityId).toBe("v-resched-1");
+    expect(pres.href).toBe("/dashboard/agent?tab=viewings&viewing=v-resched-1");
   });
 
   test("mapNotificationRowToCenterItem preserves unread state", () => {

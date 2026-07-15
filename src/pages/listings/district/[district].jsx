@@ -17,6 +17,8 @@ import {
   isChildRegion,
   normalizeRegionSlug,
 } from "../../../constants/geographyLayer";
+import { formatListingLocation } from "../../../lib/geography/formatListingLocation";
+import { getMapRegionLabel } from "../../../lib/geography/belizeGeographyV1";
 import { getListingRegionSlug } from "../../../utils/canonicalListing";
 import { isLandInventoryListing } from "../../../utils/listingPresentation";
 import { isListingCardVerified } from "../../../utils/listingVerification";
@@ -223,7 +225,18 @@ export default function DistrictListings() {
   }, [filteredBase, sortBy]);
 
   const activeRegionForHeader = validSubregionFilter || normalizedDistrictSlug;
-  const districtLabel = formatDistrict(activeRegionForHeader);
+  const districtLabel = useMemo(() => {
+    const sample = filtered[0] || filteredByDistrictAndStatus[0];
+    if (sample) {
+      const granular = formatListingLocation(sample);
+      if (granular) return granular;
+    }
+    if (validSubregionFilter) {
+      return getRegionLabel(validSubregionFilter);
+    }
+    const regionLabel = getMapRegionLabel(normalizedDistrictSlug);
+    return regionLabel || formatDistrict(activeRegionForHeader);
+  }, [filtered, validSubregionFilter, normalizedDistrictSlug, activeRegionForHeader]);
   const districtCaption = getRegionCaption(activeRegionForHeader);
   const remainingListings = filtered;
 

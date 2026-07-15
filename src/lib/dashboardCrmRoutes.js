@@ -3,6 +3,9 @@ import { USER_DASHBOARD_TAB_IDS } from "@/constants/dashboardUserConfig";
 import { AGENT_DASHBOARD_TAB_IDS } from "@/constants/dashboardAgentConfig";
 import { NOTIFICATION_EVENT_TYPES } from "@/lib/notifications/notificationEvents";
 import { LISTING_LIFECYCLE } from "@/constants/operationalModel";
+import { resolveGeographicUpdateListingsHref } from "@/lib/geography/resolveGeographicUpdateListingsHref";
+
+export { resolveGeographicUpdateListingsHref };
 
 /**
  * Role-aware CRM dashboard path (buyer vs owner surfaces).
@@ -195,13 +198,6 @@ function resolveListingManagementPath({ role, listingId, toStatus } = {}) {
   return resolveDashboardCrmPath({ role: "user", tab: USER_DASHBOARD_TAB_IDS.MY_LISTINGS, listingId });
 }
 
-export function resolveGeographicUpdateListingsHref(role) {
-  const r = String(role || "user").toLowerCase();
-  if (r === "admin") return `/admin?tab=${ADMIN_DASHBOARD_TAB_IDS.LISTINGS}`;
-  if (r === "agent") return `/dashboard/agent?tab=${AGENT_DASHBOARD_TAB_IDS.LISTINGS}`;
-  if (r === "operator") return `/admin?tab=${ADMIN_DASHBOARD_TAB_IDS.OPERATOR}`;
-  return `/dashboard/user?tab=${USER_DASHBOARD_TAB_IDS.MY_LISTINGS}`;
-}
 
 export function resolveNotificationDestination({ eventType, role, payload = {} } = {}) {
   const { role: recipientRole, side: recipientSide } = resolveRecipientContext({

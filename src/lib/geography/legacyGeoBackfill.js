@@ -10,12 +10,10 @@ import {
 
 const LEGACY_SLUG_TO_GEO = Object.freeze({
   "belize-city": { map_region_slug: "belize", community_id: "area-belize-belize-city" },
-  "san-pedro": { map_region_slug: "ambergris-caye", community_id: "area-ambergris-caye-san-pedro" },
   "caye-caulker": { map_region_slug: "caye-caulker", community_id: "area-caye-caulker-caye-caulker-village" },
   placencia: { map_region_slug: "stann-creek", community_id: "area-stann-creek-placencia" },
   belmopan: { map_region_slug: "cayo", community_id: "area-cayo-belmopan" },
   "san-ignacio": { map_region_slug: "cayo", community_id: "area-cayo-san-ignacio" },
-  "santa-elena": { map_region_slug: "cayo", community_id: "area-cayo-santa-elena" },
   corozal: { map_region_slug: "corozal", community_id: "area-corozal-corozal" },
   "orange-walk": { map_region_slug: "orange-walk", community_id: "area-orange-walk-orange-walk" },
   dangriga: { map_region_slug: "stann-creek", community_id: "area-stann-creek-dangriga" },
@@ -51,7 +49,35 @@ export function mapLegacyListingToGeography(listing = {}) {
     };
   }
 
-  // Explicit subregion mappings
+  // Corozal + San Pedro (distinct from Ambergris San Pedro)
+  if (region === "corozal" && sub === "san-pedro") {
+    return {
+      map_region_slug: "corozal",
+      community_id: "area-corozal-san-pedro",
+      locality_id: null,
+      geo_backfill_status: GEO_BACKFILL_STATUS.EXACT,
+    };
+  }
+
+  // District-scoped Santa Elena (Cayo town vs Toledo village)
+  if (sub === "santa-elena" && region === "toledo") {
+    return {
+      map_region_slug: "toledo",
+      community_id: "area-toledo-santa-elena",
+      locality_id: null,
+      geo_backfill_status: GEO_BACKFILL_STATUS.EXACT,
+    };
+  }
+  if (sub === "santa-elena" && region === "cayo") {
+    return {
+      map_region_slug: "cayo",
+      community_id: "area-cayo-santa-elena",
+      locality_id: null,
+      geo_backfill_status: GEO_BACKFILL_STATUS.EXACT,
+    };
+  }
+
+  // Explicit subregion mappings (district-blind slugs only when unambiguous)
   const lookupSlug = sub || region || district;
   const hit = LEGACY_SLUG_TO_GEO[lookupSlug];
   if (hit) {

@@ -1,5 +1,44 @@
-import { validateGeographyForm } from "./legacyGeoBackfill";
+import { mapLegacyListingToGeography, validateGeographyForm } from "./legacyGeoBackfill";
 import { validateListingDraftContract } from "../listingPersistence";
+
+describe("mapLegacyListingToGeography", () => {
+  test("routes Toledo Santa Elena to area-toledo-santa-elena, not Cayo", () => {
+    const result = mapLegacyListingToGeography({
+      region_slug: "toledo",
+      subregion_slug: "santa-elena",
+    });
+    expect(result.map_region_slug).toBe("toledo");
+    expect(result.community_id).toBe("area-toledo-santa-elena");
+    expect(result.geo_backfill_status).toBe("exact");
+  });
+
+  test("routes Cayo Santa Elena to area-cayo-santa-elena", () => {
+    const result = mapLegacyListingToGeography({
+      region_slug: "cayo",
+      subregion_slug: "santa-elena",
+    });
+    expect(result.map_region_slug).toBe("cayo");
+    expect(result.community_id).toBe("area-cayo-santa-elena");
+  });
+
+  test("routes Corozal San Pedro distinctly from Ambergris San Pedro", () => {
+    const result = mapLegacyListingToGeography({
+      region_slug: "corozal",
+      subregion_slug: "san-pedro",
+    });
+    expect(result.map_region_slug).toBe("corozal");
+    expect(result.community_id).toBe("area-corozal-san-pedro");
+  });
+
+  test("routes Ambergris San Pedro to area-ambergris-caye-san-pedro", () => {
+    const result = mapLegacyListingToGeography({
+      region_slug: "ambergris-caye",
+      subregion_slug: "san-pedro",
+    });
+    expect(result.map_region_slug).toBe("ambergris-caye");
+    expect(result.community_id).toBe("area-ambergris-caye-san-pedro");
+  });
+});
 
 describe("validateGeographyForm", () => {
   test("rejects legacy district-only prefill without structured geography", () => {

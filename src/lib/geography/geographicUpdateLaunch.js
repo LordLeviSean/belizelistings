@@ -1,7 +1,7 @@
-import { ADMIN_DASHBOARD_TAB_IDS } from "@/constants/dashboardAdminConfig";
-import { AGENT_DASHBOARD_TAB_IDS } from "@/constants/dashboardAgentConfig";
-import { USER_DASHBOARD_TAB_IDS } from "@/constants/dashboardUserConfig";
 import { getGeographicUpdatePlatformEntry } from "@/constants/platformUpdates";
+import { resolveGeographicUpdateListingsHref } from "@/lib/geography/resolveGeographicUpdateListingsHref";
+
+export { resolveGeographicUpdateListingsHref };
 
 const GEO_UPDATE = getGeographicUpdatePlatformEntry();
 
@@ -55,14 +55,6 @@ export function isWithinGeographicUpdateLaunchWindow(now = new Date()) {
 export function canManageListingsRole(role) {
   const r = String(role || "").toLowerCase();
   return r === "user" || r === "agent" || r === "admin" || r === "operator";
-}
-
-export function resolveGeographicUpdateListingsHref(role) {
-  const r = String(role || "user").toLowerCase();
-  if (r === "admin") return `/admin?tab=${ADMIN_DASHBOARD_TAB_IDS.LISTINGS}`;
-  if (r === "agent") return `/dashboard/agent?tab=${AGENT_DASHBOARD_TAB_IDS.LISTINGS}`;
-  if (r === "operator") return `/admin?tab=${ADMIN_DASHBOARD_TAB_IDS.OPERATOR}`;
-  return `/dashboard/user?tab=${USER_DASHBOARD_TAB_IDS.MY_LISTINGS}`;
 }
 
 function sessionStorageKey(now = new Date()) {

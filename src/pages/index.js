@@ -34,6 +34,7 @@ import useAuth from "../hooks/useAuth";
 import useRoleAccess from "../hooks/useRoleAccess";
 import useUserRole from "../hooks/useUserRole";
 import GeographicUpdateModal from "../components/home/GeographicUpdateModal";
+import HomeSessionSplash, { useHomeSessionSplashGate } from "../components/home/HomeSessionSplash";
 import { isGeographicUpdateModalEligible } from "../lib/geography/geographicUpdateLaunch";
 import { supabase } from "../lib/supabaseClient";
 
@@ -86,6 +87,7 @@ export default function HomePage() {
   const [carouselIndexById, setCarouselIndexById] = useState({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [geoUpdateOpen, setGeoUpdateOpen] = useState(false);
+  const { showSplash, dismissSplash } = useHomeSessionSplashGate();
 
   useEffect(() => {
     if (
@@ -310,10 +312,11 @@ export default function HomePage() {
 
   return (
     <div className={`${styles.page} home-map-page-root`}>
+      {showSplash ? <HomeSessionSplash onResolved={dismissSplash} /> : null}
       <AmbientPalmBackdrop />
       <SiteNav active="browse" />
 
-      <main className={styles.pageMain}>
+      <main id="home-main-content" className={styles.pageMain} tabIndex={-1}>
         <section className={styles.heroSection}>
           <div
             className={`${styles.heroCanvas} ${styles.heroCanvasMobile}`}

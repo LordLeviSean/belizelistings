@@ -60,12 +60,15 @@ BEGIN
       v_map := 'ambergris-caye'; v_community := 'area-ambergris-caye-san-pedro'; v_status := 'exact';
     ELSIF v_sub = 'san-pedro' AND v_region = 'corozal' THEN
       v_map := 'corozal'; v_community := 'area-corozal-san-pedro'; v_status := 'exact';
-    ELSIF v_sub IN ('placencia', 'belmopan', 'san-ignacio', 'santa-elena', 'corozal', 'orange-walk', 'dangriga', 'punta-gorda', 'punta-gorda-town') THEN
+    ELSIF v_sub = 'santa-elena' AND v_region = 'toledo' THEN
+      v_map := 'toledo'; v_community := 'area-toledo-santa-elena'; v_status := 'exact';
+    ELSIF v_sub = 'santa-elena' AND v_region = 'cayo' THEN
+      v_map := 'cayo'; v_community := 'area-cayo-santa-elena'; v_status := 'exact';
+    ELSIF v_sub IN ('placencia', 'belmopan', 'san-ignacio', 'corozal', 'orange-walk', 'dangriga', 'punta-gorda', 'punta-gorda-town') THEN
       v_map := CASE v_sub
         WHEN 'placencia' THEN 'stann-creek'
         WHEN 'belmopan' THEN 'cayo'
         WHEN 'san-ignacio' THEN 'cayo'
-        WHEN 'santa-elena' THEN 'cayo'
         WHEN 'corozal' THEN 'corozal'
         WHEN 'orange-walk' THEN 'orange-walk'
         WHEN 'dangriga' THEN 'stann-creek'
@@ -76,7 +79,6 @@ BEGIN
         WHEN 'placencia' THEN 'area-stann-creek-placencia'
         WHEN 'belmopan' THEN 'area-cayo-belmopan'
         WHEN 'san-ignacio' THEN 'area-cayo-san-ignacio'
-        WHEN 'santa-elena' THEN 'area-cayo-santa-elena'
         WHEN 'corozal' THEN 'area-corozal-corozal'
         WHEN 'orange-walk' THEN 'area-orange-walk-orange-walk'
         WHEN 'dangriga' THEN 'area-stann-creek-dangriga'
