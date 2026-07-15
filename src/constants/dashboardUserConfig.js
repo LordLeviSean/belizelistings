@@ -42,21 +42,23 @@ const LEGACY_TAB_ALIASES = Object.freeze({
 
 /** Shared tab metadata for `/dashboard/user`. */
 export const USER_DASHBOARD_TABS = Object.freeze([
-  { id: USER_DASHBOARD_TAB_IDS.OVERVIEW, label: "Overview" },
-  { id: USER_DASHBOARD_TAB_IDS.MY_LISTINGS, label: "My Listings" },
-  { id: USER_DASHBOARD_TAB_IDS.PENDING, label: "Pending" },
-  { id: USER_DASHBOARD_TAB_IDS.ARCHIVED, label: "Archived" },
-  { id: USER_DASHBOARD_TAB_IDS.SAVED_FAVORITES, label: "Saved Favorites" },
-  { id: USER_DASHBOARD_TAB_IDS.PROFILE, label: "Profile" },
+  { id: USER_DASHBOARD_TAB_IDS.OVERVIEW, label: "Overview", group: "workspace" },
+  { id: USER_DASHBOARD_TAB_IDS.MY_LISTINGS, label: "My Listings", group: "workspace" },
+  { id: USER_DASHBOARD_TAB_IDS.PENDING, label: "Pending", group: "workspace" },
+  { id: USER_DASHBOARD_TAB_IDS.ARCHIVED, label: "Archived", group: "workspace" },
+  { id: USER_DASHBOARD_TAB_IDS.SAVED_FAVORITES, label: "Saved Favorites", group: "workspace" },
+  { id: USER_DASHBOARD_TAB_IDS.PROFILE, label: "Profile", group: "workspace" },
   {
     id: USER_DASHBOARD_TAB_IDS.INBOX,
     label: "Inbox",
+    group: "activity",
     crm: true,
     conversations: true,
   },
   {
     id: USER_DASHBOARD_TAB_IDS.VIEWINGS,
     label: "Viewings",
+    group: "activity",
     crm: true,
     viewing: true,
   },

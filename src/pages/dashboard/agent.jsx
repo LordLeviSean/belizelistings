@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useShallow } from "zustand/react/shallow";
 import SiteNav from "@/components/SiteNav";
-import { DashboardShell } from "@/components/dashboard";
+import { DashboardShell, DashboardTabNav } from "@/components/dashboard";
 import AgentDashboardMetrics from "@/components/agent/AgentDashboardMetrics";
 import AgentBenefitsPanel from "@/components/agent/AgentBenefitsPanel";
 import AgentInventoryPanel from "@/components/agent/AgentInventoryPanel";
@@ -240,9 +240,20 @@ export default function AgentDashboard() {
     showToast({ type: "success", message: "Marked as responded" });
   };
 
+  const tabCounts = useMemo(() => {
+    const counts = {};
+    if (unreadInquiryCount > 0) {
+      counts[AGENT_DASHBOARD_TAB_IDS.INBOX] = unreadInquiryCount;
+    }
+    if (pendingListings > 0) {
+      counts[AGENT_DASHBOARD_TAB_IDS.LISTINGS] = pendingListings;
+    }
+    return counts;
+  }, [unreadInquiryCount, pendingListings]);
+
   if (loading && !showHydratingShell) {
     return (
-      <div className={`${styles.page} ${styles.userDashboardPage}`}>
+      <div className={`${styles.page} ${styles.dashboardWorkspace}`}>
         <SiteNav active="dashboard" />
         <main className={styles.main}>
           <div className={loadingStyles.loadingMain} aria-busy="true" aria-label="Loading dashboard" />
@@ -260,21 +271,14 @@ export default function AgentDashboard() {
   const createDisabled = limitExhausted;
 
   return (
-    <div className={`${styles.page} ${styles.userDashboardPage}`}>
+    <div className={`${styles.page} ${styles.dashboardWorkspace}`}>
       <SiteNav active="dashboard" />
       <main className={styles.main}>
-        <div className={styles.userDashboardSurface}>
-          <div className={styles.userAtmosphereLayer} aria-hidden>
-            <div className={styles.userAtmosphereDepth} />
-            <div className={styles.userAtmosphereVeil} />
-          </div>
+        <DashboardShell roleKey={DASHBOARD_ROLE.agent} title={AGENT_DASHBOARD_COPY.shellTitle} subtitle={subtitle}>
+          <div className={styles.adminWrapper}>
+            <ProfileCompletionBanner profileTabHref="/dashboard/agent?tab=profile" />
 
-          <div className={styles.userDashboardAboveArt}>
-            <DashboardShell roleKey={DASHBOARD_ROLE.agent} title={AGENT_DASHBOARD_COPY.shellTitle} subtitle={subtitle}>
-              <div className={styles.adminWrapper}>
-                <ProfileCompletionBanner profileTabHref="/dashboard/agent?tab=profile" />
-
-                {showHydratingShell || (metricsLoading && !myListingsInitialFetchDone) ? (
+            {showHydratingShell || (metricsLoading && !myListingsInitialFetchDone) ? (
                   <div className={loadingStyles.hydratingMetrics} aria-busy="true">
                     {Array.from({ length: 6 }, (_, i) => (
                       <div key={i} className={`skeleton ${loadingStyles.hydratingMetricCard}`} />
@@ -295,25 +299,12 @@ export default function AgentDashboard() {
                   />
                 )}
 
-                <div className={styles.statusToggle} role="tablist" aria-label="Dashboard sections">
-                  {visibleTabs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={activeTab === tab.id}
-                      className={`${styles.toggleButton} ${
-                        activeTab === tab.id ? styles.toggleButtonActive : ""
-                      }`}
-                      onClick={() => selectTab(tab.id)}
-                    >
-                      {tab.label}
-                      {tab.id === AGENT_DASHBOARD_TAB_IDS.INBOX && unreadInquiryCount > 0
-                        ? ` (${unreadInquiryCount})`
-                        : ""}
-                    </button>
-                  ))}
-                </div>
+            <DashboardTabNav
+              tabs={visibleTabs}
+              activeTab={activeTab}
+              onSelect={selectTab}
+              tabCounts={tabCounts}
+            />
 
                 {activeTab === AGENT_DASHBOARD_TAB_IDS.OVERVIEW ? (
                   <>
@@ -443,8 +434,6 @@ export default function AgentDashboard() {
                 ) : null}
               </div>
             </DashboardShell>
-          </div>
-        </div>
       </main>
     </div>
   );

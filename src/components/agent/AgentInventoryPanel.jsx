@@ -32,6 +32,7 @@ import {
 import { buildModerationArchivePatch, buildRecentlyRentedPatch, buildRecentlySoldPatch } from "@/lib/listingWriteContract";
 import { getLifecycleStatus } from "@/utils/canonicalListing";
 import { isLegacyGenerationDraft } from "@/lib/legacyDraftCompat";
+import { resolveLifecycleStatusBadgeSuffix } from "@/lib/dashboardStatusBadges";
 import {
   AGENT_INVENTORY_FILTER_OPTIONS,
   AGENT_INVENTORY_FILTERS,
@@ -384,10 +385,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
             const isPublished = lc === LISTING_LIFECYCLE.PUBLISHED;
             const isPending = lc === LISTING_LIFECYCLE.PENDING_REVIEW;
             const isLegacyDraft = isDraft && isLegacyGenerationDraft(l);
-            const lcKey = lc || "draft";
-            const badgeClass = isLegacyDraft
-              ? "LegacyDraft"
-              : `${lcKey.charAt(0).toUpperCase()}${lcKey.slice(1)}`;
+            const badgeClass = resolveLifecycleStatusBadgeSuffix(lc, { legacyDraft: isLegacyDraft });
             const thumb = coverUrl(l);
             const districtLabel =
               formatListingLocation(l) || getRegionLabel(normalizeRegionSlug(l.district || ""));

@@ -50,6 +50,18 @@
   background: rgba(241, 220, 214, 0.9);
 }
 
+.recentlySold {
+  border-color: rgba(148, 118, 198, 0.48);
+  color: rgba(72, 52, 108, 0.92);
+  background: rgba(236, 228, 252, 0.9);
+}
+
+.recentlyRented {
+  border-color: rgba(72, 168, 178, 0.48);
+  color: rgba(32, 88, 98, 0.92);
+  background: rgba(220, 244, 248, 0.9);
+}
+
 .fresh {
   border-color: rgba(118, 183, 170, 0.44);
   color: rgba(45, 102, 91, 0.9);

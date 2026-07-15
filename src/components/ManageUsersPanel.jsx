@@ -22,6 +22,7 @@ import {
 import styles from "../styles/Dashboard.module.css";
 import mu from "./ManageUsersPanel.module.css";
 import { formatProfileDisplayLabel } from "../lib/profileDisplayName";
+import { resolveLifecycleStatusBadgeSuffix } from "../lib/dashboardStatusBadges";
 
 function listingOwnerProfileId(listing) {
   return String(listing?.user_id || listing?.agent_id || "").trim();
@@ -563,7 +564,7 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
                           <p className={styles.muted} style={{ margin: 0 }}>
                             Status:{" "}
                             <span
-                              className={`${styles.statusBadge} ${styles[`status${String(getLifecycleStatus(listing) || "draft").charAt(0).toUpperCase()}${String(getLifecycleStatus(listing) || "draft").slice(1)}`]}`}
+                              className={`${styles.statusBadge} ${styles[`status${resolveLifecycleStatusBadgeSuffix(getLifecycleStatus(listing))}`]}`}
                             >
                               {getLifecycleLabel(getLifecycleStatus(listing))}
                             </span>

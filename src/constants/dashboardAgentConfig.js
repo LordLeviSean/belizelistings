@@ -25,11 +25,11 @@ const LEGACY_AGENT_TAB_ALIASES = Object.freeze({
 });
 
 export const AGENT_DASHBOARD_TABS = Object.freeze([
-  { id: AGENT_DASHBOARD_TAB_IDS.OVERVIEW, label: "Overview" },
-  { id: AGENT_DASHBOARD_TAB_IDS.LISTINGS, label: "Listings" },
-  { id: AGENT_DASHBOARD_TAB_IDS.INBOX, label: "Inbox", crm: true },
-  { id: AGENT_DASHBOARD_TAB_IDS.VIEWINGS, label: "Viewings", crm: true },
-  { id: AGENT_DASHBOARD_TAB_IDS.PROFILE, label: "Profile" },
+  { id: AGENT_DASHBOARD_TAB_IDS.OVERVIEW, label: "Overview", group: "workspace" },
+  { id: AGENT_DASHBOARD_TAB_IDS.LISTINGS, label: "Listings", group: "workspace" },
+  { id: AGENT_DASHBOARD_TAB_IDS.INBOX, label: "Inbox", group: "activity", crm: true },
+  { id: AGENT_DASHBOARD_TAB_IDS.VIEWINGS, label: "Viewings", group: "activity", crm: true },
+  { id: AGENT_DASHBOARD_TAB_IDS.PROFILE, label: "Profile", group: "workspace" },
 ]);
 
 export function normalizeAgentDashboardTab(raw) {

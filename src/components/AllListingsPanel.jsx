@@ -31,6 +31,7 @@ import {
   LISTING_LIFECYCLE,
 } from "../constants/operationalModel";
 import styles from "../styles/Dashboard.module.css";
+import { resolveLifecycleStatusBadgeSuffix } from "../lib/dashboardStatusBadges";
 import { getLifecycleStatus, isPubliclyVisibleListing } from "../utils/canonicalListing";
 import { isLandInventoryListing } from "../utils/listingPresentation";
 import {
@@ -631,8 +632,7 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
         const effectiveLifecycle = getLifecycleStatus(listing);
         const isArchived = effectiveLifecycle === LISTING_LIFECYCLE.ARCHIVED;
         const isRejected = effectiveLifecycle === LISTING_LIFECYCLE.REJECTED;
-        const lcLabel = effectiveLifecycle || "draft";
-        const statusClassKey = `${lcLabel.charAt(0).toUpperCase()}${lcLabel.slice(1)}`;
+        const statusClassKey = resolveLifecycleStatusBadgeSuffix(effectiveLifecycle);
         const rowBusy =
           actionKey === `${listing.id}:approve` ||
           actionKey === `${listing.id}:reject` ||

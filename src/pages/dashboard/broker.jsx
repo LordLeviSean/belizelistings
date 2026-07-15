@@ -90,7 +90,7 @@ export default function BrokerDashboard() {
 
   if (roleLoading || loading) {
     return (
-      <div className={styles.page}>
+      <div className={`${styles.page} ${styles.dashboardWorkspace}`}>
         <SiteNav active="dashboard" />
         <main className={styles.main}>
           <p className={styles.muted}>Loading brokerage workspace…</p>
@@ -102,7 +102,7 @@ export default function BrokerDashboard() {
   if (!user) return null;
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${styles.dashboardWorkspace}`}>
       <SiteNav active="dashboard" />
       <main className={styles.main}>
         <DashboardShell

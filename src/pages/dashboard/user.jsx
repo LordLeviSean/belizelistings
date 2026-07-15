@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useShallow } from "zustand/react/shallow";
 import SiteNav from "@/components/SiteNav";
-import { DashboardShell } from "@/components/dashboard";
+import { DashboardShell, DashboardTabNav } from "@/components/dashboard";
 import UserDashboardAccountTier from "@/components/user/UserDashboardAccountTier";
 import UserDashboardMetrics from "@/components/user/UserDashboardMetrics";
 import UserMyListingsPanel from "@/components/user/UserMyListingsPanel";
@@ -16,6 +16,7 @@ import ProfileCompletionPanel from "@/components/profile/ProfileCompletionPanel"
 import ProfileCompletionBanner from "@/components/profile/ProfileCompletionBanner";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
 import { loadBuyerCrmData } from "@/lib/crm/buyerCrmData";
+import { isBuyerConversationUnread } from "@/lib/crm/conversationMutations";
 import { supabase } from "@/lib/supabaseClient";
 import { isProfileHydratedForUser } from "@/lib/profileSessionCache";
 import useUserRole from "@/hooks/useUserRole";
@@ -125,6 +126,11 @@ export default function UserDashboard() {
   }, [user?.id]);
 
   useEffect(() => {
+    if (!user?.id) return;
+    void loadBuyerCrm();
+  }, [user?.id, loadBuyerCrm]);
+
+  useEffect(() => {
     if (
       activeTab !== USER_DASHBOARD_TAB_IDS.INBOX &&
       activeTab !== USER_DASHBOARD_TAB_IDS.VIEWINGS
@@ -133,6 +139,20 @@ export default function UserDashboard() {
     }
     loadBuyerCrm();
   }, [activeTab, loadBuyerCrm]);
+
+  const tabCounts = useMemo(() => {
+    const counts = {};
+    if (pendingListings > 0) {
+      counts[USER_DASHBOARD_TAB_IDS.PENDING] = pendingListings;
+    }
+    const inboxUnread = buyerConversations.filter((conv) => isBuyerConversationUnread(conv)).length;
+    if (inboxUnread > 0) {
+      counts[USER_DASHBOARD_TAB_IDS.INBOX] = inboxUnread;
+    } else if (inquiriesCount > 0) {
+      counts[USER_DASHBOARD_TAB_IDS.INBOX] = inquiriesCount;
+    }
+    return counts;
+  }, [pendingListings, buyerConversations, inquiriesCount]);
 
   const profileHydrated = Boolean(user?.id && isProfileHydratedForUser(user.id));
   const showHydratingShell = loading && profileHydrated && role === "user";
@@ -219,7 +239,7 @@ export default function UserDashboard() {
 
   if (loading && !showHydratingShell) {
     return (
-      <div className={`${styles.page} ${styles.userDashboardPage}`}>
+      <div className={`${styles.page} ${styles.dashboardWorkspace}`}>
         <SiteNav active="dashboard" />
         <main className={styles.main}>
           <div
@@ -245,37 +265,20 @@ export default function UserDashboard() {
     <div className={`${styles.page} ${styles.userDashboardPage}`}>
       <SiteNav active="dashboard" />
       <main className={styles.main}>
-        <div className={styles.userDashboardSurface}>
-          <div className={styles.userAtmosphereLayer} aria-hidden>
-            <div className={styles.userAtmosphereDepth} />
-            <div className={styles.userAtmosphereVeil} />
-          </div>
+        <DashboardShell
+          roleKey={DASHBOARD_ROLE.user}
+          title={USER_DASHBOARD_COPY.shellTitle}
+          subtitle={subtitle}
+        >
+          <div className={styles.adminWrapper}>
+            <ProfileCompletionBanner profileTabHref="/dashboard/user?tab=profile" />
 
-          <div className={styles.userDashboardAboveArt}>
-            <DashboardShell
-              roleKey={DASHBOARD_ROLE.user}
-              title={USER_DASHBOARD_COPY.shellTitle}
-              subtitle={subtitle}
-            >
-              <div className={styles.adminWrapper}>
-                <ProfileCompletionBanner profileTabHref="/dashboard/user?tab=profile" />
-
-                <div className={styles.statusToggle} role="tablist" aria-label="Dashboard sections">
-                  {visibleTabs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={activeTab === tab.id}
-                      className={`${styles.toggleButton} ${
-                        activeTab === tab.id ? styles.toggleButtonActive : ""
-                      }`}
-                      onClick={() => selectTab(tab.id)}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
+            <DashboardTabNav
+              tabs={visibleTabs}
+              activeTab={activeTab}
+              onSelect={selectTab}
+              tabCounts={tabCounts}
+            />
 
                 {activeTab === USER_DASHBOARD_TAB_IDS.OVERVIEW ? (
                   <>
@@ -494,8 +497,6 @@ export default function UserDashboard() {
                 ) : null}
               </div>
             </DashboardShell>
-          </div>
-        </div>
       </main>
     </div>
   );

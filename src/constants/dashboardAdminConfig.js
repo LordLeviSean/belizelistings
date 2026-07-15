@@ -30,20 +30,22 @@ const LEGACY_TAB_ALIASES = Object.freeze({
 });
 
 export const ADMIN_DASHBOARD_TABS = Object.freeze([
-  { id: ADMIN_DASHBOARD_TAB_IDS.PENDING, label: "Pending", operational: true },
-  { id: ADMIN_DASHBOARD_TAB_IDS.LISTINGS, label: "Listings", operational: true },
-  { id: ADMIN_DASHBOARD_TAB_IDS.USERS, label: "Users", operational: true },
-  { id: ADMIN_DASHBOARD_TAB_IDS.OPERATOR, label: "Operator", operational: true },
-  { id: ADMIN_DASHBOARD_TAB_IDS.UPGRADES, label: "Upgrades", operational: true },
+  { id: ADMIN_DASHBOARD_TAB_IDS.PENDING, label: "Pending", group: "workspace", operational: true },
+  { id: ADMIN_DASHBOARD_TAB_IDS.LISTINGS, label: "Listings", group: "workspace", operational: true },
+  { id: ADMIN_DASHBOARD_TAB_IDS.USERS, label: "Users", group: "workspace", operational: true },
+  { id: ADMIN_DASHBOARD_TAB_IDS.OPERATOR, label: "Operator", group: "workspace", operational: true },
+  { id: ADMIN_DASHBOARD_TAB_IDS.UPGRADES, label: "Upgrades", group: "workspace", operational: true },
   {
     id: ADMIN_DASHBOARD_TAB_IDS.INBOX,
     label: "Inbox",
+    group: "activity",
     crm: true,
     conversations: true,
   },
   {
     id: ADMIN_DASHBOARD_TAB_IDS.VIEWINGS,
     label: "Viewings",
+    group: "activity",
     crm: true,
     viewing: true,
   },

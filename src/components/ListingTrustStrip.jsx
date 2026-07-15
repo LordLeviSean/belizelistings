@@ -74,6 +74,8 @@ function toneForLifecycle(lifecycle) {
   if (lifecycle === LISTING_LIFECYCLE.ARCHIVED) return "archived";
   if (lifecycle === LISTING_LIFECYCLE.PENDING_REVIEW) return "pending";
   if (lifecycle === LISTING_LIFECYCLE.PUBLISHED) return "verified";
+  if (lifecycle === LISTING_LIFECYCLE.RECENTLY_SOLD) return "recentlySold";
+  if (lifecycle === LISTING_LIFECYCLE.RECENTLY_RENTED) return "recentlyRented";
   if (lifecycle === LISTING_LIFECYCLE.REJECTED) return "stale";
   if (lifecycle === LISTING_LIFECYCLE.EXPIRED) return "expired";
   return "";
@@ -140,10 +142,10 @@ export default function ListingTrustStrip({ listing, variant = "admin", mode = "
     chips.push({ label: "Recently Verified", tone: "verified" });
   }
   if (hasSignal(ACTIVITY_SIGNAL_TYPES.RECENTLY_RENTED)) {
-    chips.push({ label: "Recently Rented", tone: "tx" });
+    chips.push({ label: "Recently Rented", tone: "recentlyRented" });
   }
   if (hasSignal(ACTIVITY_SIGNAL_TYPES.RECENTLY_SOLD)) {
-    chips.push({ label: "Recently Sold", tone: "tx" });
+    chips.push({ label: "Recently Sold", tone: "recentlySold" });
   }
   if (hasSignal(ACTIVITY_SIGNAL_TYPES.NEWLY_APPROVED)) {
     chips.push({ label: "Newly Approved", tone: "fresh" });

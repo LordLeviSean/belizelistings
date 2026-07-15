@@ -39,9 +39,11 @@ import {
   getVisibleAdminDashboardTabs,
   resolveVisibleAdminDashboardTab,
 } from "../../constants/dashboardAdminConfig";
-import { DashboardShell } from "../../components/dashboard";
+import { DashboardShell, DashboardTabNav } from "../../components/dashboard";
 import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "../../constants/dashboardRoles";
+import { isBuyerConversationUnread } from "../../lib/crm/conversationMutations";
 import styles from "../../styles/Dashboard.module.css";
+import premiumStyles from "../../styles/AdminDashboardPremium.module.css";
 import loadingStyles from "../../styles/UserDashboard.module.css";
 import PremiumEmptyState from "../../components/ui/PremiumEmptyState";
 import Link from "next/link";
@@ -115,6 +117,23 @@ export default function AdminPage() {
     }
     void loadBuyerCrm();
   }, [activeTab, loadBuyerCrm]);
+
+  useEffect(() => {
+    if (!user?.id || !isAdmin) return;
+    void loadBuyerCrm();
+  }, [user?.id, isAdmin, loadBuyerCrm]);
+
+  const tabCounts = useMemo(() => {
+    const counts = {};
+    if (totals.pending > 0) {
+      counts[ADMIN_DASHBOARD_TAB_IDS.PENDING] = totals.pending;
+    }
+    const inboxUnread = buyerConversations.filter((conv) => isBuyerConversationUnread(conv)).length;
+    if (inboxUnread > 0) {
+      counts[ADMIN_DASHBOARD_TAB_IDS.INBOX] = inboxUnread;
+    }
+    return counts;
+  }, [totals.pending, buyerConversations]);
 
   const refreshStats = useCallback(async () => {
     const [operational, { count: usersCount, error: usersError }] = await Promise.all([
@@ -297,37 +316,40 @@ export default function AdminPage() {
   if (!isAdmin) return null;
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${premiumStyles.adminPage}`}>
+      <div className={premiumStyles.silkLeft} aria-hidden />
+      <div className={premiumStyles.silkRight} aria-hidden />
+      <div className={premiumStyles.silkHeader} aria-hidden />
       <SiteNav active="dashboard" />
-      <main className={styles.main}>
-        <DashboardShell
-          roleKey={DASHBOARD_ROLE.admin}
-          title="Admin Control Center"
-          subtitle={`${welcomePhrase} · ${DASHBOARD_ROLE_META[DASHBOARD_ROLE.admin].defaultSubtitle}`}
-        >
-        <div className={styles.adminWrapper}>
-          <AdminOperationalStats
-            total={totals.listings}
-            pending={totals.pending}
-            approved={totals.approved}
-            rejected={totals.rejected}
-            archived={totals.archived}
-            users={totals.users}
-          />
-          <div className={styles.adminMainGrid}>
-            <section>
-              <div className={styles.adminTabs}>
-                {visibleTabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    className={`${styles.dashboardLink} ${activeTab === tab.id ? styles.dashboardLinkActive : ""}`}
-                    onClick={() => selectTab(tab.id)}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
+      <main className={`${styles.main} ${premiumStyles.main}`}>
+        <div className={premiumStyles.frame}>
+          <DashboardShell
+            roleKey={DASHBOARD_ROLE.admin}
+            title="Admin Control Center"
+            subtitle={`${welcomePhrase} · ${DASHBOARD_ROLE_META[DASHBOARD_ROLE.admin].defaultSubtitle}`}
+          >
+            <div className={`${styles.adminWrapper} ${premiumStyles.contentWell}`}>
+              <div className={premiumStyles.dataSurface}>
+                <div className={`${premiumStyles.lampTarget}`}>
+                  <AdminOperationalStats
+                    total={totals.listings}
+                    pending={totals.pending}
+                    approved={totals.approved}
+                    rejected={totals.rejected}
+                    archived={totals.archived}
+                    users={totals.users}
+                  />
+                </div>
+                <div className={styles.adminMainGrid}>
+                  <section>
+                    <DashboardTabNav
+                      tabs={visibleTabs}
+                      activeTab={activeTab}
+                      onSelect={selectTab}
+                      tabCounts={tabCounts}
+                      variant="link"
+                      activeTabClassName="adminTabNeonActive"
+                    />
               {activeTab === "pending" && (
                 <PendingListingsPanel
                   profilesRevision={profilesRevision}
@@ -457,21 +479,38 @@ export default function AdminPage() {
                 </section>
               ) : null}
             </section>
-            <aside className={styles.card}>
+            <aside className={`${styles.card} ${premiumStyles.lampTarget}`}>
               <h3 className={styles.sectionTitle}>Quick Actions</h3>
-              <Link className={styles.primaryButton} href="/admin/marketplace-health" style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}>
+              <Link
+                className={`${styles.primaryButton} ${premiumStyles.adminPrimaryAction}`}
+                href="/admin/marketplace-health"
+                style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}
+              >
                 Marketplace Health
               </Link>
-              <button type="button" className={styles.primaryButton} style={{ marginTop: 8 }} onClick={() => router.push("/dashboard/create")}>Create Listing</button>
               <button
                 type="button"
-                className={styles.primaryButton}
+                className={`${styles.primaryButton} ${premiumStyles.adminPrimaryAction}`}
+                style={{ marginTop: 8 }}
+                onClick={() => router.push("/dashboard/create")}
+              >
+                Create Listing
+              </button>
+              <button
+                type="button"
+                className={`${styles.primaryButton} ${premiumStyles.adminPrimaryAction}`}
                 style={{ marginTop: 8 }}
                 onClick={() => selectTab(ADMIN_DASHBOARD_TAB_IDS.USERS, { action: "create-user" })}
               >
                 Create User
               </button>
-              <button type="button" className={styles.approveButton} style={{ marginTop: 8 }} onClick={() => handleBulkAction("approved")} disabled={bulkLoading === "approved"}>
+              <button
+                type="button"
+                className={`${styles.approveButton} ${premiumStyles.adminPrimaryAction}`}
+                style={{ marginTop: 8 }}
+                onClick={() => handleBulkAction("approved")}
+                disabled={bulkLoading === "approved"}
+              >
                 {bulkLoading === "approved" ? "Processing..." : "Bulk Approve"}
               </button>
               <button type="button" className={`${styles.rejectButton} ${styles.quickDangerMuted}`} style={{ marginTop: 8 }} onClick={() => handleBulkAction("rejected")} disabled={bulkLoading === "rejected"}>
@@ -585,9 +624,11 @@ export default function AdminPage() {
               </p>
               <p className={styles.muted} style={{ marginTop: 12 }}>Last Action: {lastAction}</p>
             </aside>
-          </div>
+                </div>
+              </div>
+            </div>
+          </DashboardShell>
         </div>
-        </DashboardShell>
       </main>
     </div>
   );

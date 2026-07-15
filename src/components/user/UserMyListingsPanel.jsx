@@ -5,6 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import { supabase } from "@/lib/supabaseClient";
 import { discardDraftListing } from "@/lib/listingPersistence";
 import { isLegacyGenerationDraft } from "@/lib/legacyDraftCompat";
+import { resolveLifecycleStatusBadgeSuffix } from "@/lib/dashboardStatusBadges";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { MODAL_TYPES, useModalController } from "@/hooks/useModalController";
 import ArchiveListingModal from "@/components/listing/ArchiveListingModal";
@@ -297,10 +298,7 @@ function UserMyListingsPanel({ userId, tier }) {
             const isDraft = lc === LISTING_LIFECYCLE.DRAFT;
             const isPublished = lc === LISTING_LIFECYCLE.PUBLISHED;
             const isLegacyDraft = isDraft && isLegacyGenerationDraft(l);
-            const lcKey = lc || "draft";
-            const badgeClass = isLegacyDraft
-              ? "LegacyDraft"
-              : `${lcKey.charAt(0).toUpperCase()}${lcKey.slice(1)}`;
+            const badgeClass = resolveLifecycleStatusBadgeSuffix(lc, { legacyDraft: isLegacyDraft });
             const thumb = coverUrl(l);
             const districtLabel =
               formatListingLocation(l) || getRegionLabel(normalizeRegionSlug(l.district || ""));
