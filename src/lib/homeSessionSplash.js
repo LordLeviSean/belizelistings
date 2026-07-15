@@ -1,7 +1,6 @@
-/** Once-per-browser-session homepage splash (masks initial paint, not data loading). */
+/** Once-per-browser-session homepage loading transition gate. */
 
 export const HOME_SPLASH_SESSION_KEY = "bl_home_splash_seen_v1";
-export const HOME_SPLASH_HOLD_MS = 3000;
 
 export function prefersReducedMotionSplash() {
   if (typeof window === "undefined") return true;
@@ -30,15 +29,14 @@ export function markHomeSplashSeenThisSession() {
   }
 }
 
-/** @returns {boolean} Whether splash should show on this fresh session visit. */
-export function shouldShowHomeSessionSplash() {
+/** @returns {boolean} Whether the awakening transition should show on this fresh session visit. */
+export function shouldShowHomeLoadingTransition() {
   if (typeof window === "undefined") return false;
-  if (prefersReducedMotionSplash()) return false;
   return !hasSeenHomeSplashThisSession();
 }
 
-/** District palette tones from interactive map / wordmark identity. */
-export const HOME_SPLASH_PALETTE = Object.freeze([
+/** District palette tones shared with interactive map + Learn More underwater world. */
+export const HOME_MAP_DISTRICT_PALETTE = Object.freeze([
   "#89cdbd",
   "#90c2c8",
   "#89b7db",
@@ -46,4 +44,5 @@ export const HOME_SPLASH_PALETTE = Object.freeze([
   "#d8c27b",
   "#e8a898",
   "#8ac89b",
+  "#7eb8c4",
 ]);

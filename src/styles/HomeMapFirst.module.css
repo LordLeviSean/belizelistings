@@ -423,6 +423,14 @@
   color: rgba(23, 58, 69, 0.98);
 }
 
+.statValuePending {
+  opacity: 0.42;
+}
+
+.statValueLive {
+  transition: opacity 420ms var(--ease-out-soft);
+}
+
 .statLabel {
   position: relative;
   z-index: 1;

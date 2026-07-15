@@ -12,7 +12,7 @@ Operational record of structural and visual dashboard work, homepage splash, con
 |------|--------|
 | Platform-wide dashboard nav + contrast | Shipped (`DashboardTabNav` Workspace/Activity clusters, solid surfaces, corrected status badges) |
 | Admin-only Desk premium theme | Shipped — scoped to `/admin` chrome only |
-| Homepage session splash | Shipped — once per browser session, 3s hold, skip/tap, reduced-motion bypass |
+| Homepage progressive loading (V2) | Shipped — readiness-gated "Belize Map Awakens" transition, no fixed timer |
 | Notification viewing branches regression | Fixed — migration `20260715190000_fix_geo_backfill_santa_elena.sql` |
 | Santa Elena district-blind geo backfill | Fixed — SQL + `legacyGeoBackfill.js` |
 | Legacy cleanup | Shipped — orphan files removed, `react-router-dom` dropped, href helper consolidated |
@@ -55,20 +55,62 @@ Scoped strictly to `src/pages/admin/index.jsx` + `src/styles/AdminDashboardPremi
 
 ---
 
-## 2. Homepage session splash
+## 2. Homepage loading — "The Belize Map Awakens" (V2)
 
-**Files:** `src/lib/homeSessionSplash.js`, `src/components/home/HomeSessionSplash.jsx`, wired in `src/pages/index.js`.
+**Replaces:** timed black BL splash (`HomeSessionSplash` removed).
+
+**Files:** `src/lib/homePageReadiness.js`, `src/lib/homeSessionSplash.js` (session gate), `src/components/home/HomeMapAwakensTransition.jsx`, wired in `src/pages/index.js`.
+
+### Loading sequence
+
+| Stage | Visual |
+|-------|--------|
+| 1 | Deep Caribbean ocean, caustic drift, faint Belize SVG silhouette |
+| 2 | BelizeListings wordmark fades in; map sharpens; turquoise light sweep |
+| 3 | Copy: *Loading Belize's Living Property Map…* (no bar, no percentage) |
+| 4 | Dissolve when homepage readiness signals are true — outline aligns with live map |
+
+### Readiness gate (no fixed timer)
+
+Dismisses when **all** signals are true:
+
+- Shell rendered
+- Hero visible
+- Map initialized (`BelizeMap` `onMapReady`)
+- Search shell ready
+- Primary nav interactive
+- First featured listings batch loaded (preview fetch)
+
+Safety cap: `HOME_LOADING_MAX_MS` (2500ms) — never blocks unbounded.
 
 | Behavior | Implementation |
 |----------|------------------|
-| Timing | 3s hold (`HOME_SPLASH_HOLD_MS = 3000`); homepage fetches and renders underneath during hold |
-| Session scope | `sessionStorage` key `bl_home_splash_seen_v1` — once per fresh browser session, not on internal navigation |
-| Skip | Click/tap or Escape ends immediately |
-| Reduced motion | `shouldShowHomeSessionSplash()` returns false when `prefers-reduced-motion: reduce` |
-| Accessibility | Splash is `aria-hidden`; on resolve, focus moves to `#home-main-content` |
-| Visual | Pure black viewport; BL mark with animated blend of map district palette (mint/lagoon/coral/gold) |
+| Session scope | `sessionStorage` `bl_home_splash_seen_v1` — once per fresh browser session |
+| Timing | Progressive — fast devices ~500–800ms, average ~1s, slow up to ~2s |
+| Reduced motion | Minimal fade; stages collapse (`advanceLoadingStage`) |
+| Accessibility | Overlay `aria-hidden`; Escape skips; focus → `#home-main-content` |
+| Visual world | Dark underwater palette aligned with Learn More archive (deep teal, cyan glow) |
 
-If homepage data is not ready at 3s, cross-fade reveals the existing skeleton/loading state — splash never blocks unbounded.
+### Homepage loading priority
+
+1. **P1 (immediate):** Nav, hero typography, search shell, stat labels with `—` placeholders, map mount, featured heading skeleton
+2. **P2:** Interactive SVG map fetch + region wiring
+3. **P3:** Featured preview fetch (`limit: 4`); priority images on first 2 carousel cards; `deferImageLoad` on index ≥ 3
+4. **P4:** Full listings fetch in background; off-screen carousel images via `IntersectionObserver`; `HomeAdvancedFiltersModal` dynamic import (loads on open only)
+
+### Geography audit
+
+- Homepage map uses `belizeMapRegions` + `/maps/clean-mainland-districts.svg` — **8 interactive regions only**
+- `geographyLayer` flat district labels for search haystack — not full `belizeGeographyV1` dataset
+- `belizeGeographyV1` loads via `ListingCard` → `formatListingLocation` when cards render; advanced geography deferred to filters modal / create-edit flows
+
+### Marketplace statistics
+
+Stat card shells render immediately with labels; numeric values show `—` until listings preview arrives, then fade in (`.statValueLive`).
+
+### Geographic Update modal timing
+
+Modal delayed `GEO_UPDATE_MODAL_DELAY_MS` (1500ms) **after** loading transition completes — prevents double-block (splash + modal). Existing eligibility/session rules unchanged.
 
 ---
 
@@ -156,4 +198,4 @@ Expected: all Jest suites green including new `homeSessionSplash`, `legacyGeoBac
 
 ---
 
-*Last updated: 2026-07-15*
+*Last updated: 2026-07-15 (homepage loading V2)*

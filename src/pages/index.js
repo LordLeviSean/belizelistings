@@ -5,6 +5,7 @@ import {
   useCallback,
   useRef,
 } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
@@ -18,8 +19,8 @@ import {
 import BelizeMap from "../components/BelizeMap";
 import AmbientPalmBackdrop from "../components/AmbientPalmBackdrop";
 import SiteNav from "../components/SiteNav";
-import HomeAdvancedFiltersModal from "../components/HomeAdvancedFiltersModal";
 import ListingCard from "../components/ListingCard";
+import PremiumEmptyState from "../components/ui/PremiumEmptyState";
 import useFavorites from "../hooks/useFavorites";
 import { BELIZE_MAP_REGION_CONFIG, BELIZE_MAP_REGION_ORDER } from "../constants/belizeMapRegions";
 import { getRegionLabel } from "../constants/geographyLayer";
@@ -34,13 +35,26 @@ import useAuth from "../hooks/useAuth";
 import useRoleAccess from "../hooks/useRoleAccess";
 import useUserRole from "../hooks/useUserRole";
 import GeographicUpdateModal from "../components/home/GeographicUpdateModal";
-import HomeSessionSplash, { useHomeSessionSplashGate } from "../components/home/HomeSessionSplash";
+import HomeMapAwakensTransition, {
+  useHomeLoadingTransitionGate,
+} from "../components/home/HomeMapAwakensTransition";
+import {
+  evaluateHomePageReadiness,
+  GEO_UPDATE_MODAL_DELAY_MS,
+  HOME_READINESS_INITIAL,
+} from "../lib/homePageReadiness";
 import { isGeographicUpdateModalEligible } from "../lib/geography/geographicUpdateLaunch";
 import { supabase } from "../lib/supabaseClient";
 
 import styles from "../styles/HomeMapFirst.module.css";
 
+const HomeAdvancedFiltersModal = dynamic(
+  () => import("../components/HomeAdvancedFiltersModal"),
+  { ssr: false }
+);
+
 const FEATURED_COUNT = 12;
+const FEATURED_PREVIEW_COUNT = 4;
 
 function getListingMarketSignals(listing) {
   return [
@@ -87,18 +101,44 @@ export default function HomePage() {
   const [carouselIndexById, setCarouselIndexById] = useState({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [geoUpdateOpen, setGeoUpdateOpen] = useState(false);
-  const { showSplash, dismissSplash } = useHomeSessionSplashGate();
+  const { showTransition, dismissTransition } = useHomeLoadingTransitionGate();
+  const [homeReadySignals, setHomeReadySignals] = useState(() => ({ ...HOME_READINESS_INITIAL }));
+  const [transitionComplete, setTransitionComplete] = useState(false);
+
+  const patchReadySignal = useCallback((key, value = true) => {
+    setHomeReadySignals((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
+  }, []);
+
+  const isHomeReady = useMemo(
+    () => evaluateHomePageReadiness(homeReadySignals),
+    [homeReadySignals]
+  );
 
   useEffect(() => {
-    if (
-      isGeographicUpdateModalEligible({
-        authenticated: Boolean(user?.id),
-        role,
-      })
-    ) {
-      setGeoUpdateOpen(true);
-    }
-  }, [user?.id, role]);
+    patchReadySignal("shell", true);
+    patchReadySignal("hero", true);
+    patchReadySignal("searchReady", true);
+    patchReadySignal("navInteractive", true);
+  }, [patchReadySignal]);
+
+  useEffect(() => {
+    if (!showTransition) setTransitionComplete(true);
+  }, [showTransition]);
+
+  useEffect(() => {
+    if (!transitionComplete) return undefined;
+    const timer = window.setTimeout(() => {
+      if (
+        isGeographicUpdateModalEligible({
+          authenticated: Boolean(user?.id),
+          role,
+        })
+      ) {
+        setGeoUpdateOpen(true);
+      }
+    }, GEO_UPDATE_MODAL_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [transitionComplete, user?.id, role]);
   const [compactSearchPlaceholder, setCompactSearchPlaceholder] = useState(false);
   const featuredScrollRef = useRef(null);
   const featuredPausedRef = useRef(false);
@@ -110,17 +150,30 @@ export default function HomePage() {
   const fetchListings = useCallback(async () => {
     setListingsLoading(true);
     try {
-      const { data } = await fetchApprovedListingsWithImages();
-      const normalizedListings = (data || []).map((l) => ({
+      const { data: previewData } = await fetchApprovedListingsWithImages({
+        limit: FEATURED_PREVIEW_COUNT,
+      });
+      const normalizedPreview = (previewData || []).map((l) => ({
         ...l,
         id: String(l.id ?? ""),
         images: Array.isArray(l.images) ? l.images : [],
       }));
-      setListingsData(normalizedListings);
+      setListingsData(normalizedPreview);
+      patchReadySignal("featuredListingsReady", true);
+
+      const { data: fullData } = await fetchApprovedListingsWithImages();
+      const normalizedFull = (fullData || []).map((l) => ({
+        ...l,
+        id: String(l.id ?? ""),
+        images: Array.isArray(l.images) ? l.images : [],
+      }));
+      if (normalizedFull.length) setListingsData(normalizedFull);
+    } catch {
+      patchReadySignal("featuredListingsReady", true);
     } finally {
       setListingsLoading(false);
     }
-  }, []);
+  }, [patchReadySignal]);
 
   useEffect(() => {
     fetchListings();
@@ -270,6 +323,7 @@ export default function HomePage() {
           <BelizeMap
             showAmbientVeil={false}
             districtListingCounts={districtListingCounts}
+            onMapReady={() => patchReadySignal("mapInitialized")}
             onDistrictClick={(slug) => router.push(`/listings/district/${slug}`)}
           />
         </div>
@@ -278,11 +332,13 @@ export default function HomePage() {
   );
 
   const renderListingCard = useCallback(
-    (listing, imageSizes) => {
+    (listing, imageSizes, { imagePriority = false, deferImageLoad = false } = {}) => {
       return (
         <ListingCard
           listing={listing}
           imageSizes={imageSizes}
+          imagePriority={imagePriority}
+          deferImageLoad={deferImageLoad}
           showFavoriteButton
           isFavorited={isFavorite(listing.id)}
           favoriteBusy={isBusy(listing.id)}
@@ -312,7 +368,15 @@ export default function HomePage() {
 
   return (
     <div className={`${styles.page} home-map-page-root`}>
-      {showSplash ? <HomeSessionSplash onResolved={dismissSplash} /> : null}
+      {showTransition ? (
+        <HomeMapAwakensTransition
+          ready={isHomeReady}
+          onResolved={() => {
+            dismissTransition();
+            setTransitionComplete(true);
+          }}
+        />
+      ) : null}
       <AmbientPalmBackdrop />
       <SiteNav active="browse" />
 
@@ -369,7 +433,9 @@ export default function HomePage() {
 
               <div className={`${styles.statGrid} ${styles.heroStatsBlock}`}>
                 <article className={styles.statCard}>
-                  <p className={styles.statValue}>{activeListings.length}</p>
+                  <p className={`${styles.statValue} ${listingsLoading ? styles.statValuePending : styles.statValueLive}`}>
+                    {listingsLoading ? "—" : activeListings.length}
+                  </p>
                   <span className={styles.statIcon} aria-hidden="true">
                     <House />
                   </span>
@@ -379,14 +445,18 @@ export default function HomePage() {
                   </p>
                 </article>
                 <article className={styles.statCard}>
-                  <p className={styles.statValue}>{saleCount}</p>
+                  <p className={`${styles.statValue} ${listingsLoading ? styles.statValuePending : styles.statValueLive}`}>
+                    {listingsLoading ? "—" : saleCount}
+                  </p>
                   <span className={styles.statIcon} aria-hidden="true">
                     <Tag />
                   </span>
                   <p className={styles.statLabel}>For Sale</p>
                 </article>
                 <article className={styles.statCard}>
-                  <p className={styles.statValue}>{rentCount}</p>
+                  <p className={`${styles.statValue} ${listingsLoading ? styles.statValuePending : styles.statValueLive}`}>
+                    {listingsLoading ? "—" : rentCount}
+                  </p>
                   <span className={styles.statIcon} aria-hidden="true">
                     <Key />
                   </span>
@@ -453,7 +523,9 @@ export default function HomePage() {
                   <span className={styles.statIcon} aria-hidden="true">
                     <House />
                   </span>
-                  <p className={styles.statValue}>{activeListings.length}</p>
+                  <p className={`${styles.statValue} ${listingsLoading ? styles.statValuePending : styles.statValueLive}`}>
+                    {listingsLoading ? "—" : activeListings.length}
+                  </p>
                   <p className={styles.statLabel}>
                     <span className={styles.statLabelDesktop}>Active Listings</span>
                     <span className={styles.statLabelMobile}>Listings</span>
@@ -463,14 +535,18 @@ export default function HomePage() {
                   <span className={styles.statIcon} aria-hidden="true">
                     <Tag />
                   </span>
-                  <p className={styles.statValue}>{saleCount}</p>
+                  <p className={`${styles.statValue} ${listingsLoading ? styles.statValuePending : styles.statValueLive}`}>
+                    {listingsLoading ? "—" : saleCount}
+                  </p>
                   <p className={styles.statLabel}>For Sale</p>
                 </article>
                 <article className={styles.statCard}>
                   <span className={styles.statIcon} aria-hidden="true">
                     <Key />
                   </span>
-                  <p className={styles.statValue}>{rentCount}</p>
+                  <p className={`${styles.statValue} ${listingsLoading ? styles.statValuePending : styles.statValueLive}`}>
+                    {listingsLoading ? "—" : rentCount}
+                  </p>
                   <p className={styles.statLabel}>For Rent</p>
                 </article>
                 <article className={styles.statCard}>
@@ -523,7 +599,10 @@ export default function HomePage() {
               <div className={styles.featuredCarouselTrack}>
                 {featuredLoop.map((listing, idx) => (
                   <div key={`${listing.id}-${idx}`} className={styles.featuredCarouselItem}>
-                    {renderListingCard(listing, "(max-width: 760px) 82vw, 296px")}
+                    {renderListingCard(listing, "(max-width: 760px) 82vw, 296px", {
+                      imagePriority: idx < 2,
+                      deferImageLoad: idx >= 3,
+                    })}
                   </div>
                 ))}
               </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import {
   BELIZE_MAP_REGION_CONFIG,
@@ -47,6 +47,7 @@ const BelizeMap = ({
   activeDistrictSlug = null,
   activeSubregionSlug = null,
   onDistrictClick = null,
+  onMapReady = null,
   showAmbientVeil = true,
 }) => {
   void districtListingCounts;
@@ -56,6 +57,7 @@ const BelizeMap = ({
 
   const mapContainerRef = useRef(null);
   const flyTimeoutRef = useRef(0);
+  const mapReadyFiredRef = useRef(false);
   const [fetchedMarkup, setFetchedMarkup] = useState("");
   const [hoverTooltip, setHoverTooltip] = useState(null);
   const [clickedRegionId, setClickedRegionId] = useState(null);
@@ -77,6 +79,18 @@ const BelizeMap = ({
       flyTimeoutRef.current = 0;
     }
   };
+
+  const fireMapReady = useCallback(() => {
+    if (mapReadyFiredRef.current) return;
+    mapReadyFiredRef.current = true;
+    onMapReady?.();
+  }, [onMapReady]);
+
+  useEffect(() => {
+    if (!onMapReady) return undefined;
+    const fallback = window.setTimeout(fireMapReady, 1800);
+    return () => window.clearTimeout(fallback);
+  }, [onMapReady, fireMapReady]);
 
   useEffect(() => {
     let isMounted = true;
@@ -261,12 +275,14 @@ const BelizeMap = ({
       });
     }
 
+    fireMapReady();
+
     return () => {
       cancelFlyTimeout();
       setHoverTooltip(null);
       disposers.forEach((d) => d());
     };
-  }, [svgMarkup]);
+  }, [svgMarkup, fireMapReady]);
 
   useEffect(() => {
     return () => {

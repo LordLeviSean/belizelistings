@@ -221,7 +221,9 @@ function devWarnEmptyImages(listingCount, imageRowCount) {
 /**
  * Approved listings plus related listing_images rows.
  */
-export async function fetchApprovedListingsWithImages() {
+export async function fetchApprovedListingsWithImages(options = {}) {
+  const limit = Number(options?.limit);
+  const hasLimit = Number.isFinite(limit) && limit > 0;
   const selectWithImages = `
       *,
       listing_images (*)
@@ -239,6 +241,10 @@ export async function fetchApprovedListingsWithImages() {
     .from("listings")
     .select(selectWithImages)
     .or(`${approvedOrDual},${recentlyClosedOr}`);
+
+  if (hasLimit) {
+    query = query.order("created_at", { ascending: false }).limit(limit);
+  }
 
   let { data, error } = await query;
   if (error && isMissingColumnError(error)) {

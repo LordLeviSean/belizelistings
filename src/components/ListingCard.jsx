@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { Bath, BedDouble, Heart, MapPin, ShieldCheck } from "lucide-react";
@@ -74,6 +74,7 @@ export default function ListingCard({
   listing,
   imageSizes = "(max-width: 520px) 100vw, (max-width: 760px) 50vw, (max-width: 980px) 42vw, 400px",
   imagePriority = false,
+  deferImageLoad = false,
   /** When true, no link to listing detail — Create preview & other static surfaces. */
   disableNavigation = false,
   showFavoriteButton = false,
@@ -89,11 +90,38 @@ export default function ListingCard({
 }) {
   const [localCarouselIndex, setLocalCarouselIndex] = useState(0);
   const consumeNextLinkClick = useRef(false);
+  const cardRootRef = useRef(null);
   const swipePointerDown = useRef(false);
   const swipeStartX = useRef(0);
   const swipeStartY = useRef(0);
 
   const handleFavoriteClick = onFavoriteClick || onToggleFavorite;
+
+  const [shouldLoadImage, setShouldLoadImage] = useState(imagePriority || !deferImageLoad);
+
+  useEffect(() => {
+    setShouldLoadImage(imagePriority || !deferImageLoad);
+  }, [imagePriority, deferImageLoad, listing?.id]);
+
+  useEffect(() => {
+    if (!deferImageLoad || shouldLoadImage) return undefined;
+    const node = cardRootRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setShouldLoadImage(true);
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setShouldLoadImage(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "260px", threshold: 0.01 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [deferImageLoad, shouldLoadImage, listing?.id]);
 
   const listingImages = useMemo(
     () =>
@@ -228,11 +256,11 @@ export default function ListingCard({
       >
         <ListingMediaImage
           key={imageUrl}
-          src={imageUrl}
+          src={shouldLoadImage ? imageUrl : "/placeholder.jpg"}
           alt={listing?.title || "Listing"}
           fill
           sizes={imageSizes}
-          priority={imagePriority}
+          priority={imagePriority && shouldLoadImage}
           hoverZoom
           quality={IMAGE_QUALITY_CARD}
         />
@@ -389,6 +417,7 @@ export default function ListingCard({
   if (disableNavigation) {
     return (
       <div
+        ref={cardRootRef}
         className={outerClass}
         role="group"
         aria-label={`Preview: ${listing?.title || "Belize property"}`}
@@ -400,6 +429,7 @@ export default function ListingCard({
 
   return (
     <Link
+      ref={cardRootRef}
       href={`/listing/${listing.id}`}
       className={outerClass}
       aria-label={`View ${listing?.title || "Belize property"}`}
