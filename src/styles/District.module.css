@@ -367,6 +367,93 @@
   color: rgba(91, 122, 127, 0.66);
 }
 
+.districtHeader {
+  margin-bottom: 12px;
+}
+
+.districtHeaderRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 380px) auto;
+  gap: 14px 16px;
+  align-items: center;
+}
+
+.districtHeaderTitle {
+  min-width: 0;
+}
+
+.districtHeaderCount {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(72, 107, 98, 0.72);
+  line-height: 1.35;
+}
+
+.districtHeaderControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.districtSearch {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.districtSearchWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(154, 210, 200, 0.22);
+  background: rgba(255, 255, 255, 0.66);
+  box-shadow: 0 6px 14px rgba(18, 36, 44, 0.05);
+}
+
+.districtSearchIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(99, 133, 124, 0.82);
+  flex: 0 0 auto;
+}
+
+.districtSearchInput {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: rgba(46, 78, 70, 0.94);
+  font-size: 13px;
+  min-height: 36px;
+}
+
+.districtSearchInput::placeholder {
+  color: rgba(95, 128, 119, 0.68);
+}
+
+.showFiltersBtnActive {
+  border-color: rgba(100, 168, 154, 0.48);
+  background: rgba(214, 240, 233, 0.62);
+}
+
+.filterPanelCount {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(72, 107, 98, 0.72);
+  line-height: 1.35;
+}
+
 .filterBarShell {
   position: relative;
   border-radius: 14px;
@@ -381,7 +468,7 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   padding: 10px 12px 12px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .filterBarShell:has(.filterPanelHidden) {
@@ -1006,8 +1093,8 @@
 }
 
 .listWrap {
-  margin-top: 14px;
-  padding-top: 14px;
+  margin-top: 8px;
+  padding-top: 12px;
   border-top: 1px solid rgba(154, 210, 200, 0.18);
   background:
     radial-gradient(ellipse 76% 52% at 14% 0%, rgba(137, 205, 189, 0.1), transparent 58%),
@@ -1164,6 +1251,20 @@
 }
 
 @media (max-width: 980px) {
+  .districtHeaderRow {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .districtHeaderControls {
+    flex-wrap: wrap;
+  }
+
+  .districtSearch {
+    flex: 1 1 100%;
+  }
+
   .filterRowGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1194,6 +1295,29 @@
 }
 
 @media (max-width: 768px) {
+  .districtHeaderControls {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .districtSearch {
+    flex: 1 1 180px;
+    min-width: 0;
+  }
+
+  .districtSearchWrap,
+  .showFiltersBtn {
+    min-height: 44px;
+  }
+
+  .showFiltersBtn {
+    flex: 0 0 auto;
+    justify-content: center;
+    padding: 0 14px;
+  }
+
   .filterSummary {
     padding: 7px 10px;
     gap: 8px;
@@ -1334,16 +1458,48 @@
   box-shadow: var(--ui-shadow-soft);
 }
 
-:global(.home-map-page-root) .districtExplorePage .districtHeroBand {
-  margin-bottom: 22px;
-  padding: 4px 2px 0;
+:global(.home-map-page-root) .districtExplorePage .districtHeader {
+  margin-bottom: 14px;
 }
 
-:global(.home-map-page-root) .districtExplorePage .districtTitleBlock {
-  margin-bottom: 8px;
+:global(.home-map-page-root) .districtExplorePage .districtHeaderCount,
+:global(.home-map-page-root) .districtExplorePage .filterPanelCount {
+  color: var(--home-text-muted);
+  font-size: 12px;
 }
 
-.districtExplorePage .districtTitle,
+:global(.home-map-page-root) .districtExplorePage .districtSearchWrap {
+  border-color: rgba(88, 158, 132, 0.28);
+  background: rgba(12, 36, 30, 0.72);
+  box-shadow: none;
+}
+
+:global(.home-map-page-root) .districtExplorePage .districtSearchIcon {
+  color: rgba(148, 188, 172, 0.78);
+}
+
+:global(.home-map-page-root) .districtExplorePage .districtSearchInput {
+  color: var(--home-text-primary);
+  min-height: 40px;
+  font-size: 14px;
+}
+
+:global(.home-map-page-root) .districtExplorePage .districtSearchInput::placeholder {
+  color: rgba(140, 180, 164, 0.72);
+}
+
+:global(.home-map-page-root) .districtExplorePage .districtSearchWrap:focus-within {
+  border-color: rgba(112, 188, 164, 0.42);
+  background: rgba(16, 44, 36, 0.86);
+  box-shadow: 0 0 0 2px rgba(88, 168, 140, 0.12);
+}
+
+:global(.home-map-page-root) .districtExplorePage .showFiltersBtnActive {
+  border-color: rgba(112, 188, 164, 0.45);
+  background: rgba(28, 68, 56, 0.72);
+  color: var(--home-text-primary);
+}
+
 :global(.home-map-page-root) .districtExplorePage .districtTitle {
   color: var(--home-text-primary);
   text-shadow: 0 2px 16px rgba(4, 16, 12, 0.32);
@@ -1360,24 +1516,8 @@
   max-width: 52ch;
 }
 
-:global(.home-map-page-root) .districtExplorePage .districtResultSummary {
-  margin: 12px 0 0;
-  font-family: "DM Serif Display", "Times New Roman", serif;
-  font-size: 1.08rem;
-  font-weight: 400;
-  letter-spacing: 0.01em;
-  color: var(--home-text-secondary);
-}
-
-:global(.home-map-page-root) .districtExplorePage .districtStats {
-  margin: 6px 0 0;
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  color: rgba(148, 188, 172, 0.72);
-}
-
 :global(.home-map-page-root) .districtExplorePage .filterBarShell {
-  margin-bottom: 22px;
+  margin-bottom: 12px;
   border-radius: 999px;
   border: 1px solid var(--home-glass-border);
   background: var(--home-glass-bg);
@@ -1385,20 +1525,6 @@
   backdrop-filter: blur(18px) saturate(1.08);
   -webkit-backdrop-filter: blur(18px) saturate(1.08);
   padding: 10px 14px 12px;
-}
-
-:global(.home-map-page-root) .districtExplorePage .filterBarShell:has(.filterPanelHidden) {
-  padding: 8px 12px;
-}
-
-:global(.home-map-page-root) .districtExplorePage .filterSummary {
-  border-color: rgba(88, 158, 132, 0.22);
-  background: rgba(14, 42, 34, 0.62);
-  box-shadow: none;
-}
-
-:global(.home-map-page-root) .districtExplorePage .filterSummaryResults {
-  color: var(--home-text-secondary);
 }
 
 :global(.home-map-page-root) .districtExplorePage .showFiltersBtn {
@@ -1544,7 +1670,7 @@
     border-radius: 16px;
   }
 
-  :global(.home-map-page-root) .districtExplorePage .districtHeroBand {
-    margin-bottom: 18px;
+  :global(.home-map-page-root) .districtExplorePage .districtHeader {
+    margin-bottom: 12px;
   }
 }

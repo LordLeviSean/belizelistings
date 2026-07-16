@@ -1,7 +1,8 @@
 import { useRouter } from "next/router";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { fetchApprovedListingsWithImages } from "../../../lib/listingQueries";
 import { filterListings } from "../../../utils/filterListings";
+import { listingMatchesSearchQuery } from "../../../lib/searchFilters";
 import useScrollMemory from "../../../hooks/useScrollMemory";
 import AmbientPalmBackdrop from "../../../components/AmbientPalmBackdrop";
 import BackButton from "../../../components/BackButton";
@@ -27,6 +28,10 @@ import styles from "../../../styles/District.module.css";
 import homeShellStyles from "../../../styles/HomeMapFirst.module.css";
 
 const formatDistrict = (district) => getRegionLabel(district);
+
+const QUERY_DEBOUNCE_MS = 320;
+
+const qv = (value) => (Array.isArray(value) ? value[0] ?? "" : value ?? "");
 
 const updateQuery = (router, district, updates) => {
   const next = { ...router.query, ...updates };
@@ -77,6 +82,14 @@ export default function DistrictListings() {
   const [lotDepth, setLotDepth] = useState("any");
   const [agentOrAgency, setAgentOrAgency] = useState("");
   const [listingId, setListingId] = useState("");
+  const [draftQuery, setDraftQuery] = useState("");
+  const searchInputRef = useRef(null);
+  const debounceRef = useRef(null);
+
+  const searchQueryFromUrl = useMemo(() => {
+    if (!router.isReady) return "";
+    return String(qv(router.query.q ?? router.query.query) || "").trim();
+  }, [router.isReady, router.query.q, router.query.query]);
 
   const districtSlugForScroll =
     typeof district === "string" ? district : Array.isArray(district) ? district[0] : "";
@@ -107,6 +120,42 @@ export default function DistrictListings() {
       cancelled = true;
     };
   }, [district]);
+
+  useEffect(() => {
+    if (router.isReady) setDraftQuery(searchQueryFromUrl);
+  }, [router.isReady, searchQueryFromUrl]);
+
+  useEffect(
+    () => () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    },
+    []
+  );
+
+  const scheduleQuerySync = useCallback(
+    (value) => {
+      setDraftQuery(value);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        updateQuery(router, districtSlugForScroll, {
+          q: value.trim() || undefined,
+        });
+      }, QUERY_DEBOUNCE_MS);
+    },
+    [router, districtSlugForScroll]
+  );
+
+  const handleSearchSubmit = useCallback(
+    (event) => {
+      event.preventDefault();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      updateQuery(router, districtSlugForScroll, {
+        q: draftQuery.trim() || undefined,
+      });
+      searchInputRef.current?.blur();
+    },
+    [draftQuery, router, districtSlugForScroll]
+  );
 
   const districtSlug = typeof district === "string" ? district : district?.[0] || "";
   const subregionSlug = typeof subregion === "string" ? subregion : subregion?.[0] || "";
@@ -140,8 +189,10 @@ export default function DistrictListings() {
         : priceBucket.split("-").map((value) => Number(value || 0));
     const minBeds = bedrooms === "any" ? 0 : Number(bedrooms || 0);
     const minBaths = bathrooms === "any" ? 0 : Number(bathrooms || 0);
+    const queryNorm = searchQueryFromUrl.toLowerCase();
 
     return filteredByDistrictAndStatus.filter((listing) => {
+      if (queryNorm && !listingMatchesSearchQuery(listing, queryNorm)) return false;
       const price = Number(listing?.price || 0);
       const beds = Number(listing?.beds || 0);
       const baths = Number(listing?.baths || 0);
@@ -212,6 +263,7 @@ export default function DistrictListings() {
     viewType,
     verifiedOnly,
     yearBuilt,
+    searchQueryFromUrl,
   ]);
   const filtered = useMemo(() => {
     const rows = [...filteredBase];
@@ -233,6 +285,7 @@ export default function DistrictListings() {
     const statusActive = Boolean(status && status !== "all");
     return (
       statusActive ||
+      Boolean(searchQueryFromUrl) ||
       propertyType !== "all" ||
       priceBucket !== "any" ||
       bedrooms !== "any" ||
@@ -253,6 +306,7 @@ export default function DistrictListings() {
     );
   }, [
     status,
+    searchQueryFromUrl,
     propertyType,
     priceBucket,
     bedrooms,
@@ -286,10 +340,6 @@ export default function DistrictListings() {
     return regionLabel || formatDistrict(activeRegionForHeader);
   }, [filtered, validSubregionFilter, normalizedDistrictSlug, activeRegionForHeader]);
   const districtCaption = getRegionCaption(activeRegionForHeader);
-  const districtStats =
-    districtPool.length > 0
-      ? `${districtPool.length} verified ${districtPool.length === 1 ? "listing" : "listings"} in this district`
-      : null;
   const remainingListings = filtered;
 
   if (!router.isReady || !district) {
@@ -328,10 +378,13 @@ export default function DistrictListings() {
         <DistrictLayout
           districtLabel={districtLabel}
           districtCaption={districtCaption}
-          districtStats={districtStats}
           filteredCount={filtered.length}
           totalInDistrict={districtPool.length}
           hasActiveFilters={hasActiveFilters}
+          searchQuery={draftQuery}
+          onSearchChange={scheduleQuerySync}
+          onSearchSubmit={handleSearchSubmit}
+          searchInputRef={searchInputRef}
           sortBy={sortBy}
           onSortChange={(event) => setSortBy(event.target.value)}
           status={status}
@@ -351,6 +404,9 @@ export default function DistrictListings() {
           showAdvancedFilters={showAdvancedFilters}
           onToggleAdvancedFilters={() => setShowAdvancedFilters((prev) => !prev)}
           onResetFilters={() => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            setDraftQuery("");
+            updateQuery(router, districtSlug, { q: undefined });
             setPropertyType("all");
             setPriceBucket("any");
             setBedrooms("any");

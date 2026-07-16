@@ -13,3 +13,14 @@ export function formatDistrictInventorySummary({ filtered, total, hasActiveFilte
   const noun = safeFiltered === 1 ? "Property" : "Properties";
   return `Showing ${safeFiltered} ${noun}`;
 }
+
+/** Compact supporting line for district header row. */
+export function formatDistrictHeaderCount({ filtered, total, hasActiveFilters = false }) {
+  const safeFiltered = Math.max(0, Number(filtered) || 0);
+  const safeTotal = Math.max(0, Number(total) || 0);
+  if (hasActiveFilters && safeTotal !== safeFiltered) {
+    return `Showing ${safeFiltered} of ${safeTotal} properties`;
+  }
+  if (safeFiltered === 1) return "1 property available";
+  return `${safeFiltered} properties available`;
+}
