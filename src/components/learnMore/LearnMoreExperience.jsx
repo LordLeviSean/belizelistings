@@ -167,17 +167,18 @@ export default function LearnMoreExperience() {
         <BackButton label="Back" className={styles.backButton} />
 
         <header className={styles.intro}>
-          <p className={styles.introEyebrow}>BelizeListings Updates</p>
-          <h1 className={styles.introTitle}>Built for Belize. Growing with Belize.</h1>
+          <p className={styles.introEyebrow}>BelizeListings Release Notes</p>
+          <h1 className={styles.introTitle}>Platform Updates</h1>
           <p className={styles.introLead}>
-            The official archive of platform milestones, release announcements, and the BelizeListings
-            mission—permanently browsable after timed homepage updates expire.
+            The permanent archive of BelizeListings milestones—geography, communication, performance,
+            and everything that follows. Timed homepage announcements retire here when their window
+            closes.
           </p>
         </header>
 
         <div className={styles.layout}>
           <nav className={styles.archiveRail} aria-label="Update archive">
-            <p className={styles.archiveLabel}>Update archive</p>
+            <p className={styles.archiveLabel}>Release timeline</p>
 
             <div className={styles.archiveMobileScroll} role="tablist" aria-label="Select an update">
               {archive.map((entry) => {

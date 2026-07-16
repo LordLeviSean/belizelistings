@@ -7,8 +7,8 @@ import { createClient } from "@supabase/supabase-js";
 import { mergeEnv, requireSupabase } from "./_load-env.mjs";
 
 mergeEnv();
-const { url, serviceKey } = requireSupabase({ service: true });
-const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+const { url, key } = requireSupabase();
+const admin = createClient(url, key, { auth: { persistSession: false } });
 
 const CORE_SELECT =
   "id,user_id,title,price,district,region_slug,community_id,map_region_slug,locality_id,highway_id,highway_mile,subregion_slug,created_at,updated_at,status,lifecycle_status,moderation_status";

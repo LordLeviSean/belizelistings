@@ -224,6 +224,54 @@ export default function DistrictListings() {
     return rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   }, [filteredBase, sortBy]);
 
+  const districtPool = useMemo(
+    () => filterListings(listingsData, { status: "all" }).filter((listing) => listingMatchesRouteRegion(listing)),
+    [listingsData, normalizedDistrictSlug, normalizedSubregionSlug, validSubregionFilter]
+  );
+
+  const hasActiveFilters = useMemo(() => {
+    const statusActive = Boolean(status && status !== "all");
+    return (
+      statusActive ||
+      propertyType !== "all" ||
+      priceBucket !== "any" ||
+      bedrooms !== "any" ||
+      bathrooms !== "any" ||
+      featureFilter !== "any" ||
+      verifiedOnly ||
+      amenities !== "any" ||
+      furnishing !== "any" ||
+      landSize !== "any" ||
+      interiorSize !== "any" ||
+      yearBuilt !== "any" ||
+      parking !== "any" ||
+      viewType !== "any" ||
+      lotWidth !== "any" ||
+      lotDepth !== "any" ||
+      Boolean(agentOrAgency.trim()) ||
+      Boolean(listingId.trim())
+    );
+  }, [
+    status,
+    propertyType,
+    priceBucket,
+    bedrooms,
+    bathrooms,
+    featureFilter,
+    verifiedOnly,
+    amenities,
+    furnishing,
+    landSize,
+    interiorSize,
+    yearBuilt,
+    parking,
+    viewType,
+    lotWidth,
+    lotDepth,
+    agentOrAgency,
+    listingId,
+  ]);
+
   const activeRegionForHeader = validSubregionFilter || normalizedDistrictSlug;
   const districtLabel = useMemo(() => {
     const sample = filtered[0] || filteredByDistrictAndStatus[0];
@@ -238,6 +286,10 @@ export default function DistrictListings() {
     return regionLabel || formatDistrict(activeRegionForHeader);
   }, [filtered, validSubregionFilter, normalizedDistrictSlug, activeRegionForHeader]);
   const districtCaption = getRegionCaption(activeRegionForHeader);
+  const districtStats =
+    districtPool.length > 0
+      ? `${districtPool.length} verified ${districtPool.length === 1 ? "listing" : "listings"} in this district`
+      : null;
   const remainingListings = filtered;
 
   if (!router.isReady || !district) {
@@ -245,7 +297,10 @@ export default function DistrictListings() {
       <div className={`${homeShellStyles.page} home-map-page-root`}>
         <AmbientPalmBackdrop />
         <SiteNav active="browse" />
-        <div className={styles.wrapper}>
+        <div
+        className={`${styles.wrapper} ${styles.districtExplorePage}`}
+        data-district={normalizedDistrictSlug || undefined}
+      >
           <div className={styles.listingsGrid} aria-busy="true" aria-label="Loading district listings">
             {Array.from({ length: 4 }).map((_, index) => (
               <div
@@ -264,13 +319,19 @@ export default function DistrictListings() {
     <div className={`${homeShellStyles.page} home-map-page-root`}>
       <AmbientPalmBackdrop />
       <SiteNav active="browse" />
-      <div className={styles.wrapper}>
+      <div
+        className={`${styles.wrapper} ${styles.districtExplorePage}`}
+        data-district={normalizedDistrictSlug || undefined}
+      >
         <BackButton label="Back" className={styles.backButton} />
 
         <DistrictLayout
           districtLabel={districtLabel}
           districtCaption={districtCaption}
+          districtStats={districtStats}
           filteredCount={filtered.length}
+          totalInDistrict={districtPool.length}
+          hasActiveFilters={hasActiveFilters}
           sortBy={sortBy}
           onSortChange={(event) => setSortBy(event.target.value)}
           status={status}
@@ -442,7 +503,10 @@ export default function DistrictListings() {
                   ))}
                 </div>
               ) : (
-                <div className={styles.listingsGrid}>
+                <div
+                  className={styles.listingsGrid}
+                  data-count={Math.min(remainingListings.length, 3)}
+                >
                   {remainingListings.map((listing) => (
                     <div key={listing.id} className={styles.gridItem}>
                       <ListingCard

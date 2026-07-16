@@ -12,6 +12,8 @@ export const PLATFORM_UPDATE_STATUS = Object.freeze({
 
 export const PLATFORM_UPDATE_IDS = Object.freeze({
   GEOGRAPHIC_V1: "geographic-update-v1",
+  COMMUNICATION_V1: "communication-update-v1",
+  PERFORMANCE_V1: "performance-update-v1",
   CRM_V1: "crm-v1",
   OPEN_BETA: "open-beta",
   BUILT_FOR_BELIZE: "built-for-belize",
@@ -55,10 +57,10 @@ export const PLATFORM_UPDATES = Object.freeze([
   Object.freeze({
     id: PLATFORM_UPDATE_IDS.GEOGRAPHIC_V1,
     slug: PLATFORM_UPDATE_IDS.GEOGRAPHIC_V1,
-    title: "Welcome to the Geographic Update!",
+    title: "V1.0 — Geographic Update",
     version: "V1.0",
     summary:
-      "BelizeListings now supports structured Belize geography—from districts and island regions to neighborhoods, villages, highways, and mile markers.",
+      "Structured Belize geography—from eight interactive map regions to communities, neighborhoods, highways, and mile markers.",
     body:
       "BelizeListings now includes detailed locations across Belize—from districts and independent island regions to cities, towns, villages, neighborhoods, highways, and mile markers.\n\nEight interactive map regions, structured location editing for listings, improved search and discovery, and support for updating existing listing locations are all live.",
     modalSummary:
@@ -72,8 +74,8 @@ export const PLATFORM_UPDATES = Object.freeze([
     notificationDedupeKey: "geographic_update_v1:2026-07-13",
     featured: true,
     archiveOrder: 1,
-    archiveLabel: "Geographic Update",
-    archiveDescriptor: "Structured Belize geography & listing locations",
+    archiveLabel: "V1.0 — Geographic Update",
+    archiveDescriptor: "Map regions, communities, and structured locations",
     primaryCta: Object.freeze({
       label: "Update My Listings",
       type: "role-aware-listings",
@@ -84,14 +86,14 @@ export const PLATFORM_UPDATES = Object.freeze([
       href: "/",
     }),
     highlights: Object.freeze([
-      "Districts and independent island regions",
-      "Cities, towns, and villages",
-      "Neighborhoods and localities",
-      "Highways and mile markers",
-      "Eight interactive map regions",
+      "8 interactive map regions",
+      "232 communities",
+      "107 neighborhoods and localities",
+      "Highway support",
+      "Mile markers",
+      "Existing listings updated",
       "Structured location editing for listings",
       "Improved search and discovery",
-      "Existing-listing location updates",
     ]),
     sections: Object.freeze([
       Object.freeze({
@@ -105,20 +107,20 @@ export const PLATFORM_UPDATES = Object.freeze([
     ]),
   }),
   Object.freeze({
-    id: PLATFORM_UPDATE_IDS.CRM_V1,
-    slug: PLATFORM_UPDATE_IDS.CRM_V1,
-    title: "CRM V1.0 — Inbox & Viewings",
-    version: "CRM V1.0",
+    id: PLATFORM_UPDATE_IDS.COMMUNICATION_V1,
+    slug: PLATFORM_UPDATE_IDS.COMMUNICATION_V1,
+    title: "V1.1 — Communication Update",
+    version: "V1.1",
     summary:
-      "Real conversations, viewing requests, and notification-driven follow-up—role-aware across buyer, owner, agent, and admin workflows.",
+      "Inbox, viewing requests, and notification-driven follow-up—role-aware across buyer, owner, agent, and admin workflows.",
     body:
-      "BelizeListings CRM V1.0 brings structured buyer–seller communication and viewing coordination into the platform—with notifications when messages arrive or viewing status changes.",
+      "BelizeListings V1.1 brings structured buyer–seller communication and viewing coordination into the platform—with notifications when messages arrive or viewing status changes.",
     releaseDate: "2026-06-01",
     status: PLATFORM_UPDATE_STATUS.LIVE,
-    statusLabel: "LIVE · CRM V1.0",
+    statusLabel: "LIVE · V1.1",
     archiveOrder: 2,
-    archiveLabel: "CRM V1.0",
-    archiveDescriptor: "Inbox, Viewings & notifications",
+    archiveLabel: "V1.1 — Communication Update",
+    archiveDescriptor: "Inbox, viewings, and notifications",
     primaryCta: Object.freeze({
       label: "Open Inbox",
       type: "href",
@@ -130,9 +132,10 @@ export const PLATFORM_UPDATES = Object.freeze([
       href: "/",
     }),
     highlights: Object.freeze([
-      "Inbox for real conversations",
-      "Viewings for appointment management",
-      "Notifications for messages and viewing status changes",
+      "Inbox",
+      "Viewing Requests",
+      "Notifications",
+      "CRM improvements",
       "Role-aware deep links from alerts",
       "Owner and agent inbox surfaces",
       "Admin moderation visibility",
@@ -149,6 +152,80 @@ export const PLATFORM_UPDATES = Object.freeze([
     ]),
   }),
   Object.freeze({
+    id: PLATFORM_UPDATE_IDS.PERFORMANCE_V1,
+    slug: PLATFORM_UPDATE_IDS.PERFORMANCE_V1,
+    title: "V1.2 — Performance Update",
+    version: "V1.2",
+    summary:
+      "Faster loading, sharper search, and mobile polish—keeping the map-first experience responsive across devices.",
+    body:
+      "BelizeListings V1.2 focuses on perceived speed and browse quality: quicker homepage readiness, smoother district discovery, and tighter mobile interaction patterns without changing core workflows.",
+    releaseDate: "2026-07-10",
+    status: PLATFORM_UPDATE_STATUS.LIVE,
+    statusLabel: "LIVE · V1.2",
+    archiveOrder: 3,
+    archiveLabel: "V1.2 — Performance Update",
+    archiveDescriptor: "Faster loading, search, and mobile polish",
+    primaryCta: Object.freeze({
+      label: "Explore Listings",
+      type: "href",
+      href: "/",
+    }),
+    secondaryCta: Object.freeze({
+      label: "Search Belize",
+      type: "href",
+      href: "/search",
+    }),
+    highlights: Object.freeze([
+      "Faster loading",
+      "Search improvements",
+      "Mobile polish",
+      "Map-first homepage readiness",
+      "District browse refinements",
+      "Scroll and carousel continuity",
+    ]),
+    sections: Object.freeze([
+      Object.freeze({
+        title: "Shipped improvements",
+        items: Object.freeze([
+          "Homepage map and featured listings load with staged readiness",
+          "District and search surfaces share calmer spacing and hierarchy",
+          "Mobile filter and navigation patterns aligned with desktop quality",
+        ]),
+      }),
+    ]),
+  }),
+  Object.freeze({
+    id: PLATFORM_UPDATE_IDS.CRM_V1,
+    slug: PLATFORM_UPDATE_IDS.CRM_V1,
+    title: "CRM V1.0 — Inbox & Viewings",
+    version: "CRM V1.0",
+    summary:
+      "Legacy archive entry — see V1.1 Communication Update for the current communication milestone.",
+    body:
+      "This entry is preserved for older links. The Communication Update (V1.1) is the canonical release note for inbox, viewings, and notifications.",
+    releaseDate: "2026-06-01",
+    status: PLATFORM_UPDATE_STATUS.LIVE,
+    statusLabel: "ARCHIVED ENTRY",
+    archiveOrder: 4,
+    archiveLabel: "CRM V1.0 (legacy link)",
+    archiveDescriptor: "Redirects to Communication Update",
+    primaryCta: Object.freeze({
+      label: "View V1.1 Communication Update",
+      type: "href",
+      href: "/learn-more#communication-update-v1",
+    }),
+    secondaryCta: Object.freeze({
+      label: "Explore the Map",
+      type: "href",
+      href: "/",
+    }),
+    highlights: Object.freeze([
+      "See V1.1 — Communication Update for current details",
+    ]),
+    sections: Object.freeze([]),
+  }),
+  Object.freeze({
     id: PLATFORM_UPDATE_IDS.OPEN_BETA,
     slug: PLATFORM_UPDATE_IDS.OPEN_BETA,
     title: "Open Beta",
@@ -160,7 +237,7 @@ export const PLATFORM_UPDATES = Object.freeze([
     releaseDate: "2025-01-01",
     status: PLATFORM_UPDATE_STATUS.OPEN_BETA,
     statusLabel: "OPEN BETA",
-    archiveOrder: 3,
+    archiveOrder: 5,
     archiveLabel: "Open Beta",
     archiveDescriptor: "Live marketplace, evolving weekly",
     primaryCta: Object.freeze({
@@ -203,7 +280,7 @@ export const PLATFORM_UPDATES = Object.freeze([
     releaseDate: "2025-01-01",
     status: PLATFORM_UPDATE_STATUS.FOUNDATION,
     statusLabel: "FOUNDATION",
-    archiveOrder: 4,
+    archiveOrder: 6,
     archiveLabel: "Built for Belize",
     archiveDescriptor: "Mission & marketplace purpose",
     primaryCta: Object.freeze({

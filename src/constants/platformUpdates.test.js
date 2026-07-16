@@ -18,6 +18,8 @@ describe("platformUpdates registry", () => {
     const slugs = getPlatformUpdatesArchive().map((u) => u.slug);
     expect(slugs).toEqual([
       PLATFORM_UPDATE_IDS.GEOGRAPHIC_V1,
+      PLATFORM_UPDATE_IDS.COMMUNICATION_V1,
+      PLATFORM_UPDATE_IDS.PERFORMANCE_V1,
       PLATFORM_UPDATE_IDS.CRM_V1,
       PLATFORM_UPDATE_IDS.OPEN_BETA,
       PLATFORM_UPDATE_IDS.BUILT_FOR_BELIZE,
@@ -35,9 +37,9 @@ describe("platformUpdates registry", () => {
     expect(getPlatformUpdateBySlug(PLATFORM_UPDATE_IDS.GEOGRAPHIC_V1)).toBeTruthy();
   });
 
-  test("modal and archive share title, version, and CTA label", () => {
+  test("modal and archive share title and CTA label", () => {
     const geo = getGeographicUpdatePlatformEntry();
-    expect(GEOGRAPHIC_UPDATE_NOTIFICATION.title).toBe(`${geo.title} ${geo.version}`);
+    expect(GEOGRAPHIC_UPDATE_NOTIFICATION.title).toBe(geo.title);
     expect(GEOGRAPHIC_UPDATE_NOTIFICATION.cta).toBe(geo.primaryCta.label);
     expect(GEOGRAPHIC_UPDATE_MODAL_COPY.title).toBe(GEOGRAPHIC_UPDATE_NOTIFICATION.title);
   });

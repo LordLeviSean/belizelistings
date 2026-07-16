@@ -53,30 +53,31 @@ describe("LearnMoreExperience", () => {
 
   test("renders update archive entries", () => {
     renderLearnMore();
-    expect(document.body.textContent).toMatch(/Update archive/i);
+    expect(document.body.textContent).toMatch(/Release timeline/i);
     expect(document.body.textContent).toMatch(/Geographic Update/i);
-    expect(document.body.textContent).toMatch(/CRM V1\.0/i);
+    expect(document.body.textContent).toMatch(/Communication Update/i);
+    expect(document.body.textContent).toMatch(/Performance Update/i);
     expect(document.body.textContent).toMatch(/Open Beta/i);
     expect(document.body.textContent).toMatch(/Built for Belize/i);
   });
 
   test("features geographic update by default", () => {
     renderLearnMore();
-    expect(document.body.textContent).toMatch(/Welcome to the Geographic Update!/i);
+    expect(document.body.textContent).toMatch(/V1\.0 — Geographic Update/i);
     expect(document.body.textContent).toMatch(/LIVE · V1\.0/i);
   });
 
   test("switching archive entry updates detail panel", () => {
     renderLearnMore();
-    const crmTab = Array.from(document.querySelectorAll('[role="tab"]')).find((el) =>
-      /CRM V1\.0/i.test(el.textContent)
+    const commTab = Array.from(document.querySelectorAll('[role="tab"]')).find((el) =>
+      /Communication Update/i.test(el.textContent)
     );
-    expect(crmTab).toBeTruthy();
+    expect(commTab).toBeTruthy();
     act(() => {
-      crmTab.click();
+      commTab.click();
     });
-    expect(document.body.textContent).toMatch(/CRM V1\.0 — Inbox & Viewings/i);
-    expect(window.location.hash).toBe("#crm-v1");
+    expect(document.body.textContent).toMatch(/V1\.1 — Communication Update/i);
+    expect(window.location.hash).toBe("#communication-update-v1");
   });
 
   test("hash deep-link opens geographic update entry", () => {
@@ -90,7 +91,7 @@ describe("LearnMoreExperience", () => {
   test("archive tabs are keyboard-focusable buttons", () => {
     renderLearnMore();
     const tabs = document.querySelectorAll('[role="tab"]');
-    expect(tabs.length).toBeGreaterThanOrEqual(4);
+    expect(tabs.length).toBeGreaterThanOrEqual(5);
     tabs.forEach((tab) => {
       expect(tab.tagName).toBe("BUTTON");
     });

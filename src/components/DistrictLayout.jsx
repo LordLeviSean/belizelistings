@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { ChevronUp, SlidersHorizontal } from "lucide-react";
 import { shouldShowFilterSummary } from "../lib/filterBarMobile";
+import { formatDistrictInventorySummary } from "../lib/districtInventorySummary";
 import styles from "../styles/District.module.css";
 import PremiumEmptyState from "./ui/PremiumEmptyState";
 
 export default function DistrictLayout({
   districtLabel,
   districtCaption,
+  districtStats,
   filteredCount,
+  totalInDistrict,
+  hasActiveFilters = false,
   status,
   onStatusChange,
   propertyType,
@@ -30,13 +34,24 @@ export default function DistrictLayout({
   const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   const showFilterSummary = shouldShowFilterSummary(filtersExpanded);
-  const resultLabel = `${filteredCount} ${filteredCount === 1 ? "Result" : "Results"}`;
+  const inventorySummary = formatDistrictInventorySummary({
+    filtered: filteredCount,
+    total: totalInDistrict ?? filteredCount,
+    hasActiveFilters,
+  });
+  const resultLabel = inventorySummary;
 
   return (
     <>
-      <section className={styles.districtTitleBlock}>
-        <h1 className={styles.districtTitle}>{districtLabel}</h1>
-        {districtCaption ? <p className={styles.districtCaption}>{districtCaption}</p> : null}
+      <section className={styles.districtHeroBand} aria-label="District overview">
+        <div className={styles.districtTitleBlock}>
+          <h1 className={styles.districtTitle}>{districtLabel}</h1>
+          {districtCaption ? <p className={styles.districtCaption}>{districtCaption}</p> : null}
+        </div>
+        <p className={styles.districtResultSummary} aria-live="polite">
+          {inventorySummary}
+        </p>
+        {districtStats ? <p className={styles.districtStats}>{districtStats}</p> : null}
       </section>
 
       <section className={styles.filterBarShell}>
@@ -187,8 +202,7 @@ export default function DistrictLayout({
 
           <div className={styles.filterInventoryMeta}>
             <div className={styles.resultCount} aria-live="polite">
-              <span className={styles.resultCountValue}>{filteredCount}</span>
-              <span className={styles.resultCountLabel}> Results</span>
+              <span className={styles.resultCountLabel}>{inventorySummary}</span>
             </div>
             <button
               type="button"

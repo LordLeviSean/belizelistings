@@ -18,7 +18,7 @@ export const GEOGRAPHIC_UPDATE_LAUNCH_WINDOW = Object.freeze({
 export const GEOGRAPHIC_UPDATE_NOTIFICATION = Object.freeze({
   eventType: GEO_UPDATE?.notificationEventType || "geographic_update_v1",
   dedupeKey: GEO_UPDATE?.notificationDedupeKey || "geographic_update_v1:2026-07-13",
-  title: `${GEO_UPDATE?.title || "Welcome to the Geographic Update!"} ${GEO_UPDATE?.version || "V1.0"}`,
+  title: `${GEO_UPDATE?.title || "V1.0 — Geographic Update"}`,
   body:
     GEO_UPDATE?.modalSummary ||
     "BelizeListings now supports detailed District, City/Town/Village, Neighborhood, Highway and locality information across Belize. Update your current listings now to make sure buyers can find them in the correct area.",

@@ -320,7 +320,7 @@ export default function HomePage() {
       <div className={styles.mapPane}>
         <div className={styles.mapPaneMapWrap}>
           <BelizeMap
-            showAmbientVeil={false}
+            showAmbientVeil
             districtListingCounts={districtListingCounts}
             onMapReady={() => patchReadySignal("mapInitialized")}
             onDistrictClick={(slug) => router.push(`/listings/district/${slug}`)}
