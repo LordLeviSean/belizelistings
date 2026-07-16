@@ -16,12 +16,23 @@
  */
 
 import {
+  extractMissingColumnName,
   isMissingColumnError,
   isMissingRelationshipError,
   isTerminalListingQueryError,
 } from "./supabaseCompat";
 
-/** Migration-confirmed owner-dashboard columns. */
+/**
+ * Optional market columns — omitted from core tiers so legacy production schemas
+ * without `market_type` still load owner inventory.
+ */
+export const LISTING_DASHBOARD_MARKET_OPTIONAL_COLUMNS = Object.freeze([
+  "listing_type",
+  "market_type",
+  "property_type",
+]);
+
+/** Migration-confirmed owner-dashboard columns (schema-safe core). */
 export const LISTING_DASHBOARD_BASE_COLUMNS = Object.freeze([
   "id",
   "user_id",
@@ -40,9 +51,6 @@ export const LISTING_DASHBOARD_BASE_COLUMNS = Object.freeze([
   "status",
   "lifecycle_status",
   "moderation_status",
-  "listing_type",
-  "market_type",
-  "property_type",
 ]);
 
 /** Optional analytics — omitted when absent in Postgres. */
@@ -60,7 +68,8 @@ export const LISTING_DASHBOARD_COUNT_COLUMNS_LEGACY = "id,status";
 
 export const LISTING_DASHBOARD_IMAGES_EMBED = "listing_images(id,image_url,position)";
 
-export const LISTING_DASHBOARD_MINIMAL_COLUMNS = [
+/** Last-resort owner row — always retains ownership + status for dashboard actions. */
+export const LISTING_DASHBOARD_MINIMAL_CORE_COLUMNS = Object.freeze([
   "id",
   "user_id",
   "title",
@@ -68,12 +77,12 @@ export const LISTING_DASHBOARD_MINIMAL_COLUMNS = [
   "district",
   "created_at",
   "status",
-  "listing_type",
-  "market_type",
-  "property_type",
-].join(", ");
+]);
 
-/** Legacy DBs without lifecycle / region slugs — keep market fields for owner actions. */
+export const LISTING_DASHBOARD_MINIMAL_COLUMNS =
+  LISTING_DASHBOARD_MINIMAL_CORE_COLUMNS.join(", ");
+
+/** Legacy DBs without lifecycle / region slugs — core only (market optional via tier). */
 export const LISTING_DASHBOARD_LEGACY_BASE_COLUMNS = Object.freeze([
   "id",
   "user_id",
@@ -83,9 +92,6 @@ export const LISTING_DASHBOARD_LEGACY_BASE_COLUMNS = Object.freeze([
   "created_at",
   "updated_at",
   "status",
-  "listing_type",
-  "market_type",
-  "property_type",
 ]);
 
 /** Count-only tiers for {@link fetchUserListingOperationalCounts} — legacy first (one network round-trip on older schemas). */
@@ -95,37 +101,30 @@ export const LISTING_DASHBOARD_COUNT_SELECT_TIERS = Object.freeze([
 ]);
 
 /** sessionStorage cache version — bump when {@link LISTING_DASHBOARD_SELECT_TIERS} order/shape changes. */
-export const LISTING_DASHBOARD_TIER_CACHE_VERSION = 6;
+export const LISTING_DASHBOARD_TIER_CACHE_VERSION = 7;
 export const LISTING_DASHBOARD_TIER_CACHE_KEY = "bl-listing-dashboard-select-tier";
 export const LISTING_CREATE_WORKSPACE_TIER_CACHE_KEY = "bl-listing-create-workspace-select-tier";
 const SCHEMA_LEGACY_HINT_KEY = "bl-listing-dashboard-legacy-schema";
 
 /** Create workspace draft hydrate — explicit allowlist (not select(*)). */
-export const LISTING_CREATE_WORKSPACE_COLUMNS = Object.freeze([
-  ...LISTING_DASHBOARD_BASE_COLUMNS,
-  "property_type",
-  "listing_type",
+export const LISTING_CREATE_WORKSPACE_EXTRA_COLUMNS = Object.freeze([
   "beds",
   "baths",
   "description",
   "features",
   "amenities",
   "square_feet",
-  "market_type",
   "category",
   "listed_by",
 ]);
 
+export const LISTING_CREATE_WORKSPACE_COLUMNS = Object.freeze([
+  ...LISTING_DASHBOARD_BASE_COLUMNS,
+  ...LISTING_CREATE_WORKSPACE_EXTRA_COLUMNS,
+]);
+
 export const LISTING_CREATE_WORKSPACE_MINIMAL_COLUMNS = [
-  "id",
-  "user_id",
-  "title",
-  "price",
-  "district",
-  "created_at",
-  "status",
-  "property_type",
-  "listing_type",
+  ...LISTING_DASHBOARD_MINIMAL_CORE_COLUMNS,
   "beds",
   "baths",
   "description",
@@ -135,7 +134,9 @@ export const LISTING_CREATE_WORKSPACE_MINIMAL_COLUMNS = [
 ].join(", ");
 
 export const LISTING_CREATE_WORKSPACE_SELECT_TIERS = Object.freeze([
+  { withImages: true, workspace: true, withMarket: true },
   { withImages: true, workspace: true },
+  { withImages: false, workspace: true, withMarket: true },
   { withImages: false, workspace: true },
   { minimal: true, workspace: true },
 ]);
@@ -157,15 +158,21 @@ const FORBIDDEN_DASHBOARD_SELECT_SNIPPETS = [
 ];
 
 /**
- * Ordered degradation: embed-off and legacy-before-full so the first network attempt succeeds
- * on common schemas (missing embed or lifecycle columns). Intel tiers omitted — not in migrations.
- * @type {ReadonlyArray<{ withImages?: boolean, withIntel?: boolean, legacyBase?: boolean, minimal?: boolean }>}
+ * Ordered degradation: optional market columns first, then schema-safe core tiers.
+ * Embed-off and legacy-before-full so the first successful attempt matches production.
+ * Intel tiers omitted — not in migrations.
+ * @type {ReadonlyArray<{ withImages?: boolean, withIntel?: boolean, withMarket?: boolean, legacyBase?: boolean, minimal?: boolean }>}
  */
 export const LISTING_DASHBOARD_SELECT_TIERS = Object.freeze([
+  { withImages: false, withIntel: false, withMarket: true },
   { withImages: false, withIntel: false },
+  { legacyBase: true, withImages: false, withMarket: true },
   { legacyBase: true, withImages: false },
+  { withImages: true, withIntel: false, withMarket: true },
   { withImages: true, withIntel: false },
+  { legacyBase: true, withImages: true, withMarket: true },
   { legacyBase: true, withImages: true },
+  { minimal: true, withMarket: true },
   { minimal: true },
 ]);
 
@@ -247,28 +254,64 @@ export function buildListingDashboardCountSelect({ count = "full" } = {}) {
   return count === "legacy" ? LISTING_DASHBOARD_COUNT_COLUMNS_LEGACY : LISTING_DASHBOARD_COUNT_COLUMNS;
 }
 
+function appendUniqueColumns(baseCols, extraCols) {
+  const seen = new Set(baseCols);
+  const out = [...baseCols];
+  for (const col of extraCols) {
+    if (!seen.has(col)) {
+      seen.add(col);
+      out.push(col);
+    }
+  }
+  return out;
+}
+
 /**
- * @param {{ withImages?: boolean, withIntel?: boolean, legacyBase?: boolean, minimal?: boolean, workspace?: boolean }} [opts]
+ * @param {{ withImages?: boolean, withIntel?: boolean, withMarket?: boolean, legacyBase?: boolean, minimal?: boolean, workspace?: boolean }} [opts]
  * @returns {string}
  */
 export function buildListingDashboardSelect({
   withImages = true,
   withIntel = false,
+  withMarket = false,
   minimal = false,
   legacyBase = false,
   workspace = false,
 } = {}) {
-  if (workspace && minimal) return LISTING_CREATE_WORKSPACE_MINIMAL_COLUMNS;
+  if (workspace && minimal) {
+    const cols = withMarket
+      ? appendUniqueColumns(
+          LISTING_CREATE_WORKSPACE_MINIMAL_COLUMNS.split(", ").map((c) => c.trim()),
+          LISTING_DASHBOARD_MARKET_OPTIONAL_COLUMNS
+        )
+      : LISTING_CREATE_WORKSPACE_MINIMAL_COLUMNS.split(", ").map((c) => c.trim());
+    return cols.join(", ");
+  }
   if (workspace) {
-    const cols = LISTING_CREATE_WORKSPACE_COLUMNS.join(", ");
+    const base = withMarket
+      ? appendUniqueColumns(
+          [...LISTING_CREATE_WORKSPACE_COLUMNS],
+          LISTING_DASHBOARD_MARKET_OPTIONAL_COLUMNS
+        )
+      : [...LISTING_CREATE_WORKSPACE_COLUMNS];
+    const cols = base.join(", ");
     if (!withImages) return cols;
     return `${cols}, ${LISTING_DASHBOARD_IMAGES_EMBED}`;
   }
-  if (minimal) return LISTING_DASHBOARD_MINIMAL_COLUMNS;
+  if (minimal) {
+    const core = [...LISTING_DASHBOARD_MINIMAL_CORE_COLUMNS];
+    const cols = withMarket
+      ? appendUniqueColumns(core, LISTING_DASHBOARD_MARKET_OPTIONAL_COLUMNS)
+      : core;
+    return cols.join(", ");
+  }
   const baseCols = legacyBase ? LISTING_DASHBOARD_LEGACY_BASE_COLUMNS : LISTING_DASHBOARD_BASE_COLUMNS;
+  const withMarketCols = withMarket
+    ? appendUniqueColumns(baseCols, LISTING_DASHBOARD_MARKET_OPTIONAL_COLUMNS)
+    : [...baseCols];
   const cols = withIntel
-    ? [...baseCols, ...LISTING_DASHBOARD_INTEL_COLUMNS].join(", ")
-    : baseCols.join(", ");
+    ? [...withMarketCols, ...LISTING_DASHBOARD_INTEL_COLUMNS].join(", ")
+    : withMarketCols.join(", ");
   if (!withImages) return cols;
   return `${cols}, ${LISTING_DASHBOARD_IMAGES_EMBED}`;
 }
@@ -317,6 +360,8 @@ export async function executeListingDashboardSelectQuery(
 
   const attemptOrder = buildListingDashboardTierAttemptOrder(tiers, { tierCacheKey });
   let lastError = null;
+  let lastTierIndex = null;
+  let lastSelect = null;
   for (const tierIndex of attemptOrder) {
     const tier = tiers[tierIndex];
     const select = buildSelect(tier);
@@ -324,9 +369,17 @@ export async function executeListingDashboardSelectQuery(
     if (!error) {
       writeTierCacheIndex(tierIndex, tierCacheKey);
       const rows = Array.isArray(data) ? data : data ? [data] : [];
-      return { data: normalizeListingDashboardRows(rows), error: null, terminal: false };
+      return {
+        data: normalizeListingDashboardRows(rows),
+        error: null,
+        terminal: false,
+        tierIndex,
+        select,
+      };
     }
     lastError = error;
+    lastTierIndex = tierIndex;
+    lastSelect = select;
     if (
       isRecoverableListingDashboardSelectError(error) &&
       !tier?.legacyBase &&
@@ -337,12 +390,37 @@ export async function executeListingDashboardSelectQuery(
     }
     if (!isRecoverableListingDashboardSelectError(error)) {
       const terminal = isTerminalListingQueryError(error);
-      return { data: [], error, terminal };
+      return {
+        data: [],
+        error,
+        terminal,
+        tierIndex,
+        select,
+        missingColumn: extractMissingColumnName(error),
+      };
     }
   }
 
   const terminal = isTerminalListingQueryError(lastError);
-  return { data: [], error: lastError, terminal };
+  if (lastError) {
+    console.error("[listing-dashboard-select] exhausted tiers", {
+      tierIndex: lastTierIndex,
+      select: lastSelect,
+      code: lastError?.code,
+      message: lastError?.message,
+      details: lastError?.details,
+      hint: lastError?.hint,
+      missingColumn: extractMissingColumnName(lastError),
+    });
+  }
+  return {
+    data: [],
+    error: lastError,
+    terminal,
+    tierIndex: lastTierIndex,
+    select: lastSelect,
+    missingColumn: extractMissingColumnName(lastError),
+  };
 }
 
 /**

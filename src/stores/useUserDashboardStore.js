@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { supabase } from "@/lib/supabaseClient";
 import { fetchUserOwnedListingsForDashboard } from "@/lib/listingQueries";
+import { buildListingDashboardLoadErrorPatch } from "@/lib/listingDashboardLoadError";
 import {
   applyListingMetricsToRows,
   fetchOwnerListingMetricsMap,
@@ -500,11 +501,11 @@ const useUserDashboardStore = create((set, get) => ({
       if (error) {
         if (terminal) {
           listingsTransientRetries = LISTINGS_TRANSIENT_RETRY_MAX;
-          patchIfChanged(set, get, {
-            myListingsRows: [],
-            listingsErrorMessage: "Could not load your listings.",
-            listingsQueryTerminal: true,
-          });
+          patchIfChanged(
+            set,
+            get,
+            buildListingDashboardLoadErrorPatch(get().myListingsRows, { terminal: true })
+          );
           return;
         }
         if (
@@ -520,10 +521,7 @@ const useUserDashboardStore = create((set, get) => ({
           });
           return;
         }
-        patchIfChanged(set, get, {
-          myListingsRows: [],
-          listingsErrorMessage: "Could not load your listings.",
-        });
+        patchIfChanged(set, get, buildListingDashboardLoadErrorPatch(get().myListingsRows));
         return;
       }
       listingsTransientRetries = 0;
@@ -544,10 +542,7 @@ const useUserDashboardStore = create((set, get) => ({
       if (syncMetrics) void get().loadMetrics({ quiet: true });
     } catch (e) {
       if (genAtStart === loadGen && get()._sessionUserId) {
-        patchIfChanged(set, get, {
-          myListingsRows: [],
-          listingsErrorMessage: "Could not load your listings.",
-        });
+        patchIfChanged(set, get, buildListingDashboardLoadErrorPatch(get().myListingsRows));
       }
     } finally {
       listingsInflight = false;

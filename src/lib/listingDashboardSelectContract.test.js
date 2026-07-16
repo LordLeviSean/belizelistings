@@ -2,6 +2,8 @@ import {
   LISTING_DASHBOARD_BASE_COLUMNS,
   LISTING_DASHBOARD_INTEL_COLUMNS,
   LISTING_DASHBOARD_LEGACY_BASE_COLUMNS,
+  LISTING_DASHBOARD_MARKET_OPTIONAL_COLUMNS,
+  LISTING_DASHBOARD_MINIMAL_CORE_COLUMNS,
   LISTING_DASHBOARD_SELECT_TIERS,
   auditListingDashboardSelectLiteral,
   buildListingDashboardSelect,
@@ -11,22 +13,30 @@ import {
 } from "./listingDashboardSelectContract";
 
 describe("listingDashboardSelectContract", () => {
-  test("legacy base columns retain market fields for owner actions", () => {
-    const blob = LISTING_DASHBOARD_LEGACY_BASE_COLUMNS.join(",");
-    expect(blob).toContain("listing_type");
-    expect(blob).toContain("market_type");
-    expect(blob).toContain("property_type");
+  test("core base columns retain ownership and lifecycle without requiring market fields", () => {
+    expect(LISTING_DASHBOARD_BASE_COLUMNS).toContain("user_id");
+    expect(LISTING_DASHBOARD_BASE_COLUMNS).toContain("lifecycle_status");
+    expect(LISTING_DASHBOARD_BASE_COLUMNS).not.toContain("market_type");
+    expect(LISTING_DASHBOARD_LEGACY_BASE_COLUMNS).toContain("user_id");
+    expect(LISTING_DASHBOARD_LEGACY_BASE_COLUMNS).not.toContain("market_type");
+    expect(LISTING_DASHBOARD_MINIMAL_CORE_COLUMNS).toEqual(
+      expect.arrayContaining(["id", "user_id", "status"])
+    );
   });
 
-  test("minimal select retains market fields", () => {
+  test("market columns are optional tier extensions only", () => {
+    const withMarket = buildListingDashboardSelect({ withImages: false, withMarket: true });
+    const withoutMarket = buildListingDashboardSelect({ withImages: false });
+    for (const col of LISTING_DASHBOARD_MARKET_OPTIONAL_COLUMNS) {
+      expect(withMarket).toContain(col);
+      expect(withoutMarket).not.toContain(col);
+    }
+  });
+
+  test("minimal select retains user_id without market columns", () => {
     const minimal = buildListingDashboardSelect({ minimal: true });
-    expect(minimal).toContain("listing_type");
-    expect(minimal).toContain("market_type");
-  });
-
-  test("base columns include market type for completion actions", () => {
-    expect(LISTING_DASHBOARD_BASE_COLUMNS).toContain("listing_type");
-    expect(LISTING_DASHBOARD_BASE_COLUMNS).toContain("market_type");
+    expect(minimal).toContain("user_id");
+    expect(minimal).not.toContain("market_type");
   });
 
   test("base columns exclude operator and verification fields", () => {
@@ -103,19 +113,53 @@ describe("listingDashboardSelectContract", () => {
     expect(calls[calls.length - 1]).not.toContain("listing_images");
   });
 
-  test("SELECT tiers: no embed or intel on first attempt", () => {
-    expect(LISTING_DASHBOARD_SELECT_TIERS.length).toBe(5);
-    expect(LISTING_DASHBOARD_SELECT_TIERS[0]).toEqual({ withImages: false, withIntel: false });
-    expect(LISTING_DASHBOARD_SELECT_TIERS[0].withIntel).toBe(false);
+  test("executeListingDashboardSelectQuery falls back when market_type column is absent", async () => {
+    const calls = [];
+    const { data, error } = await executeListingDashboardSelectQuery({}, async (select) => {
+      calls.push(select);
+      if (select.includes("market_type")) {
+        return {
+          data: null,
+          error: {
+            message:
+              "Could not find the 'market_type' column of 'listings' in the schema cache",
+          },
+        };
+      }
+      return {
+        data: [{ id: "1", user_id: "owner-1", status: "approved", listing_type: null }],
+        error: null,
+      };
+    });
+
+    expect(error).toBeNull();
+    expect(data).toHaveLength(1);
+    expect(data[0].user_id).toBe("owner-1");
+    expect(calls.some((s) => s.includes("market_type"))).toBe(true);
+    expect(calls.some((s) => !s.includes("market_type") && s.includes("user_id"))).toBe(true);
+  });
+
+  test("SELECT tiers: market-optional first, no embed or intel on core attempts", () => {
+    expect(LISTING_DASHBOARD_SELECT_TIERS.length).toBe(10);
+    expect(LISTING_DASHBOARD_SELECT_TIERS[0]).toEqual({
+      withImages: false,
+      withIntel: false,
+      withMarket: true,
+    });
+    expect(LISTING_DASHBOARD_SELECT_TIERS[1]).toEqual({ withImages: false, withIntel: false });
     expect(LISTING_DASHBOARD_SELECT_TIERS.at(-1)).toEqual({ minimal: true });
     const firstSelect = buildListingDashboardSelect(LISTING_DASHBOARD_SELECT_TIERS[0]);
     expect(firstSelect).not.toContain("listing_images");
     expect(firstSelect).not.toContain("view_count");
+    expect(firstSelect).toContain("market_type");
+    const coreSelect = buildListingDashboardSelect(LISTING_DASHBOARD_SELECT_TIERS[1]);
+    expect(coreSelect).not.toContain("market_type");
+    expect(coreSelect).toContain("user_id");
   });
 
   test("buildListingDashboardTierAttemptOrder defaults to contract order", () => {
     expect(buildListingDashboardTierAttemptOrder(LISTING_DASHBOARD_SELECT_TIERS)).toEqual([
-      0, 1, 2, 3, 4,
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
     ]);
   });
 });

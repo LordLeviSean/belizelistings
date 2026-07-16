@@ -16,6 +16,7 @@ import {
   buildOwnerDashboardListingsSelect,
   executeListingDashboardSelectQuery,
 } from "./listingDashboardSelectContract";
+import { extractMissingColumnName } from "./supabaseCompat";
 
 export {
   LISTING_OWNER_DASHBOARD_COLUMNS,
@@ -23,6 +24,19 @@ export {
   LISTING_OWNER_DASHBOARD_IMAGES_EMBED,
   buildOwnerDashboardListingsSelect,
 } from "./listingDashboardSelectContract";
+
+function logListingDashboardQueryFailure(scope, error, meta = {}) {
+  console.error(`[${scope}] load`, {
+    code: error?.code,
+    message: error?.message,
+    details: error?.details,
+    hint: error?.hint,
+    missingColumn: meta.missingColumn ?? extractMissingColumnName(error),
+    tierIndex: meta.tierIndex,
+    select: meta.select,
+    terminal: meta.terminal,
+  });
+}
 
 /**
  * Per-owner listings for user dashboards (My Listings). Tiered contract fallbacks;
@@ -33,22 +47,24 @@ export async function fetchUserOwnedListingsForDashboard(supabaseClient, userId)
     return { data: [], error: null, terminal: false };
   }
 
-  const { data, error, terminal } = await executeListingDashboardSelectQuery(
+  const { data, error, terminal, tierIndex, select, missingColumn } =
+    await executeListingDashboardSelectQuery(
     supabaseClient,
-    (select) =>
+    (selectLiteral) =>
       supabaseClient
         .from("listings")
-        .select(select)
+        .select(selectLiteral)
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
   );
 
   if (error) {
-    if (terminal) {
-      console.error("[user-my-listings] terminal query failure", error);
-    } else {
-      console.error("[user-my-listings] load", error);
-    }
+    logListingDashboardQueryFailure("user-my-listings", error, {
+      terminal,
+      tierIndex,
+      select,
+      missingColumn,
+    });
     return { data: [], error, terminal };
   }
 
