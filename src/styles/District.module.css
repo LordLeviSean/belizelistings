@@ -1653,7 +1653,13 @@
 
 :global(.home-map-page-root) .districtExplorePage .inventoryEndCap {
   margin-top: 18px;
-  color: rgba(148, 188, 172, 0.68);
+  border-color: var(--home-glass-border);
+  background: var(--home-glass-bg);
+  box-shadow: var(--ui-shadow-soft), inset 0 1px 0 var(--home-glass-highlight);
+}
+
+:global(.home-map-page-root) .districtExplorePage .inventoryEndCap p {
+  color: var(--home-text-secondary);
 }
 
 :global(.home-map-page-root) .districtExplorePage .cardSkeleton {
