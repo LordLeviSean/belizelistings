@@ -102,6 +102,16 @@
   --focus-ring-color: rgba(95, 168, 154, 0.55);
   --focus-ring-offset: 2px;
 
+  /* —— Listing completion actions (market-aware) —— */
+  --listing-action-sold-bg: linear-gradient(160deg, rgba(255, 228, 178, 0.98), rgba(214, 168, 96, 0.94));
+  --listing-action-sold-border: rgba(194, 150, 72, 0.58);
+  --listing-action-sold-text: rgba(72, 46, 14, 0.96);
+  --listing-action-sold-shadow: 0 10px 20px rgba(168, 118, 42, 0.22), 0 1px 0 rgba(255, 255, 255, 0.24) inset;
+  --listing-action-rented-bg: linear-gradient(160deg, rgba(176, 214, 244, 0.98), rgba(92, 142, 214, 0.94));
+  --listing-action-rented-border: rgba(84, 132, 198, 0.58);
+  --listing-action-rented-text: rgba(18, 42, 82, 0.96);
+  --listing-action-rented-shadow: 0 10px 20px rgba(72, 118, 188, 0.22), 0 1px 0 rgba(255, 255, 255, 0.24) inset;
+
   /* Listing media skeleton */
   --listing-media-shimmer: linear-gradient(
     92deg,

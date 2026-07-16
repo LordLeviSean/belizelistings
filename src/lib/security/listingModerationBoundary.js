@@ -1,5 +1,6 @@
 import { getLifecycleStatus } from "@/utils/canonicalListing";
 import { LISTING_LIFECYCLE } from "@/constants/operationalModel";
+import { validateListingCompletionLifecyclePatch } from "@/lib/listingCompletionAction";
 
 const ATTRIBUTION_KEYS = [
   "user_id",
@@ -38,7 +39,7 @@ export function validateOwnerListingPatch(oldRow, newRow, { isAdmin = false, isS
   const newLc = getLifecycleStatus(newRow);
 
   if (oldLc === LISTING_LIFECYCLE.PUBLISHED && [LISTING_LIFECYCLE.RECENTLY_SOLD, LISTING_LIFECYCLE.RECENTLY_RENTED].includes(newLc)) {
-    return { ok: true };
+    return validateListingCompletionLifecyclePatch(oldRow, newLc);
   }
 
   if (

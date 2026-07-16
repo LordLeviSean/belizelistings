@@ -40,6 +40,9 @@ export const LISTING_DASHBOARD_BASE_COLUMNS = Object.freeze([
   "status",
   "lifecycle_status",
   "moderation_status",
+  "listing_type",
+  "market_type",
+  "property_type",
 ]);
 
 /** Optional analytics — omitted when absent in Postgres. */
@@ -86,7 +89,7 @@ export const LISTING_DASHBOARD_COUNT_SELECT_TIERS = Object.freeze([
 ]);
 
 /** sessionStorage cache version — bump when {@link LISTING_DASHBOARD_SELECT_TIERS} order/shape changes. */
-export const LISTING_DASHBOARD_TIER_CACHE_VERSION = 4;
+export const LISTING_DASHBOARD_TIER_CACHE_VERSION = 5;
 export const LISTING_DASHBOARD_TIER_CACHE_KEY = "bl-listing-dashboard-select-tier";
 export const LISTING_CREATE_WORKSPACE_TIER_CACHE_KEY = "bl-listing-create-workspace-select-tier";
 const SCHEMA_LEGACY_HINT_KEY = "bl-listing-dashboard-legacy-schema";

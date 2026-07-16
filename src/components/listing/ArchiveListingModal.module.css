@@ -142,7 +142,9 @@
   }
 
   .btnSecondary,
-  .btnPrimary {
+  .btnPrimary,
+  .btnPrimarySold,
+  .btnPrimaryRented {
     width: 100%;
     min-height: var(--touch-target-min);
   }
@@ -179,34 +181,68 @@
   cursor: not-allowed;
 }
 
+.btnPrimarySold,
 .btnPrimary {
   flex: 1;
   min-width: 0;
   padding: 12px 16px;
   border-radius: 12px;
-  border: 1px solid rgba(194, 160, 106, 0.55);
-  background: linear-gradient(135deg, rgba(255, 236, 196, 0.88), rgba(224, 178, 98, 0.42));
-  color: rgba(88, 58, 18, 0.96);
+  border: 1px solid var(--listing-action-sold-border);
+  background: var(--listing-action-sold-bg);
+  color: var(--listing-action-sold-text);
   font-size: 0.9rem;
   font-weight: 650;
   cursor: pointer;
   transition: var(--transition-hover-lift), border-color var(--dur-2) var(--ease-out-soft);
-  box-shadow: var(--elev-1);
+  box-shadow: var(--listing-action-sold-shadow);
 }
 
+.btnPrimaryRented {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--listing-action-rented-border);
+  background: var(--listing-action-rented-bg);
+  color: var(--listing-action-rented-text);
+  font-size: 0.9rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: var(--transition-hover-lift), border-color var(--dur-2) var(--ease-out-soft);
+  box-shadow: var(--listing-action-rented-shadow);
+}
+
+.iconGlowRented {
+  background: radial-gradient(circle, rgba(120, 176, 236, 0.34) 0%, rgba(120, 176, 236, 0.08) 68%, transparent 100%);
+}
+
+.iconRented {
+  color: rgba(58, 98, 168, 0.96);
+}
+
+.btnPrimarySold:hover:not(:disabled),
 .btnPrimary:hover:not(:disabled) {
   border-color: rgba(168, 118, 42, 0.62);
   transform: translateY(var(--hover-lift-xs));
 }
 
-.btnPrimary:disabled {
+.btnPrimaryRented:hover:not(:disabled) {
+  border-color: rgba(72, 118, 188, 0.62);
+  transform: translateY(var(--hover-lift-xs));
+}
+
+.btnPrimarySold:disabled,
+.btnPrimary:disabled,
+.btnPrimaryRented:disabled {
   opacity: 0.65;
   cursor: not-allowed;
 }
 
 @media (min-width: 400px) {
   .btnSecondary,
-  .btnPrimary {
+  .btnPrimary,
+  .btnPrimarySold,
+  .btnPrimaryRented {
     flex: 0 1 auto;
     min-width: 132px;
   }
@@ -217,14 +253,18 @@
   .modal,
   .close,
   .btnSecondary,
-  .btnPrimary {
+  .btnPrimary,
+  .btnPrimarySold,
+  .btnPrimaryRented {
     animation: none !important;
     transition-duration: 0.01ms !important;
   }
 
   .close:hover:not(:disabled),
   .btnSecondary:hover:not(:disabled),
-  .btnPrimary:hover:not(:disabled) {
+  .btnPrimary:hover:not(:disabled),
+  .btnPrimarySold:hover:not(:disabled),
+  .btnPrimaryRented:hover:not(:disabled) {
     transform: none;
   }
 }

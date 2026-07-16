@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Tag, X } from "lucide-react";
-import { RECENTLY_CLOSED_DISPLAY_DAYS } from "@/constants/listingClosedLifecycle";
+import { KeyRound, Tag, X } from "lucide-react";
 import styles from "./ArchiveListingModal.module.css";
 
 const FOCUSABLE =
@@ -11,14 +10,20 @@ export default function MarkRecentlyClosedModal({
   onClose,
   onConfirm,
   isSubmitting = false,
-  mode = "sold",
+  action = null,
   listingTitle = "",
 }) {
   const modalRef = useRef(null);
   const confirmRef = useRef(null);
-  const isRent = mode === "rented";
-  const headline = isRent ? "Mark this property as rented?" : "Mark this property as sold?";
-  const confirmLabel = isRent ? "Mark Recently Rented" : "Mark Recently Sold";
+  const isRent = action?.buttonVariant === "rented";
+  const headline = action?.confirmationTitle || (isRent ? "Mark this listing as rented?" : "Mark this listing as sold?");
+  const confirmLabel = action?.confirmationPrimaryLabel || (isRent ? "Mark Rented" : "Mark Sold");
+  const bodyCopy =
+    action?.confirmationBody ||
+    (isRent
+      ? "This will remove the property from active rental listings and show it as Rented."
+      : "This will remove the property from active sale listings and show it as Sold.");
+  const resultLabel = action?.resultBadgeLabel || (isRent ? "Rented" : "Sold");
 
   useEffect(() => {
     if (!open) return undefined;
@@ -72,7 +77,7 @@ export default function MarkRecentlyClosedModal({
     return () => modal.removeEventListener("keydown", onKeyDown);
   }, [open, isSubmitting, onConfirm]);
 
-  if (!open) return null;
+  if (!open || !action) return null;
 
   return (
     <div
@@ -91,8 +96,12 @@ export default function MarkRecentlyClosedModal({
         aria-describedby="mark-recently-closed-desc mark-recently-closed-helper"
       >
         <div className={styles.iconWrap} aria-hidden="true">
-          <span className={styles.iconGlow} />
-          <Tag className={styles.icon} size={22} strokeWidth={2} />
+          <span className={`${styles.iconGlow} ${isRent ? styles.iconGlowRented : ""}`} />
+          {isRent ? (
+            <KeyRound className={`${styles.icon} ${styles.iconRented}`} size={22} strokeWidth={2} />
+          ) : (
+            <Tag className={styles.icon} size={22} strokeWidth={2} />
+          )}
         </div>
 
         <div className={styles.head}>
@@ -117,12 +126,11 @@ export default function MarkRecentlyClosedModal({
         ) : null}
 
         <p id="mark-recently-closed-desc" className={styles.body}>
-          The listing will remain visible as &ldquo;{isRent ? "Recently Rented" : "Recently Sold"}&rdquo; for{" "}
-          {RECENTLY_CLOSED_DISPLAY_DAYS} days. New inquiries and viewing requests will be disabled.
+          {bodyCopy}
         </p>
         <p id="mark-recently-closed-helper" className={styles.helper}>
-          Existing conversations and viewing history stay accessible. After the display period, archive the listing
-          from your dashboard when you are ready.
+          Existing conversations and viewing history stay accessible. The listing badge will show as{" "}
+          {resultLabel}.
         </p>
 
         <div className={styles.actions}>
@@ -137,7 +145,7 @@ export default function MarkRecentlyClosedModal({
           <button
             ref={confirmRef}
             type="button"
-            className={styles.btnPrimary}
+            className={isRent ? styles.btnPrimaryRented : styles.btnPrimarySold}
             disabled={isSubmitting}
             onClick={() => onConfirm?.()}
           >

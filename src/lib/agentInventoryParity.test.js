@@ -3,6 +3,7 @@
 import { resolveListingEditHref } from "@/lib/listingEditAccess";
 import { OWNERSHIP_ACTIONS } from "@/constants/ownershipModel";
 import { LISTING_LIFECYCLE } from "@/constants/operationalModel";
+import { resolveListingCompletionAction } from "@/lib/listingCompletionAction";
 
 describe("agent inventory parity contracts", () => {
   test("agent edit uses canonical resolveListingEditHref", () => {
@@ -18,5 +19,10 @@ describe("agent inventory parity contracts", () => {
     expect(OWNERSHIP_ACTIONS.ARCHIVE).toBe("archive");
     expect(LISTING_LIFECYCLE.RECENTLY_SOLD).toBe("recently_sold");
     expect(LISTING_LIFECYCLE.RECENTLY_RENTED).toBe("recently_rented");
+  });
+
+  test("shared completion resolver drives agent inventory labels", () => {
+    expect(resolveListingCompletionAction({ listing_type: "sale" })?.label).toBe("Mark Sold");
+    expect(resolveListingCompletionAction({ listing_type: "rent" })?.label).toBe("Mark Rented");
   });
 });

@@ -30,17 +30,16 @@ const VARIANT_PRIORITY = {
     "Fresh Inventory",
     "Newly Approved",
     "Recently Verified",
-    "Aging Inventory",
-    "Recently Rented",
-    "Recently Sold",
+    "Sold",
+    "Rented",
     "Archived",
     "Expired",
   ],
   operator: [
     "Needs Review",
     "Aging Inventory",
-    "Recently Rented",
-    "Recently Sold",
+    "Rented",
+    "Sold",
     "Pending Review",
     "Verification Revoked",
     "Verification Pending",
@@ -58,8 +57,8 @@ const VARIANT_PRIORITY = {
     "Verification Revoked",
     "Verification Pending",
     "Verified",
-    "Recently Rented",
-    "Recently Sold",
+    "Rented",
+    "Sold",
     "Fresh Inventory",
     "Updated ",
     "Recently Verified",
@@ -142,10 +141,10 @@ export default function ListingTrustStrip({ listing, variant = "admin", mode = "
     chips.push({ label: "Recently Verified", tone: "verified" });
   }
   if (hasSignal(ACTIVITY_SIGNAL_TYPES.RECENTLY_RENTED)) {
-    chips.push({ label: "Recently Rented", tone: "recentlyRented" });
+    chips.push({ label: "Rented", tone: "recentlyRented" });
   }
   if (hasSignal(ACTIVITY_SIGNAL_TYPES.RECENTLY_SOLD)) {
-    chips.push({ label: "Recently Sold", tone: "recentlySold" });
+    chips.push({ label: "Sold", tone: "recentlySold" });
   }
   if (hasSignal(ACTIVITY_SIGNAL_TYPES.NEWLY_APPROVED)) {
     chips.push({ label: "Newly Approved", tone: "fresh" });

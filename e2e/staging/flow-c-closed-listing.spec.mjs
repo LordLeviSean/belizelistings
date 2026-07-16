@@ -26,7 +26,7 @@ test.describe("Flow C — Closed listing", () => {
       await signIn(ownerPage, ACCOUNTS.owner.email, ACCOUNTS.owner.password);
       await ownerPage.goto("/dashboard/user?tab=my-listings");
       const row = ownerPage.locator(`article, [data-listing-id="${E2E_CLOSABLE_LISTING_ID}"]`).first();
-      await row.getByRole("button", { name: /Mark sold|Mark rented/i }).first().click();
+      await row.getByRole("button", { name: /Mark Sold|Mark Rented/i }).first().click();
       await ownerPage.getByRole("button", { name: /Mark Recently/i }).click();
 
       await buyerPage.goto(`/listing/${E2E_CLOSABLE_LISTING_ID}`);

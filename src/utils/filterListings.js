@@ -1,27 +1,12 @@
 // src/utils/filterListings.js
 import { isChildRegion, normalizeRegionSlug } from "../constants/geographyLayer";
+import { resolveListingMarketKindForBrowse } from "../lib/listingMarketType";
 import { getListingRegionSlug } from "./canonicalListing";
 import { isLandInventoryListing } from "./listingPresentation";
 
-function getListingMarketSignals(listing) {
-  return [
-    listing?.listing_type,
-    listing?.market_type,
-    listing?.listing_status,
-    listing?.status,
-    listing?.category,
-  ]
-    .map((value) => String(value || "").toLowerCase().trim())
-    .filter(Boolean)
-    .join(" ");
-}
-
 /** Canonical sale/rent kind for filter matching (UI uses `for-sale` / `rent`). */
 export function getListingMarketKind(listing) {
-  const signals = getListingMarketSignals(listing);
-  if (/(rent|rental|lease|for-rent|for rent)/.test(signals)) return "rent";
-  if (/(sale|sell|for-sale|for sale)/.test(signals)) return "sale";
-  return "sale";
+  return resolveListingMarketKindForBrowse(listing);
 }
 
 function normalizeFilterMarketStatus(status) {

@@ -41,6 +41,11 @@ import {
   prepareAgentInventoryRows,
 } from "@/lib/agentDashboardHelpers";
 import { MY_LISTINGS_SORT_KEYS } from "@/lib/userDashboardListingTruth";
+import {
+  resolveListingCompletionAction,
+  resolveListingCompletionButtonClassName,
+  warnMissingListingMarketType,
+} from "@/lib/listingCompletionAction";
 import styles from "@/styles/Dashboard.module.css";
 
 function coverUrl(listing) {
@@ -56,18 +61,6 @@ function emptyVariantForFilter(filter) {
   if (filter === AGENT_INVENTORY_FILTERS.PENDING) return "moderation";
   if (filter === AGENT_INVENTORY_FILTERS.DRAFTS) return "drafts";
   return "listings";
-}
-
-function isRentListing(listing) {
-  const signals = [
-    listing?.listing_type,
-    listing?.market_type,
-    listing?.listing_status,
-    listing?.property_type,
-  ]
-    .map((value) => String(value || "").toLowerCase())
-    .join(" ");
-  return /(rent|rental|lease|for-rent|for rent)/.test(signals);
 }
 
 function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterChange }) {
@@ -129,27 +122,37 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
   const editListingHref = (listingId) => resolveListingEditHref(listingId);
 
   const openMarkRecentlyClosed = (listing) => {
+    const action = resolveListingCompletionAction(listing);
+    if (!action) {
+      warnMissingListingMarketType(listing, "agent-inventory");
+      showToast({
+        type: "error",
+        message: "Set this listing to For Sale or For Rent before marking it closed.",
+      });
+      return;
+    }
     modal.closeAllModals();
     modal.openModal(MODAL_TYPES.MARK_RECENTLY_CLOSED, {
       listingId: String(listing.id),
       title: listing.title || "Listing",
-      mode: isRentListing(listing) ? "rented" : "sold",
+      action,
     });
   };
 
   const confirmMarkRecentlyClosed = async () => {
     const listingId = closeTarget?.listingId;
-    if (!listingId) return;
-    const action =
-      closeTarget?.mode === "rented" ? OWNERSHIP_ACTIONS.CLOSE_RENTED : OWNERSHIP_ACTIONS.CLOSE_SOLD;
+    const action = closeTarget?.action;
+    if (!listingId || !action) return;
     const optimisticPatch =
-      closeTarget?.mode === "rented" ? buildRecentlyRentedPatch() : buildRecentlySoldPatch();
+      action.ownershipAction === OWNERSHIP_ACTIONS.CLOSE_RENTED
+        ? buildRecentlyRentedPatch()
+        : buildRecentlySoldPatch();
 
     setActionId(String(listingId));
     patchMyListingRow(listingId, optimisticPatch);
     const { error } = await applyListingLifecycleAction(supabase, {
       listingId,
-      action,
+      action: action.ownershipAction,
     });
     if (error) {
       setActionId("");
@@ -160,10 +163,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
     invalidate();
     showToast({
       type: "success",
-      message:
-        closeTarget?.mode === "rented"
-          ? "Listing marked as recently rented."
-          : "Listing marked as recently sold.",
+      message: action.successMessage,
     });
     setActionId("");
     modal.closeModal(MODAL_TYPES.MARK_RECENTLY_CLOSED);
@@ -389,6 +389,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
             const thumb = coverUrl(l);
             const districtLabel =
               formatListingLocation(l) || getRegionLabel(normalizeRegionSlug(l.district || ""));
+            const completionAction = isPublished ? resolveListingCompletionAction(l) : null;
 
             return (
               <div
@@ -461,18 +462,21 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
                         </button>
                       </>
                     ) : null}
-                    {isPublished ? (
+                    {isPublished && completionAction ? (
                       <>
                         <Link className={styles.approveButton} href={editListingHref(l.id)}>
                           Edit
                         </Link>
                         <button
                           type="button"
-                          className={styles.approveButton}
+                          className={resolveListingCompletionButtonClassName(
+                            styles,
+                            completionAction.buttonVariant
+                          )}
                           onClick={() => openMarkRecentlyClosed(l)}
                           disabled={actionId === String(l.id)}
                         >
-                          {isRentListing(l) ? "Mark rented" : "Mark sold"}
+                          {completionAction.label}
                         </button>
                         <button
                           type="button"
@@ -547,7 +551,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
       <MarkRecentlyClosedModal
         open={Boolean(closeTarget?.listingId)}
         isSubmitting={Boolean(closeTarget?.listingId && actionId === closeTarget.listingId)}
-        mode={closeTarget?.mode || "sold"}
+        action={closeTarget?.action || null}
         listingTitle={closeTarget?.title || "Listing"}
         onClose={() => {
           if (actionId === closeTarget?.listingId) return;

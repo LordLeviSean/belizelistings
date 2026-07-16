@@ -29,6 +29,9 @@ import {
 } from "../lib/listingEvents";
 import { coerceListingIdForDb } from "../lib/listingEvents/coerceListingId";
 import {
+  validateListingCompletionOwnershipAction,
+} from "../lib/listingCompletionAction";
+import {
   bestEffortRemoveListingImageStorage,
   invokePermanentDeleteListingRpc,
 } from "../lib/listingPermanentDelete";
@@ -226,14 +229,35 @@ export async function applyListingLifecycleAction(supabase, { listingId, action,
   const minimalFallback = moderationFallbackForAction(action);
 
   let fromStatus = null;
+  let priorRow = null;
   const eventDescriptor = lifecycleActionToEventDescriptor(action);
   if (eventDescriptor) {
-    const { data: priorRow } = await supabase
+    const { data } = await supabase
       .from("listings")
-      .select("status, lifecycle_status")
+      .select("status, lifecycle_status, listing_type, market_type")
       .eq("id", listingId)
       .maybeSingle();
+    priorRow = data || null;
     fromStatus = getLifecycleStatus(priorRow || {});
+  }
+
+  if (
+    action === OWNERSHIP_ACTIONS.CLOSE_SOLD ||
+    action === OWNERSHIP_ACTIONS.CLOSE_RENTED
+  ) {
+    const marketCheck = validateListingCompletionOwnershipAction(priorRow || {}, action);
+    if (!marketCheck.ok) {
+      const message =
+        marketCheck.code === "market_unknown"
+          ? "Set this listing to For Sale or For Rent before marking it closed."
+          : "This completion action does not match the listing market type.";
+      return {
+        data: null,
+        error: { message, code: marketCheck.code },
+        appliedPayload: payload,
+        meta: { stage: "completion-market-guard", attempts: 0 },
+      };
+    }
   }
 
   const result = await updateListingSafe(supabase, listingId, payload, {

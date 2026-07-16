@@ -28,10 +28,36 @@ describe("listingModerationBoundary", () => {
     expect(result.code).toBe("owner_cannot_self_verify");
   });
 
-  test("owner can mark published listing recently sold", () => {
+  test("owner can mark published sale listing recently sold", () => {
     const result = validateOwnerListingPatch(
-      { status: "approved", lifecycle_status: "published" },
+      { status: "approved", lifecycle_status: "published", listing_type: "sale" },
       { status: "recently_sold", lifecycle_status: "recently_sold", sold_at: "2026-07-01" }
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  test("owner cannot mark rental listing recently sold", () => {
+    const result = validateOwnerListingPatch(
+      { status: "approved", lifecycle_status: "published", listing_type: "rent" },
+      { status: "recently_sold", lifecycle_status: "recently_sold", sold_at: "2026-07-01" }
+    );
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe("completion_market_mismatch");
+  });
+
+  test("owner cannot mark sale listing recently rented", () => {
+    const result = validateOwnerListingPatch(
+      { status: "approved", lifecycle_status: "published", listing_type: "sale" },
+      { status: "recently_rented", lifecycle_status: "recently_rented", rented_at: "2026-07-01" }
+    );
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe("completion_market_mismatch");
+  });
+
+  test("owner can mark published rental listing recently rented", () => {
+    const result = validateOwnerListingPatch(
+      { status: "approved", lifecycle_status: "published", listing_type: "rent" },
+      { status: "recently_rented", lifecycle_status: "recently_rented", rented_at: "2026-07-01" }
     );
     expect(result.ok).toBe(true);
   });

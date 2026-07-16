@@ -1764,6 +1764,8 @@ button.dashboardLink:disabled {
 }
 
 .userListingActions .approveButton,
+.userListingActions .listingActionSold,
+.userListingActions .listingActionRented,
 .userListingActions .deleteListingButton {
   width: 100%;
   height: auto;
@@ -1822,6 +1824,8 @@ button.dashboardLink:disabled {
   }
 
   .userListingActions .approveButton,
+  .userListingActions .listingActionSold,
+  .userListingActions .listingActionRented,
   .userListingActions .deleteListingButton {
     width: auto;
     min-height: 34px;
@@ -2168,6 +2172,76 @@ button.dashboardLink:disabled {
 .approveButton:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+.listingActionSold {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--listing-action-sold-bg);
+  color: var(--listing-action-sold-text);
+  border: 1px solid var(--listing-action-sold-border);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--listing-action-sold-shadow);
+  transition:
+    transform 260ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    box-shadow 260ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    filter 260ms cubic-bezier(0.32, 0.06, 0.2, 1);
+}
+
+.listingActionSold:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  filter: brightness(1.03);
+  box-shadow:
+    0 14px 28px rgba(168, 118, 42, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.16) inset;
+}
+
+.listingActionSold:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.listingActionSold:focus-visible {
+  outline: 2px solid rgba(194, 150, 72, 0.72);
+  outline-offset: 2px;
+}
+
+.listingActionRented {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--listing-action-rented-bg);
+  color: var(--listing-action-rented-text);
+  border: 1px solid var(--listing-action-rented-border);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--listing-action-rented-shadow);
+  transition:
+    transform 260ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    box-shadow 260ms cubic-bezier(0.32, 0.06, 0.2, 1),
+    filter 260ms cubic-bezier(0.32, 0.06, 0.2, 1);
+}
+
+.listingActionRented:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  filter: brightness(1.03);
+  box-shadow:
+    0 14px 28px rgba(72, 118, 188, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.16) inset;
+}
+
+.listingActionRented:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.listingActionRented:focus-visible {
+  outline: 2px solid rgba(84, 132, 198, 0.72);
+  outline-offset: 2px;
 }
 
 .rejectButton {

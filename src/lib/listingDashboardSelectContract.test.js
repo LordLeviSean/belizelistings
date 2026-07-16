@@ -10,6 +10,11 @@ import {
 } from "./listingDashboardSelectContract";
 
 describe("listingDashboardSelectContract", () => {
+  test("base columns include market type for completion actions", () => {
+    expect(LISTING_DASHBOARD_BASE_COLUMNS).toContain("listing_type");
+    expect(LISTING_DASHBOARD_BASE_COLUMNS).toContain("market_type");
+  });
+
   test("base columns exclude operator and verification fields", () => {
     const blob = LISTING_DASHBOARD_BASE_COLUMNS.join(",");
     expect(blob).not.toMatch(/occupied_at/);
