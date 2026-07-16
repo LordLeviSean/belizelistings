@@ -1,10 +1,15 @@
 import dynamic from "next/dynamic";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/router";
-import { CalendarClock, MessageCircle, Share2 } from "lucide-react";
+import { CalendarClock, MessageCircle, Share2, Settings2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { fetchListingOwnerContact } from "@/lib/listingContactResolver";
 import { resolveListingAgentUserId, resolveListingAgentUserIdAsync } from "@/lib/listingInquiryTargets";
+import { resolveListingEditHref } from "@/lib/listingEditAccess";
+import {
+  isSelfListingContact,
+  SELF_LISTING_OWNER_MESSAGE,
+} from "@/lib/listingSelfContact";
 import {
   getListingAvailabilityMessage,
   isListingEngagementEnabled,
@@ -42,6 +47,22 @@ export default function ListingContactActions({ listing, user }) {
   const listingAgentUserId = useMemo(
     () => agentUserIdResolved || resolveListingAgentUserId(listing, ownerContact),
     [agentUserIdResolved, listing, ownerContact]
+  );
+
+  const isOwnListing = useMemo(() => {
+    if (!user?.id) return false;
+    if (listing?.user_id && String(user.id) === String(listing.user_id)) return true;
+    return isSelfListingContact({
+      viewerUserId: user.id,
+      listing,
+      recipientUserId: listingAgentUserId,
+      contact: ownerContact,
+    });
+  }, [user?.id, listing, listingAgentUserId, ownerContact]);
+
+  const manageListingHref = useMemo(
+    () => (listing?.id ? resolveListingEditHref(listing.id) : "/dashboard/user"),
+    [listing?.id]
   );
 
   useEffect(() => {
@@ -93,7 +114,7 @@ export default function ListingContactActions({ listing, user }) {
   }, []);
 
   useEffect(() => {
-    if (!user?.id || !listing?.id) return;
+    if (!user?.id || !listing?.id || isOwnListing) return;
     const pending = readPendingListingEngagement(listing.id);
     if (!pending) return;
     clearPendingListingEngagement();
@@ -102,9 +123,10 @@ export default function ListingContactActions({ listing, user }) {
     } else if (pending.action === LISTING_ENGAGEMENT_ACTIONS.VIEWING) {
       setViewingOpen(true);
     }
-  }, [user?.id, listing?.id]);
+  }, [user?.id, listing?.id, isOwnListing]);
 
   const requestSiteMessage = useCallback(() => {
+    if (isOwnListing) return;
     setContactOpen(false);
     if (!engagementEnabled) {
       showToast({ type: "info", message: availabilityMessage });
@@ -119,9 +141,10 @@ export default function ListingContactActions({ listing, user }) {
       return;
     }
     setMessageOpen(true);
-  }, [user?.id, listing?.id, listingReturnPath, openListingEngagementPrompt, engagementEnabled, availabilityMessage, showToast]);
+  }, [user?.id, listing?.id, listingReturnPath, openListingEngagementPrompt, engagementEnabled, availabilityMessage, showToast, isOwnListing]);
 
   const requestScheduleViewing = useCallback(() => {
+    if (isOwnListing) return;
     if (!engagementEnabled) {
       showToast({ type: "info", message: availabilityMessage });
       return;
@@ -135,7 +158,7 @@ export default function ListingContactActions({ listing, user }) {
       return;
     }
     setViewingOpen(true);
-  }, [user?.id, listing?.id, listingReturnPath, openListingEngagementPrompt, engagementEnabled, availabilityMessage, showToast]);
+  }, [user?.id, listing?.id, listingReturnPath, openListingEngagementPrompt, engagementEnabled, availabilityMessage, showToast, isOwnListing]);
 
   const listingUrl =
     typeof window !== "undefined" ? `${window.location.origin}/listing/${listing?.id}` : "";
@@ -170,27 +193,41 @@ export default function ListingContactActions({ listing, user }) {
           {availabilityMessage}
         </p>
       ) : null}
+      {isOwnListing ? (
+        <p className={styles.ownerNote} role="status">
+          {SELF_LISTING_OWNER_MESSAGE} You can&apos;t message or schedule a viewing on your own listing.
+        </p>
+      ) : null}
       <div className={styles.row}>
         <div className={styles.rowLead}>
-          <button
-            type="button"
-            className={styles.primaryBtn}
-            onClick={() => setContactOpen(true)}
-            disabled={!engagementEnabled}
-          >
-            <MessageCircle size={18} strokeWidth={2} aria-hidden />
-            Contact agent
-          </button>
+          {isOwnListing ? (
+            <a href={manageListingHref} className={styles.manageBtn}>
+              <Settings2 size={18} strokeWidth={2} aria-hidden />
+              Manage Your Listing
+            </a>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={styles.primaryBtn}
+                onClick={() => setContactOpen(true)}
+                disabled={!engagementEnabled}
+              >
+                <MessageCircle size={18} strokeWidth={2} aria-hidden />
+                Contact agent
+              </button>
 
-          <button
-            type="button"
-            className={styles.secondaryBtn}
-            onClick={requestScheduleViewing}
-            disabled={!engagementEnabled}
-          >
-            <CalendarClock size={18} strokeWidth={2} aria-hidden />
-            Schedule viewing
-          </button>
+              <button
+                type="button"
+                className={styles.secondaryBtn}
+                onClick={requestScheduleViewing}
+                disabled={!engagementEnabled}
+              >
+                <CalendarClock size={18} strokeWidth={2} aria-hidden />
+                Schedule viewing
+              </button>
+            </>
+          )}
         </div>
 
         <button type="button" className={styles.shareBtn} aria-label="Share listing" onClick={() => void handleShare()}>
@@ -198,27 +235,31 @@ export default function ListingContactActions({ listing, user }) {
         </button>
       </div>
 
-      <ContactAgentModal
-        open={contactOpen}
-        onClose={() => setContactOpen(false)}
-        listing={listing}
-        contact={ownerContact}
-        onOpenSiteMessage={requestSiteMessage}
-      />
-      <ListingMessageModal
-        open={messageOpen}
-        onClose={() => setMessageOpen(false)}
-        listing={listing}
-        user={user}
-        agentUserId={listingAgentUserId}
-      />
-      <ListingViewingBookingModal
-        open={viewingOpen}
-        onClose={() => setViewingOpen(false)}
-        listing={listing}
-        user={user}
-        agentUserId={listingAgentUserId}
-      />
+      {!isOwnListing ? (
+        <>
+          <ContactAgentModal
+            open={contactOpen}
+            onClose={() => setContactOpen(false)}
+            listing={listing}
+            contact={ownerContact}
+            onOpenSiteMessage={requestSiteMessage}
+          />
+          <ListingMessageModal
+            open={messageOpen}
+            onClose={() => setMessageOpen(false)}
+            listing={listing}
+            user={user}
+            agentUserId={listingAgentUserId}
+          />
+          <ListingViewingBookingModal
+            open={viewingOpen}
+            onClose={() => setViewingOpen(false)}
+            listing={listing}
+            user={user}
+            agentUserId={listingAgentUserId}
+          />
+        </>
+      ) : null}
     </section>
   );
 }

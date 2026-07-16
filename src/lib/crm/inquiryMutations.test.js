@@ -117,4 +117,32 @@ describe("inquiryMutations", () => {
     expect(data.id).toBe("inq-2");
     expect(client.rpc).toHaveBeenCalled();
   });
+
+  test("submitListingInquiry rejects self-contact before RPC", async () => {
+    const client = { rpc: jest.fn() };
+    const { data, error } = await submitListingInquiry(client, {
+      listingId: "99",
+      agentUserId: "owner-1",
+      senderUserId: "owner-1",
+      body: "Hello to myself.",
+      channel: "contact",
+    });
+
+    expect(data).toBeNull();
+    expect(error?.code).toBe("self_inquiry_not_allowed");
+    expect(client.rpc).not.toHaveBeenCalled();
+  });
+
+  test("createInquiryWithConversation rejects self-contact without writes", async () => {
+    const client = { rpc: jest.fn() };
+    const result = await createInquiryWithConversation(client, {
+      listingId: "42",
+      agentUserId: "owner-1",
+      senderUserId: "owner-1",
+      message: "Self message",
+    });
+
+    expect(result.error?.code).toBe("self_inquiry_not_allowed");
+    expect(client.rpc).not.toHaveBeenCalled();
+  });
 });

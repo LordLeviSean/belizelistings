@@ -10,6 +10,10 @@ import {
   INQUIRY_TYPE,
 } from "./crmConstants";
 import { coerceListingIdForDb, isCrmUnavailable } from "./crmCompat";
+import {
+  isSelfListingContact,
+  selfInquiryBlockedResult,
+} from "../listingSelfContact";
 
 const RPC_CREATE = "create_inquiry_with_conversation";
 
@@ -50,6 +54,15 @@ export async function createInquiryWithConversation(client, payload) {
   const listingId = coerceListingIdForDb(payload.listingId);
   const message = String(payload.message ?? payload.body ?? "").trim();
   const inquiryType = payload.inquiryType ?? INQUIRY_TYPE.GENERAL;
+
+  if (
+    isSelfListingContact({
+      viewerUserId: payload.senderUserId,
+      recipientUserId: payload.agentUserId,
+    })
+  ) {
+    return selfInquiryBlockedResult();
+  }
 
   const rpcArgs = {
     p_listing_id: listingId,
@@ -147,6 +160,14 @@ export async function submitListingInquiry(client, payload) {
   }
 
   const row = buildLegacyInquiryRow(payload);
+  if (
+    isSelfListingContact({
+      viewerUserId: payload.senderUserId,
+      recipientUserId: payload.agentUserId,
+    })
+  ) {
+    return selfInquiryBlockedResult();
+  }
   return client.from("listing_inquiries").insert(row).select("id,created_at").single();
 }
 

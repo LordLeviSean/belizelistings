@@ -33,6 +33,22 @@ export function mapInquiryRpcError(error) {
     return { status: 400, code: "invalid_agent", message: "Invalid listing contact." };
   }
 
+  if (/self_inquiry_not_allowed/i.test(msg)) {
+    return {
+      status: 403,
+      code: "self_inquiry_not_allowed",
+      message: "You can't contact yourself about your own listing.",
+    };
+  }
+
+  if (/self_viewing_not_allowed/i.test(msg)) {
+    return {
+      status: 403,
+      code: "self_viewing_not_allowed",
+      message: "You can't schedule a viewing on your own listing.",
+    };
+  }
+
   if (/message is required|sender_email is required/i.test(msg)) {
     return { status: 400, code: "validation_error", message: msg };
   }

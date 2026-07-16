@@ -113,6 +113,8 @@ export default function ListingMessageModal({ open, onClose, listing, user: user
         const msg = error.message || "";
         if (error.code === "rate_limited_listing" || error.code === "rate_limited_global") {
           showToast({ type: "error", message: msg || "Too many messages. Try again later." });
+        } else if (error.code === "self_inquiry_not_allowed") {
+          showToast({ type: "error", message: error.message || "You can't contact yourself about your own listing." });
         } else if (/listing_inquiries|relation|does not exist/i.test(msg)) {
           showToast({
             type: "info",

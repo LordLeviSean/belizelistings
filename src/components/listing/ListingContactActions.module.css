@@ -11,6 +11,35 @@
   color: rgba(120, 52, 48, 0.9);
 }
 
+.ownerNote {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgba(52, 86, 78, 0.82);
+}
+
+.manageBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(72, 140, 128, 0.35);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94) 0%, rgba(244, 252, 249, 0.9) 100%);
+  color: rgba(22, 56, 52, 0.94);
+  font-size: 0.88rem;
+  font-weight: 650;
+  text-decoration: none;
+  box-shadow: var(--elev-1);
+  transition: var(--transition-hover-lift), border-color var(--dur-2) var(--ease-out-soft);
+}
+
+.manageBtn:hover {
+  border-color: rgba(52, 130, 118, 0.42);
+  transform: translateY(var(--hover-lift-xs));
+}
+
 .row {
   display: flex;
   flex-wrap: wrap;
@@ -135,7 +164,8 @@
   }
 
   .primaryBtn,
-  .secondaryBtn {
+  .secondaryBtn,
+  .manageBtn {
     flex: 1;
     min-width: 0;
     min-height: 44px;
@@ -145,7 +175,8 @@
   }
 
   .primaryBtn svg,
-  .secondaryBtn svg {
+  .secondaryBtn svg,
+  .manageBtn svg {
     flex-shrink: 0;
   }
 

@@ -5,6 +5,10 @@ import { LISTING_EVENT_TYPES } from "../listingEvents/listingEventTypes";
 import { enqueueNotificationEvent, NOTIFICATION_EVENT_TYPES } from "../notifications/notificationEvents";
 import { CRM_PIPELINE_STAGE, VIEWING_STATUS } from "./crmConstants";
 import { coerceListingIdForDb, isCrmUnavailable } from "./crmCompat";
+import {
+  isSelfListingContact,
+  selfViewingBlockedResult,
+} from "../listingSelfContact";
 import { withNotificationRecipientRole } from "./notificationRecipientRoles";
 import { buildViewingNotificationPayload } from "../notifications/crmNotificationHelpers";
 import {
@@ -60,6 +64,15 @@ export async function createViewingRequest(client, payload) {
 
   if (!listingId || !requestedDate || !requestedTime) {
     return { data: null, error: { message: "listingId, requestedDate, and requestedTime are required" } };
+  }
+
+  if (
+    isSelfListingContact({
+      viewerUserId: payload.requesterId,
+      recipientUserId: payload.agentUserId,
+    })
+  ) {
+    return selfViewingBlockedResult();
   }
 
   const row = {

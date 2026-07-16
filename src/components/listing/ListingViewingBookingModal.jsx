@@ -219,6 +219,8 @@ export default function ListingViewingBookingModal({
             type: "info",
             message: "Viewing booking is rolling out — the agent will confirm separately when live.",
           });
+        } else if (error.code === "self_viewing_not_allowed") {
+          showToast({ type: "error", message: error.message || "You can't schedule a viewing on your own listing." });
         } else {
           showToast({ type: "error", message: msg || "Could not schedule viewing." });
         }

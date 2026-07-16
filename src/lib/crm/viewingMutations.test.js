@@ -79,6 +79,21 @@ describe("viewingMutations", () => {
     );
   });
 
+  test("createViewingRequest rejects self-contact before insert", async () => {
+    const client = { from: jest.fn() };
+    const result = await createViewingRequest(client, {
+      listingId: 12,
+      agentUserId: "owner-1",
+      requesterId: "owner-1",
+      requestedDate: "2026-07-15",
+      requestedTime: "08:00",
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error?.code).toBe("self_viewing_not_allowed");
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
   test("confirmViewing emits public viewing_scheduled event", async () => {
     const chain = {
       eq: jest.fn().mockReturnThis(),

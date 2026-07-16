@@ -111,6 +111,13 @@ export default async function handler(req, res) {
     return res.status(404).json({ code: "listing_unavailable", error: "Listing agent not found." });
   }
 
+  if (String(senderUserId) === String(agentUserId)) {
+    return res.status(403).json({
+      code: "self_inquiry_not_allowed",
+      error: "You can't contact yourself about your own listing.",
+    });
+  }
+
   const rpcArgs = {
     p_listing_id: listingId,
     p_agent_user_id: agentUserId,
