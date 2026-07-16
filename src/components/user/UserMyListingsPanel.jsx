@@ -46,6 +46,7 @@ import {
   resolveListingCompletionButtonClassName,
   warnMissingListingMarketType,
 } from "@/lib/listingCompletionAction";
+import { resolveListingManagementActions } from "@/lib/listingManagementActions";
 import styles from "@/styles/Dashboard.module.css";
 
 function coverUrl(listing) {
@@ -303,7 +304,7 @@ function UserMyListingsPanel({ userId, tier }) {
             const districtLabel =
               formatListingLocation(l) || getRegionLabel(normalizeRegionSlug(l.district || ""));
             const created = l.created_at ? new Date(l.created_at).toLocaleDateString() : "—";
-            const completionAction = isPublished ? resolveListingCompletionAction(l) : null;
+            const mgmt = resolveListingManagementActions(l, { viewerUserId: userId });
 
             return (
               <div
@@ -350,12 +351,12 @@ function UserMyListingsPanel({ userId, tier }) {
                     ) : null}
                   </div>
                   <div className={styles.userListingActions}>
-                    {!isDraft ? (
+                    {mgmt.canView ? (
                       <Link className={styles.approveButton} href={`/listing/${l.id}`}>
                         View
                       </Link>
                     ) : null}
-                    {isDraft ? (
+                    {mgmt.canDiscardDraft ? (
                       <>
                         <button
                           type="button"
@@ -376,33 +377,35 @@ function UserMyListingsPanel({ userId, tier }) {
                         </button>
                       </>
                     ) : null}
-                    {!isDraft && isPublished && completionAction ? (
-                      <>
-                        <Link className={styles.approveButton} href={editListingHref(l.id)}>
-                          Edit
-                        </Link>
-                        <button
-                          type="button"
-                          className={resolveListingCompletionButtonClassName(
-                            styles,
-                            completionAction.buttonVariant
-                          )}
-                          onClick={() => openMarkRecentlyClosed(l)}
-                          disabled={actionId === String(l.id)}
-                        >
-                          {completionAction.label}
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.deleteListingButton}
-                          onClick={() => openArchiveListing(l.id)}
-                          disabled={actionId === String(l.id)}
-                        >
-                          {actionId === String(l.id) ? "Archiving…" : "Archive"}
-                        </button>
-                      </>
+                    {mgmt.isPublished && mgmt.canEdit ? (
+                      <Link className={styles.approveButton} href={editListingHref(l.id)}>
+                        Edit
+                      </Link>
                     ) : null}
-                    {isRejected ? (
+                    {mgmt.completionAction.visible ? (
+                      <button
+                        type="button"
+                        className={resolveListingCompletionButtonClassName(
+                          styles,
+                          mgmt.completionAction.action.buttonVariant
+                        )}
+                        onClick={() => openMarkRecentlyClosed(l)}
+                        disabled={actionId === String(l.id)}
+                      >
+                        {mgmt.completionAction.action.label}
+                      </button>
+                    ) : null}
+                    {mgmt.canArchive ? (
+                      <button
+                        type="button"
+                        className={styles.deleteListingButton}
+                        onClick={() => openArchiveListing(l.id)}
+                        disabled={actionId === String(l.id)}
+                      >
+                        {actionId === String(l.id) ? "Archiving…" : "Archive"}
+                      </button>
+                    ) : null}
+                    {mgmt.isRejected && mgmt.canResubmit ? (
                       <>
                         <Link className={styles.approveButton} href={editListingHref(l.id)}>
                           Edit

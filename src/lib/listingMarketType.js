@@ -36,7 +36,39 @@ export function resolveCanonicalListingMarketType(listing) {
     return "sale";
   }
 
+  const legacySignals = [listing?.listing_status, listing?.category]
+    .map((value) => normalizeMarketToken(value))
+    .filter(Boolean);
+
+  for (const signal of legacySignals) {
+    if (
+      signal === "rent" ||
+      signal === "rental" ||
+      signal === "lease" ||
+      signal === "for-rent" ||
+      signal === "for rent"
+    ) {
+      return "rent";
+    }
+    if (
+      signal === "sale" ||
+      signal === "sell" ||
+      signal === "for-sale" ||
+      signal === "for sale" ||
+      signal === "forsale"
+    ) {
+      return "sale";
+    }
+  }
+
   return null;
+}
+
+function normalizeMarketToken(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, "-");
 }
 
 /**

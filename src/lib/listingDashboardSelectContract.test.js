@@ -1,6 +1,7 @@
 import {
   LISTING_DASHBOARD_BASE_COLUMNS,
   LISTING_DASHBOARD_INTEL_COLUMNS,
+  LISTING_DASHBOARD_LEGACY_BASE_COLUMNS,
   LISTING_DASHBOARD_SELECT_TIERS,
   auditListingDashboardSelectLiteral,
   buildListingDashboardSelect,
@@ -10,6 +11,19 @@ import {
 } from "./listingDashboardSelectContract";
 
 describe("listingDashboardSelectContract", () => {
+  test("legacy base columns retain market fields for owner actions", () => {
+    const blob = LISTING_DASHBOARD_LEGACY_BASE_COLUMNS.join(",");
+    expect(blob).toContain("listing_type");
+    expect(blob).toContain("market_type");
+    expect(blob).toContain("property_type");
+  });
+
+  test("minimal select retains market fields", () => {
+    const minimal = buildListingDashboardSelect({ minimal: true });
+    expect(minimal).toContain("listing_type");
+    expect(minimal).toContain("market_type");
+  });
+
   test("base columns include market type for completion actions", () => {
     expect(LISTING_DASHBOARD_BASE_COLUMNS).toContain("listing_type");
     expect(LISTING_DASHBOARD_BASE_COLUMNS).toContain("market_type");

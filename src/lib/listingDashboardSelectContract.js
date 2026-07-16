@@ -68,9 +68,12 @@ export const LISTING_DASHBOARD_MINIMAL_COLUMNS = [
   "district",
   "created_at",
   "status",
+  "listing_type",
+  "market_type",
+  "property_type",
 ].join(", ");
 
-/** Legacy DBs without lifecycle / region slugs — status-only lifecycle resolution. */
+/** Legacy DBs without lifecycle / region slugs — keep market fields for owner actions. */
 export const LISTING_DASHBOARD_LEGACY_BASE_COLUMNS = Object.freeze([
   "id",
   "user_id",
@@ -80,6 +83,9 @@ export const LISTING_DASHBOARD_LEGACY_BASE_COLUMNS = Object.freeze([
   "created_at",
   "updated_at",
   "status",
+  "listing_type",
+  "market_type",
+  "property_type",
 ]);
 
 /** Count-only tiers for {@link fetchUserListingOperationalCounts} — legacy first (one network round-trip on older schemas). */
@@ -89,7 +95,7 @@ export const LISTING_DASHBOARD_COUNT_SELECT_TIERS = Object.freeze([
 ]);
 
 /** sessionStorage cache version — bump when {@link LISTING_DASHBOARD_SELECT_TIERS} order/shape changes. */
-export const LISTING_DASHBOARD_TIER_CACHE_VERSION = 5;
+export const LISTING_DASHBOARD_TIER_CACHE_VERSION = 6;
 export const LISTING_DASHBOARD_TIER_CACHE_KEY = "bl-listing-dashboard-select-tier";
 export const LISTING_CREATE_WORKSPACE_TIER_CACHE_KEY = "bl-listing-create-workspace-select-tier";
 const SCHEMA_LEGACY_HINT_KEY = "bl-listing-dashboard-legacy-schema";

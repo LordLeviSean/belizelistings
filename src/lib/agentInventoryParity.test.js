@@ -4,6 +4,7 @@ import { resolveListingEditHref } from "@/lib/listingEditAccess";
 import { OWNERSHIP_ACTIONS } from "@/constants/ownershipModel";
 import { LISTING_LIFECYCLE } from "@/constants/operationalModel";
 import { resolveListingCompletionAction } from "@/lib/listingCompletionAction";
+import { resolveListingManagementActions } from "@/lib/listingManagementActions";
 
 describe("agent inventory parity contracts", () => {
   test("agent edit uses canonical resolveListingEditHref", () => {
@@ -24,5 +25,20 @@ describe("agent inventory parity contracts", () => {
   test("shared completion resolver drives agent inventory labels", () => {
     expect(resolveListingCompletionAction({ listing_type: "sale" })?.label).toBe("Mark Sold");
     expect(resolveListingCompletionAction({ listing_type: "rent" })?.label).toBe("Mark Rented");
+  });
+
+  test("agent inventory keeps edit and archive when market is unknown", () => {
+    const mgmt = resolveListingManagementActions(
+      {
+        id: 9,
+        user_id: "agent-1",
+        status: "approved",
+        lifecycle_status: "published",
+      },
+      { viewerUserId: "agent-1" }
+    );
+    expect(mgmt.canEdit).toBe(true);
+    expect(mgmt.canArchive).toBe(true);
+    expect(mgmt.completionAction.visible).toBe(false);
   });
 });

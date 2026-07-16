@@ -11,6 +11,10 @@ describe("listingMarketType", () => {
     expect(resolveCanonicalListingMarketType({ listing_type: "sale" })).toBe("sale");
   });
 
+  test("listing_status legacy field resolves rent for completion only", () => {
+    expect(resolveCanonicalListingMarketType({ listing_status: "for-rent" })).toBe("rent");
+  });
+
   test("does not infer market from property_type or title", () => {
     expect(
       resolveCanonicalListingMarketType({
