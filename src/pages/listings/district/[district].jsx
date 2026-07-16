@@ -18,7 +18,6 @@ import {
   isChildRegion,
   normalizeRegionSlug,
 } from "../../../constants/geographyLayer";
-import { formatListingLocation } from "../../../lib/geography/formatListingLocation";
 import { getMapRegionLabel } from "../../../lib/geography/belizeGeographyV1";
 import { getListingRegionSlug } from "../../../utils/canonicalListing";
 import { isLandInventoryListing } from "../../../utils/listingPresentation";
@@ -26,8 +25,6 @@ import { isListingCardVerified } from "../../../utils/listingVerification";
 import { listingAmenitiesSearchHaystack } from "../../../constants/listingAmenities";
 import styles from "../../../styles/District.module.css";
 import homeShellStyles from "../../../styles/HomeMapFirst.module.css";
-
-const formatDistrict = (district) => getRegionLabel(district);
 
 const QUERY_DEBOUNCE_MS = 320;
 
@@ -327,18 +324,8 @@ export default function DistrictListings() {
   ]);
 
   const activeRegionForHeader = validSubregionFilter || normalizedDistrictSlug;
-  const districtLabel = useMemo(() => {
-    const sample = filtered[0] || filteredByDistrictAndStatus[0];
-    if (sample) {
-      const granular = formatListingLocation(sample);
-      if (granular) return granular;
-    }
-    if (validSubregionFilter) {
-      return getRegionLabel(validSubregionFilter);
-    }
-    const regionLabel = getMapRegionLabel(normalizedDistrictSlug);
-    return regionLabel || formatDistrict(activeRegionForHeader);
-  }, [filtered, validSubregionFilter, normalizedDistrictSlug, activeRegionForHeader]);
+  const districtLabel =
+    getMapRegionLabel(normalizedDistrictSlug) || getRegionLabel(normalizedDistrictSlug);
   const districtCaption = getRegionCaption(activeRegionForHeader);
   const remainingListings = filtered;
 
