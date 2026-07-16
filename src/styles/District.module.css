@@ -1280,37 +1280,46 @@
 /* District explore — dark homepage shell polish (spacing, hierarchy, glass)   */
 /* -------------------------------------------------------------------------- */
 
-.home-map-page-root .districtExplorePage {
+:global(.home-map-page-root) .districtExplorePage {
+  --home-text-primary: rgba(232, 248, 242, 0.96);
+  --home-text-secondary: rgba(196, 224, 212, 0.9);
+  --home-text-muted: rgba(148, 188, 172, 0.78);
+  --home-glass-bg: rgba(14, 42, 34, 0.78);
+  --home-glass-border: rgba(88, 158, 132, 0.28);
+  --home-glass-highlight: rgba(112, 188, 164, 0.14);
+  --ui-shadow-soft:
+    0 16px 36px rgba(4, 14, 10, 0.34),
+    0 1px 0 rgba(120, 196, 176, 0.1) inset;
   --district-accent: rgba(112, 188, 164, 0.12);
   max-width: 1120px;
   padding: 18px 18px 36px;
 }
 
-.home-map-page-root .districtExplorePage[data-district="cayo"] {
+:global(.home-map-page-root) .districtExplorePage[data-district="cayo"] {
   --district-accent: rgba(118, 196, 168, 0.14);
 }
 
-.home-map-page-root .districtExplorePage[data-district="corozal"] {
+:global(.home-map-page-root) .districtExplorePage[data-district="corozal"] {
   --district-accent: rgba(132, 188, 220, 0.12);
 }
 
-.home-map-page-root .districtExplorePage[data-district="orange-walk"] {
+:global(.home-map-page-root) .districtExplorePage[data-district="orange-walk"] {
   --district-accent: rgba(168, 198, 132, 0.12);
 }
 
-.home-map-page-root .districtExplorePage[data-district="belize"] {
+:global(.home-map-page-root) .districtExplorePage[data-district="belize"] {
   --district-accent: rgba(148, 188, 228, 0.12);
 }
 
-.home-map-page-root .districtExplorePage[data-district="stann-creek"] {
+:global(.home-map-page-root) .districtExplorePage[data-district="stann-creek"] {
   --district-accent: rgba(196, 168, 118, 0.12);
 }
 
-.home-map-page-root .districtExplorePage[data-district="toledo"] {
+:global(.home-map-page-root) .districtExplorePage[data-district="toledo"] {
   --district-accent: rgba(108, 168, 148, 0.14);
 }
 
-.home-map-page-root .districtExplorePage .backButton {
+:global(.home-map-page-root) .districtExplorePage .backButton {
   margin-bottom: 14px;
   border-color: var(--home-glass-border);
   background: var(--home-glass-bg);
@@ -1319,27 +1328,28 @@
   -webkit-backdrop-filter: blur(14px);
 }
 
-.home-map-page-root .districtExplorePage .backButton:hover {
+:global(.home-map-page-root) .districtExplorePage .backButton:hover {
   color: var(--home-text-secondary);
   border-color: rgba(112, 188, 164, 0.38);
   box-shadow: var(--ui-shadow-soft);
 }
 
-.home-map-page-root .districtExplorePage .districtHeroBand {
+:global(.home-map-page-root) .districtExplorePage .districtHeroBand {
   margin-bottom: 22px;
   padding: 4px 2px 0;
 }
 
-.home-map-page-root .districtExplorePage .districtTitleBlock {
+:global(.home-map-page-root) .districtExplorePage .districtTitleBlock {
   margin-bottom: 8px;
 }
 
-.home-map-page-root .districtExplorePage .districtTitle {
+.districtExplorePage .districtTitle,
+:global(.home-map-page-root) .districtExplorePage .districtTitle {
   color: var(--home-text-primary);
-  text-shadow: 0 2px 18px rgba(4, 16, 12, 0.34);
+  text-shadow: 0 2px 16px rgba(4, 16, 12, 0.32);
 }
 
-.home-map-page-root .districtExplorePage .districtCaption {
+:global(.home-map-page-root) .districtExplorePage .districtCaption {
   margin-top: 8px;
   font-size: 0.95rem;
   font-weight: 500;
@@ -1350,7 +1360,7 @@
   max-width: 52ch;
 }
 
-.home-map-page-root .districtExplorePage .districtResultSummary {
+:global(.home-map-page-root) .districtExplorePage .districtResultSummary {
   margin: 12px 0 0;
   font-family: "DM Serif Display", "Times New Roman", serif;
   font-size: 1.08rem;
@@ -1359,14 +1369,14 @@
   color: var(--home-text-secondary);
 }
 
-.home-map-page-root .districtExplorePage .districtStats {
+:global(.home-map-page-root) .districtExplorePage .districtStats {
   margin: 6px 0 0;
   font-size: 12px;
   letter-spacing: 0.04em;
   color: rgba(148, 188, 172, 0.72);
 }
 
-.home-map-page-root .districtExplorePage .filterBarShell {
+:global(.home-map-page-root) .districtExplorePage .filterBarShell {
   margin-bottom: 22px;
   border-radius: 999px;
   border: 1px solid var(--home-glass-border);
@@ -1377,21 +1387,21 @@
   padding: 10px 14px 12px;
 }
 
-.home-map-page-root .districtExplorePage .filterBarShell:has(.filterPanelHidden) {
+:global(.home-map-page-root) .districtExplorePage .filterBarShell:has(.filterPanelHidden) {
   padding: 8px 12px;
 }
 
-.home-map-page-root .districtExplorePage .filterSummary {
+:global(.home-map-page-root) .districtExplorePage .filterSummary {
   border-color: rgba(88, 158, 132, 0.22);
   background: rgba(14, 42, 34, 0.62);
   box-shadow: none;
 }
 
-.home-map-page-root .districtExplorePage .filterSummaryResults {
+:global(.home-map-page-root) .districtExplorePage .filterSummaryResults {
   color: var(--home-text-secondary);
 }
 
-.home-map-page-root .districtExplorePage .showFiltersBtn {
+:global(.home-map-page-root) .districtExplorePage .showFiltersBtn {
   min-height: 34px;
   border-radius: 999px;
   border-color: rgba(112, 188, 164, 0.32);
@@ -1400,17 +1410,17 @@
   transition: transform 340ms var(--ui-ease), border-color 340ms var(--ui-ease), background 340ms var(--ui-ease);
 }
 
-.home-map-page-root .districtExplorePage .showFiltersBtn:hover {
+:global(.home-map-page-root) .districtExplorePage .showFiltersBtn:hover {
   transform: translateY(-1px);
   border-color: rgba(112, 188, 164, 0.45);
   background: rgba(22, 56, 46, 0.82);
 }
 
-.home-map-page-root .districtExplorePage .filterLabel {
+:global(.home-map-page-root) .districtExplorePage .filterLabel {
   color: rgba(148, 188, 172, 0.72);
 }
 
-.home-map-page-root .districtExplorePage .filterSelect {
+:global(.home-map-page-root) .districtExplorePage .filterSelect {
   height: 38px;
   border-radius: 999px;
   border: 1px solid rgba(88, 158, 132, 0.28);
@@ -1421,33 +1431,33 @@
   transition: border-color 340ms var(--ui-ease), background 340ms var(--ui-ease), box-shadow 340ms var(--ui-ease);
 }
 
-.home-map-page-root .districtExplorePage .filterSelect:hover,
-.home-map-page-root .districtExplorePage .filterSelect:focus-visible {
+:global(.home-map-page-root) .districtExplorePage .filterSelect:hover,
+:global(.home-map-page-root) .districtExplorePage .filterSelect:focus-visible {
   border-color: rgba(112, 188, 164, 0.42);
   background: rgba(16, 44, 36, 0.86);
   outline: none;
   box-shadow: 0 0 0 2px rgba(88, 168, 140, 0.12);
 }
 
-.home-map-page-root .districtExplorePage .collapseFiltersBtn {
+:global(.home-map-page-root) .districtExplorePage .collapseFiltersBtn {
   border-color: rgba(112, 188, 164, 0.32);
   background: rgba(14, 42, 34, 0.88);
 }
 
-.home-map-page-root .districtExplorePage .filterInventoryMeta {
+:global(.home-map-page-root) .districtExplorePage .filterInventoryMeta {
   margin-top: 12px;
   padding-top: 12px;
   border-top-color: rgba(88, 158, 132, 0.16);
 }
 
-.home-map-page-root .districtExplorePage .resultCount,
-.home-map-page-root .districtExplorePage .resultCountLabel {
+:global(.home-map-page-root) .districtExplorePage .resultCount,
+:global(.home-map-page-root) .districtExplorePage .resultCountLabel {
   color: var(--home-text-muted);
   font-size: 12px;
   font-family: "DM Sans", "Inter", sans-serif;
 }
 
-.home-map-page-root .districtExplorePage .moreFiltersBtn {
+:global(.home-map-page-root) .districtExplorePage .moreFiltersBtn {
   height: 34px;
   border-radius: 999px;
   border-color: rgba(112, 188, 164, 0.32);
@@ -1455,36 +1465,36 @@
   color: var(--home-text-secondary);
 }
 
-.home-map-page-root .districtExplorePage .moreFiltersBtn:hover {
+:global(.home-map-page-root) .districtExplorePage .moreFiltersBtn:hover {
   border-color: rgba(112, 188, 164, 0.45);
   background: rgba(22, 56, 46, 0.82);
 }
 
-.home-map-page-root .districtExplorePage .moreFiltersBtn[aria-expanded="true"] {
+:global(.home-map-page-root) .districtExplorePage .moreFiltersBtn[aria-expanded="true"] {
   border-color: rgba(112, 188, 164, 0.42);
   background: rgba(28, 68, 56, 0.72);
   color: var(--home-text-primary);
 }
 
-.home-map-page-root .districtExplorePage .advancedFilterPanel {
+:global(.home-map-page-root) .districtExplorePage .advancedFilterPanel {
   border-color: rgba(88, 158, 132, 0.18);
   background: rgba(10, 32, 26, 0.58);
 }
 
-.home-map-page-root .districtExplorePage .advancedFilterItem span,
-.home-map-page-root .districtExplorePage .advancedFilterItemCheck {
+:global(.home-map-page-root) .districtExplorePage .advancedFilterItem span,
+:global(.home-map-page-root) .districtExplorePage .advancedFilterItemCheck {
   color: rgba(148, 188, 172, 0.78);
 }
 
-.home-map-page-root .districtExplorePage .advancedFilterItem select,
-.home-map-page-root .districtExplorePage .advancedFilterItem input,
-.home-map-page-root .districtExplorePage .resetFiltersBtn {
+:global(.home-map-page-root) .districtExplorePage .advancedFilterItem select,
+:global(.home-map-page-root) .districtExplorePage .advancedFilterItem input,
+:global(.home-map-page-root) .districtExplorePage .resetFiltersBtn {
   border-color: rgba(88, 158, 132, 0.24);
   background: rgba(12, 36, 30, 0.72);
   color: var(--home-text-primary);
 }
 
-.home-map-page-root .districtExplorePage .listWrap {
+:global(.home-map-page-root) .districtExplorePage .listWrap {
   margin-top: 6px;
   padding: 18px 16px 20px;
   border: 1px solid rgba(88, 158, 132, 0.2);
@@ -1499,42 +1509,42 @@
   -webkit-backdrop-filter: blur(14px);
 }
 
-.home-map-page-root .districtExplorePage .listWrap::after {
+:global(.home-map-page-root) .districtExplorePage .listWrap::after {
   display: none;
 }
 
-.home-map-page-root .districtExplorePage .listingsGrid {
+:global(.home-map-page-root) .districtExplorePage .listingsGrid {
   gap: 14px;
 }
 
-.home-map-page-root .districtExplorePage .listingsGrid[data-count="1"],
-.home-map-page-root .districtExplorePage .listingsGrid[data-count="2"] {
+:global(.home-map-page-root) .districtExplorePage .listingsGrid[data-count="1"],
+:global(.home-map-page-root) .districtExplorePage .listingsGrid[data-count="2"] {
   grid-template-columns: repeat(auto-fit, minmax(280px, 340px));
   justify-content: center;
   max-width: 760px;
   margin-inline: auto;
 }
 
-.home-map-page-root .districtExplorePage .inventoryEndCap {
+:global(.home-map-page-root) .districtExplorePage .inventoryEndCap {
   margin-top: 18px;
   color: rgba(148, 188, 172, 0.68);
 }
 
-.home-map-page-root .districtExplorePage .cardSkeleton {
+:global(.home-map-page-root) .districtExplorePage .cardSkeleton {
   border-color: rgba(88, 158, 132, 0.22);
   background: rgba(14, 42, 34, 0.5);
 }
 
 @media (max-width: 768px) {
-  .home-map-page-root .districtExplorePage {
+  :global(.home-map-page-root) .districtExplorePage {
     padding: 14px 14px 28px;
   }
 
-  .home-map-page-root .districtExplorePage .filterBarShell {
+  :global(.home-map-page-root) .districtExplorePage .filterBarShell {
     border-radius: 16px;
   }
 
-  .home-map-page-root .districtExplorePage .districtHeroBand {
+  :global(.home-map-page-root) .districtExplorePage .districtHeroBand {
     margin-bottom: 18px;
   }
 }
