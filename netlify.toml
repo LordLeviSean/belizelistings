@@ -9,6 +9,6 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Scheduled notification processor — netlify/functions/process-notifications-cron.mjs
-# Requires CRON_SECRET in production env (functions + runtime scope).
-# Manual verify: GET /api/cron/process-notifications with Authorization: Bearer <CRON_SECRET>
+# Scheduled functions (Netlify → Next.js API with CRON_SECRET):
+#   process-notifications-cron.mjs — */5 * * * *
+#   archive-closed-listings-cron.mjs — */15 * * * *
