@@ -2112,17 +2112,17 @@ button.dashboardLink:disabled {
 }
 
 .statusRecentlySold {
-  color: rgba(72, 52, 108, 0.92);
-  border-color: rgba(148, 118, 198, 0.5);
-  background: linear-gradient(135deg, rgba(236, 228, 252, 0.72), rgba(186, 158, 228, 0.24));
-  box-shadow: 0 0 12px rgba(148, 118, 198, 0.14);
+  color: rgba(108, 62, 52, 0.94);
+  border-color: rgba(168, 98, 82, 0.52);
+  background: linear-gradient(135deg, rgba(252, 232, 224, 0.78), rgba(198, 128, 108, 0.26));
+  box-shadow: 0 0 12px rgba(168, 98, 82, 0.12);
 }
 
 .statusRecentlyRented {
-  color: rgba(32, 88, 98, 0.92);
-  border-color: rgba(72, 168, 178, 0.5);
-  background: linear-gradient(135deg, rgba(220, 244, 248, 0.72), rgba(108, 188, 198, 0.24));
-  box-shadow: 0 0 12px rgba(72, 168, 178, 0.14);
+  color: rgba(72, 52, 108, 0.92);
+  border-color: rgba(128, 108, 188, 0.5);
+  background: linear-gradient(135deg, rgba(236, 228, 252, 0.72), rgba(166, 148, 218, 0.24));
+  box-shadow: 0 0 12px rgba(128, 108, 188, 0.14);
 }
 
 .userCreateGrid {

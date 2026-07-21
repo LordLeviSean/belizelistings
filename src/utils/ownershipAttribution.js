@@ -30,7 +30,13 @@ import {
 import { coerceListingIdForDb } from "../lib/listingEvents/coerceListingId";
 import {
   validateListingCompletionOwnershipAction,
+  resolveListingCompletionAction,
 } from "../lib/listingCompletionAction";
+import { mapListingLifecycleError } from "../lib/mapListingLifecycleError";
+import {
+  enqueueNotificationEvent,
+  NOTIFICATION_EVENT_TYPES,
+} from "../lib/notifications/notificationEvents";
 import {
   bestEffortRemoveListingImageStorage,
   invokePermanentDeleteListingRpc,
@@ -234,7 +240,7 @@ export async function applyListingLifecycleAction(supabase, { listingId, action,
   if (eventDescriptor) {
     const { data } = await supabase
       .from("listings")
-      .select("status, lifecycle_status, listing_type, market_type")
+      .select("status, lifecycle_status, listing_type, market_type, title, user_id")
       .eq("id", listingId)
       .maybeSingle();
     priorRow = data || null;
@@ -281,6 +287,30 @@ export async function applyListingLifecycleAction(supabase, { listingId, action,
       result,
     });
 
+    if (
+      action === OWNERSHIP_ACTIONS.CLOSE_SOLD ||
+      action === OWNERSHIP_ACTIONS.CLOSE_RENTED
+    ) {
+      const completion = resolveListingCompletionAction(priorRow || {});
+      const recipientId = priorRow?.user_id || actorId;
+      const listingTitle = priorRow?.title || "Listing";
+      const eventType =
+        action === OWNERSHIP_ACTIONS.CLOSE_SOLD
+          ? NOTIFICATION_EVENT_TYPES.LISTING_MARKED_SOLD
+          : NOTIFICATION_EVENT_TYPES.LISTING_MARKED_RENTED;
+      if (recipientId) {
+        await enqueueNotificationEvent(supabase, {
+          eventType,
+          recipientId,
+          payload: {
+            listing_id: listingId,
+            listing_title: listingTitle,
+            dedupe_key: `${eventType}:${listingId}`,
+          },
+        });
+      }
+    }
+
     return {
       ...result,
       meta: { ...result.meta, usedMinimalFallback: Boolean(result.meta?.usedFallback) },
@@ -320,6 +350,9 @@ export async function applyListingLifecycleAction(supabase, { listingId, action,
 
   return {
     ...result,
+    error: result.error
+      ? { ...result.error, message: mapListingLifecycleError(result.error) }
+      : null,
     meta: { ...result.meta, usedMinimalFallback: Boolean(result.meta?.usedFallback) },
   };
 }

@@ -31,7 +31,7 @@ describe("listingModerationBoundary", () => {
   test("owner can mark published sale listing recently sold", () => {
     const result = validateOwnerListingPatch(
       { status: "approved", lifecycle_status: "published", listing_type: "sale" },
-      { status: "recently_sold", lifecycle_status: "recently_sold", sold_at: "2026-07-01" }
+      { status: "approved", lifecycle_status: "recently_sold", sold_at: "2026-07-01" }
     );
     expect(result.ok).toBe(true);
   });
@@ -39,7 +39,7 @@ describe("listingModerationBoundary", () => {
   test("owner cannot mark rental listing recently sold", () => {
     const result = validateOwnerListingPatch(
       { status: "approved", lifecycle_status: "published", listing_type: "rent" },
-      { status: "recently_sold", lifecycle_status: "recently_sold", sold_at: "2026-07-01" }
+      { status: "approved", lifecycle_status: "recently_sold", sold_at: "2026-07-01" }
     );
     expect(result.ok).toBe(false);
     expect(result.code).toBe("completion_market_mismatch");
@@ -48,7 +48,7 @@ describe("listingModerationBoundary", () => {
   test("owner cannot mark sale listing recently rented", () => {
     const result = validateOwnerListingPatch(
       { status: "approved", lifecycle_status: "published", listing_type: "sale" },
-      { status: "recently_rented", lifecycle_status: "recently_rented", rented_at: "2026-07-01" }
+      { status: "approved", lifecycle_status: "recently_rented", rented_at: "2026-07-01" }
     );
     expect(result.ok).toBe(false);
     expect(result.code).toBe("completion_market_mismatch");
@@ -57,7 +57,7 @@ describe("listingModerationBoundary", () => {
   test("owner can mark published rental listing recently rented", () => {
     const result = validateOwnerListingPatch(
       { status: "approved", lifecycle_status: "published", listing_type: "rent" },
-      { status: "recently_rented", lifecycle_status: "recently_rented", rented_at: "2026-07-01" }
+      { status: "approved", lifecycle_status: "recently_rented", rented_at: "2026-07-01" }
     );
     expect(result.ok).toBe(true);
   });
@@ -101,9 +101,10 @@ describe("public visibility predicates", () => {
   test("recently sold within window is browsable but not active inventory", () => {
     const row = {
       id: 2,
-      status: "recently_sold",
+      status: "approved",
       lifecycle_status: "recently_sold",
-      sold_at: "2026-07-01T00:00:00.000Z",
+      sold_at: "2026-07-09T12:00:00.000Z",
+      closed_at: "2026-07-09T12:00:00.000Z",
     };
     expect(isRecentlyClosedPublicListing(row, now)).toBe(true);
     expect(isBrowsableListing(row, now)).toBe(true);
@@ -121,8 +122,9 @@ describe("public visibility predicates", () => {
   test("expired recently closed window is not browsable", () => {
     const row = {
       id: 7,
-      status: "recently_sold",
-      sold_at: "2026-05-01T00:00:00.000Z",
+      status: "approved",
+      lifecycle_status: "recently_sold",
+      closed_at: "2026-07-07T12:00:00.000Z",
     };
     expect(isBrowsableListing(row, now)).toBe(false);
   });

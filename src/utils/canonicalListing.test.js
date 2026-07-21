@@ -104,7 +104,7 @@ describe("canonicalListing", () => {
       { id: 1, status: "approved" },
       { id: 2, status: "archived" },
       { id: 3, status: "approved", moderation_status: "archived" },
-      { id: 4, status: "recently_sold", sold_at: "2026-07-01T00:00:00.000Z" },
+      { id: 4, status: "approved", lifecycle_status: "recently_sold", closed_at: "2026-07-09T12:00:00.000Z" },
     ];
     expect(filterPublicInventory(rows).map((r) => r.id)).toEqual([1]);
   });
@@ -113,8 +113,8 @@ describe("canonicalListing", () => {
     const now = Date.parse("2026-07-10T12:00:00.000Z");
     const rows = [
       { id: 1, status: "approved" },
-      { id: 2, status: "recently_sold", sold_at: "2026-07-01T00:00:00.000Z" },
-      { id: 3, status: "recently_sold", sold_at: "2026-05-01T00:00:00.000Z" },
+      { id: 2, status: "approved", lifecycle_status: "recently_sold", closed_at: "2026-07-09T12:00:00.000Z" },
+      { id: 3, status: "approved", lifecycle_status: "recently_sold", closed_at: "2026-07-07T12:00:00.000Z" },
     ];
     expect(filterBrowsableInventory(rows, now).map((r) => r.id)).toEqual([1, 2]);
     expect(filterActiveInventory(rows).map((r) => r.id)).toEqual([1]);
@@ -125,8 +125,9 @@ describe("canonicalListing", () => {
     expect(
       isListingEngagementEnabled({
         id: 2,
-        status: "recently_sold",
-        sold_at: "2026-07-01T00:00:00.000Z",
+        status: "approved",
+        lifecycle_status: "recently_sold",
+        closed_at: "2026-07-09T12:00:00.000Z",
       })
     ).toBe(false);
   });
@@ -135,13 +136,13 @@ describe("canonicalListing", () => {
     const now = Date.parse("2026-07-10T12:00:00.000Z");
     expect(
       isBrowsableListing(
-        { id: 1, status: "recently_rented", rented_at: "2026-07-05T00:00:00.000Z" },
+        { id: 1, status: "approved", lifecycle_status: "recently_rented", closed_at: "2026-07-09T12:00:00.000Z" },
         now
       )
     ).toBe(true);
     expect(
       isBrowsableListing(
-        { id: 2, status: "recently_rented", rented_at: "2026-04-01T00:00:00.000Z" },
+        { id: 2, status: "approved", lifecycle_status: "recently_rented", closed_at: "2026-07-07T12:00:00.000Z" },
         now
       )
     ).toBe(false);

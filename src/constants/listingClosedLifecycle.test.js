@@ -1,20 +1,35 @@
 /** @jest-environment node */
 
 import {
-  RECENTLY_CLOSED_DISPLAY_DAYS,
+  isEligibleForClosedListingArchive,
   isWithinRecentlyClosedWindow,
-  recentlyClosedDisplayMs,
+  RECENTLY_CLOSED_ARCHIVE_HOURS,
 } from "./listingClosedLifecycle";
 
 describe("listingClosedLifecycle", () => {
-  test("recentlyClosedDisplayMs matches configured days", () => {
-    expect(recentlyClosedDisplayMs()).toBe(RECENTLY_CLOSED_DISPLAY_DAYS * 86_400_000);
+  const closedAt = "2026-07-10T12:00:00.000Z";
+
+  test("uses 48-hour archive window", () => {
+    expect(RECENTLY_CLOSED_ARCHIVE_HOURS).toBe(48);
   });
 
-  test("isWithinRecentlyClosedWindow respects 30-day window", () => {
-    const now = Date.parse("2026-07-10T12:00:00.000Z");
-    const closedAt = "2026-06-15T12:00:00.000Z";
+  test("isWithinRecentlyClosedWindow true before 48 hours", () => {
+    const now = Date.parse("2026-07-11T11:00:00.000Z");
     expect(isWithinRecentlyClosedWindow(closedAt, now)).toBe(true);
-    expect(isWithinRecentlyClosedWindow("2026-05-01T12:00:00.000Z", now)).toBe(false);
+  });
+
+  test("isWithinRecentlyClosedWindow false after 48 hours", () => {
+    const now = Date.parse("2026-07-12T13:00:00.000Z");
+    expect(isWithinRecentlyClosedWindow(closedAt, now)).toBe(false);
+  });
+
+  test("isEligibleForClosedListingArchive true at 48h+", () => {
+    const now = Date.parse("2026-07-12T13:00:00.000Z");
+    expect(isEligibleForClosedListingArchive(closedAt, now)).toBe(true);
+  });
+
+  test("isEligibleForClosedListingArchive false before 48h", () => {
+    const now = Date.parse("2026-07-11T11:00:00.000Z");
+    expect(isEligibleForClosedListingArchive(closedAt, now)).toBe(false);
   });
 });

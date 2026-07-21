@@ -15,7 +15,9 @@ describe("resolveListingCompletionAction", () => {
     expect(action?.label).toBe("Mark Sold");
     expect(action?.confirmationTitle).toBe("Mark this listing as sold?");
     expect(action?.confirmationPrimaryLabel).toBe("Mark Sold");
-    expect(action?.successMessage).toBe("Listing marked as sold.");
+    expect(action?.successMessage).toBe(
+      "Listing marked as sold. It will be archived automatically in 48 hours."
+    );
     expect(action?.targetLifecycle).toBe(LISTING_LIFECYCLE.RECENTLY_SOLD);
     expect(action?.ownershipAction).toBe(OWNERSHIP_ACTIONS.CLOSE_SOLD);
     expect(action?.buttonVariant).toBe("sold");
@@ -27,7 +29,9 @@ describe("resolveListingCompletionAction", () => {
     expect(action?.label).toBe("Mark Rented");
     expect(action?.confirmationTitle).toBe("Mark this listing as rented?");
     expect(action?.confirmationPrimaryLabel).toBe("Mark Rented");
-    expect(action?.successMessage).toBe("Listing marked as rented.");
+    expect(action?.successMessage).toBe(
+      "Listing marked as rented. It will be archived automatically in 48 hours."
+    );
     expect(action?.targetLifecycle).toBe(LISTING_LIFECYCLE.RECENTLY_RENTED);
     expect(action?.ownershipAction).toBe(OWNERSHIP_ACTIONS.CLOSE_RENTED);
     expect(action?.buttonVariant).toBe("rented");

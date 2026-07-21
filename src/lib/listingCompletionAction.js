@@ -12,8 +12,9 @@ const SALE_COMPLETION = Object.freeze({
   confirmationBody:
     "This will remove the property from active sale listings and show it as Sold.",
   confirmationPrimaryLabel: "Mark Sold",
-  successMessage: "Listing marked as sold.",
-  notificationMessage: "Your listing has been marked as sold.",
+  successMessage:
+    "Listing marked as sold. It will be archived automatically in 48 hours.",
+  notificationMessage: "Listing marked as sold",
   resultBadgeLabel: "Sold",
   buttonVariant: "sold",
 });
@@ -28,8 +29,9 @@ const RENT_COMPLETION = Object.freeze({
   confirmationBody:
     "This will remove the property from active rental listings and show it as Rented.",
   confirmationPrimaryLabel: "Mark Rented",
-  successMessage: "Listing marked as rented.",
-  notificationMessage: "Your listing has been marked as rented.",
+  successMessage:
+    "Listing marked as rented. It will be archived automatically in 48 hours.",
+  notificationMessage: "Listing marked as rented",
   resultBadgeLabel: "Rented",
   buttonVariant: "rented",
 });

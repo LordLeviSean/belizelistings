@@ -10,8 +10,7 @@ import favoriteStyles from "../styles/FavoriteButton.module.css";
 import { BELIZE_MAP_REGION_CONFIG } from "../constants/belizeMapRegions";
 import { formatListingLocation } from "@/lib/geography/formatListingLocation";
 import { getRegionCaption, getRegionLabel, normalizeRegionSlug } from "../constants/geographyLayer";
-import { getListingRegionSlug, getLifecycleStatus } from "../utils/canonicalListing";
-import { LISTING_LIFECYCLE } from "../constants/operationalModel";
+import { getListingRegionSlug } from "../utils/canonicalListing";
 import { normalizeListingImageEntry } from "../utils/listingImage";
 import { isLandInventoryListing } from "../utils/listingPresentation";
 import { isListingCardVerified } from "../utils/listingVerification";
@@ -34,36 +33,7 @@ function formatPrice(price, currency) {
   return `${numericPrice.toLocaleString()} ${currency || ""}`.trim();
 }
 
-function getListingMarketSignals(listing) {
-  return [
-    listing?.listing_type,
-    listing?.market_type,
-    listing?.listing_status,
-    listing?.status,
-    listing?.category,
-  ]
-    .map((value) => String(value || "").toLowerCase().trim())
-    .filter(Boolean)
-    .join(" ");
-}
-
-function getListingMarketKind(listing) {
-  const signals = getListingMarketSignals(listing);
-  if (/(rent|rental|lease|for-rent|for rent)/.test(signals)) return "rent";
-  if (/(sale|sell|for-sale|for sale)/.test(signals)) return "sale";
-  return "sale";
-}
-
-function detectListingBadge(listing) {
-  const lc = getLifecycleStatus(listing);
-  if (lc === LISTING_LIFECYCLE.RECENTLY_SOLD || lc === LISTING_LIFECYCLE.SOLD) {
-    return "RECENTLY SOLD";
-  }
-  if (lc === LISTING_LIFECYCLE.RECENTLY_RENTED || lc === LISTING_LIFECYCLE.RENTED) {
-    return "RECENTLY RENTED";
-  }
-  return getListingMarketKind(listing) === "rent" ? "FOR RENT" : "FOR SALE";
-}
+import { resolveListingLifecycleBadge, LISTING_BADGE_VARIANT } from "../lib/listingLifecycleBadge";
 
 function districtLabel(district = "") {
   const normalized = normalizeRegionSlug(district);
@@ -222,9 +192,11 @@ export default function ListingCard({
   }, []);
 
   const imageUrl = imageCount ? listingImages[activeIndex] : "/placeholder.jpg";
-  const status = detectListingBadge(listing);
-  const isRentBadge = status === "FOR RENT";
-  const isRecentlyClosedBadge = status === "RECENTLY SOLD" || status === "RECENTLY RENTED";
+  const badge = resolveListingLifecycleBadge(listing);
+  const status = badge.label;
+  const isRentBadge = badge.variant === LISTING_BADGE_VARIANT.RENT;
+  const isSoldBadge = badge.variant === LISTING_BADGE_VARIANT.SOLD;
+  const isRentedBadge = badge.variant === LISTING_BADGE_VARIANT.RENTED;
   const isVerified = isListingCardVerified(listing);
   const locationLabel = formatListingLocation(listing) || districtLabel(getListingRegionSlug(listing) || "belize");
   const districtCaption = listing.map_region_slug ? null : getRegionCaption(getListingRegionSlug(listing));
@@ -305,11 +277,13 @@ export default function ListingCard({
         <div className={homeStyles.propertyBadgeStack}>
           <span
             className={`${homeStyles.propertyBadge} ${
-              isRecentlyClosedBadge
-                ? homeStyles.propertyBadgeRecentlyClosed
-                : isRentBadge
-                  ? homeStyles.propertyBadgeRent
-                  : homeStyles.propertyBadgeSale
+              isSoldBadge
+                ? homeStyles.propertyBadgeSold
+                : isRentedBadge
+                  ? homeStyles.propertyBadgeRented
+                  : isRentBadge
+                    ? homeStyles.propertyBadgeRent
+                    : homeStyles.propertyBadgeSale
             }`}
           >
             {status}

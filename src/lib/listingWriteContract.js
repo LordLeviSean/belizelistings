@@ -147,34 +147,35 @@ export const MODERATION_RESUBMIT_STATUS_TIERS = Object.freeze([
   Object.freeze({ status: "pending" }),
 ]);
 
-/** Owner marks listing as recently sold — temporary public display window. */
+/**
+ * Owner marks listing sold — `status` stays workflow-approved; closure lives on lifecycle_status.
+ * Writing recently_sold into `status` violates listings_status_check in production.
+ */
 export const RECENTLY_SOLD_STATUS_TIERS = Object.freeze([
   Object.freeze({
-    status: LISTING_LIFECYCLE.RECENTLY_SOLD,
+    status: "approved",
     lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD,
     moderation_status: "approved",
-    sold_at: null,
   }),
   Object.freeze({
-    status: LISTING_LIFECYCLE.RECENTLY_SOLD,
+    status: "approved",
     lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD,
   }),
-  Object.freeze({ status: LISTING_LIFECYCLE.RECENTLY_SOLD }),
+  Object.freeze({ lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD }),
 ]);
 
-/** Owner marks listing as recently rented — temporary public display window. */
+/** Owner marks listing rented — same split as sold (see RECENTLY_SOLD_STATUS_TIERS). */
 export const RECENTLY_RENTED_STATUS_TIERS = Object.freeze([
   Object.freeze({
-    status: LISTING_LIFECYCLE.RECENTLY_RENTED,
+    status: "approved",
     lifecycle_status: LISTING_LIFECYCLE.RECENTLY_RENTED,
     moderation_status: "approved",
-    rented_at: null,
   }),
   Object.freeze({
-    status: LISTING_LIFECYCLE.RECENTLY_RENTED,
+    status: "approved",
     lifecycle_status: LISTING_LIFECYCLE.RECENTLY_RENTED,
   }),
-  Object.freeze({ status: LISTING_LIFECYCLE.RECENTLY_RENTED }),
+  Object.freeze({ lifecycle_status: LISTING_LIFECYCLE.RECENTLY_RENTED }),
 ]);
 
 export function buildModerationApprovePatch() {

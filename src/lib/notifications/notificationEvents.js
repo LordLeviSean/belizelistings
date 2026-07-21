@@ -14,6 +14,9 @@ export const NOTIFICATION_EVENT_TYPES = Object.freeze({
   VIEWING_COMPLETED: "viewing_completed",
   INQUIRY_ARCHIVED: "inquiry_archived",
   GEOGRAPHIC_UPDATE_V1: "geographic_update_v1",
+  LISTING_MARKED_SOLD: "listing_marked_sold",
+  LISTING_MARKED_RENTED: "listing_marked_rented",
+  LISTING_AUTO_ARCHIVED: "listing_auto_archived",
 });
 
 /**

@@ -865,6 +865,20 @@
   letter-spacing: 0.08em;
 }
 
+.propertyBadgeSold {
+  background: rgba(122, 58, 52, 0.9);
+  color: rgba(255, 246, 242, 0.96);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+}
+
+.propertyBadgeRented {
+  background: rgba(88, 72, 148, 0.9);
+  color: rgba(248, 246, 255, 0.96);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+}
+
 .verificationBadge {
   display: inline-flex;
   align-items: center;
