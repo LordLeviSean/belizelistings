@@ -33,12 +33,15 @@ import {
 import {
   sanitizeListingMutationPayload,
 } from "../../lib/listingPayloadSanitize";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import {
   buildCreateListingPayload,
   buildDraftAutosavePayload,
   buildDraftListingPayload,
+  discardDraftListing,
   getUserActiveListingCount,
   resolveListingDistrictSlug,
+  restoreListingToSessionBaseline,
   safeInsertListing,
   submitDraftListingForReview,
   validateListingDraftContract,
@@ -68,6 +71,13 @@ import {
   resolveWorkspaceStageNavTarget,
   validateWorkspaceStageForContinue,
 } from "@/lib/createWorkspaceStageNav";
+import {
+  captureCreateWorkspaceSessionBaseline,
+  hasCreateWorkspaceSessionChanges,
+  mapCreateWorkspaceExitError,
+  resolveCreateWorkspaceExitAction,
+  resolveCreateWorkspaceExitCopy,
+} from "@/lib/createWorkspaceSession";
 import { isProfileComplete, profileCompletionMissingReason } from "@/lib/isProfileComplete";
 import ProfileCompletionGateModal from "@/components/profile/ProfileCompletionGateModal";
 import { getLifecycleStatus } from "../../utils/canonicalListing";
@@ -251,6 +261,12 @@ export default function DashboardCreatePage() {
   const visualProgressRef = useRef(0);
   const progressRafRef = useRef(null);
   const lastProgressPaintRef = useRef(0);
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const [exitBusy, setExitBusy] = useState(false);
+  const sessionBaselineRef = useRef(null);
+  const openedWithDraftIdRef = useRef(undefined);
+  const draftCreatedInSessionRef = useRef(false);
+  const createBaselineCapturedRef = useRef(false);
   const allowNextNavRef = useRef(false);
   /** Suppresses route-leave confirm while attaching `?draft=` after first insert. */
   const draftUrlSyncRef = useRef(false);
@@ -344,6 +360,21 @@ export default function DashboardCreatePage() {
   }, [router.isReady, router.query, queryDraftId]);
 
   useEffect(() => {
+    if (!router.isReady || openedWithDraftIdRef.current !== undefined) return;
+    openedWithDraftIdRef.current = queryDraftId || "";
+  }, [router.isReady, queryDraftId]);
+
+  useEffect(() => {
+    if (!router.isReady || queryDraftId || createBaselineCapturedRef.current) return;
+    if (!prefillAppliedRef.current) return;
+    createBaselineCapturedRef.current = true;
+    sessionBaselineRef.current = captureCreateWorkspaceSessionBaseline({
+      form,
+      remoteImages: [],
+    });
+  }, [router.isReady, queryDraftId, form]);
+
+  useEffect(() => {
     if (
       !isLandInventoryListing({
         property_type: form.property_type,
@@ -428,13 +459,15 @@ export default function DashboardCreatePage() {
         }
       }
 
-      setForm(mapListingRowToCreateForm(hydratedRow));
+      const mappedForm = mapListingRowToCreateForm(hydratedRow);
+      setForm(mappedForm);
       setDraftListingId(String(hydratedRow.id));
       const hydratedLifecycle = getLifecycleStatus(hydratedRow);
       setEditSourceLifecycle(hydratedLifecycle || "");
       const imgs = (hydratedRow.listing_images || data.listing_images || [])
         .filter(Boolean)
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      let hydratedImages = imgs;
       if (imgs.length > 0 && imgs.every((img) => img?.id)) {
         setRemoteImages(imgs);
         imageOrderDirtyRef.current = false;
@@ -444,9 +477,14 @@ export default function DashboardCreatePage() {
           .select("*")
           .eq("listing_id", queryDraftId)
           .order("position", { ascending: true });
-        setRemoteImages((imageRows || []).filter(Boolean).map((row) => ({ ...row })));
-      imageOrderDirtyRef.current = false;
+        hydratedImages = (imageRows || []).filter(Boolean).map((row) => ({ ...row }));
+        setRemoteImages(hydratedImages);
+        imageOrderDirtyRef.current = false;
       }
+      sessionBaselineRef.current = captureCreateWorkspaceSessionBaseline({
+        form: mappedForm,
+        remoteImages: hydratedImages,
+      });
       setDirty(false);
       setLegacyDraftBlocked(assessment.needsRefresh);
       const stageCap = requiresSubmitForReviewFlow(hydratedLifecycle) ? 5 : 4;
@@ -523,6 +561,7 @@ export default function DashboardCreatePage() {
     if (insertResult.error || !insertResult.data?.id) return null;
 
     const activeId = String(insertResult.data.id);
+    draftCreatedInSessionRef.current = true;
     skipDraftHydrateForIdRef.current = activeId;
     setDraftListingId(activeId);
     if (!String(form.title || "").trim()) {
@@ -692,6 +731,7 @@ export default function DashboardCreatePage() {
         const insertResult = await safeInsertListing(supabase, payload, { mutationFlow });
         if (insertResult.error || !insertResult.data?.id) throw insertResult.error || new Error("Draft save failed");
         activeId = String(insertResult.data.id);
+        draftCreatedInSessionRef.current = true;
         skipDraftHydrateForIdRef.current = activeId;
         setDraftListingId(activeId);
         draftUrlSyncRef.current = true;
@@ -969,6 +1009,108 @@ export default function DashboardCreatePage() {
     isRegularUser,
     role,
     user?.id,
+  ]);
+
+  const getSessionHasChanges = useCallback(
+    () =>
+      hasCreateWorkspaceSessionChanges({
+        form,
+        baseline: sessionBaselineRef.current,
+        remoteImages,
+        dirty,
+        pendingUploadCount: pendingUploads.length,
+        imageOrderDirty: imageOrderDirtyRef.current,
+      }),
+    [form, remoteImages, dirty, pendingUploads.length]
+  );
+
+  const clearPendingUploadPreviews = useCallback(() => {
+    setPendingUploads((prev) => {
+      prev.forEach((p) => {
+        if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+      });
+      return [];
+    });
+  }, []);
+
+  const finishExitWithoutSaving = useCallback(async () => {
+    if (!user?.id || exitBusy) return;
+    const exitAction = resolveCreateWorkspaceExitAction({
+      openedWithDraftId: openedWithDraftIdRef.current || "",
+      draftCreatedInSession: draftCreatedInSessionRef.current,
+      draftListingId,
+    });
+    const baseline = sessionBaselineRef.current;
+    const needsRestore = exitAction === "restore_baseline" && getSessionHasChanges();
+
+    setExitBusy(true);
+    try {
+      if (exitAction === "discard_session_draft" && draftListingId) {
+        const { error } = await discardDraftListing(supabase, {
+          listingId: draftListingId,
+          userId: user.id,
+        });
+        if (error) {
+          showToast({ type: "error", message: mapCreateWorkspaceExitError(error) });
+          return;
+        }
+      } else if (needsRestore && baseline && draftListingId) {
+        const { error } = await restoreListingToSessionBaseline(supabase, {
+          listingId: draftListingId,
+          baselineForm: baseline.form,
+          baselineRemoteImages: baseline.remoteImages,
+          authUserId: user.id,
+          linkedUnitId,
+          sourceLifecycle: editSourceLifecycle,
+          eqFilters: getCreateWorkspaceListingPatchFilters({ userId: user.id, isAdmin }),
+        });
+        if (error) {
+          showToast({ type: "error", message: mapCreateWorkspaceExitError(error) });
+          return;
+        }
+      }
+
+      clearPendingUploadPreviews();
+      setDirty(false);
+      allowNextNavRef.current = true;
+      setExitConfirmOpen(false);
+      const href = resolveCreateWorkspaceDashboardHref({ isAdmin, isRegularUser, role });
+      await router.push(href);
+      if (user?.id && isRegularUser) {
+        emitUserDashboardMetricsInvalidationAfterNavigation(user.id);
+      }
+    } finally {
+      setExitBusy(false);
+    }
+  }, [
+    user?.id,
+    exitBusy,
+    draftListingId,
+    getSessionHasChanges,
+    showToast,
+    linkedUnitId,
+    editSourceLifecycle,
+    isAdmin,
+    clearPendingUploadPreviews,
+    router,
+    isRegularUser,
+    role,
+  ]);
+
+  const handleExitWithoutSavingClick = useCallback(() => {
+    if (hydratingDraft || legacyDraftBlocked || loadingCreate || showCompletionCard) return;
+    if (!getSessionHasChanges()) {
+      void finishExitWithoutSaving();
+      return;
+    }
+    setExitConfirmOpen(true);
+  }, [
+    hydratingDraft,
+    legacyDraftBlocked,
+    loadingCreate,
+    showCompletionCard,
+    getSessionHasChanges,
+    finishExitWithoutSaving,
   ]);
 
   const handleContinue = useCallback(async () => {
@@ -1709,6 +1851,15 @@ export default function DashboardCreatePage() {
   const isEditingExistingListing = Boolean(queryDraftId && draftListingId);
   const isDirectSaveEdit = isDirectSaveEditLifecycle(editSourceLifecycle);
   const maxWorkspaceStage = requiresSubmitForReviewFlow(editSourceLifecycle) ? 5 : 4;
+  const exitAction = resolveCreateWorkspaceExitAction({
+    openedWithDraftId: openedWithDraftIdRef.current || "",
+    draftCreatedInSession: draftCreatedInSessionRef.current,
+    draftListingId,
+  });
+  const exitCopy = resolveCreateWorkspaceExitCopy({
+    exitAction,
+    isEditingExistingListing: exitAction === "restore_baseline",
+  });
 
   const saveLabel =
     saveUi === "saving"
@@ -2309,18 +2460,28 @@ export default function DashboardCreatePage() {
             {!editLoadError && !(hydratingDraft && queryDraftId) ? (
             <div className={cw.footerBar}>
               <div className={cw.footerLeft}>
-                {workspaceStage > 1 ? (
+                <div className={cw.footerLeftActions}>
+                  {workspaceStage > 1 ? (
+                    <button
+                      type="button"
+                      className={cw.footerBack}
+                      onClick={() => void handleBack()}
+                      disabled={saveUi === "saving" || hydratingDraft || exitBusy}
+                    >
+                      Back
+                    </button>
+                  ) : (
+                    <span className={cw.footerBackPlaceholder} aria-hidden />
+                  )}
                   <button
                     type="button"
-                    className={cw.footerBack}
-                    onClick={() => void handleBack()}
-                    disabled={saveUi === "saving" || hydratingDraft}
+                    className={cw.exitWithoutSavingBtn}
+                    onClick={() => handleExitWithoutSavingClick()}
+                    disabled={saveUi === "saving" || hydratingDraft || loadingCreate || showCompletionCard || exitBusy}
                   >
-                    Back
+                    Exit Without Saving
                   </button>
-                ) : (
-                  <span className={cw.footerBackPlaceholder} aria-hidden />
-                )}
+                </div>
               </div>
               <div className={cw.footerActions}>
                 <button
@@ -2402,6 +2563,18 @@ export default function DashboardCreatePage() {
         open={profileGateOpen}
         onClose={() => setProfileGateOpen(false)}
         profileHref={profileHref}
+      />
+      <DeleteConfirmationModal
+        isOpen={exitConfirmOpen}
+        onClose={() => {
+          if (!exitBusy) setExitConfirmOpen(false);
+        }}
+        onConfirm={() => void finishExitWithoutSaving()}
+        title={exitCopy.title}
+        warningText={exitCopy.body}
+        confirmLabel={exitCopy.confirmLabel}
+        cancelLabel="Keep Editing"
+        loading={exitBusy}
       />
     </div>
   );

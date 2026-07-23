@@ -18,6 +18,7 @@ export default function DeleteConfirmationModal({
   title = "Delete Listing?",
   warningText = "This action cannot be undone.",
   confirmLabel = "Delete",
+  cancelLabel = "Cancel",
   loading = false,
   requireTypeDelete = false,
 }) {
@@ -120,7 +121,7 @@ export default function DeleteConfirmationModal({
             disabled={loading}
             onClick={() => onClose?.()}
           >
-            Cancel
+            {cancelLabel}
           </button>
           <button
             type="button"

@@ -33,12 +33,18 @@ import {
   executeListingUpdate,
 } from "./listingWriteContract";
 import { resolveEditAutosaveLifecycleFields } from "./listingEditAccess";
+import { sanitizeListingMutationPayload } from "./listingPayloadSanitize";
 import {
   buildCreatedPayload,
   emitListingEventAfterMutation,
   LISTING_EVENT_TYPES,
 } from "./listingEvents";
 import { coerceListingIdForDb } from "./listingEvents/coerceListingId";
+import {
+  deleteListingImageRow,
+  normalizeOrderedImageRows,
+  persistListingImageOrder,
+} from "./createListingUploads";
 import {
   bestEffortRemoveListingImageStorage,
   invokePermanentDeleteListingRpc,
@@ -554,5 +560,140 @@ export async function discardDraftListing(supabase, { listingId, userId }) {
   }
 
   await bestEffortRemoveListingImageStorage(supabase, imageRows || []);
+  return { error: null };
+}
+
+async function reconcileListingImagesToBaseline(supabase, { listingId, baselineRemoteImages = [] }) {
+  const dbListingId = coerceListingIdForDb(listingId);
+  const { data: currentRows, error: loadError } = await supabase
+    .from("listing_images")
+    .select("*")
+    .eq("listing_id", dbListingId)
+    .order("position", { ascending: true });
+  if (loadError) return { error: loadError };
+
+  const baseline = normalizeOrderedImageRows(baselineRemoteImages || []);
+  const baselineIds = new Set(
+    baseline.filter((row) => row?.id != null).map((row) => String(row.id))
+  );
+  const current = currentRows || [];
+
+  for (const row of current) {
+    if (row?.id == null) continue;
+    if (baselineIds.has(String(row.id))) continue;
+    const { error } = await deleteListingImageRow(supabase, row.id);
+    if (error) return { error };
+  }
+
+  const { data: refreshedRows, error: refreshError } = await supabase
+    .from("listing_images")
+    .select("*")
+    .eq("listing_id", dbListingId)
+    .order("position", { ascending: true });
+  if (refreshError) return { error: refreshError };
+
+  const refreshedById = new Map(
+    (refreshedRows || []).filter((row) => row?.id != null).map((row) => [String(row.id), row])
+  );
+  const refreshedUrls = new Set(
+    (refreshedRows || []).map((row) => String(row.image_url || "")).filter(Boolean)
+  );
+
+  for (const baseRow of baseline) {
+    const baseId = baseRow?.id != null ? String(baseRow.id) : "";
+    const baseUrl = String(baseRow.image_url || "");
+    if (baseId && refreshedById.has(baseId)) continue;
+    if (baseUrl && refreshedUrls.has(baseUrl)) continue;
+    if (!baseUrl) continue;
+    const { error } = await supabase.from("listing_images").insert({
+      listing_id: dbListingId,
+      image_url: baseUrl,
+      position: baseRow.position ?? 0,
+    });
+    if (error) return { error };
+  }
+
+  const { data: finalRows, error: finalError } = await supabase
+    .from("listing_images")
+    .select("*")
+    .eq("listing_id", dbListingId)
+    .order("position", { ascending: true });
+  if (finalError) return { error: finalError };
+
+  const finalById = new Map(
+    (finalRows || []).filter((row) => row?.id != null).map((row) => [String(row.id), row])
+  );
+  const finalByUrl = new Map(
+    (finalRows || [])
+      .filter((row) => row?.image_url)
+      .map((row) => [String(row.image_url), row])
+  );
+
+  const ordered = [];
+  for (const baseRow of baseline) {
+    const baseId = baseRow?.id != null ? String(baseRow.id) : "";
+    const baseUrl = String(baseRow.image_url || "");
+    const match =
+      (baseId && finalById.get(baseId)) ||
+      (baseUrl && finalByUrl.get(baseUrl)) ||
+      null;
+    if (match) ordered.push(match);
+  }
+
+  if (ordered.length) {
+    const { error } = await persistListingImageOrder(supabase, ordered);
+    if (error) return { error };
+  }
+
+  return { error: null };
+}
+
+/** Revert listing fields and images to the snapshot captured when the workspace session opened. */
+export async function restoreListingToSessionBaseline(
+  supabase,
+  {
+    listingId,
+    baselineForm,
+    baselineRemoteImages = [],
+    authUserId,
+    linkedUnitId = "",
+    sourceLifecycle = "",
+    eqFilters,
+  } = {}
+) {
+  const id = String(listingId || "").trim();
+  if (!id || !authUserId) {
+    return { error: new Error("Unable to restore your listing. Please try again or keep editing.") };
+  }
+
+  const payload = sanitizeListingMutationPayload(
+    buildDraftAutosavePayload({
+      form: baselineForm,
+      authUserId,
+      linkedUnitId,
+      sourceLifecycle,
+    }),
+    {
+      mutationFlow: LISTING_MUTATION_FLOW.DRAFT_AUTOSAVE,
+      operation: LISTING_MUTATION_OPERATION.PATCH,
+    }
+  );
+
+  const patchResult = await executeListingUpdate(supabase, id, payload, {
+    mutationFlow: LISTING_MUTATION_FLOW.DRAFT_AUTOSAVE,
+    eqFilters,
+  });
+  if (patchResult.error) {
+    return { error: new Error("Unable to restore your listing. Please try again or keep editing.") };
+  }
+
+  const imageResult = await reconcileListingImagesToBaseline(supabase, {
+    listingId: id,
+    baselineRemoteImages,
+  });
+  if (imageResult.error) {
+    return { error: new Error("Unable to restore listing photos. Please try again or keep editing.") };
+  }
+
   return { error: null };
 }
