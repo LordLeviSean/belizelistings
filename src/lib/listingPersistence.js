@@ -206,9 +206,10 @@ function buildListingCoreFields({
   } else {
     const bedsRaw = form?.beds;
     const bathsRaw = form?.baths;
+    const garageRaw = form?.garage;
     beds = bedsRaw === "" || bedsRaw == null ? 0 : Number(bedsRaw || 0);
     baths = bathsRaw === "" || bathsRaw == null ? 0 : Number(bathsRaw || 0);
-    garage = 0;
+    garage = garageRaw === "" || garageRaw == null ? 0 : Number(garageRaw || 0);
   }
 
   const payload = {

@@ -328,6 +328,9 @@ export default function DashboardCreatePage() {
 
   useEffect(() => {
     if (!router.isReady || prefillAppliedRef.current) return;
+    prefillAppliedRef.current = true;
+    if (queryDraftId) return;
+
     const prefillPrice = String(qv(router.query.price) || "");
     const prefillDistrict = districtForSelect(qv(router.query.district));
     const prefillPropertyType = String(qv(router.query.property_type) || "").toLowerCase();
@@ -349,8 +352,7 @@ export default function DashboardCreatePage() {
     }));
     setPrefilledFields(nextPrefilled);
     setLinkedUnitId(prefillUnitId);
-    prefillAppliedRef.current = true;
-  }, [router.isReady, router.query]);
+  }, [router.isReady, router.query, queryDraftId]);
 
   useEffect(() => {
     if (
@@ -1999,6 +2001,14 @@ export default function DashboardCreatePage() {
                         placeholder="Baths"
                         value={form.baths}
                         onChange={setRoomCountField("baths")}
+                        inputMode="numeric"
+                        autoComplete="off"
+                      />
+                      <input
+                        className={cw.input}
+                        placeholder="Garages"
+                        value={form.garage}
+                        onChange={setRoomCountField("garage")}
                         inputMode="numeric"
                         autoComplete="off"
                       />

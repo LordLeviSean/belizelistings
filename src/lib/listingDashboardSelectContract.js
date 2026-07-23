@@ -110,12 +110,15 @@ const SCHEMA_LEGACY_HINT_KEY = "bl-listing-dashboard-legacy-schema";
 export const LISTING_CREATE_WORKSPACE_EXTRA_COLUMNS = Object.freeze([
   "beds",
   "baths",
+  "garage",
   "description",
   "features",
   "amenities",
   "square_feet",
   "category",
   "listed_by",
+  "listing_type",
+  "property_type",
 ]);
 
 export const LISTING_CREATE_WORKSPACE_COLUMNS = Object.freeze([
@@ -127,10 +130,13 @@ export const LISTING_CREATE_WORKSPACE_MINIMAL_COLUMNS = [
   ...LISTING_DASHBOARD_MINIMAL_CORE_COLUMNS,
   "beds",
   "baths",
+  "garage",
   "description",
   "features",
   "amenities",
   "square_feet",
+  "listing_type",
+  "property_type",
 ].join(", ");
 
 export const LISTING_CREATE_WORKSPACE_SELECT_TIERS = Object.freeze([
