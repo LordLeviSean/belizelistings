@@ -62,6 +62,12 @@ import {
 } from "@/lib/listingEditAccess";
 import { emitUserDashboardMetricsInvalidationAfterNavigation } from "@/lib/userDashboardMetricsBus";
 import { resolveCreateWorkspaceDashboardHref } from "@/lib/createWorkspaceDashboardRoutes";
+import {
+  computeMaxVisitedStageAfterAdvance,
+  isWorkspaceStageClickable,
+  resolveWorkspaceStageNavTarget,
+  validateWorkspaceStageForContinue,
+} from "@/lib/createWorkspaceStageNav";
 import { isProfileComplete, profileCompletionMissingReason } from "@/lib/isProfileComplete";
 import ProfileCompletionGateModal from "@/components/profile/ProfileCompletionGateModal";
 import { getLifecycleStatus } from "../../utils/canonicalListing";
@@ -180,24 +186,6 @@ function optionalSquareFeet(form) {
   return Number.isNaN(n) ? null : n;
 }
 
-/** Stage-gate for Continue — blocks only on invalid required fields, not sync retries. */
-function validateWorkspaceStageForContinue(stage, form) {
-  const nextErrors = {};
-  if (stage === 1) {
-    if (!String(form.title || "").trim()) nextErrors.title = "Add a title to continue.";
-    if (!String(form.property_type || "").trim()) {
-      nextErrors.property_type = "Select a property type.";
-    }
-    const geo = validateGeographyForm(form);
-    if (!geo.ok) Object.assign(nextErrors, geo.errors);
-    const price = Number(form.price);
-    if (form.price !== "" && form.price != null && (Number.isNaN(price) || price < 0)) {
-      nextErrors.price = "Enter a valid price.";
-    }
-  }
-  return { ok: Object.keys(nextErrors).length === 0, errors: nextErrors };
-}
-
 export default function DashboardCreatePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -218,6 +206,7 @@ export default function DashboardCreatePage() {
   const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
   const [form, setForm] = useState(() => ({ ...CREATE_FORM_INITIAL }));
   const [workspaceStage, setWorkspaceStage] = useState(1);
+  const [maxVisitedStage, setMaxVisitedStage] = useState(1);
   const [draftListingId, setDraftListingId] = useState("");
   const [editSourceLifecycle, setEditSourceLifecycle] = useState("");
   const [remoteImages, setRemoteImages] = useState([]);
@@ -460,8 +449,11 @@ export default function DashboardCreatePage() {
       }
       setDirty(false);
       setLegacyDraftBlocked(assessment.needsRefresh);
+      const stageCap = requiresSubmitForReviewFlow(hydratedLifecycle) ? 5 : 4;
+      setMaxVisitedStage(stageCap);
       if (hydratedLifecycle === LISTING_LIFECYCLE.REJECTED && queryResubmit) {
         setWorkspaceStage(4);
+        setMaxVisitedStage(Math.max(stageCap, 4));
         showToast({
           type: "info",
           message: "Review your listing, then submit for review when ready.",
@@ -997,6 +989,7 @@ export default function DashboardCreatePage() {
       dirty || pendingUploads.length > 0 || !draftListingId;
     if (!needsServerSync && draftListingId) {
       setErrors({});
+      setMaxVisitedStage((visited) => computeMaxVisitedStageAfterAdvance(workspaceStage, visited, stageCap));
       setWorkspaceStage((s) => Math.min(stageCap, s + 1));
       return;
     }
@@ -1031,8 +1024,48 @@ export default function DashboardCreatePage() {
       return;
     }
     setErrors({});
-    setWorkspaceStage((s) => Math.min(5, s + 1));
+    setMaxVisitedStage((visited) => computeMaxVisitedStageAfterAdvance(workspaceStage, visited, stageCap));
+    setWorkspaceStage((s) => Math.min(stageCap, s + 1));
   }, [hydratingDraft, legacyDraftBlocked, workspaceStage, form, dirty, draftListingId, pendingUploads.length, runAutosave, showToast, editSourceLifecycle]);
+
+  const handleStageNavigate = useCallback(
+    async (targetStage) => {
+      const stageCap = requiresSubmitForReviewFlow(editSourceLifecycle) ? 5 : 4;
+      if (hydratingDraft || legacyDraftBlocked) return;
+
+      const nav = resolveWorkspaceStageNavTarget({
+        targetStage,
+        currentStage: workspaceStage,
+        maxVisitedStage,
+        maxWorkspaceStage: stageCap,
+      });
+      if (!nav.allowed) {
+        if (nav.reason === "forward_unvisited") {
+          showToast({ type: "info", message: nav.message });
+        }
+        return;
+      }
+
+      const result = await runAutosave({ mutationFlow: LISTING_MUTATION_FLOW.DRAFT_AUTOSAVE });
+      if (!result.success) {
+        showToast({
+          type: "error",
+          message: "Could not save — stay on this step until the draft saves.",
+        });
+        return;
+      }
+      setWorkspaceStage(nav.targetStage);
+    },
+    [
+      hydratingDraft,
+      legacyDraftBlocked,
+      workspaceStage,
+      maxVisitedStage,
+      editSourceLifecycle,
+      runAutosave,
+      showToast,
+    ]
+  );
 
   const handleBack = useCallback(async () => {
     if (hydratingDraft || legacyDraftBlocked || workspaceStage <= 1) return;
@@ -1885,19 +1918,32 @@ export default function DashboardCreatePage() {
           ) : null}
 
           <ol className={cw.stageNav} aria-label="Create listing progress">
-            {WORK_STAGES.map((s) => {
+            {WORK_STAGES.filter((s) => s.id <= maxWorkspaceStage).map((s) => {
               const done = workspaceStage > s.id;
               const active = workspaceStage === s.id;
+              const clickable = isWorkspaceStageClickable({
+                targetStage: s.id,
+                currentStage: workspaceStage,
+                maxVisitedStage,
+                maxWorkspaceStage,
+              });
               return (
-                <li
-                  key={s.id}
-                  className={`${cw.stagePill} ${active ? cw.stagePillActive : ""} ${done ? cw.stagePillDone : ""}`}
-                  aria-current={active ? "step" : undefined}
-                >
-                  <span className={cw.stagePillIndex} aria-hidden>
-                    {done ? "✓" : s.id}
-                  </span>
-                  <span className={cw.stagePillLabel}>{s.label}</span>
+                <li key={s.id} className={cw.stageNavItem}>
+                  <button
+                    type="button"
+                    className={`${cw.stagePill} ${active ? cw.stagePillActive : ""} ${done ? cw.stagePillDone : ""} ${
+                      clickable ? cw.stagePillClickable : cw.stagePillLocked
+                    }`}
+                    aria-current={active ? "step" : undefined}
+                    aria-disabled={clickable ? undefined : true}
+                    disabled={!clickable || saveUi === "saving" || hydratingDraft}
+                    onClick={() => void handleStageNavigate(s.id)}
+                  >
+                    <span className={cw.stagePillIndex} aria-hidden>
+                      {done ? "✓" : s.id}
+                    </span>
+                    <span className={cw.stagePillLabel}>{s.label}</span>
+                  </button>
                 </li>
               );
             })}
