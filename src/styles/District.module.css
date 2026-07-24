@@ -1401,20 +1401,12 @@
 }
 
 /* -------------------------------------------------------------------------- */
-/* District explore — dark homepage shell polish (spacing, hierarchy, glass)   */
+/* District explore — homepage shell polish (spacing, hierarchy, coastal glass) */
 /* -------------------------------------------------------------------------- */
 
 :global(.home-map-page-root) .districtExplorePage {
-  --home-text-primary: rgba(232, 248, 242, 0.96);
-  --home-text-secondary: rgba(196, 224, 212, 0.9);
-  --home-text-muted: rgba(148, 188, 172, 0.78);
-  --home-glass-bg: rgba(14, 42, 34, 0.78);
-  --home-glass-border: rgba(88, 158, 132, 0.28);
-  --home-glass-highlight: rgba(112, 188, 164, 0.14);
-  --ui-shadow-soft:
-    0 16px 36px rgba(4, 14, 10, 0.34),
-    0 1px 0 rgba(120, 196, 176, 0.1) inset;
   --district-accent: rgba(112, 188, 164, 0.12);
+  --ui-shadow-soft: 0 16px 32px rgba(102, 132, 140, 0.13), 0 1px 0 rgba(255, 255, 255, 0.45) inset;
   max-width: 1120px;
   padding: 18px 18px 36px;
 }
@@ -1445,17 +1437,17 @@
 
 :global(.home-map-page-root) .districtExplorePage .backButton {
   margin-bottom: 14px;
-  border-color: var(--home-glass-border);
-  background: var(--home-glass-bg);
-  color: var(--home-text-muted);
+  border-color: var(--glass-border-mint);
+  background: var(--glass-bg-strong);
+  color: var(--text-secondary);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
 
 :global(.home-map-page-root) .districtExplorePage .backButton:hover {
-  color: var(--home-text-secondary);
-  border-color: rgba(112, 188, 164, 0.38);
-  box-shadow: var(--ui-shadow-soft);
+  color: var(--text-primary);
+  border-color: rgba(122, 188, 176, 0.42);
+  box-shadow: var(--elev-1);
 }
 
 :global(.home-map-page-root) .districtExplorePage .districtHeader {
@@ -1464,45 +1456,45 @@
 
 :global(.home-map-page-root) .districtExplorePage .districtHeaderCount,
 :global(.home-map-page-root) .districtExplorePage .filterPanelCount {
-  color: var(--home-text-muted);
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
 :global(.home-map-page-root) .districtExplorePage .districtSearchWrap {
-  border-color: rgba(88, 158, 132, 0.28);
-  background: rgba(12, 36, 30, 0.72);
-  box-shadow: none;
+  border-color: var(--border-subtle);
+  background: var(--glass-bg-strong);
+  box-shadow: var(--elev-0);
 }
 
 :global(.home-map-page-root) .districtExplorePage .districtSearchIcon {
-  color: rgba(148, 188, 172, 0.78);
+  color: var(--text-tertiary);
 }
 
 :global(.home-map-page-root) .districtExplorePage .districtSearchInput {
-  color: var(--home-text-primary);
+  color: var(--text-primary);
   min-height: 40px;
   font-size: 14px;
 }
 
 :global(.home-map-page-root) .districtExplorePage .districtSearchInput::placeholder {
-  color: rgba(140, 180, 164, 0.72);
+  color: var(--text-tertiary);
 }
 
 :global(.home-map-page-root) .districtExplorePage .districtSearchWrap:focus-within {
-  border-color: rgba(112, 188, 164, 0.42);
-  background: rgba(16, 44, 36, 0.86);
-  box-shadow: 0 0 0 2px rgba(88, 168, 140, 0.12);
+  border-color: rgba(122, 188, 176, 0.42);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 0 0 2px rgba(95, 168, 154, 0.12);
 }
 
 :global(.home-map-page-root) .districtExplorePage .showFiltersBtnActive {
-  border-color: rgba(112, 188, 164, 0.45);
-  background: rgba(28, 68, 56, 0.72);
-  color: var(--home-text-primary);
+  border-color: rgba(122, 188, 176, 0.45);
+  background: rgba(232, 248, 244, 0.92);
+  color: var(--text-primary);
 }
 
 :global(.home-map-page-root) .districtExplorePage .districtTitle {
-  color: var(--home-text-primary);
-  text-shadow: 0 2px 16px rgba(4, 16, 12, 0.32);
+  color: var(--text-primary);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 :global(.home-map-page-root) .districtExplorePage .districtCaption {
@@ -1512,16 +1504,16 @@
   letter-spacing: 0.01em;
   text-transform: none;
   line-height: 1.42;
-  color: var(--home-text-muted);
+  color: var(--text-secondary);
   max-width: 52ch;
 }
 
 :global(.home-map-page-root) .districtExplorePage .filterBarShell {
   margin-bottom: 12px;
   border-radius: 999px;
-  border: 1px solid var(--home-glass-border);
-  background: var(--home-glass-bg);
-  box-shadow: var(--ui-shadow-soft), inset 0 1px 0 var(--home-glass-highlight);
+  border: 1px solid var(--glass-border-mint);
+  background: var(--glass-bg-strong);
+  box-shadow: var(--elev-1), var(--glass-inset-highlight);
   backdrop-filter: blur(18px) saturate(1.08);
   -webkit-backdrop-filter: blur(18px) saturate(1.08);
   padding: 10px 14px 12px;
@@ -1530,28 +1522,28 @@
 :global(.home-map-page-root) .districtExplorePage .showFiltersBtn {
   min-height: 34px;
   border-radius: 999px;
-  border-color: rgba(112, 188, 164, 0.32);
-  background: rgba(18, 48, 40, 0.72);
-  color: var(--home-text-secondary);
+  border-color: var(--border-subtle);
+  background: var(--glass-bg);
+  color: var(--text-secondary);
   transition: transform 340ms var(--ui-ease), border-color 340ms var(--ui-ease), background 340ms var(--ui-ease);
 }
 
 :global(.home-map-page-root) .districtExplorePage .showFiltersBtn:hover {
   transform: translateY(-1px);
-  border-color: rgba(112, 188, 164, 0.45);
-  background: rgba(22, 56, 46, 0.82);
+  border-color: rgba(122, 188, 176, 0.42);
+  background: rgba(255, 255, 255, 0.88);
 }
 
 :global(.home-map-page-root) .districtExplorePage .filterLabel {
-  color: rgba(148, 188, 172, 0.72);
+  color: var(--text-tertiary);
 }
 
 :global(.home-map-page-root) .districtExplorePage .filterSelect {
   height: 38px;
   border-radius: 999px;
-  border: 1px solid rgba(88, 158, 132, 0.28);
-  background: rgba(12, 36, 30, 0.72);
-  color: var(--home-text-primary);
+  border: 1px solid var(--border-subtle);
+  background: var(--glass-bg-strong);
+  color: var(--text-primary);
   padding: 0 12px;
   font-size: 13px;
   transition: border-color 340ms var(--ui-ease), background 340ms var(--ui-ease), box-shadow 340ms var(--ui-ease);
@@ -1559,26 +1551,26 @@
 
 :global(.home-map-page-root) .districtExplorePage .filterSelect:hover,
 :global(.home-map-page-root) .districtExplorePage .filterSelect:focus-visible {
-  border-color: rgba(112, 188, 164, 0.42);
-  background: rgba(16, 44, 36, 0.86);
+  border-color: rgba(122, 188, 176, 0.42);
+  background: rgba(255, 255, 255, 0.96);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(88, 168, 140, 0.12);
+  box-shadow: 0 0 0 2px rgba(95, 168, 154, 0.12);
 }
 
 :global(.home-map-page-root) .districtExplorePage .collapseFiltersBtn {
-  border-color: rgba(112, 188, 164, 0.32);
-  background: rgba(14, 42, 34, 0.88);
+  border-color: var(--border-subtle);
+  background: var(--glass-bg-strong);
 }
 
 :global(.home-map-page-root) .districtExplorePage .filterInventoryMeta {
   margin-top: 12px;
   padding-top: 12px;
-  border-top-color: rgba(88, 158, 132, 0.16);
+  border-top-color: var(--border-subtle);
 }
 
 :global(.home-map-page-root) .districtExplorePage .resultCount,
 :global(.home-map-page-root) .districtExplorePage .resultCountLabel {
-  color: var(--home-text-muted);
+  color: var(--text-tertiary);
   font-size: 12px;
   font-family: "DM Sans", "Inter", sans-serif;
 }
@@ -1586,51 +1578,49 @@
 :global(.home-map-page-root) .districtExplorePage .moreFiltersBtn {
   height: 34px;
   border-radius: 999px;
-  border-color: rgba(112, 188, 164, 0.32);
-  background: rgba(18, 48, 40, 0.72);
-  color: var(--home-text-secondary);
+  border-color: var(--border-subtle);
+  background: var(--glass-bg);
+  color: var(--text-secondary);
 }
 
 :global(.home-map-page-root) .districtExplorePage .moreFiltersBtn:hover {
-  border-color: rgba(112, 188, 164, 0.45);
-  background: rgba(22, 56, 46, 0.82);
+  border-color: rgba(122, 188, 176, 0.42);
+  background: rgba(255, 255, 255, 0.88);
 }
 
 :global(.home-map-page-root) .districtExplorePage .moreFiltersBtn[aria-expanded="true"] {
-  border-color: rgba(112, 188, 164, 0.42);
-  background: rgba(28, 68, 56, 0.72);
-  color: var(--home-text-primary);
+  border-color: rgba(122, 188, 176, 0.42);
+  background: rgba(232, 248, 244, 0.92);
+  color: var(--text-primary);
 }
 
 :global(.home-map-page-root) .districtExplorePage .advancedFilterPanel {
-  border-color: rgba(88, 158, 132, 0.18);
-  background: rgba(10, 32, 26, 0.58);
+  border-color: var(--border-subtle);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 :global(.home-map-page-root) .districtExplorePage .advancedFilterItem span,
 :global(.home-map-page-root) .districtExplorePage .advancedFilterItemCheck {
-  color: rgba(148, 188, 172, 0.78);
+  color: var(--text-secondary);
 }
 
 :global(.home-map-page-root) .districtExplorePage .advancedFilterItem select,
 :global(.home-map-page-root) .districtExplorePage .advancedFilterItem input,
 :global(.home-map-page-root) .districtExplorePage .resetFiltersBtn {
-  border-color: rgba(88, 158, 132, 0.24);
-  background: rgba(12, 36, 30, 0.72);
-  color: var(--home-text-primary);
+  border-color: var(--border-subtle);
+  background: var(--glass-bg-strong);
+  color: var(--text-primary);
 }
 
 :global(.home-map-page-root) .districtExplorePage .listWrap {
   margin-top: 6px;
   padding: 18px 16px 20px;
-  border: 1px solid rgba(88, 158, 132, 0.2);
+  border: 1px solid var(--glass-border-mint);
   border-radius: calc(var(--ui-radius) + 2px);
   background:
     radial-gradient(ellipse 72% 56% at 14% 0%, var(--district-accent), transparent 62%),
-    linear-gradient(168deg, rgba(18, 48, 40, 0.72) 0%, rgba(14, 40, 34, 0.66) 100%);
-  box-shadow:
-    var(--ui-shadow-soft),
-    inset 0 1px 0 rgba(112, 188, 164, 0.08);
+    linear-gradient(168deg, rgba(255, 255, 255, 0.88) 0%, rgba(248, 252, 250, 0.82) 100%);
+  box-shadow: var(--elev-1), var(--glass-inset-highlight);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -1653,18 +1643,18 @@
 
 :global(.home-map-page-root) .districtExplorePage .inventoryEndCap {
   margin-top: 18px;
-  border-color: var(--home-glass-border);
-  background: var(--home-glass-bg);
-  box-shadow: var(--ui-shadow-soft), inset 0 1px 0 var(--home-glass-highlight);
+  border-color: var(--glass-border-mint);
+  background: var(--glass-bg-strong);
+  box-shadow: var(--elev-1), var(--glass-inset-highlight);
 }
 
 :global(.home-map-page-root) .districtExplorePage .inventoryEndCap p {
-  color: var(--home-text-secondary);
+  color: var(--text-secondary);
 }
 
 :global(.home-map-page-root) .districtExplorePage .cardSkeleton {
-  border-color: rgba(88, 158, 132, 0.22);
-  background: rgba(14, 42, 34, 0.5);
+  border-color: var(--glass-border-mint);
+  background: rgba(255, 255, 255, 0.58);
 }
 
 @media (max-width: 768px) {

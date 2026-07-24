@@ -1,4 +1,4 @@
-/* Homepage loading — "The Belize Map Awakens" (deep seagrass → live homepage) */
+/* Homepage loading — "The Belize Map Awakens" (pale coastal dissolve) */
 
 .overlay {
   position: fixed;
@@ -9,12 +9,11 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  color: rgba(224, 244, 236, 0.94);
+  color: var(--text-primary);
   background:
-    radial-gradient(ellipse 72% 50% at 50% -4%, rgba(56, 128, 100, 0.34), transparent 58%),
-    radial-gradient(ellipse 58% 44% at 10% 78%, rgba(18, 56, 44, 0.42), transparent 68%),
-    radial-gradient(ellipse 54% 42% at 90% 70%, rgba(31, 77, 59, 0.32), transparent 70%),
-    linear-gradient(180deg, #081a14 0%, #0d2b22 34%, #16382c 68%, #1a4234 100%);
+    radial-gradient(ellipse 56% 44% at 4% 8%, rgba(232, 210, 244, 0.165), transparent 72%),
+    radial-gradient(ellipse 52% 40% at 96% 2%, rgba(250, 220, 235, 0.138), transparent 68%),
+    linear-gradient(165deg, #f2faf8 0%, #e6f7f7 22%, #edf4fc 54%, #faf6f4 82%, #fdfcfb 100%);
   transition: opacity 640ms var(--ease-out-soft);
 }
 
@@ -27,11 +26,10 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.58;
+  opacity: 0.38;
   background:
-    radial-gradient(ellipse 62% 46% at 28% 18%, rgba(72, 168, 140, 0.14), transparent 68%),
-    radial-gradient(ellipse 58% 44% at 74% 28%, rgba(48, 128, 108, 0.12), transparent 66%),
-    radial-gradient(ellipse 72% 52% at 50% 100%, rgba(8, 28, 22, 0.62), transparent 72%);
+    radial-gradient(ellipse 62% 44% at 8% 14%, var(--ambient-blush), transparent 68%),
+    radial-gradient(ellipse 54% 40% at 88% 8%, var(--ambient-mint), transparent 70%);
   filter: blur(24px);
 }
 

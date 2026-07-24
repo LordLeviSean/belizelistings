@@ -6,27 +6,12 @@
  */
 
 .adminPage {
-  composes: page from "./Dashboard.module.css";
+  composes: page dashboardWorkspace from "./Dashboard.module.css";
 }
 
 .adminPage.adminPage {
   position: relative;
-  --admin-surface: #1a1511;
-  --admin-surface-alt: #1d1712;
-  --admin-surface-deep: #171310;
-  --admin-border-warm: rgba(214, 178, 128, 0.16);
-  --admin-border-warm-strong: rgba(214, 178, 128, 0.28);
-  --admin-text-primary: #f3ead9;
-  --admin-text-muted: rgba(243, 234, 217, 0.74);
-  --admin-text-subtle: rgba(243, 234, 217, 0.58);
-  --admin-panel-bg: linear-gradient(168deg, var(--admin-surface) 0%, var(--admin-surface-alt) 100%);
-  --bg-card: var(--admin-surface);
-  --bg-elevated: #221a15;
-  --text-primary: var(--admin-text-primary);
-  --text-secondary: var(--admin-text-muted);
-  --text-tertiary: var(--admin-text-subtle);
-  --border-subtle: var(--admin-border-warm);
-  color: var(--admin-text-primary);
+  color: var(--text-primary);
   background: linear-gradient(180deg, #f2f6f4 0%, #eef2f0 48%, #eceff2 100%);
 }
 
@@ -120,7 +105,7 @@
   z-index: 2;
 }
 
-/* Data surfaces: dark desk panels with moderation-grade contrast. */
+/* Data surfaces stay on standard dashboard tokens — no mahogany filter. */
 .dataSurface {
   position: relative;
   z-index: 3;
@@ -128,140 +113,8 @@
   padding: 2px;
 }
 
-/* —— Dark desk panels (compound scope beats Dashboard hardcoded whites) —— */
-.adminPage.adminPage [class*="Dashboard_card__"],
-.adminPage.adminPage [class*="Dashboard_statCard__"],
-.adminPage.adminPage [class*="Dashboard_operationalStatsShell__"],
-.adminPage.adminPage [class*="Dashboard_operationalStatCard__"],
-.adminPage.adminPage [class*="Dashboard_effectCard__"],
-.adminPage.adminPage [class*="Dashboard_pendingCard__"],
-.adminPage.adminPage [class*="Dashboard_listingsRow__"],
-.adminPage.adminPage [class*="PremiumEmptyState_wrap__"],
-.adminPage.adminPage [class*="DashboardShell_identity__"] {
-  background: var(--admin-panel-bg);
-  border: 1px solid var(--admin-border-warm);
-  box-shadow: var(--elev-1);
-}
-
-.adminPage.adminPage [class*="Dashboard_archivedCard__"] {
-  background: linear-gradient(168deg, var(--admin-surface-deep) 0%, var(--admin-surface) 100%);
-  border-color: var(--admin-border-warm);
-  box-shadow: inset 0 1px 0 rgba(214, 178, 128, 0.08);
-}
-
-.adminPage.adminPage [class*="Dashboard_pendingTone__"] {
-  background: linear-gradient(148deg, rgba(48, 34, 24, 0.92) 0%, var(--admin-surface-alt) 100%);
-  border-color: rgba(214, 178, 128, 0.32);
-  box-shadow:
-    0 0 16px rgba(255, 196, 120, 0.1),
-    inset 0 1px 0 rgba(214, 178, 128, 0.1);
-}
-
-.adminPage.adminPage [class*="Dashboard_card__"]:hover,
-.adminPage.adminPage [class*="Dashboard_statCard__"]:hover,
-.adminPage.adminPage [class*="Dashboard_operationalStatCard__"]:hover,
-.adminPage.adminPage [class*="Dashboard_listingsRow__"]:hover {
-  border-color: var(--admin-border-warm-strong);
-  box-shadow:
-    var(--elev-2),
-    0 0 24px rgba(255, 196, 120, 0.08);
-}
-
-.adminPage.adminPage [class*="Dashboard_pendingCard__"]:hover {
-  border-color: rgba(214, 178, 128, 0.34);
-  box-shadow:
-    var(--elev-2),
-    0 0 20px rgba(255, 196, 120, 0.12);
-}
-
-/* Nav / filter pills */
-.adminPage.adminPage [class*="Dashboard_toggleButton__"],
-.adminPage.adminPage [class*="DashboardTabNav_tab__"] {
-  background: var(--admin-panel-bg);
-  border: 1px solid var(--admin-border-warm);
-  color: var(--admin-text-primary);
-}
-
-.adminPage.adminPage [class*="Dashboard_toggleButton__"]:hover,
-.adminPage.adminPage [class*="DashboardTabNav_tab__"]:hover {
-  background: var(--bg-elevated);
-  border-color: var(--admin-border-warm-strong);
-  box-shadow: 0 4px 14px rgba(12, 8, 6, 0.28);
-}
-
-.adminPage.adminPage [class*="Dashboard_toggleButtonActive__"],
-.adminPage.adminPage [class*="DashboardTabNav_tabActive__"],
-.adminPage.adminPage [class*="DashboardTabNav_tabLinkActive__"] {
-  background: linear-gradient(160deg, rgba(32, 88, 78, 0.62), rgba(20, 48, 44, 0.88));
-  border-color: rgba(72, 220, 196, 0.42);
-  color: var(--admin-text-primary);
-  font-weight: 600;
-  box-shadow:
-    0 0 0 1px rgba(72, 220, 196, 0.28) inset,
-    0 0 16px rgba(56, 200, 176, 0.28);
-}
-
-/* Typography on dark panels */
-.adminPage.adminPage [class*="Dashboard_sectionTitle__"],
-.adminPage.adminPage [class*="Dashboard_title__"],
-.adminPage.adminPage [class*="Dashboard_statValue__"],
-.adminPage.adminPage [class*="Dashboard_operationalStatValue__"],
-.adminPage.adminPage [class*="Dashboard_pendingTitle__"],
-.adminPage.adminPage [class*="DashboardShell_title__"],
-.adminPage.adminPage [class*="PremiumEmptyState_title__"] {
-  color: var(--admin-text-primary);
-  text-shadow: none;
-}
-
-.adminPage.adminPage [class*="Dashboard_statLabel__"],
-.adminPage.adminPage [class*="Dashboard_operationalStatLabel__"],
-.adminPage.adminPage [class*="Dashboard_operationalStatSub__"],
-.adminPage.adminPage [class*="Dashboard_muted__"],
-.adminPage.adminPage [class*="Dashboard_livePaletteSubtext__"],
-.adminPage.adminPage [class*="DashboardShell_subtitle__"],
-.adminPage.adminPage [class*="DashboardTabNav_clusterLabel__"],
-.adminPage.adminPage [class*="PremiumEmptyState_desc__"],
-.adminPage.adminPage [class*="ManageUsersPanel_cellMuted__"],
-.adminPage.adminPage [class*="ManageUsersPanel_listingsSummary__"] {
-  color: var(--admin-text-muted);
-}
-
-.adminPage.adminPage [class*="Dashboard_livePaletteLabel__"],
-.adminPage.adminPage [class*="Dashboard_listingsHeaderRow__"],
-.adminPage.adminPage [class*="ManageUsersPanel_th__"] {
-  color: var(--admin-text-subtle);
-}
-
-.adminPage.adminPage [class*="Dashboard_pendingPrice__"] {
-  color: rgba(243, 234, 217, 0.88);
-}
-
-.adminPage.adminPage [class*="Dashboard_pendingSubtle__"] {
-  color: var(--admin-text-subtle);
-}
-
-.adminPage.adminPage [class*="Dashboard_archivedHint__"] {
-  color: var(--admin-text-subtle);
-}
-
-.adminPage.adminPage [class*="ManageUsersPanel_listingsPanel__"] {
-  background: rgba(23, 19, 16, 0.72);
-  border-color: var(--admin-border-warm);
-}
-
-.adminPage.adminPage [class*="ManageUsersPanel_unlockBtn__"],
-.adminPage.adminPage [class*="ManageUsersPanel_relockBtn__"],
-.adminPage.adminPage [class*="ManageUsersPanel_deleteUserBtn__"] {
-  background: var(--bg-elevated);
-  border-color: var(--admin-border-warm);
-  color: var(--admin-text-primary);
-}
-
 /* Neon accent — active admin nav tab only (via global class hook). */
 .adminPage.adminPage :global(.adminTabNeonActive) {
-  background: linear-gradient(160deg, rgba(32, 88, 78, 0.68), rgba(20, 48, 44, 0.92)) !important;
-  border-color: rgba(72, 220, 196, 0.48) !important;
-  color: var(--admin-text-primary) !important;
   box-shadow:
     0 0 0 1px rgba(72, 220, 196, 0.35) inset,
     0 0 18px rgba(56, 200, 176, 0.42),
@@ -278,38 +131,23 @@
 
 .lampTarget.lampTarget:hover,
 .lampTarget.lampTarget:focus-within {
-  box-shadow:
-    var(--elev-2),
-    0 0 0 1px rgba(255, 220, 170, 0.18) inset,
-    0 0 28px rgba(255, 196, 120, 0.16),
-    0 0 48px rgba(255, 170, 90, 0.08);
+  box-shadow: var(--glow-medium);
 }
 
-/* Primary admin actions — neon glow scoped to shell CTAs only. */
-.adminPrimaryAction {
-  transition:
-    box-shadow var(--dur-2) var(--ease-out-soft),
-    transform var(--dur-2) var(--ease-out-soft);
-}
+@media (max-width: 720px) {
+  .silkLeft,
+  .silkRight {
+    width: min(48px, 6vw);
+    opacity: 0.28;
+  }
 
-.adminPrimaryAction.adminPrimaryAction:hover:not(:disabled),
-.adminPrimaryAction.adminPrimaryAction:focus-visible {
-  box-shadow:
-    var(--elev-2),
-    0 0 16px rgba(64, 220, 196, 0.45),
-    0 0 28px rgba(48, 180, 164, 0.28);
+  .silkHeader {
+    opacity: 0.16;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lampTarget,
-  .adminPrimaryAction {
-    transition-duration: 0.01ms !important;
-  }
-
-  .lampTarget.lampTarget:hover,
-  .lampTarget.lampTarget:focus-within,
-  .adminPrimaryAction.adminPrimaryAction:hover:not(:disabled),
-  .adminPrimaryAction.adminPrimaryAction:focus-visible {
-    box-shadow: var(--elev-1);
+  .lampTarget {
+    transition: none;
   }
 }
