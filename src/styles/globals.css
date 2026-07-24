@@ -47,11 +47,6 @@ body::before {
   z-index: -1;
 }
 
-/* Homepage owns its background — no global wash stacked underneath */
-body:has(.home-map-page-root)::before {
-  opacity: 0;
-}
-
 * {
   box-sizing: border-box;
   padding: 0;

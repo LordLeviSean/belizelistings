@@ -22,29 +22,24 @@
   --admin-panel-bg: linear-gradient(168deg, var(--admin-surface) 0%, var(--admin-surface-alt) 100%);
   --bg-card: var(--admin-surface);
   --bg-elevated: #221a15;
-  --bg-main: var(--admin-surface-deep);
   --text-primary: var(--admin-text-primary);
   --text-secondary: var(--admin-text-muted);
   --text-tertiary: var(--admin-text-subtle);
   --border-subtle: var(--admin-border-warm);
   color: var(--admin-text-primary);
+  background: linear-gradient(180deg, #f2f6f4 0%, #eef2f0 48%, #eceff2 100%);
+}
+
+.adminPage.adminPage::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
   background:
-    repeating-linear-gradient(
-      92deg,
-      rgba(58, 34, 24, 0.04) 0px,
-      rgba(58, 34, 24, 0.04) 2px,
-      transparent 2px,
-      transparent 7px
-    ),
-    repeating-linear-gradient(
-      8deg,
-      rgba(42, 24, 16, 0.03) 0px,
-      rgba(42, 24, 16, 0.03) 1px,
-      transparent 1px,
-      transparent 5px
-    ),
-    radial-gradient(ellipse 80% 56% at 50% 0%, rgba(88, 52, 36, 0.22), transparent 68%),
-    linear-gradient(168deg, #3d2618 0%, #2a1810 38%, #1f120c 100%);
+    radial-gradient(circle at 20% 30%, rgba(137, 205, 189, 0.18), transparent 44%),
+    radial-gradient(circle at 80% 20%, rgba(159, 179, 217, 0.16), transparent 44%);
+  filter: blur(60px);
 }
 
 .main {
@@ -75,15 +70,15 @@
   left: 0;
   right: 0;
   height: 48px;
-  opacity: 0.28;
+  opacity: 0.22;
   background:
-    linear-gradient(180deg, rgba(8, 8, 10, 0.42), transparent 88%),
+    linear-gradient(180deg, rgba(137, 205, 189, 0.12), transparent 88%),
     repeating-linear-gradient(
       92deg,
-      rgba(255, 255, 255, 0.04) 0px,
-      rgba(255, 255, 255, 0.04) 3px,
-      rgba(0, 0, 0, 0.06) 3px,
-      rgba(0, 0, 0, 0.06) 6px
+      rgba(255, 255, 255, 0.28) 0px,
+      rgba(255, 255, 255, 0.28) 3px,
+      rgba(137, 176, 168, 0.06) 3px,
+      rgba(137, 176, 168, 0.06) 6px
     );
 }
 
@@ -97,26 +92,26 @@
 .silkLeft {
   left: 0;
   background:
-    linear-gradient(90deg, rgba(8, 8, 10, 0.55), transparent 72%),
+    linear-gradient(90deg, rgba(137, 205, 189, 0.14), transparent 72%),
     repeating-linear-gradient(
       175deg,
-      rgba(255, 255, 255, 0.05) 0px,
-      rgba(255, 255, 255, 0.05) 3px,
-      rgba(0, 0, 0, 0.08) 3px,
-      rgba(0, 0, 0, 0.08) 6px
+      rgba(255, 255, 255, 0.32) 0px,
+      rgba(255, 255, 255, 0.32) 3px,
+      rgba(137, 176, 168, 0.08) 3px,
+      rgba(137, 176, 168, 0.08) 6px
     );
 }
 
 .silkRight {
   right: 0;
   background:
-    linear-gradient(270deg, rgba(8, 8, 10, 0.55), transparent 72%),
+    linear-gradient(270deg, rgba(159, 179, 217, 0.12), transparent 72%),
     repeating-linear-gradient(
       185deg,
-      rgba(255, 255, 255, 0.05) 0px,
-      rgba(255, 255, 255, 0.05) 3px,
-      rgba(0, 0, 0, 0.08) 3px,
-      rgba(0, 0, 0, 0.08) 6px
+      rgba(255, 255, 255, 0.32) 0px,
+      rgba(255, 255, 255, 0.32) 3px,
+      rgba(137, 176, 168, 0.08) 3px,
+      rgba(137, 176, 168, 0.08) 6px
     );
 }
 
