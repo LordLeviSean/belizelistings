@@ -1,6 +1,8 @@
 -- Keep recently sold/rented listings publicly readable when close timestamps are absent.
 -- Mirrors JS getListingClosedAt fallback (closed_at → sold_at → rented_at → updated_at).
 
+DROP POLICY IF EXISTS "Public can view browsable listings" ON public.listings;
+
 DROP FUNCTION IF EXISTS public.is_listing_publicly_browsable(
   text,
   text,
@@ -76,8 +78,6 @@ COMMENT ON FUNCTION public.is_listing_recently_closed_public IS
 
 COMMENT ON FUNCTION public.is_listing_publicly_browsable IS
   'Public browse/search/detail visibility: active inventory OR recently closed within configured window.';
-
-DROP POLICY IF EXISTS "Public can view browsable listings" ON public.listings;
 
 CREATE POLICY "Public can view browsable listings"
   ON public.listings FOR SELECT
