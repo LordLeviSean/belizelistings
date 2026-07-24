@@ -15,14 +15,18 @@ import {
 } from "@/constants/agentUpgradeNotifications";
 import { fetchPendingAgentUpgradeRequestForUser, fetchPendingAgentUpgradeRequests } from "@/lib/agentUpgradeRequests";
 import { BL_ENABLE_NOTIFICATIONS } from "@/lib/featureFlags";
-import { fetchNotifications, fetchUnreadNotificationCount, mapNotificationsForCenter } from "@/lib/notifications/fetchNotifications";
 import { markNotificationRead } from "@/lib/notifications/markNotificationRead";
 import {
   NOTIFICATION_DROPDOWN_READ_RETENTION_HOURS,
-  mergeNotificationCenterItems,
   patchNotificationCenterItemRead,
   prependDurableNotificationItem,
 } from "@/lib/notifications/notificationCenterQuery";
+import {
+  NOTIFICATION_CENTER_FRIENDLY_LOAD_ERROR,
+  buildNotificationCenterItems,
+  fetchDurableInboxForNotificationCenter,
+  reconcileNotificationCenterAfterRefresh,
+} from "@/lib/notifications/refreshNotificationCenter";
 import { mapNotificationRowToCenterItem } from "@/lib/notifications/notificationCopyRegistry";
 import nav from "../SiteNavUnified.module.css";
 import styles from "./NotificationCenter.module.css";
@@ -48,11 +52,13 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
   const { user, role, loading } = useUserRole();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [refreshError, setRefreshError] = useState(null);
   const [items, setItems] = useState([]);
   const [unreadBadgeCount, setUnreadBadgeCount] = useState(0);
   const rootRef = useRef(null);
   const mountedRef = useRef(true);
   const loadInFlightRef = useRef(false);
+  const itemsRef = useRef([]);
   const isDrawer = layout === "drawer";
 
   useEffect(() => {
@@ -62,32 +68,32 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
     };
   }, []);
 
-  const load = useCallback(async () => {
+  const refreshNotificationCenter = useCallback(async ({ manual = false } = {}) => {
     if (!user?.id || loading || loadInFlightRef.current) return;
     loadInFlightRef.current = true;
     setBusy(true);
+    if (manual) {
+      setRefreshError(null);
+    }
     const supplemental = [];
+    const previousItems = itemsRef.current;
 
     try {
       let durableItems = [];
+      let unreadCount = 0;
       if (BL_ENABLE_NOTIFICATIONS) {
-        const [{ data: notifRows, skipped }, unreadResult] = await Promise.all([
-          fetchNotifications(supabase, user.id, {
-            limit: 12,
-            dropdownRetentionHours: NOTIFICATION_DROPDOWN_READ_RETENTION_HOURS,
-          }),
-          fetchUnreadNotificationCount(supabase, user.id),
-        ]);
-        if (!skipped && notifRows?.length) {
-          durableItems = mapNotificationsForCenter(notifRows).map((item) => ({
-            ...item,
-            sortAt: item.when,
-            when: formatWhen(item.when),
-          }));
+        const durableResult = await fetchDurableInboxForNotificationCenter(supabase, user.id, {
+          limit: 12,
+          dropdownRetentionHours: NOTIFICATION_DROPDOWN_READ_RETENTION_HOURS,
+        });
+        if (durableResult.error) {
+          if (mountedRef.current && manual) {
+            setRefreshError(NOTIFICATION_CENTER_FRIENDLY_LOAD_ERROR);
+          }
+          return;
         }
-        if (!unreadResult.skipped && mountedRef.current) {
-          setUnreadBadgeCount(unreadResult.count ?? 0);
-        }
+        durableItems = durableResult.durableItems;
+        unreadCount = durableResult.unreadCount;
       }
 
       if (role === "agent") {
@@ -318,18 +324,23 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
       }
 
       if (!mountedRef.current) return;
-      setItems(
-        mergeNotificationCenterItems({
-          durableItems,
-          supplementalItems: supplemental,
-          limit: 10,
-        })
-      );
-      if (!BL_ENABLE_NOTIFICATIONS) {
+      const merged = buildNotificationCenterItems({
+        durableItems,
+        supplementalItems: supplemental,
+        limit: 10,
+        formatWhen,
+      });
+      setItems(reconcileNotificationCenterAfterRefresh(previousItems, merged));
+      if (BL_ENABLE_NOTIFICATIONS) {
+        setUnreadBadgeCount(unreadCount);
+      } else {
         setUnreadBadgeCount(supplemental.filter((item) => item.unread).length);
       }
+      setRefreshError(null);
     } catch {
-      /* ignore */
+      if (mountedRef.current && manual) {
+        setRefreshError(NOTIFICATION_CENTER_FRIENDLY_LOAD_ERROR);
+      }
     } finally {
       if (mountedRef.current) {
         setBusy(false);
@@ -337,6 +348,12 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
       loadInFlightRef.current = false;
     }
   }, [user?.id, role, loading]);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  const load = refreshNotificationCenter;
 
   useEffect(() => {
     void load();
@@ -604,8 +621,26 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
             </div>
 
             <footer className={styles.panelFoot}>
-              <button type="button" className={styles.refreshQuiet} onClick={() => void load()}>
-                Refresh
+              {refreshError ? (
+                <p className={styles.refreshError} role="status">
+                  {refreshError}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                className={styles.refreshQuiet}
+                disabled={busy}
+                aria-busy={busy}
+                onClick={() => void refreshNotificationCenter({ manual: true })}
+              >
+                {busy ? (
+                  <>
+                    <Loader2 className={styles.refreshSpinner} strokeWidth={1.85} aria-hidden />
+                    Refreshing…
+                  </>
+                ) : (
+                  "Refresh"
+                )}
               </button>
             </footer>
           </div>

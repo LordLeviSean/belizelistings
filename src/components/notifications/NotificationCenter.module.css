@@ -289,6 +289,26 @@
   border-color: rgba(200, 228, 218, 0.5);
 }
 
+.refreshQuiet:disabled {
+  opacity: 0.72;
+  cursor: wait;
+}
+
+.refreshSpinner {
+  width: 0.95rem;
+  height: 0.95rem;
+  margin-right: 0.35rem;
+  vertical-align: -0.15em;
+  animation: spin 0.9s linear infinite;
+}
+
+.refreshError {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
 /* Drawer layout — must follow `.panel` so absolute nav positioning does not overlay Logout */
 .rootDrawer .panel,
 .panelDrawer {
@@ -302,6 +322,12 @@
   z-index: 1;
 }
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .panel {
     animation: none;
@@ -312,6 +338,10 @@
   }
 
   .unreadBadgePulse {
+    animation: none;
+  }
+
+  .refreshSpinner {
     animation: none;
   }
 }
