@@ -1313,14 +1313,7 @@
   }
 
   .featuredSection::before {
-    content: "";
-    position: absolute;
-    inset: -20px -6px auto;
-    height: 52px;
-    pointer-events: none;
-    background: radial-gradient(ellipse 92% 100% at 50% 0%, rgba(255, 255, 255, 0.42), transparent 72%);
-    opacity: 0.55;
-    z-index: -1;
+    display: none;
   }
 
   .featuredSection .sectionTitleRow {
@@ -1915,14 +1908,7 @@
   }
 
   .featuredSection::before {
-    content: "";
-    position: absolute;
-    inset: -8px -4px auto;
-    height: 48px;
-    pointer-events: none;
-    background: radial-gradient(ellipse 90% 100% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 72%);
-    opacity: 0.7;
-    z-index: -1;
+    display: none;
   }
 
   .featuredSection .sectionTitleRow {

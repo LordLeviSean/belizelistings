@@ -16,6 +16,15 @@ body {
   overflow: visible;
 }
 
+/* Homepage shell owns atmosphere — avoid stacking global body wash underneath */
+body:has(.home-map-page-root)::before {
+  opacity: 0;
+}
+
+body:has(.home-map-page-root) {
+  background: #fdfcfb;
+}
+
 body {
   color: var(--text-primary);
   background: var(--bg-main);
