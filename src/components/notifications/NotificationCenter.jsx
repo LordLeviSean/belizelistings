@@ -15,8 +15,15 @@ import {
 } from "@/constants/agentUpgradeNotifications";
 import { fetchPendingAgentUpgradeRequestForUser, fetchPendingAgentUpgradeRequests } from "@/lib/agentUpgradeRequests";
 import { BL_ENABLE_NOTIFICATIONS } from "@/lib/featureFlags";
-import { fetchNotifications, mapNotificationsForCenter } from "@/lib/notifications/fetchNotifications";
+import { fetchNotifications, fetchUnreadNotificationCount, mapNotificationsForCenter } from "@/lib/notifications/fetchNotifications";
 import { markNotificationRead } from "@/lib/notifications/markNotificationRead";
+import {
+  NOTIFICATION_DROPDOWN_READ_RETENTION_HOURS,
+  mergeNotificationCenterItems,
+  patchNotificationCenterItemRead,
+  prependDurableNotificationItem,
+} from "@/lib/notifications/notificationCenterQuery";
+import { mapNotificationRowToCenterItem } from "@/lib/notifications/notificationCopyRegistry";
 import nav from "../SiteNavUnified.module.css";
 import styles from "./NotificationCenter.module.css";
 
@@ -42,8 +49,10 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [items, setItems] = useState([]);
+  const [unreadBadgeCount, setUnreadBadgeCount] = useState(0);
   const rootRef = useRef(null);
   const mountedRef = useRef(true);
+  const loadInFlightRef = useRef(false);
   const isDrawer = layout === "drawer";
 
   useEffect(() => {
@@ -54,19 +63,30 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
   }, []);
 
   const load = useCallback(async () => {
-    if (!user?.id || loading) return;
+    if (!user?.id || loading || loadInFlightRef.current) return;
+    loadInFlightRef.current = true;
     setBusy(true);
-    const next = [];
+    const supplemental = [];
 
     try {
       let durableItems = [];
       if (BL_ENABLE_NOTIFICATIONS) {
-        const { data: notifRows, skipped } = await fetchNotifications(supabase, user.id, { limit: 12 });
+        const [{ data: notifRows, skipped }, unreadResult] = await Promise.all([
+          fetchNotifications(supabase, user.id, {
+            limit: 12,
+            dropdownRetentionHours: NOTIFICATION_DROPDOWN_READ_RETENTION_HOURS,
+          }),
+          fetchUnreadNotificationCount(supabase, user.id),
+        ]);
         if (!skipped && notifRows?.length) {
           durableItems = mapNotificationsForCenter(notifRows).map((item) => ({
             ...item,
+            sortAt: item.when,
             when: formatWhen(item.when),
           }));
+        }
+        if (!unreadResult.skipped && mountedRef.current) {
+          setUnreadBadgeCount(unreadResult.count ?? 0);
         }
       }
 
@@ -129,7 +149,7 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
             unread: false,
           });
         }
-        next.push(...summaries, ...durableItems, ...inquiryItems.slice(0, 8));
+        supplemental.push(...summaries, ...inquiryItems.slice(0, 8));
       } else if (role === "admin") {
         const [{ count, error }, upgradeResult] = await Promise.all([
           supabase.from("listings").select("id", { count: "exact", head: true }).or(PENDING_OR),
@@ -138,7 +158,7 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
         const n = !error && typeof count === "number" ? count : 0;
         const upgradeRows = upgradeResult.data || [];
         for (const row of upgradeRows.slice(0, 5)) {
-          next.push({
+          supplemental.push({
             id: `admin-agent-upgrade-${row.id}`,
             category: "guidance",
             title: "Agent upgrade request",
@@ -148,7 +168,7 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
             unread: true,
           });
         }
-        next.push({
+        supplemental.push({
           id: "admin-moderation",
           category: "moderation",
           title: n > 0 ? "Inventory awaiting review" : "Moderation queue clear",
@@ -161,7 +181,7 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
           unread: n > 0,
         });
       } else if (role === "broker" || role === "brokerage" || role === "property_manager") {
-        next.push({
+        supplemental.push({
           id: "broker-pulse",
           category: "guidance",
           title: "Team operational pulse",
@@ -171,9 +191,6 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
           unread: false,
         });
       } else if (user) {
-        if (durableItems.length) {
-          next.push(...durableItems);
-        }
         const { data: listingRows } = await supabase
           .from("listings")
           .select("id,title,updated_at,lifecycle_status,status,moderation_status")
@@ -297,15 +314,28 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
           });
         }
 
-        next.push(...summaries);
+        supplemental.push(...summaries);
+      }
+
+      if (!mountedRef.current) return;
+      setItems(
+        mergeNotificationCenterItems({
+          durableItems,
+          supplementalItems: supplemental,
+          limit: 10,
+        })
+      );
+      if (!BL_ENABLE_NOTIFICATIONS) {
+        setUnreadBadgeCount(supplemental.filter((item) => item.unread).length);
       }
     } catch {
       /* ignore */
+    } finally {
+      if (mountedRef.current) {
+        setBusy(false);
+      }
+      loadInFlightRef.current = false;
     }
-
-    if (!mountedRef.current) return;
-    setItems(next.slice(0, 10));
-    setBusy(false);
   }, [user?.id, role, loading]);
 
   useEffect(() => {
@@ -374,17 +404,46 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_user_id=eq.${user.id}` },
-        () => void load()
+        (payload) => {
+          const row = payload?.new;
+          if (!row?.id) return;
+          const mapped = {
+            ...mapNotificationRowToCenterItem(row),
+            sortAt: row.created_at,
+            when: formatWhen(row.created_at),
+          };
+          setItems((prev) => prependDurableNotificationItem(prev, mapped, 10));
+          if (!row.read_at) {
+            setUnreadBadgeCount((count) => count + 1);
+          }
+        }
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "notifications", filter: `recipient_user_id=eq.${user.id}` },
-        () => void load()
+        (payload) => {
+          const row = payload?.new;
+          if (!row?.id) return;
+          if (row.read_at) {
+            setItems((prev) => patchNotificationCenterItemRead(prev, row.id, row.read_at));
+          } else {
+            void load();
+          }
+        }
       )
       .subscribe();
     return () => {
       void supabase.removeChannel(ch);
     };
+  }, [user?.id, load]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const onFocus = () => {
+      void load();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [user?.id, load]);
 
   useEffect(() => {
@@ -423,7 +482,9 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
     );
   }
 
-  const unreadCount = items.filter((x) => x.unread).length;
+  const unreadCount = BL_ENABLE_NOTIFICATIONS
+    ? unreadBadgeCount
+    : items.filter((x) => x.unread).length;
   const badgeText = unreadCount > 99 ? "99+" : String(unreadCount);
   const triggerClass = isDrawer
     ? `${nav.navLink} ${nav.navBtn} ${nav.drawerNavLink} ${nav.navPillNotifications}`
@@ -438,13 +499,15 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
       onNavigate?.();
 
       try {
-        await router.push(href);
         if (item.notificationId && item.unread && user?.id) {
+          setItems((prev) => patchNotificationCenterItemRead(prev, item.notificationId));
+          setUnreadBadgeCount((count) => Math.max(0, count - 1));
           await markNotificationRead(supabase, {
             notificationId: item.notificationId,
             userId: user.id,
           });
         }
+        await router.push(href);
       } catch (err) {
         if (typeof console !== "undefined") {
           console.warn("[notifications] navigation failed", {

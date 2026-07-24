@@ -1,6 +1,11 @@
 import { BL_ENABLE_NOTIFICATIONS } from "../featureFlags";
 import { isCrmUnavailable } from "../crm/crmCompat";
 import { mapNotificationRowToCenterItem } from "./notificationCopyRegistry";
+import {
+  NOTIFICATION_DROPDOWN_READ_RETENTION_HOURS,
+  buildNotificationDropdownRetentionCutoffIso,
+  compareDurableNotificationRows,
+} from "./notificationCenterQuery";
 
 const NOTIFICATION_SELECT =
   "id,recipient_user_id,category,event_type,entity_type,entity_id,title,body,payload,read_at,created_at";
@@ -16,23 +21,44 @@ function isNotificationsUnavailable(error) {
  *
  * @param {import('@supabase/supabase-js').SupabaseClient} client
  * @param {string} userId
- * @param {{ limit?: number, offset?: number, unreadOnly?: boolean }} [options]
+ * @param {{ limit?: number, offset?: number, unreadOnly?: boolean, dropdownRetentionHours?: number, nowMs?: number }} [options]
  */
-export async function fetchNotifications(client, userId, { limit = 20, offset = 0, unreadOnly = false } = {}) {
+export async function fetchNotifications(
+  client,
+  userId,
+  {
+    limit = 20,
+    offset = 0,
+    unreadOnly = false,
+    dropdownRetentionHours = 0,
+    nowMs = Date.now(),
+  } = {}
+) {
   if (!BL_ENABLE_NOTIFICATIONS || !client?.from || !userId) {
     return { data: [], count: 0, skipped: true };
   }
 
-  let query = client
-    .from("notifications")
-    .select(NOTIFICATION_SELECT, unreadOnly ? { count: "exact" } : undefined)
-    .eq("recipient_user_id", userId)
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+  let query = client.from("notifications").select(
+    NOTIFICATION_SELECT,
+    unreadOnly ? { count: "exact" } : undefined
+  );
+
+  query = query.eq("recipient_user_id", userId);
 
   if (unreadOnly) {
     query = query.is("read_at", null);
+  } else if (dropdownRetentionHours > 0) {
+    const cutoffIso = buildNotificationDropdownRetentionCutoffIso(
+      nowMs,
+      dropdownRetentionHours
+    );
+    query = query.or(`read_at.is.null,read_at.gte.${cutoffIso}`);
   }
+
+  query = query
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(offset, offset + limit - 1);
 
   const { data, error, count } = await query;
 
@@ -43,7 +69,13 @@ export async function fetchNotifications(client, userId, { limit = 20, offset = 
     return { data: [], count: 0, error };
   }
 
-  return { data: data || [], count: unreadOnly ? count ?? (data || []).length : (data || []).length, error: null };
+  const rows = [...(data || [])].sort(compareDurableNotificationRows);
+
+  return {
+    data: rows,
+    count: unreadOnly ? count ?? rows.length : rows.length,
+    error: null,
+  };
 }
 
 /**

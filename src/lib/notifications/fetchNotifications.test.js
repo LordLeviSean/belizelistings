@@ -25,7 +25,9 @@ describe("fetchNotifications", () => {
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             order: jest.fn().mockReturnValue({
-              range: jest.fn().mockResolvedValue({ data: rows, error: null }),
+              order: jest.fn().mockReturnValue({
+                range: jest.fn().mockResolvedValue({ data: rows, error: null }),
+              }),
             }),
           }),
         }),
