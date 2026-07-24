@@ -304,9 +304,9 @@ export default function AdminPage() {
 
   if (checkingAccess) {
     return (
-      <div className={styles.page}>
+      <div className={premiumStyles.adminPage}>
         <SiteNav active="dashboard" />
-        <main className={styles.main}>
+        <main className={premiumStyles.main}>
           <p className={styles.muted}>Resolving admin access...</p>
         </main>
       </div>

@@ -6,34 +6,11 @@
  */
 
 .adminPage {
-  composes: page dashboardWorkspace from "./Dashboard.module.css";
-}
-
-.adminPage.adminPage {
-  position: relative;
-  color: var(--text-primary);
-  background: linear-gradient(180deg, #f2f6f4 0%, #eef2f0 48%, #eceff2 100%);
-}
-
-.adminPage.adminPage::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(circle at 20% 30%, rgba(137, 205, 189, 0.18), transparent 44%),
-    radial-gradient(circle at 80% 20%, rgba(159, 179, 217, 0.16), transparent 44%);
-  filter: blur(60px);
+  composes: page userDashboardPage from "./Dashboard.module.css";
 }
 
 .main {
   composes: main from "./Dashboard.module.css";
-}
-
-.main.main {
-  position: relative;
-  z-index: 2;
 }
 
 .frame {
@@ -41,63 +18,11 @@
   min-height: calc(100vh - 64px);
 }
 
+/* Admin-only decorative silk — hidden so page shell matches user dashboard exactly */
 .silkLeft,
 .silkRight,
 .silkHeader {
-  position: fixed;
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.42;
-}
-
-.silkHeader {
-  top: 64px;
-  left: 0;
-  right: 0;
-  height: 48px;
-  opacity: 0.22;
-  background:
-    linear-gradient(180deg, rgba(137, 205, 189, 0.12), transparent 88%),
-    repeating-linear-gradient(
-      92deg,
-      rgba(255, 255, 255, 0.28) 0px,
-      rgba(255, 255, 255, 0.28) 3px,
-      rgba(137, 176, 168, 0.06) 3px,
-      rgba(137, 176, 168, 0.06) 6px
-    );
-}
-
-.silkLeft,
-.silkRight {
-  top: 64px;
-  bottom: 0;
-  width: min(72px, 8vw);
-}
-
-.silkLeft {
-  left: 0;
-  background:
-    linear-gradient(90deg, rgba(137, 205, 189, 0.14), transparent 72%),
-    repeating-linear-gradient(
-      175deg,
-      rgba(255, 255, 255, 0.32) 0px,
-      rgba(255, 255, 255, 0.32) 3px,
-      rgba(137, 176, 168, 0.08) 3px,
-      rgba(137, 176, 168, 0.08) 6px
-    );
-}
-
-.silkRight {
-  right: 0;
-  background:
-    linear-gradient(270deg, rgba(159, 179, 217, 0.12), transparent 72%),
-    repeating-linear-gradient(
-      185deg,
-      rgba(255, 255, 255, 0.32) 0px,
-      rgba(255, 255, 255, 0.32) 3px,
-      rgba(137, 176, 168, 0.08) 3px,
-      rgba(137, 176, 168, 0.08) 6px
-    );
+  display: none;
 }
 
 .contentWell {
@@ -136,13 +61,9 @@
 
 @media (max-width: 720px) {
   .silkLeft,
-  .silkRight {
-    width: min(48px, 6vw);
-    opacity: 0.28;
-  }
-
+  .silkRight,
   .silkHeader {
-    opacity: 0.16;
+    display: none;
   }
 }
 
