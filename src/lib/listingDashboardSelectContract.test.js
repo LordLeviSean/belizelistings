@@ -33,10 +33,29 @@ describe("listingDashboardSelectContract", () => {
     }
   });
 
-  test("minimal select retains user_id without market columns", () => {
+  test("minimal select retains user_id and lifecycle fields", () => {
     const minimal = buildListingDashboardSelect({ minimal: true });
     expect(minimal).toContain("user_id");
+    expect(minimal).toContain("lifecycle_status");
+    expect(minimal).toContain("moderation_status");
+    expect(minimal).toContain("closed_at");
+    expect(minimal).toContain("sold_at");
+    expect(minimal).toContain("rented_at");
     expect(minimal).not.toContain("market_type");
+  });
+
+  test("legacy base select retains lifecycle fields for badge resolution", () => {
+    const legacy = buildListingDashboardSelect({ legacyBase: true, withImages: false });
+    expect(legacy).toContain("lifecycle_status");
+    expect(legacy).toContain("closed_at");
+  });
+
+  test("every dashboard select tier includes lifecycle_status", () => {
+    for (const tier of LISTING_DASHBOARD_SELECT_TIERS) {
+      const select = buildListingDashboardSelect(tier);
+      expect(select).toContain("lifecycle_status");
+      expect(select).toContain("moderation_status");
+    }
   });
 
   test("base columns exclude operator and verification fields", () => {
@@ -83,15 +102,6 @@ describe("listingDashboardSelectContract", () => {
           },
         };
       }
-      if (select.includes("lifecycle_status")) {
-        return {
-          data: null,
-          error: {
-            message:
-              "Could not find the 'lifecycle_status' column of 'listings' in the schema cache",
-          },
-        };
-      }
       if (select.includes("listing_images")) {
         return {
           data: null,
@@ -101,16 +111,20 @@ describe("listingDashboardSelectContract", () => {
           },
         };
       }
-      return { data: [{ id: "1", status: "approved", user_id: "u1" }], error: null };
+      return {
+        data: [{ id: "1", status: "approved", user_id: "u1", lifecycle_status: "published" }],
+        error: null,
+      };
     });
 
     expect(error).toBeNull();
     expect(terminal).toBe(false);
     expect(data).toHaveLength(1);
     expect(data[0].listing_images).toEqual([]);
+    expect(data[0].lifecycle_status).toBe("published");
     expect(calls.some((s) => s.includes("view_count"))).toBe(false);
-    expect(calls.length).toBeGreaterThan(1);
-    expect(calls[calls.length - 1]).not.toContain("listing_images");
+    expect(calls[0]).not.toContain("listing_images");
+    expect(calls.every((s) => s.includes("lifecycle_status"))).toBe(true);
   });
 
   test("executeListingDashboardSelectQuery falls back when market_type column is absent", async () => {

@@ -13,7 +13,9 @@ import {
   buildModerationResubmitFallback,
   buildModerationResubmitPatch,
   buildRecentlyRentedPatch,
+  buildRecentlyRentedFallback,
   buildRecentlySoldPatch,
+  buildRecentlySoldFallback,
   executeListingUpdate,
 } from "../lib/listingWriteContract";
 import { omitSubmitForReviewWorkflowFields } from "../lib/draftListingInsertContract";
@@ -193,6 +195,12 @@ function moderationFallbackForAction(action) {
   return null;
 }
 
+function completionFallbackForAction(action) {
+  if (action === OWNERSHIP_ACTIONS.CLOSE_SOLD) return buildRecentlySoldFallback();
+  if (action === OWNERSHIP_ACTIONS.CLOSE_RENTED) return buildRecentlyRentedFallback();
+  return null;
+}
+
 async function getCurrentActorId(supabase) {
   const { data } = await supabase.auth.getUser();
   return String(data?.user?.id || "");
@@ -232,7 +240,8 @@ export async function applyListingLifecycleAction(supabase, { listingId, action,
   const base = lifecyclePayloadForAction({ action });
   const { body: merged } = omitSubmitForReviewWorkflowFields({ ...base, ...extraUpdates });
   const payload = merged;
-  const minimalFallback = moderationFallbackForAction(action);
+  const minimalFallback =
+    moderationFallbackForAction(action) || completionFallbackForAction(action);
 
   let fromStatus = null;
   let priorRow = null;

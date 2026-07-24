@@ -151,15 +151,18 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
 
     setActionId(String(listingId));
     patchMyListingRow(listingId, optimisticPatch);
-    const { error } = await applyListingLifecycleAction(supabase, {
+    const result = await applyListingLifecycleAction(supabase, {
       listingId,
       action: action.ownershipAction,
     });
-    if (error) {
+    if (result.error) {
       setActionId("");
       invalidate();
-      showToast({ type: "error", message: error?.message || "Unable to update listing status" });
+      showToast({ type: "error", message: result.error?.message || "Unable to update listing status" });
       return;
+    }
+    if (result.appliedPayload) {
+      patchMyListingRow(listingId, result.appliedPayload);
     }
     invalidate();
     showToast({
@@ -439,7 +442,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
                     ) : null}
                   </div>
                   <div className={styles.userListingActions}>
-                    {mgmt.canView && (mgmt.isPublished || mgmt.isPending) ? (
+                    {mgmt.canView ? (
                       <Link className={styles.approveButton} href={`/listing/${l.id}`}>
                         View
                       </Link>
@@ -463,7 +466,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
                         </button>
                       </>
                     ) : null}
-                    {mgmt.isPublished && mgmt.canEdit ? (
+                    {mgmt.canEdit && !mgmt.canDiscardDraft && !mgmt.isRejected ? (
                       <Link className={styles.approveButton} href={editListingHref(l.id)}>
                         Edit
                       </Link>
@@ -488,7 +491,11 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
                         onClick={() => openArchiveListing(l.id)}
                         disabled={actionId === String(l.id)}
                       >
-                        {actionId === String(l.id) ? "Archiving…" : "Archive"}
+                        {actionId === String(l.id)
+                          ? "Archiving…"
+                          : mgmt.isRecentlyClosed
+                            ? "Archive now"
+                            : "Archive"}
                       </button>
                     ) : null}
                     {mgmt.isRejected && mgmt.canResubmit ? (

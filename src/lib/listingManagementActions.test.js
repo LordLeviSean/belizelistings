@@ -114,4 +114,53 @@ describe("resolveListingManagementActions", () => {
     expect(mgmt.canEdit).toBe(false);
     expect(mgmt.canArchive).toBe(false);
   });
+
+  test("recently rented listing shows View, Edit, Archive now — not Mark Rented", () => {
+    const mgmt = resolveListingManagementActions(
+      {
+        id: 6,
+        user_id: OWNER,
+        status: "approved",
+        lifecycle_status: "recently_rented",
+        listing_type: "rent",
+      },
+      { viewerUserId: OWNER }
+    );
+    expect(mgmt.canView).toBe(true);
+    expect(mgmt.canEdit).toBe(true);
+    expect(mgmt.canArchive).toBe(true);
+    expect(mgmt.completionAction.visible).toBe(false);
+    expect(mgmt.isRecentlyClosed).toBe(true);
+  });
+
+  test("recently sold listing shows View, Edit, Archive now — not Mark Sold", () => {
+    const mgmt = resolveListingManagementActions(
+      {
+        id: 7,
+        user_id: OWNER,
+        status: "approved",
+        lifecycle_status: "recently_sold",
+        listing_type: "sale",
+      },
+      { viewerUserId: OWNER }
+    );
+    expect(mgmt.canView).toBe(true);
+    expect(mgmt.canEdit).toBe(true);
+    expect(mgmt.canArchive).toBe(true);
+    expect(mgmt.completionAction.visible).toBe(false);
+  });
+
+  test("approved-only row without lifecycle_status still resolves published actions", () => {
+    const mgmt = resolveListingManagementActions(
+      {
+        id: 8,
+        user_id: OWNER,
+        status: "approved",
+        listing_type: "rent",
+      },
+      { viewerUserId: OWNER }
+    );
+    expect(mgmt.isPublished).toBe(true);
+    expect(mgmt.completionAction.visible).toBe(true);
+  });
 });

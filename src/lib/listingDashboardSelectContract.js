@@ -68,7 +68,16 @@ export const LISTING_DASHBOARD_COUNT_COLUMNS_LEGACY = "id,status";
 
 export const LISTING_DASHBOARD_IMAGES_EMBED = "listing_images(id,image_url,position)";
 
-/** Last-resort owner row — always retains ownership + status for dashboard actions. */
+/** Lifecycle + closure fields required on every owner-dashboard tier (never strip on degrade). */
+export const LISTING_DASHBOARD_LIFECYCLE_COLUMNS = Object.freeze([
+  "lifecycle_status",
+  "moderation_status",
+  "closed_at",
+  "sold_at",
+  "rented_at",
+]);
+
+/** Last-resort owner row — always retains ownership, workflow, and lifecycle for badges/actions. */
 export const LISTING_DASHBOARD_MINIMAL_CORE_COLUMNS = Object.freeze([
   "id",
   "user_id",
@@ -76,13 +85,15 @@ export const LISTING_DASHBOARD_MINIMAL_CORE_COLUMNS = Object.freeze([
   "price",
   "district",
   "created_at",
+  "updated_at",
   "status",
+  ...LISTING_DASHBOARD_LIFECYCLE_COLUMNS,
 ]);
 
 export const LISTING_DASHBOARD_MINIMAL_COLUMNS =
   LISTING_DASHBOARD_MINIMAL_CORE_COLUMNS.join(", ");
 
-/** Legacy DBs without lifecycle / region slugs — core only (market optional via tier). */
+/** Legacy DBs without region slugs — still retain lifecycle + closure timestamps. */
 export const LISTING_DASHBOARD_LEGACY_BASE_COLUMNS = Object.freeze([
   "id",
   "user_id",
@@ -92,6 +103,7 @@ export const LISTING_DASHBOARD_LEGACY_BASE_COLUMNS = Object.freeze([
   "created_at",
   "updated_at",
   "status",
+  ...LISTING_DASHBOARD_LIFECYCLE_COLUMNS,
 ]);
 
 /** Count-only tiers for {@link fetchUserListingOperationalCounts} — legacy first (one network round-trip on older schemas). */
@@ -101,7 +113,7 @@ export const LISTING_DASHBOARD_COUNT_SELECT_TIERS = Object.freeze([
 ]);
 
 /** sessionStorage cache version — bump when {@link LISTING_DASHBOARD_SELECT_TIERS} order/shape changes. */
-export const LISTING_DASHBOARD_TIER_CACHE_VERSION = 7;
+export const LISTING_DASHBOARD_TIER_CACHE_VERSION = 8;
 export const LISTING_DASHBOARD_TIER_CACHE_KEY = "bl-listing-dashboard-select-tier";
 export const LISTING_CREATE_WORKSPACE_TIER_CACHE_KEY = "bl-listing-create-workspace-select-tier";
 const SCHEMA_LEGACY_HINT_KEY = "bl-listing-dashboard-legacy-schema";

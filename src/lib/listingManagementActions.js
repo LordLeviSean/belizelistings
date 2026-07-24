@@ -29,13 +29,16 @@ export function resolveListingManagementActions(listing, { viewerUserId } = {}) 
   const isRejected = lifecycle === LISTING_LIFECYCLE.REJECTED;
   const isArchived = lifecycle === LISTING_LIFECYCLE.ARCHIVED;
   const isPending = lifecycle === LISTING_LIFECYCLE.PENDING_REVIEW;
+  const isRecentlySold = lifecycle === LISTING_LIFECYCLE.RECENTLY_SOLD;
+  const isRecentlyRented = lifecycle === LISTING_LIFECYCLE.RECENTLY_RENTED;
+  const isRecentlyClosed = isRecentlySold || isRecentlyRented;
 
   const completion = isPublished ? resolveListingCompletionAction(listing) : null;
 
   return {
     canView: !isDraft,
-    canEdit: isOwner && (isPublished || isRejected),
-    canArchive: isOwner && isPublished,
+    canEdit: isOwner && (isPublished || isRejected || isRecentlyClosed),
+    canArchive: isOwner && (isPublished || isRecentlyClosed),
     canResubmit: isOwner && isRejected,
     canDiscardDraft: isOwner && isDraft,
     canRepublish: isOwner && isArchived,
@@ -49,6 +52,9 @@ export function resolveListingManagementActions(listing, { viewerUserId } = {}) 
     isRejected,
     isArchived,
     isPending,
+    isRecentlyClosed,
+    isRecentlySold,
+    isRecentlyRented,
     isOwner,
   };
 }
