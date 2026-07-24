@@ -64,11 +64,17 @@ export function getListingRegionSlug(listing = {}) {
 }
 
 /**
- * Published inventory available for new inquiries and viewing requests.
+ * Actively available inventory — published/approved lifecycle only.
+ * Excludes recently sold/rented and archived rows.
  */
-export function isActiveInventoryListing(listing) {
+export function isListingActivelyAvailable(listing) {
   if (!listing || listing.id == null) return false;
   return getLifecycleStatus(listing) === LISTING_LIFECYCLE.PUBLISHED;
+}
+
+/** @deprecated use isListingActivelyAvailable */
+export function isActiveInventoryListing(listing) {
+  return isListingActivelyAvailable(listing);
 }
 
 /**
@@ -80,31 +86,40 @@ export function isRecentlyClosedPublicListing(listing, nowMs) {
   if (lc !== LISTING_LIFECYCLE.RECENTLY_SOLD && lc !== LISTING_LIFECYCLE.RECENTLY_RENTED) {
     return false;
   }
-  return isWithinRecentlyClosedWindow(getListingClosedAt(listing), nowMs);
+  const closedAt = getListingClosedAt(listing);
+  if (!closedAt) {
+    return true;
+  }
+  return isWithinRecentlyClosedWindow(closedAt, nowMs);
 }
 
 /**
- * Browsable on homepage, search, agent profiles, favorites — published or recently closed.
+ * Public browse visibility — active inventory OR recently closed within window.
  */
-export function isBrowsableListing(listing, nowMs) {
+export function isListingPubliclyVisible(listing, nowMs = Date.now()) {
   if (!listing || listing.id == null) return false;
-  if (isActiveInventoryListing(listing)) return true;
+  if (isListingActivelyAvailable(listing)) return true;
   return isRecentlyClosedPublicListing(listing, nowMs);
 }
 
-/** @deprecated use isActiveInventoryListing for engagement gates */
-export function isPubliclyVisibleListing(listing) {
-  return isActiveInventoryListing(listing);
+/** @deprecated use isListingPubliclyVisible */
+export function isBrowsableListing(listing, nowMs) {
+  return isListingPubliclyVisible(listing, nowMs);
+}
+
+/** @deprecated use isListingPubliclyVisible */
+export function isPubliclyVisibleListing(listing, nowMs = Date.now()) {
+  return isListingPubliclyVisible(listing, nowMs);
 }
 
 /** Client-side guard for browse/search/map/favorites when API rows may be stale. */
 export function filterBrowsableInventory(listings, nowMs) {
-  return (listings || []).filter((row) => isBrowsableListing(row, nowMs));
+  return (listings || []).filter((row) => isListingPubliclyVisible(row, nowMs));
 }
 
 /** Active for-sale / for-rent counts only. */
 export function filterActiveInventory(listings) {
-  return (listings || []).filter(isActiveInventoryListing);
+  return (listings || []).filter(isListingActivelyAvailable);
 }
 
 /** @deprecated use filterBrowsableInventory */
@@ -115,8 +130,8 @@ export function filterPublicInventory(listings) {
 /**
  * Whether guests/members can start new messages or viewing requests.
  */
-export function isListingEngagementEnabled(listing, nowMs) {
-  return isActiveInventoryListing(listing);
+export function isListingEngagementEnabled(listing) {
+  return isListingActivelyAvailable(listing);
 }
 
 export function getListingAvailabilityMessage(listing) {
@@ -163,4 +178,3 @@ export function tallyOperationalLifecycleCounts(listings) {
   const totalOperational = pending + approved + rejected + archived;
   return { pending, approved, rejected, archived, totalOperational };
 }
-

@@ -1,7 +1,9 @@
 /** @jest-environment node */
 
 import {
+  buildRecentlyRentedFallback,
   buildRecentlyRentedPatch,
+  buildRecentlySoldFallback,
   buildRecentlySoldPatch,
   RECENTLY_RENTED_STATUS_TIERS,
   RECENTLY_SOLD_STATUS_TIERS,
@@ -23,6 +25,15 @@ describe("recently closed lifecycle patches", () => {
     expect(patch.lifecycle_status).toBe(LISTING_LIFECYCLE.RECENTLY_RENTED);
     expect(patch.rented_at).toBeTruthy();
     expect(patch.closed_at).toBeTruthy();
+  });
+
+  test("completion fallbacks include close timestamps for public visibility", () => {
+    const soldFallback = buildRecentlySoldFallback();
+    const rentedFallback = buildRecentlyRentedFallback();
+    expect(soldFallback.closed_at).toBeTruthy();
+    expect(soldFallback.sold_at).toBeTruthy();
+    expect(rentedFallback.closed_at).toBeTruthy();
+    expect(rentedFallback.rented_at).toBeTruthy();
   });
 
   test("status tiers never write closure values into listings.status", () => {

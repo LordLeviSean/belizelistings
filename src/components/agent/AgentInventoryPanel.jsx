@@ -30,6 +30,7 @@ import {
   permanentlyDeleteArchivedListing,
 } from "@/utils/ownershipAttribution";
 import { buildModerationArchivePatch, buildRecentlyRentedPatch, buildRecentlySoldPatch } from "@/lib/listingWriteContract";
+import { invalidateApprovedListingsCache } from "@/lib/approvedListingsCache";
 import { getLifecycleStatus } from "@/utils/canonicalListing";
 import { isLegacyGenerationDraft } from "@/lib/legacyDraftCompat";
 import { resolveLifecycleStatusBadgeSuffix } from "@/lib/dashboardStatusBadges";
@@ -164,6 +165,7 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
     if (result.appliedPayload) {
       patchMyListingRow(listingId, result.appliedPayload);
     }
+    invalidateApprovedListingsCache();
     invalidate();
     showToast({
       type: "success",

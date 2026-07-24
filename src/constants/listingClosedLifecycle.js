@@ -62,8 +62,15 @@ export function isEligibleForClosedListingArchive(closedAt, nowMs = Date.now(), 
 
 /**
  * Resolve sold_at / rented_at / closed_at for window checks.
+ * Falls back to updated_at so recently closed rows stay public when close columns are absent.
  * @param {object} listing
  */
 export function getListingClosedAt(listing) {
-  return listing?.closed_at || listing?.sold_at || listing?.rented_at || null;
+  return (
+    listing?.closed_at ||
+    listing?.sold_at ||
+    listing?.rented_at ||
+    listing?.updated_at ||
+    null
+  );
 }

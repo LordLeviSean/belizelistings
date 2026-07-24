@@ -2,9 +2,9 @@ import { filterListings } from "./filterListings";
 
 describe("filterListings", () => {
   const sample = [
-    { id: 1, district: "belize", listing_type: "for-sale", price: 100, beds: 2, baths: 1 },
-    { id: 2, district: "cayo", listing_type: "rent", price: 500, beds: 3, baths: 2 },
-    { id: 3, district: "belize", listing_type: "rent", price: 300, beds: 1, baths: 1 },
+    { id: 1, status: "approved", district: "belize", listing_type: "for-sale", price: 100, beds: 2, baths: 1 },
+    { id: 2, status: "approved", district: "cayo", listing_type: "rent", price: 500, beds: 3, baths: 2 },
+    { id: 3, status: "approved", district: "belize", listing_type: "rent", price: 300, beds: 1, baths: 1 },
   ];
 
   test("filters by district", () => {
@@ -45,8 +45,8 @@ describe("filterListings", () => {
 
   test("matches sale listings when filter uses for-sale and row stores sale", () => {
     const rows = [
-      { id: "s1", district: "belize", listing_type: "sale", price: 100, beds: 2, baths: 1 },
-      { id: "r1", district: "belize", listing_type: "rent", price: 500, beds: 2, baths: 1 },
+      { id: "s1", status: "approved", district: "belize", listing_type: "sale", price: 100, beds: 2, baths: 1 },
+      { id: "r1", status: "approved", district: "belize", listing_type: "rent", price: 500, beds: 2, baths: 1 },
     ];
     expect(filterListings(rows, { status: "for-sale" }).map((l) => l.id)).toEqual(["s1"]);
     expect(filterListings(rows, { status: "rent" }).map((l) => l.id)).toEqual(["r1"]);

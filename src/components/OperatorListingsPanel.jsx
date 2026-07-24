@@ -16,7 +16,7 @@ import GeographyLocationEditLink from "@/components/geography/GeographyLocationE
 import { formatListingLocation } from "@/lib/geography/formatListingLocation";
 import { getArchiveStatus, getModerationStatus, getRepublishStatus, LISTING_LIFECYCLE } from "../constants/operationalModel";
 import styles from "../styles/Dashboard.module.css";
-import { getLifecycleStatus, isPubliclyVisibleListing } from "../utils/canonicalListing";
+import { getLifecycleStatus, isListingActivelyAvailable } from "../utils/canonicalListing";
 import {
   applyListingLifecycleAction,
   collectListingOwnershipActorIds,
@@ -130,7 +130,7 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
     if (statusFilter === "all") return listings;
     return listings.filter((listing) => {
       const lifecycle = getLifecycleStatus(listing);
-      if (statusFilter === "approved") return isPubliclyVisibleListing(listing);
+      if (statusFilter === "approved") return isListingActivelyAvailable(listing);
       if (statusFilter === "pending") return lifecycle === LISTING_LIFECYCLE.PENDING_REVIEW;
       if (statusFilter === "rejected") return lifecycle === LISTING_LIFECYCLE.REJECTED;
       if (statusFilter === "archived") return lifecycle === LISTING_LIFECYCLE.ARCHIVED;
@@ -490,7 +490,7 @@ export default function OperatorListingsPanel({ onAction, profilesRevision = 0 }
         const isArchived = lifecycle === LISTING_LIFECYCLE.ARCHIVED;
         const isRejected = lifecycle === LISTING_LIFECYCLE.REJECTED;
         const isPending = lifecycle === LISTING_LIFECYCLE.PENDING_REVIEW;
-        const isPublished = isPubliclyVisibleListing(listing);
+        const isPublished = isListingActivelyAvailable(listing);
         const isBusy = actionKey.startsWith(`${listing.id}:`);
         return (
           <div

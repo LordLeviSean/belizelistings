@@ -90,10 +90,26 @@ describe("canonicalListing", () => {
     );
   });
 
-  test("isPubliclyVisibleListing: only canonical published", () => {
+  test("isPubliclyVisibleListing includes recently closed within window", () => {
+    const now = Date.parse("2026-07-10T12:00:00.000Z");
+    expect(
+      isPubliclyVisibleListing(
+        {
+          id: 4,
+          status: "approved",
+          lifecycle_status: "recently_sold",
+          closed_at: "2026-07-09T12:00:00.000Z",
+        },
+        now
+      )
+    ).toBe(true);
     expect(isPubliclyVisibleListing({ id: 1, status: "approved" })).toBe(true);
-    expect(isPubliclyVisibleListing({ id: 2, status: "approved", moderation_status: "archived" })).toBe(false);
-    expect(isPubliclyVisibleListing({ id: 3, status: "approved", lifecycle_status: "archived" })).toBe(false);
+    expect(isPubliclyVisibleListing({ id: 2, status: "approved", moderation_status: "archived" })).toBe(
+      false
+    );
+    expect(isPubliclyVisibleListing({ id: 3, status: "approved", lifecycle_status: "archived" })).toBe(
+      false
+    );
     expect(isPubliclyVisibleListing({ id: 4, status: "pending" })).toBe(false);
     expect(isPubliclyVisibleListing({ id: 5, status: "rejected" })).toBe(false);
     expect(isPubliclyVisibleListing(null)).toBe(false);

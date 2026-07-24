@@ -25,7 +25,7 @@ import { BELIZE_MAP_REGION_CONFIG, BELIZE_MAP_REGION_ORDER } from "../constants/
 import { getRegionLabel } from "../constants/geographyLayer";
 import { fetchApprovedListingsWithImages } from "../lib/listingQueries";
 import { filterListings } from "../utils/filterListings";
-import { getLifecycleStatus, getListingRegionSlug } from "../utils/canonicalListing";
+import { getLifecycleStatus, getListingRegionSlug, isListingActivelyAvailable } from "../utils/canonicalListing";
 import useSeaFlowMode from "../hooks/useSeaFlowMode";
 import useSeaFlowIntensity from "../hooks/useSeaFlowIntensity";
 import { seaFlowIntensityStyle } from "../utils/seaFlowIntensity";
@@ -211,7 +211,7 @@ export default function HomePage() {
   }, [listingsData]);
 
   const activeListings = useMemo(
-    () => listingsData.filter((listing) => getLifecycleStatus(listing) !== "sold"),
+    () => listingsData.filter(isListingActivelyAvailable),
     [listingsData]
   );
 

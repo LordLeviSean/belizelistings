@@ -26,6 +26,7 @@ import { OWNERSHIP_ACTIONS } from "@/constants/ownershipModel";
 import { formatListingLocation } from "@/lib/geography/formatListingLocation";
 import { getRegionLabel, normalizeRegionSlug } from "@/constants/geographyLayer";
 import { applyListingLifecycleAction } from "@/utils/ownershipAttribution";
+import { invalidateApprovedListingsCache } from "@/lib/approvedListingsCache";
 import {
   buildModerationArchivePatch,
   buildRecentlyRentedPatch,
@@ -204,6 +205,7 @@ function UserMyListingsPanel({ userId, tier }) {
     if (result.appliedPayload) {
       patchMyListingRow(listingId, result.appliedPayload);
     }
+    invalidateApprovedListingsCache();
     invalidate();
     showToast({
       type: "success",

@@ -4,7 +4,7 @@ import {
   isMissingColumnError,
   isMissingRelationshipError,
 } from "./supabaseCompat";
-import { filterBrowsableInventory, isBrowsableListing } from "../utils/canonicalListing";
+import { filterBrowsableInventory, isListingPubliclyVisible } from "../utils/canonicalListing";
 import { mapListingWithImages } from "../utils/listingImage";
 import { normalizeUserDashboardListingRows } from "./userDashboardListingTruth";
 import {
@@ -371,7 +371,7 @@ export async function fetchListingByIdWithImages(id, isAdmin = false, options = 
     return { data: null, error: null };
   }
 
-  if (!isAdmin && !isBrowsableListing(listing)) {
+  if (!isAdmin && !isListingPubliclyVisible(listing)) {
     const isOwner =
       ownerUserId && String(listing.user_id || "") === ownerUserId;
     if (!isOwner) {
@@ -402,6 +402,6 @@ export async function fetchListingByIdWithImages(id, isAdmin = false, options = 
     ownerPreview:
       Boolean(ownerUserId) &&
       String(listing.user_id || "") === ownerUserId &&
-      !isBrowsableListing(listing),
+      !isListingPubliclyVisible(listing),
   };
 }

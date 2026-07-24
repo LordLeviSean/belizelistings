@@ -221,7 +221,12 @@ export function buildRecentlySoldPatch({ closedAt, closedBy } = {}) {
 }
 
 export function buildRecentlySoldFallback() {
-  return { ...RECENTLY_SOLD_STATUS_TIERS[1], sold_at: new Date().toISOString() };
+  const at = new Date().toISOString();
+  return {
+    ...RECENTLY_SOLD_STATUS_TIERS[1],
+    sold_at: at,
+    closed_at: at,
+  };
 }
 
 export function buildRecentlyRentedPatch({ closedAt, closedBy } = {}) {
@@ -235,7 +240,12 @@ export function buildRecentlyRentedPatch({ closedAt, closedBy } = {}) {
 }
 
 export function buildRecentlyRentedFallback() {
-  return { ...RECENTLY_RENTED_STATUS_TIERS[1], rented_at: new Date().toISOString() };
+  const at = new Date().toISOString();
+  return {
+    ...RECENTLY_RENTED_STATUS_TIERS[1],
+    rented_at: at,
+    closed_at: at,
+  };
 }
 
 const ENRICHMENT_STRIP_SET = new Set(MUTATION_ENRICHMENT_STRIP_ORDER);

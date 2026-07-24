@@ -14,6 +14,7 @@ describe("searchFilters", () => {
   const sample = [
     {
       id: "1",
+      status: "approved",
       title: "Beach House",
       district: "belize",
       region_slug: "belize",
@@ -26,6 +27,7 @@ describe("searchFilters", () => {
     },
     {
       id: "2",
+      status: "approved",
       title: "Cayo Condo",
       district: "cayo",
       listing_type: "rent",

@@ -1,7 +1,7 @@
 // src/utils/filterListings.js
 import { isChildRegion, normalizeRegionSlug } from "../constants/geographyLayer";
 import { resolveListingMarketKindForBrowse } from "../lib/listingMarketType";
-import { getListingRegionSlug } from "./canonicalListing";
+import { getListingRegionSlug, isListingActivelyAvailable } from "./canonicalListing";
 import { isLandInventoryListing } from "./listingPresentation";
 
 /** Canonical sale/rent kind for filter matching (UI uses `for-sale` / `rent`). */
@@ -43,8 +43,14 @@ export function filterListings(listings, filters = {}) {
     }
 
     // Listing type filter — UI sends `for-sale`; rows may store `sale`.
-    if (marketFilter !== "all" && getListingMarketKind(listing) !== marketFilter) {
-      return false;
+    // Active For Sale / For Rent excludes recently closed; "all" keeps them browsable.
+    if (marketFilter !== "all") {
+      if (getListingMarketKind(listing) !== marketFilter) {
+        return false;
+      }
+      if (!isListingActivelyAvailable(listing)) {
+        return false;
+      }
     }
 
     // 💰 Price min

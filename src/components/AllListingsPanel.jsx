@@ -32,7 +32,7 @@ import {
 } from "../constants/operationalModel";
 import styles from "../styles/Dashboard.module.css";
 import { resolveLifecycleStatusBadgeSuffix } from "../lib/dashboardStatusBadges";
-import { getLifecycleStatus, isPubliclyVisibleListing } from "../utils/canonicalListing";
+import { getLifecycleStatus, isListingActivelyAvailable } from "../utils/canonicalListing";
 import { isLandInventoryListing } from "../utils/listingPresentation";
 import {
   applyListingLifecycleAction,
@@ -162,7 +162,7 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
     return listings.filter((listing) => {
       const lifecycle = getLifecycleStatus(listing);
       if (statusFilter === "pending") return lifecycle === LISTING_LIFECYCLE.PENDING_REVIEW;
-      if (statusFilter === "approved") return isPubliclyVisibleListing(listing);
+      if (statusFilter === "approved") return isListingActivelyAvailable(listing);
       if (statusFilter === "rejected") return lifecycle === LISTING_LIFECYCLE.REJECTED;
       if (statusFilter === "archived") return lifecycle === LISTING_LIFECYCLE.ARCHIVED;
       return true;
