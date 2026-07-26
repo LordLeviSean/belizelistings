@@ -32,6 +32,7 @@ import {
 import { buildModerationArchivePatch, buildRecentlyRentedPatch, buildRecentlySoldPatch } from "@/lib/listingWriteContract";
 import { invalidateApprovedListingsCache } from "@/lib/approvedListingsCache";
 import { getLifecycleStatus } from "@/utils/canonicalListing";
+import ListingLifecycleBadgeStack from "@/components/listings/ListingLifecycleBadgeStack";
 import { isLegacyGenerationDraft } from "@/lib/legacyDraftCompat";
 import { resolveLifecycleStatusBadgeSuffix } from "@/lib/dashboardStatusBadges";
 import {
@@ -425,9 +426,12 @@ function AgentInventoryPanel({ userId, tier, lifecycleFilter, onLifecycleFilterC
                       {districtLabel || "Belize"} · {Number(l.price || 0).toLocaleString()} BZD
                     </p>
                     <div>
-                      <span className={`${styles.statusBadge} ${styles[`status${badgeClass}`]}`}>
-                        {isLegacyDraft ? "Legacy Draft" : getLifecycleLabel(lc)}
-                      </span>
+                      <ListingLifecycleBadgeStack
+                        listing={l}
+                        badgeLabel={isLegacyDraft ? "Legacy Draft" : getLifecycleLabel(lc)}
+                        badgeClass={badgeClass}
+                        styles={styles}
+                      />
                     </div>
                     {isArchived ? (
                       <p className={styles.archivedHint}>Hidden from public listings</p>

@@ -23,6 +23,7 @@ import styles from "../styles/Dashboard.module.css";
 import mu from "./ManageUsersPanel.module.css";
 import { formatProfileDisplayLabel } from "../lib/profileDisplayName";
 import { resolveLifecycleStatusBadgeSuffix } from "../lib/dashboardStatusBadges";
+import ListingLifecycleBadgeStack from "./listings/ListingLifecycleBadgeStack";
 
 function listingOwnerProfileId(listing) {
   return String(listing?.user_id || listing?.agent_id || "").trim();
@@ -31,6 +32,7 @@ function listingOwnerProfileId(listing) {
 async function loadListingsForProfileId(supabaseClient, profileId) {
   const pid = String(profileId).trim();
   const selectAttempts = [
+    "id, user_id, agent_id, status, lifecycle_status, moderation_status, closed_at, sold_at, rented_at, updated_at",
     "id, user_id, agent_id, status, lifecycle_status, moderation_status",
     "id, user_id, status, lifecycle_status, moderation_status",
     "id, user_id, agent_id, status",
@@ -563,11 +565,12 @@ export default function ManageUsersPanel({ onAction, profilesRevision = 0 }) {
                           <p style={{ margin: 0, fontWeight: 600 }}>Listing {String(listing.id).slice(0, 8)}</p>
                           <p className={styles.muted} style={{ margin: 0 }}>
                             Status:{" "}
-                            <span
-                              className={`${styles.statusBadge} ${styles[`status${resolveLifecycleStatusBadgeSuffix(getLifecycleStatus(listing))}`]}`}
-                            >
-                              {getLifecycleLabel(getLifecycleStatus(listing))}
-                            </span>
+                            <ListingLifecycleBadgeStack
+                              listing={listing}
+                              badgeLabel={getLifecycleLabel(getLifecycleStatus(listing))}
+                              badgeClass={resolveLifecycleStatusBadgeSuffix(getLifecycleStatus(listing))}
+                              styles={styles}
+                            />
                           </p>
                         </div>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>

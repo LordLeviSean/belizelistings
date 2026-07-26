@@ -33,6 +33,7 @@ import {
 import styles from "../styles/Dashboard.module.css";
 import { resolveLifecycleStatusBadgeSuffix } from "../lib/dashboardStatusBadges";
 import { getLifecycleStatus, isListingActivelyAvailable } from "../utils/canonicalListing";
+import ListingLifecycleBadgeStack from "./listings/ListingLifecycleBadgeStack";
 import { isLandInventoryListing } from "../utils/listingPresentation";
 import {
   applyListingLifecycleAction,
@@ -677,9 +678,12 @@ export default function AllListingsPanel({ onAction, profilesRevision = 0, listi
             )}
           </div>
           <p className={styles.muted}>{ownerMap[String(listing.user_id)] || String(listing.user_id || "unknown")}</p>
-          <span className={`${styles.statusBadge} ${styles[`status${statusClassKey}`]}`}>
-            {getLifecycleLabel(effectiveLifecycle)}
-          </span>
+          <ListingLifecycleBadgeStack
+            listing={listing}
+            badgeLabel={getLifecycleLabel(effectiveLifecycle)}
+            badgeClass={statusClassKey}
+            styles={styles}
+          />
           <p className={styles.muted}>{Number(listing.price || 0).toLocaleString()} {listing.currency || "BZD"}</p>
           <div className={styles.rowActions}>
             {editingId === String(listing.id) ? (

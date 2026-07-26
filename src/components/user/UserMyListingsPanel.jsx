@@ -33,6 +33,7 @@ import {
   buildRecentlySoldPatch,
 } from "@/lib/listingWriteContract";
 import { getLifecycleStatus } from "@/utils/canonicalListing";
+import ListingLifecycleBadgeStack from "@/components/listings/ListingLifecycleBadgeStack";
 import {
   MY_LISTINGS_SORT_KEYS,
   MY_LISTINGS_STATUS_FILTERS,
@@ -342,9 +343,12 @@ function UserMyListingsPanel({ userId, tier }) {
                       Created {created}
                     </p>
                     <div>
-                      <span className={`${styles.statusBadge} ${styles[`status${badgeClass}`]}`}>
-                        {isLegacyDraft ? "Legacy Draft" : getLifecycleLabel(lc)}
-                      </span>
+                      <ListingLifecycleBadgeStack
+                        listing={l}
+                        badgeLabel={isLegacyDraft ? "Legacy Draft" : getLifecycleLabel(lc)}
+                        badgeClass={badgeClass}
+                        styles={styles}
+                      />
                     </div>
                     {!isDraft ? (
                       <div style={{ marginTop: 10 }}>

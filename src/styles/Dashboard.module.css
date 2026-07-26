@@ -2125,6 +2125,14 @@ button.dashboardLink:disabled {
   box-shadow: 0 0 12px rgba(128, 108, 188, 0.14);
 }
 
+.listingBadgeStack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  max-width: 100%;
+}
+
 .userCreateGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
