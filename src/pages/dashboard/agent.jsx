@@ -17,6 +17,7 @@ import useUserRole from "@/hooks/useUserRole";
 import { isProfileHydratedForUser } from "@/lib/profileSessionCache";
 import { formatWelcomeGreeting } from "@/lib/dashboardGreeting";
 import useAgentDashboardStore from "@/stores/useAgentDashboardStore";
+import { useAgentDashboardFocusSync } from "@/hooks/useAgentDashboardFocusSync";
 import { DASHBOARD_ROLE } from "@/constants/dashboardRoles";
 import {
   AGENT_DASHBOARD_COPY,
@@ -126,6 +127,8 @@ export default function AgentDashboard() {
     useAgentDashboardStore.getState().setTier(tier);
   }, [loading, user?.id, role, tier]);
 
+  useAgentDashboardFocusSync(user?.id, role);
+
   useLayoutEffect(() => {
     const uid = user?.id;
     if (!uid || role !== "agent") {
@@ -172,7 +175,7 @@ export default function AgentDashboard() {
         if (path !== "/dashboard/agent") return;
         if (prevPath === "/dashboard/agent") return;
         if (role !== "agent" || !user?.id || loading) return;
-        useAgentDashboardStore.getState().flushRefresh();
+        useAgentDashboardStore.getState().invalidate({ listings: true });
       } catch {
         /* ignore */
       }

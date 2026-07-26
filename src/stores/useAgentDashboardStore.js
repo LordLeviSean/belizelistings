@@ -9,6 +9,11 @@ import {
 import { deriveUserDashboardListingCounts } from "@/lib/userDashboardListingTruth";
 import { isTransientNetworkError, isTerminalDashboardCountError, isMissingTableError } from "@/lib/supabaseCompat";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES } from "@/lib/featureFlags";
+import { BL_USER_DASHBOARD_METRICS_EVENT } from "@/lib/userDashboardMetricsBus";
+import {
+  reconcileMyListingRows,
+  removeMyListingRowById,
+} from "@/lib/userDashboardListingReconcile";
 import { resolveUserDashboardListingCap } from "@/constants/dashboardAgentConfig";
 import { countOwnerInboxUnread } from "@/lib/crm/conversationGrouping";
 import { filterInboxConversations } from "@/lib/crm/conversationFilters";
@@ -61,7 +66,7 @@ function myListingsRowsSignature(rows) {
 }
 
 function sessionIsLive(get, userId) {
-  return Boolean(userId && get()._sessionUserId === String(userId) && realtimeChannel);
+  return Boolean(userId && get()._sessionUserId === String(userId) && realtimeChannel && busHandler);
 }
 
 let loadGen = 0;
@@ -73,6 +78,7 @@ let realtimeChannel = null;
 let debounceTimer = null;
 let dirtyListingsRealtime = false;
 let skipInq = !BL_ENABLE_INQUIRIES;
+let busHandler = null;
 let listingsTransientRetries = 0;
 const LISTINGS_TRANSIENT_RETRY_MAX = 2;
 
@@ -90,10 +96,17 @@ function detachRealtimeInternal() {
   }
 }
 
+function removeBusListenerInternal() {
+  if (typeof window === "undefined" || !busHandler) return;
+  window.removeEventListener(BL_USER_DASHBOARD_METRICS_EVENT, busHandler);
+  busHandler = null;
+}
+
 function teardownLive() {
   clearDebounceTimer();
   dirtyListingsRealtime = false;
   detachRealtimeInternal();
+  removeBusListenerInternal();
 }
 
 const useAgentDashboardStore = create((set, get) => ({
@@ -160,6 +173,15 @@ const useAgentDashboardStore = create((set, get) => ({
       myListingsInitialFetchDone: false,
     });
 
+    busHandler = (evt) => {
+      const id = evt?.detail?.userId;
+      if (!id || String(id) !== String(userId)) return;
+      get().invalidate({ listings: true });
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener(BL_USER_DASHBOARD_METRICS_EVENT, busHandler);
+    }
+
     get().attachRealtime(userId);
     void get().loadMyListings({ syncMetrics: true });
     void get().loadInquiries({ quiet: true });
@@ -205,7 +227,12 @@ const useAgentDashboardStore = create((set, get) => ({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "listings", filter: `user_id=eq.${userId}` },
-        () => {
+        (payload) => {
+          if (payload.eventType === "DELETE" && payload.old?.id) {
+            get().reconcileListingFromServer(payload.old, { remove: true });
+          } else if (payload.new) {
+            get().reconcileListingFromServer(payload.new);
+          }
           dirtyListingsRealtime = true;
           get()._scheduleDebouncedRealtimeBatch();
         }
@@ -253,7 +280,7 @@ const useAgentDashboardStore = create((set, get) => ({
       const runListings = dirtyListingsRealtime;
       dirtyListingsRealtime = false;
       if (runListings) {
-        void get().loadMyListings({ syncMetrics: true, quiet: true });
+        void get().loadMyListings({ syncMetrics: true, quiet: true, force: true });
       } else {
         void get().loadInquiries({ quiet: true });
         if (BL_ENABLE_CONVERSATIONS) void get().loadConversationInbox({ quiet: true });
@@ -472,6 +499,25 @@ const useAgentDashboardStore = create((set, get) => ({
       void get().loadInquiries({ quiet: true });
       if (BL_ENABLE_CONVERSATIONS) void get().loadConversationInbox({ quiet: true });
     }
+  },
+
+  reconcileListingFromServer(incomingRow, opts = {}) {
+    const uid = get()._sessionUserId;
+    if (!uid || !incomingRow) return;
+    if (incomingRow.user_id != null && String(incomingRow.user_id) !== String(uid)) return;
+
+    if (opts.remove) {
+      const removed = removeMyListingRowById(get().myListingsRows, incomingRow.id);
+      if (!removed.changed) return;
+      patchIfChanged(set, get, { myListingsRows: removed.rows });
+      applyListingMetricsFromRows(set, get, removed.rows);
+      return;
+    }
+
+    const { rows, changed } = reconcileMyListingRows(get().myListingsRows, incomingRow);
+    if (!changed) return;
+    patchIfChanged(set, get, { myListingsRows: rows });
+    applyListingMetricsFromRows(set, get, rows);
   },
 
   patchMyListingRow(listingId, patch) {

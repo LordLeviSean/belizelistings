@@ -11,6 +11,10 @@ import { isTransientNetworkError } from "@/lib/supabaseCompat";
 import { logDashboardMetricFailureOnce } from "@/lib/dashboardMetricsTelemetry";
 import { BL_ENABLE_INQUIRIES } from "@/lib/featureFlags";
 import { BL_USER_DASHBOARD_METRICS_EVENT } from "@/lib/userDashboardMetricsBus";
+import {
+  reconcileMyListingRows,
+  removeMyListingRowById,
+} from "@/lib/userDashboardListingReconcile";
 import { isMissingTableError, isTerminalDashboardCountError } from "@/lib/supabaseCompat";
 import { resolveUserDashboardListingCap } from "@/constants/dashboardUserConfig";
 
@@ -285,7 +289,12 @@ const useUserDashboardStore = create((set, get) => ({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "listings", filter: `user_id=eq.${userId}` },
-        () => {
+        (payload) => {
+          if (payload.eventType === "DELETE" && payload.old?.id) {
+            get().reconcileListingFromServer(payload.old, { remove: true });
+          } else if (payload.new) {
+            get().reconcileListingFromServer(payload.new);
+          }
           dirtyListingsRealtime = true;
           get()._scheduleDebouncedRealtimeBatch();
         }
@@ -329,7 +338,7 @@ const useUserDashboardStore = create((set, get) => ({
       const runListings = dirtyListingsRealtime;
       dirtyListingsRealtime = false;
       if (runListings) {
-        void get().loadMyListings({ syncMetrics: true, quiet: true });
+        void get().loadMyListings({ syncMetrics: true, quiet: true, force: true });
       } else {
         void get().loadMetrics({ quiet: true });
       }
@@ -590,6 +599,26 @@ const useUserDashboardStore = create((set, get) => ({
     } else {
       void get().loadMetrics({ quiet: true });
     }
+  },
+
+  /** Merge a server row immediately (realtime/moderation) before authoritative refetch. */
+  reconcileListingFromServer(incomingRow, opts = {}) {
+    const uid = get()._sessionUserId;
+    if (!uid || !incomingRow) return;
+    if (incomingRow.user_id != null && String(incomingRow.user_id) !== String(uid)) return;
+
+    if (opts.remove) {
+      const removed = removeMyListingRowById(get().myListingsRows, incomingRow.id);
+      if (!removed.changed) return;
+      patchIfChanged(set, get, { myListingsRows: removed.rows });
+      applyListingMetricsFromRows(set, get, removed.rows);
+      return;
+    }
+
+    const { rows, changed } = reconcileMyListingRows(get().myListingsRows, incomingRow);
+    if (!changed) return;
+    patchIfChanged(set, get, { myListingsRows: rows });
+    applyListingMetricsFromRows(set, get, rows);
   },
 
   /** Optimistic lifecycle patch — reconciled by the next `invalidate()` / refetch. */

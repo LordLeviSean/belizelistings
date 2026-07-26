@@ -22,6 +22,7 @@ import { isProfileHydratedForUser } from "@/lib/profileSessionCache";
 import useUserRole from "@/hooks/useUserRole";
 import { formatUserDashboardSubtitle } from "@/lib/dashboardGreeting";
 import useUserDashboardStore from "@/stores/useUserDashboardStore";
+import { useUserDashboardFocusSync } from "@/hooks/useUserDashboardFocusSync";
 import { DASHBOARD_ROLE } from "@/constants/dashboardRoles";
 import {
   USER_DASHBOARD_COPY,
@@ -179,6 +180,8 @@ export default function UserDashboard() {
   // Init when auth+role are ready. Do not destroy on brief `loading` flicker (profile re-hydrate)
   // — that caused store teardown on tab-adjacent auth noise. Teardown only on logout/wrong role
   // or leaving this page (see unmount effect below). Shallow `?tab=` changes: 0 profile fetches.
+  useUserDashboardFocusSync(user?.id, role);
+
   useLayoutEffect(() => {
     const uid = user?.id;
     if (!uid || role !== "user") {
@@ -225,8 +228,7 @@ export default function UserDashboard() {
         if (path !== "/dashboard/user") return;
         if (prevPath === "/dashboard/user") return;
         if (roleRef.current !== "user" || !userIdRef.current || loadingRef.current) return;
-        // Same contract as overview tab: metrics-only (see store `flushRefresh`).
-        useUserDashboardStore.getState().flushRefresh();
+        useUserDashboardStore.getState().invalidate({ listings: true });
       } catch {
         /* ignore */
       }
