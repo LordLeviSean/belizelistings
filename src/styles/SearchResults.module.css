@@ -16,16 +16,38 @@
   color: rgba(26, 58, 72, 0.96);
 }
 
-.header p {
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin: 8px 0 0;
-  color: rgba(60, 91, 97, 0.86);
+  height: 36px;
+  border: 1px solid var(--glass-border-mint);
+  border-radius: 999px;
+  background: var(--glass-bg-strong);
+  color: var(--text-primary);
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 560;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: var(--elev-1);
+  transition: var(--transition-hover-lift);
+}
+
+.backButton:hover {
+  transform: translateY(var(--hover-lift-xs));
+  border-color: rgba(122, 188, 176, 0.42);
+  box-shadow: var(--elev-2);
+}
+
+.backButton:focus-visible {
+  outline: 2px solid rgba(64, 168, 152, 0.55);
+  outline-offset: 2px;
 }
 
 @media (max-width: 768px) {
-  .headerSummary {
-    display: none;
-  }
-
   .header h1 {
     font-size: clamp(1.45rem, 5.5vw, 1.75rem);
   }

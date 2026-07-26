@@ -18,6 +18,7 @@ import {
 } from "../lib/searchFilters";
 import styles from "../styles/SearchResults.module.css";
 import PremiumEmptyState from "../components/ui/PremiumEmptyState";
+import BackButton from "../components/BackButton";
 
 const QUERY_DEBOUNCE_MS = 320;
 
@@ -148,22 +149,13 @@ export default function SearchPage() {
     return sortSearchResults(filtered, filters.sort);
   }, [allListings, filters, loading, router.isReady]);
 
-  const resultSummary = useMemo(() => {
-    if (loading) return "Loading listings…";
-    const count = filteredListings.length;
-    const noun = count === 1 ? "result" : "results";
-    if (filters.q) return `${count} ${noun} for “${filters.q}”`;
-    return `${count} ${noun}`;
-  }, [filteredListings.length, filters.q, loading]);
-
-
   return (
     <div className={styles.page}>
       <SiteNav active="browse" />
       <main className={styles.main}>
         <header className={styles.header}>
           <h1>Search Results</h1>
-          <p className={styles.headerSummary}>{resultSummary}</p>
+          <BackButton label="Back" className={styles.backButton} />
         </header>
 
         <FilterBar
