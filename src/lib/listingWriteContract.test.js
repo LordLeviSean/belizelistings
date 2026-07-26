@@ -80,8 +80,9 @@ describe("listingWriteContract", () => {
   });
 
   test("moderation approve/reject/archive patches omit audit timestamps", () => {
-    expect(buildModerationApprovePatch()).toEqual(MODERATION_APPROVE_STATUS_TIERS[0]);
-    expect(buildModerationApproveFallback()).toEqual(MODERATION_APPROVE_STATUS_TIERS[1]);
+    expect(buildModerationApprovePatch()).toMatchObject(MODERATION_APPROVE_STATUS_TIERS[0]);
+    expect(buildModerationApprovePatch().closed_at).toBeNull();
+    expect(buildModerationApproveFallback()).toMatchObject(MODERATION_APPROVE_STATUS_TIERS[1]);
     expect(buildModerationRejectPatch()).not.toHaveProperty("published_at");
     expect(buildModerationRejectPatch()).not.toHaveProperty("reviewed_at");
     expect(buildModerationArchivePatch()).not.toHaveProperty("archived_at");

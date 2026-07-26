@@ -113,8 +113,9 @@ describe("closed listing archive lifecycle contract", () => {
     }
   });
 
-  test("closed_at is preferred over sold_at and updated_at", () => {
+  test("closed_at uses the newest matching timestamp for recently sold rows", () => {
     const row = {
+      lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD,
       closed_at: "2026-07-09T12:00:00.000Z",
       sold_at: "2026-07-07T12:00:00.000Z",
       updated_at: "2026-07-01T12:00:00.000Z",

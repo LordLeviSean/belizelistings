@@ -1,3 +1,4 @@
+import { LISTING_LIFECYCLE, normalizeLifecycleStatus } from "./operationalModel";
 /** Default closed-listing archive window — 48 hours (2880 minutes). */
 export const DEFAULT_LISTING_CLOSED_ARCHIVE_MINUTES = 48 * 60;
 
@@ -61,18 +62,56 @@ export function isEligibleForClosedListingArchive(closedAt, nowMs = Date.now(), 
 }
 
 /**
- * Resolve sold_at / rented_at / closed_at for window checks.
- * Falls back to updated_at so recently closed rows stay public when close columns are absent.
+ * Lightweight lifecycle for closure timestamps (avoids circular import with canonicalListing).
+ * @param {object} listing
+ */
+function resolveClosureLifecycle(listing) {
+  const st = String(listing?.status || "").trim().toLowerCase();
+  const lcRaw = String(listing?.lifecycle_status || "").trim().toLowerCase();
+  if (st === "archived" || lcRaw === "archived") {
+    return LISTING_LIFECYCLE.ARCHIVED;
+  }
+  if (listing?.lifecycle_status != null && String(listing.lifecycle_status).trim() !== "") {
+    const fromLifecycle = normalizeLifecycleStatus(listing.lifecycle_status);
+    if (fromLifecycle !== LISTING_LIFECYCLE.DRAFT) return fromLifecycle;
+  }
+  return normalizeLifecycleStatus(listing?.status || "draft");
+}
+
+/**
+ * @param {...(string|null|undefined)} candidates
+ * @returns {string|null}
+ */
+function pickLatestClosedTimestamp(...candidates) {
+  let best = null;
+  let bestMs = Number.NaN;
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const ms = new Date(candidate).getTime();
+    if (!Number.isFinite(ms)) continue;
+    if (!Number.isFinite(bestMs) || ms > bestMs) {
+      best = candidate;
+      bestMs = ms;
+    }
+  }
+  return best;
+}
+
+/**
+ * Active closed timestamp for the current lifecycle cycle only.
+ * Ignores stale sold/rented/closed values from prior archive cycles.
  * @param {object} listing
  */
 export function getListingClosedAt(listing) {
-  return (
-    listing?.closed_at ||
-    listing?.sold_at ||
-    listing?.rented_at ||
-    listing?.updated_at ||
-    null
-  );
+  if (!listing) return null;
+  const lc = resolveClosureLifecycle(listing);
+  if (lc === LISTING_LIFECYCLE.RECENTLY_SOLD) {
+    return pickLatestClosedTimestamp(listing.sold_at, listing.closed_at, listing.updated_at);
+  }
+  if (lc === LISTING_LIFECYCLE.RECENTLY_RENTED) {
+    return pickLatestClosedTimestamp(listing.rented_at, listing.closed_at, listing.updated_at);
+  }
+  return null;
 }
 
 /**

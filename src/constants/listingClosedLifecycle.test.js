@@ -9,6 +9,7 @@ import {
   isWithinRecentlyClosedWindow,
   resolveListingClosedArchiveMinutes,
 } from "./listingClosedLifecycle";
+import { LISTING_LIFECYCLE } from "./operationalModel";
 
 describe("listingClosedLifecycle", () => {
   const closedAt = "2026-07-10T12:00:00.000Z";
@@ -54,9 +55,10 @@ describe("listingClosedLifecycle", () => {
     expect(isEligibleForClosedListingArchive(closed, now, qaEnv)).toBe(true);
   });
 
-  test("getListingClosedAt prefers closed_at then sold_at then rented_at then updated_at", () => {
+  test("getListingClosedAt uses lifecycle-specific timestamps for recently sold", () => {
     expect(
       getListingClosedAt({
+        lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD,
         closed_at: "2026-07-09T00:00:00.000Z",
         sold_at: "2026-07-08T00:00:00.000Z",
         updated_at: "2026-07-01T00:00:00.000Z",
@@ -64,13 +66,45 @@ describe("listingClosedLifecycle", () => {
     ).toBe("2026-07-09T00:00:00.000Z");
     expect(
       getListingClosedAt({
+        lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD,
         sold_at: "2026-07-08T00:00:00.000Z",
         updated_at: "2026-07-01T00:00:00.000Z",
       })
     ).toBe("2026-07-08T00:00:00.000Z");
-    expect(getListingClosedAt({ updated_at: "2026-07-01T00:00:00.000Z" })).toBe(
-      "2026-07-01T00:00:00.000Z"
-    );
+    expect(
+      getListingClosedAt({
+        lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD,
+        updated_at: "2026-07-01T00:00:00.000Z",
+      })
+    ).toBe("2026-07-01T00:00:00.000Z");
+  });
+
+  test("getListingClosedAt ignores stale closure timestamps outside recently closed lifecycle", () => {
+    expect(
+      getListingClosedAt({
+        status: "approved",
+        lifecycle_status: LISTING_LIFECYCLE.PUBLISHED,
+        closed_at: "2026-07-09T00:00:00.000Z",
+        sold_at: "2026-07-08T00:00:00.000Z",
+      })
+    ).toBeNull();
+    expect(
+      getListingClosedAt({
+        status: "archived",
+        lifecycle_status: LISTING_LIFECYCLE.ARCHIVED,
+        sold_at: "2026-07-08T00:00:00.000Z",
+      })
+    ).toBeNull();
+  });
+
+  test("getListingClosedAt prefers the newest sold timestamp over stale closed_at", () => {
+    expect(
+      getListingClosedAt({
+        lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD,
+        closed_at: "2026-07-01T12:00:00.000Z",
+        sold_at: "2026-07-10T10:00:00.000Z",
+      })
+    ).toBe("2026-07-10T10:00:00.000Z");
   });
 
   test("isListingEligibleForClosedArchive mirrors listing row closed timestamp", () => {
@@ -83,7 +117,10 @@ describe("listingClosedLifecycle", () => {
   });
 
   test("getListingArchiveDeadline adds configured archive minutes", () => {
-    const listing = { closed_at: "2026-07-10T12:00:00.000Z" };
+    const listing = {
+      lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD,
+      closed_at: "2026-07-10T12:00:00.000Z",
+    };
     const deadline = getListingArchiveDeadline(listing, {});
     expect(deadline?.toISOString()).toBe("2026-07-12T12:00:00.000Z");
   });

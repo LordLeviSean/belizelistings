@@ -179,11 +179,11 @@ export const RECENTLY_RENTED_STATUS_TIERS = Object.freeze([
 ]);
 
 export function buildModerationApprovePatch() {
-  return { ...MODERATION_APPROVE_STATUS_TIERS[0] };
+  return { ...MODERATION_APPROVE_STATUS_TIERS[0], ...buildListingClosureCycleResetPatch() };
 }
 
 export function buildModerationApproveFallback() {
-  return { ...MODERATION_APPROVE_STATUS_TIERS[1] };
+  return { ...MODERATION_APPROVE_STATUS_TIERS[1], ...buildListingClosureCycleResetPatch() };
 }
 
 export function buildModerationRejectPatch() {
@@ -203,17 +203,28 @@ export function buildModerationArchiveFallback() {
 }
 
 export function buildModerationResubmitPatch() {
-  return { ...MODERATION_RESUBMIT_STATUS_TIERS[0] };
+  return { ...MODERATION_RESUBMIT_STATUS_TIERS[0], ...buildListingClosureCycleResetPatch() };
 }
 
 export function buildModerationResubmitFallback() {
-  return { ...MODERATION_RESUBMIT_STATUS_TIERS[1] };
+  return { ...MODERATION_RESUBMIT_STATUS_TIERS[1], ...buildListingClosureCycleResetPatch() };
+}
+
+/** Clears prior sold/rented/archive timestamps when re-entering published or review workflow. */
+export function buildListingClosureCycleResetPatch() {
+  return {
+    closed_at: null,
+    sold_at: null,
+    rented_at: null,
+    archived_at: null,
+  };
 }
 
 export function buildRecentlySoldPatch({ closedAt, closedBy } = {}) {
   const at = closedAt || new Date().toISOString();
   return {
     ...RECENTLY_SOLD_STATUS_TIERS[0],
+    ...buildListingClosureCycleResetPatch(),
     sold_at: at,
     closed_at: at,
     ...(closedBy ? { closed_by: closedBy } : {}),
@@ -224,6 +235,7 @@ export function buildRecentlySoldFallback() {
   const at = new Date().toISOString();
   return {
     ...RECENTLY_SOLD_STATUS_TIERS[1],
+    ...buildListingClosureCycleResetPatch(),
     sold_at: at,
     closed_at: at,
   };
@@ -233,6 +245,7 @@ export function buildRecentlyRentedPatch({ closedAt, closedBy } = {}) {
   const at = closedAt || new Date().toISOString();
   return {
     ...RECENTLY_RENTED_STATUS_TIERS[0],
+    ...buildListingClosureCycleResetPatch(),
     rented_at: at,
     closed_at: at,
     ...(closedBy ? { closed_by: closedBy } : {}),
@@ -243,6 +256,7 @@ export function buildRecentlyRentedFallback() {
   const at = new Date().toISOString();
   return {
     ...RECENTLY_RENTED_STATUS_TIERS[1],
+    ...buildListingClosureCycleResetPatch(),
     rented_at: at,
     closed_at: at,
   };
