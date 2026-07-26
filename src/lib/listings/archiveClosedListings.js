@@ -47,5 +47,13 @@ export async function archiveExpiredClosedListings(client, { archiveAfterMinutes
   }
 
   const payload = data && typeof data === "object" ? data : {};
+  if (typeof console !== "undefined" && console.info) {
+    console.info("[archive-closed-listings] batch complete", {
+      eligible: payload.eligible ?? null,
+      archived: payload.archived ?? null,
+      notificationsQueued: payload.notificationsQueued ?? null,
+      archiveAfterMinutes: minutes,
+    });
+  }
   return { ok: true, data: payload, error: null, archiveAfterMinutes: minutes };
 }

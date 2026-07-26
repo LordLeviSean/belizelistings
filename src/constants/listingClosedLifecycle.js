@@ -74,3 +74,40 @@ export function getListingClosedAt(listing) {
     null
   );
 }
+
+/**
+ * Archive deadline derived from canonical closed timestamp + configured window.
+ * @param {object} listing
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {Date|null}
+ */
+export function getListingArchiveDeadline(listing, env = process.env) {
+  const closedAt = getListingClosedAt(listing);
+  if (!closedAt) return null;
+  const ts = new Date(closedAt).getTime();
+  if (!Number.isFinite(ts)) return null;
+  return new Date(ts + recentlyClosedArchiveMs(env));
+}
+
+/**
+ * Whether a recently closed listing is still within the public display window.
+ * @param {object} listing
+ * @param {number} [nowMs]
+ * @param {NodeJS.ProcessEnv} [env]
+ */
+export function isListingWithinRecentlyClosedWindow(listing, nowMs = Date.now(), env = process.env) {
+  const closedAt = getListingClosedAt(listing);
+  if (!closedAt) return false;
+  return isWithinRecentlyClosedWindow(closedAt, nowMs, env);
+}
+
+/**
+ * Whether a recently closed listing is eligible for automatic archival.
+ * Uses the same canonical closed timestamp as public visibility.
+ * @param {object} listing
+ * @param {number} [nowMs]
+ * @param {NodeJS.ProcessEnv} [env]
+ */
+export function isListingEligibleForClosedArchive(listing, nowMs = Date.now(), env = process.env) {
+  return isEligibleForClosedListingArchive(getListingClosedAt(listing), nowMs, env);
+}
