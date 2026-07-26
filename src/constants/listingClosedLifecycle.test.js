@@ -7,9 +7,14 @@ import {
   isEligibleForClosedListingArchive,
   isListingEligibleForClosedArchive,
   isWithinRecentlyClosedWindow,
+  parseListingTimestampMs,
   resolveListingClosedArchiveMinutes,
 } from "./listingClosedLifecycle";
 import { LISTING_LIFECYCLE } from "./operationalModel";
+import {
+  formatListingArchiveCountdown,
+  getListingArchiveDeadlineMs,
+} from "../lib/listings/listingArchiveCountdown";
 
 describe("listingClosedLifecycle", () => {
   const closedAt = "2026-07-10T12:00:00.000Z";
@@ -123,5 +128,58 @@ describe("listingClosedLifecycle", () => {
     };
     const deadline = getListingArchiveDeadline(listing, {});
     expect(deadline?.toISOString()).toBe("2026-07-12T12:00:00.000Z");
+  });
+
+  test("parseListingTimestampMs treats Z suffix as UTC", () => {
+    expect(parseListingTimestampMs("2026-07-26T19:41:53.677Z")).toBe(
+      Date.parse("2026-07-26T19:41:53.677Z")
+    );
+  });
+
+  test("parseListingTimestampMs treats +00:00 suffix as UTC", () => {
+    expect(parseListingTimestampMs("2026-07-26T19:41:53.677+00:00")).toBe(
+      Date.parse("2026-07-26T19:41:53.677Z")
+    );
+  });
+
+  test("parseListingTimestampMs treats offset-less Postgres values as UTC", () => {
+    expect(parseListingTimestampMs("2026-07-26T18:40:24.009651")).toBe(
+      Date.parse("2026-07-26T18:40:24.009651Z")
+    );
+  });
+
+  test("listing 108 reset row uses sold_at instead of stale naive updated_at", () => {
+    const listing = {
+      id: 108,
+      status: "approved",
+      lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD,
+      closed_at: "2026-07-26T19:41:53.677+00:00",
+      sold_at: "2026-07-26T19:41:53.677+00:00",
+      updated_at: "2026-07-26T18:40:24.009651",
+    };
+    expect(getListingClosedAt(listing)).toBe("2026-07-26T19:41:53.677+00:00");
+    const closedMs = parseListingTimestampMs(getListingClosedAt(listing));
+    const nowMs = Date.parse("2026-07-26T19:42:00.000Z");
+    const deadlineMs = getListingArchiveDeadlineMs(listing, {});
+    expect(deadlineMs).toBe(closedMs + DEFAULT_LISTING_CLOSED_ARCHIVE_MINUTES * 60_000);
+    const remainingHours = (deadlineMs - nowMs) / 3_600_000;
+    expect(remainingHours).toBeLessThanOrEqual(48);
+    expect(remainingHours).toBeGreaterThan(47.9);
+    expect(formatListingArchiveCountdown(deadlineMs, nowMs)?.short).toBe("Archives in 47h 59m");
+  });
+
+  test("user, agent, and admin rows resolve the same archive deadline", () => {
+    const base = {
+      status: "approved",
+      lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD,
+      closed_at: "2026-07-26T19:41:53.677+00:00",
+      sold_at: "2026-07-26T19:41:53.677+00:00",
+      updated_at: "2026-07-26T18:40:24.009651",
+    };
+    const userRow = { ...base, id: 108 };
+    const agentRow = { ...base, id: 108, agent_id: "agent-1" };
+    const adminRow = { ...base, id: 108, moderation_status: "approved" };
+    expect(getListingArchiveDeadlineMs(userRow, {})).toBe(getListingArchiveDeadlineMs(agentRow, {}));
+    expect(getListingArchiveDeadlineMs(agentRow, {})).toBe(getListingArchiveDeadlineMs(adminRow, {}));
   });
 });

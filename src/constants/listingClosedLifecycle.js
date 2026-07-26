@@ -12,6 +12,27 @@ export const MS_PER_MINUTE = 60_000;
 export const MS_PER_HOUR = 3_600_000;
 export const MS_PER_DAY = 86_400_000;
 
+const TIMESTAMP_HAS_OFFSET = /([zZ]|[+-]\d{2}:\d{2})$/;
+
+/**
+ * Parse Supabase/Postgres timestamptz as an absolute UTC instant.
+ * Values without an offset are treated as UTC, not browser-local time.
+ * @param {string|Date|null|undefined} value
+ * @returns {number|null}
+ */
+export function parseListingTimestampMs(value) {
+  if (value == null) return null;
+  if (value instanceof Date) {
+    const ms = value.getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const normalized = TIMESTAMP_HAS_OFFSET.test(raw) ? raw : `${raw}Z`;
+  const ms = Date.parse(normalized);
+  return Number.isFinite(ms) ? ms : null;
+}
+
 /**
  * Canonical archive window in minutes.
  * Override with LISTING_CLOSED_ARCHIVE_MINUTES (server) or
@@ -42,9 +63,8 @@ export function recentlyClosedDisplayMs(env = process.env) {
  * @param {NodeJS.ProcessEnv} [env]
  */
 export function isWithinRecentlyClosedWindow(closedAt, nowMs = Date.now(), env = process.env) {
-  if (!closedAt) return false;
-  const ts = new Date(closedAt).getTime();
-  if (!Number.isFinite(ts)) return false;
+  const ts = parseListingTimestampMs(closedAt);
+  if (ts == null) return false;
   return nowMs - ts <= recentlyClosedArchiveMs(env);
 }
 
@@ -55,9 +75,8 @@ export function isWithinRecentlyClosedWindow(closedAt, nowMs = Date.now(), env =
  * @param {NodeJS.ProcessEnv} [env]
  */
 export function isEligibleForClosedListingArchive(closedAt, nowMs = Date.now(), env = process.env) {
-  if (!closedAt) return false;
-  const ts = new Date(closedAt).getTime();
-  if (!Number.isFinite(ts)) return false;
+  const ts = parseListingTimestampMs(closedAt);
+  if (ts == null) return false;
   return nowMs - ts >= recentlyClosedArchiveMs(env);
 }
 
@@ -87,8 +106,8 @@ function pickLatestClosedTimestamp(...candidates) {
   let bestMs = Number.NaN;
   for (const candidate of candidates) {
     if (!candidate) continue;
-    const ms = new Date(candidate).getTime();
-    if (!Number.isFinite(ms)) continue;
+    const ms = parseListingTimestampMs(candidate);
+    if (ms == null) continue;
     if (!Number.isFinite(bestMs) || ms > bestMs) {
       best = candidate;
       bestMs = ms;
@@ -106,10 +125,18 @@ export function getListingClosedAt(listing) {
   if (!listing) return null;
   const lc = resolveClosureLifecycle(listing);
   if (lc === LISTING_LIFECYCLE.RECENTLY_SOLD) {
-    return pickLatestClosedTimestamp(listing.sold_at, listing.closed_at, listing.updated_at);
+    return (
+      pickLatestClosedTimestamp(listing.sold_at, listing.closed_at) ??
+      listing.updated_at ??
+      null
+    );
   }
   if (lc === LISTING_LIFECYCLE.RECENTLY_RENTED) {
-    return pickLatestClosedTimestamp(listing.rented_at, listing.closed_at, listing.updated_at);
+    return (
+      pickLatestClosedTimestamp(listing.rented_at, listing.closed_at) ??
+      listing.updated_at ??
+      null
+    );
   }
   return null;
 }
@@ -122,9 +149,8 @@ export function getListingClosedAt(listing) {
  */
 export function getListingArchiveDeadline(listing, env = process.env) {
   const closedAt = getListingClosedAt(listing);
-  if (!closedAt) return null;
-  const ts = new Date(closedAt).getTime();
-  if (!Number.isFinite(ts)) return null;
+  const ts = parseListingTimestampMs(closedAt);
+  if (ts == null) return null;
   return new Date(ts + recentlyClosedArchiveMs(env));
 }
 
