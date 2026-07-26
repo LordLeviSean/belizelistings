@@ -237,10 +237,28 @@ function resultAppliedStatus(result) {
   return patch.lifecycle_status || patch.status || null;
 }
 
-export async function applyListingLifecycleAction(supabase, { listingId, action, extraUpdates = {} }) {
+function lifecycleActionPreservesClosureFields(action) {
+  return (
+    action === OWNERSHIP_ACTIONS.CLOSE_SOLD ||
+    action === OWNERSHIP_ACTIONS.CLOSE_RENTED ||
+    action === OWNERSHIP_ACTIONS.APPROVE ||
+    action === OWNERSHIP_ACTIONS.REPUBLISH ||
+    action === OWNERSHIP_ACTIONS.RESUBMIT
+  );
+}
+
+/** @param {string} action @param {Record<string, unknown>} [extraUpdates] */
+export function resolveListingLifecycleMutationPayload(action, extraUpdates = {}) {
   const base = lifecyclePayloadForAction({ action });
-  const { body: merged } = omitSubmitForReviewWorkflowFields({ ...base, ...extraUpdates });
-  const payload = merged;
+  const merged = { ...base, ...extraUpdates };
+  if (lifecycleActionPreservesClosureFields(action)) {
+    return merged;
+  }
+  return omitSubmitForReviewWorkflowFields(merged).body;
+}
+
+export async function applyListingLifecycleAction(supabase, { listingId, action, extraUpdates = {} }) {
+  const payload = resolveListingLifecycleMutationPayload(action, extraUpdates);
   const minimalFallback =
     moderationFallbackForAction(action) || completionFallbackForAction(action);
 
