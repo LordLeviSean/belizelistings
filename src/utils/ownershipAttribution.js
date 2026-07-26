@@ -39,6 +39,7 @@ import {
   enqueueNotificationEvent,
   NOTIFICATION_EVENT_TYPES,
 } from "../lib/notifications/notificationEvents";
+import { buildListingModerationNotificationPayload } from "../lib/notifications/listingModerationNotifications";
 import {
   bestEffortRemoveListingImageStorage,
   invokePermanentDeleteListingRpc,
@@ -317,6 +318,30 @@ export async function applyListingLifecycleAction(supabase, { listingId, action,
             dedupe_key: `${eventType}:${listingId}`,
           },
         });
+      }
+    }
+
+    if (action === OWNERSHIP_ACTIONS.APPROVE || action === OWNERSHIP_ACTIONS.REJECT) {
+      const recipientId = priorRow?.user_id;
+      if (recipientId) {
+        const { eventType, payload } = buildListingModerationNotificationPayload({
+          action,
+          listingId,
+          listingTitle: priorRow?.title || "Listing",
+          moderationVersion: result.appliedPayload?.updated_at,
+        });
+        const notifyResult = await enqueueNotificationEvent(supabase, {
+          eventType,
+          recipientId,
+          payload,
+        });
+        if (!notifyResult.ok && typeof console !== "undefined" && console.warn) {
+          console.warn("[moderation] notification enqueue failed", {
+            listingId,
+            eventType,
+            message: notifyResult.error?.message || "unknown",
+          });
+        }
       }
     }
 

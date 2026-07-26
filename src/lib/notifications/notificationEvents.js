@@ -17,6 +17,8 @@ export const NOTIFICATION_EVENT_TYPES = Object.freeze({
   LISTING_MARKED_SOLD: "listing_marked_sold",
   LISTING_MARKED_RENTED: "listing_marked_rented",
   LISTING_AUTO_ARCHIVED: "listing_auto_archived",
+  LISTING_APPROVED: "listing_approved",
+  LISTING_REJECTED: "listing_rejected",
 });
 
 /**

@@ -1,4 +1,5 @@
 import { resolveNotificationDestination, resolveGeographicUpdateListingsHref } from "@/lib/dashboardCrmRoutes";
+import { LISTING_LIFECYCLE } from "@/constants/operationalModel";
 import {
   resolveListingTitle,
   resolveSenderName,
@@ -170,6 +171,34 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityId = inquiryId ? String(inquiryId) : null;
       dedupeKey = dedupeKey ?? `inquiry_archived:${inquiryId ?? ""}`;
       href = resolveNotificationDestination({ eventType, role: recipientRole || "agent", payload });
+      break;
+
+    case NOTIFICATION_EVENT_TYPES.LISTING_APPROVED:
+      category = NOTIFICATION_CATEGORIES.MODERATION;
+      title = "Listing approved";
+      body = `${listingTitle} is now live on BelizeListings.`;
+      entityType = "listing";
+      entityId = listingId ? String(listingId) : null;
+      dedupeKey = dedupeKey ?? `listing_approved:${listingId ?? ""}`;
+      href = resolveNotificationDestination({
+        eventType,
+        role: recipientRole || "user",
+        payload: { ...payload, to_status: LISTING_LIFECYCLE.PUBLISHED },
+      });
+      break;
+
+    case NOTIFICATION_EVENT_TYPES.LISTING_REJECTED:
+      category = NOTIFICATION_CATEGORIES.MODERATION;
+      title = "Listing needs revision";
+      body = `${listingTitle} was not approved. Review and edit it before resubmitting.`;
+      entityType = "listing";
+      entityId = listingId ? String(listingId) : null;
+      dedupeKey = dedupeKey ?? `listing_rejected:${listingId ?? ""}`;
+      href = resolveNotificationDestination({
+        eventType,
+        role: recipientRole || "user",
+        payload: { ...payload, to_status: LISTING_LIFECYCLE.REJECTED },
+      });
       break;
 
     default:
