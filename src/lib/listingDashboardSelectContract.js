@@ -51,6 +51,10 @@ export const LISTING_DASHBOARD_BASE_COLUMNS = Object.freeze([
   "status",
   "lifecycle_status",
   "moderation_status",
+  "closed_at",
+  "sold_at",
+  "rented_at",
+  "archived_at",
 ]);
 
 /** Optional analytics — omitted when absent in Postgres. */
@@ -75,6 +79,7 @@ export const LISTING_DASHBOARD_LIFECYCLE_COLUMNS = Object.freeze([
   "closed_at",
   "sold_at",
   "rented_at",
+  "archived_at",
 ]);
 
 /** Last-resort owner row — always retains ownership, workflow, and lifecycle for badges/actions. */
@@ -113,7 +118,7 @@ export const LISTING_DASHBOARD_COUNT_SELECT_TIERS = Object.freeze([
 ]);
 
 /** sessionStorage cache version — bump when {@link LISTING_DASHBOARD_SELECT_TIERS} order/shape changes. */
-export const LISTING_DASHBOARD_TIER_CACHE_VERSION = 8;
+export const LISTING_DASHBOARD_TIER_CACHE_VERSION = 9;
 export const LISTING_DASHBOARD_TIER_CACHE_KEY = "bl-listing-dashboard-select-tier";
 export const LISTING_CREATE_WORKSPACE_TIER_CACHE_KEY = "bl-listing-create-workspace-select-tier";
 const SCHEMA_LEGACY_HINT_KEY = "bl-listing-dashboard-legacy-schema";

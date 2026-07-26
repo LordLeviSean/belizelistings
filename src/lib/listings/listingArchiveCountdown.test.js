@@ -91,6 +91,18 @@ describe("listingArchiveCountdown helpers", () => {
     expect(getListingArchiveDeadlineMs({ lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD })).toBe(
       null
     );
+    expect(
+      shouldShowListingArchiveCountdown({ lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD })
+    ).toBe(false);
     expect(formatListingArchiveCountdown(null, now)).toBe(null);
+  });
+
+  test("recently sold with updated_at fallback still shows countdown", () => {
+    const listing = {
+      lifecycle_status: LISTING_LIFECYCLE.RECENTLY_SOLD,
+      updated_at: "2026-07-10T10:00:00.000Z",
+    };
+    expect(shouldShowListingArchiveCountdown(listing)).toBe(true);
+    expect(getListingArchiveDeadlineMs(listing, qaEnv)).toBe(Date.parse("2026-07-10T12:00:00.000Z"));
   });
 });

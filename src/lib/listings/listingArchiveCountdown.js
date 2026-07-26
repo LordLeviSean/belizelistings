@@ -7,8 +7,13 @@ import { getLifecycleStatus } from "../../utils/canonicalListing";
  * @returns {boolean}
  */
 export function shouldShowListingArchiveCountdown(listing) {
+  if (!listing) return false;
   const lc = getLifecycleStatus(listing);
-  return lc === LISTING_LIFECYCLE.RECENTLY_SOLD || lc === LISTING_LIFECYCLE.RECENTLY_RENTED;
+  if (lc === LISTING_LIFECYCLE.ARCHIVED) return false;
+  if (lc !== LISTING_LIFECYCLE.RECENTLY_SOLD && lc !== LISTING_LIFECYCLE.RECENTLY_RENTED) {
+    return false;
+  }
+  return getListingArchiveDeadlineMs(listing) != null;
 }
 
 /**

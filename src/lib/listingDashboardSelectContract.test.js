@@ -55,7 +55,16 @@ describe("listingDashboardSelectContract", () => {
       const select = buildListingDashboardSelect(tier);
       expect(select).toContain("lifecycle_status");
       expect(select).toContain("moderation_status");
+      expect(select).toContain("closed_at");
+      expect(select).toContain("sold_at");
+      expect(select).toContain("rented_at");
     }
+  });
+
+  test("core base columns include closure timestamps for archive countdown", () => {
+    expect(LISTING_DASHBOARD_BASE_COLUMNS).toEqual(
+      expect.arrayContaining(["closed_at", "sold_at", "rented_at", "archived_at"])
+    );
   });
 
   test("base columns exclude operator and verification fields", () => {
