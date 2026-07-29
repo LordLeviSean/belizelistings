@@ -1,6 +1,9 @@
 import { memo } from "react";
 import { useCountUp } from "@/hooks/useCountUp";
-import { AGENT_DASHBOARD_COPY } from "@/constants/dashboardAgentConfig";
+import {
+  AGENT_DASHBOARD_COPY,
+  formatAgentListingLimitExhaustedMessage,
+} from "@/constants/dashboardAgentConfig";
 import styles from "@/styles/Dashboard.module.css";
 
 function NumericStatCard({ label, value, variant, sublabel, unavailable, unavailableDisplay = "—", onClick }) {
@@ -50,6 +53,7 @@ function AgentDashboardMetrics({
   inquiriesCount,
   inquiriesUnavailable,
   listingRemainingLabel,
+  listingCap,
   limitExhausted,
   onNavigateTab,
 }) {
@@ -84,7 +88,7 @@ function AgentDashboardMetrics({
           exhausted={limitExhausted}
           sublabel={
             limitExhausted
-              ? "Archive a listing to free a slot before restoring another."
+              ? formatAgentListingLimitExhaustedMessage(listingCap)
               : AGENT_DASHBOARD_COPY.listingLimitSubtext
           }
         />

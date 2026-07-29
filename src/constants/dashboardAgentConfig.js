@@ -5,7 +5,19 @@
 import { AGENT_ACTIVE_LISTING_CAP } from "@/constants/listingTierCaps";
 import { resolveUserDashboardListingCap, formatListingRemainingLabel, USER_DASHBOARD_FINITE_CAP_THRESHOLD } from "@/constants/dashboardUserConfig";
 
-export { resolveUserDashboardListingCap, formatListingRemainingLabel };
+export {
+  resolveUserDashboardListingCap,
+  formatListingRemainingLabel,
+};
+
+/**
+ * Shown when an agent exhausts their active listing quota.
+ * @param {number} listingCap from `resolveUserDashboardListingCap`
+ */
+export function formatAgentListingLimitExhaustedMessage(listingCap) {
+  const cap = Math.max(0, Math.floor(Number(listingCap) || 0));
+  return `You have reached the maximum of ${cap} active listings for your account. Please archive, rent, or sell an existing listing before publishing another.`;
+}
 
 export const AGENT_DASHBOARD_TAB_IDS = Object.freeze({
   OVERVIEW: "overview",

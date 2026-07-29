@@ -10,7 +10,10 @@ import {
   USER_DASHBOARD_TAB_IDS,
   getVisibleUserDashboardTabs,
   normalizeUserDashboardTab,
+  resolveUserDashboardListingCap,
+  formatUserListingLimitExhaustedMessage,
 } from "./dashboardUserConfig";
+import { PUBLIC_USER_ACTIVE_LISTING_CAP } from "./listingTierCaps";
 
 describe("dashboardUserConfig communication tabs", () => {
   test("shows unified Inbox and Viewings for all CRM users", () => {
@@ -41,5 +44,15 @@ describe("dashboardUserConfig communication tabs", () => {
     const tabs = getVisibleUserDashboardTabs();
     expect(tabs.find((t) => t.id === USER_DASHBOARD_TAB_IDS.INBOX)?.label).toBe("Inbox");
     expect(tabs.find((t) => t.id === USER_DASHBOARD_TAB_IDS.VIEWINGS)?.label).toBe("Viewings");
+  });
+});
+
+describe("dashboardUserConfig listing limit copy", () => {
+  test("exhausted message uses canonical public user cap", () => {
+    const cap = resolveUserDashboardListingCap("public");
+    expect(cap).toBe(PUBLIC_USER_ACTIVE_LISTING_CAP);
+    expect(formatUserListingLimitExhaustedMessage(cap)).toBe(
+      "You have reached the maximum of 5 active listings for your account. Upgrade to an Agent account to publish up to 25 active listings and unlock professional tools."
+    );
   });
 });

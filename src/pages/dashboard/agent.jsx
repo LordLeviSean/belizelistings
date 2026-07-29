@@ -297,6 +297,7 @@ export default function AgentDashboard() {
                     inquiriesCount={inquiriesCount}
                     inquiriesUnavailable={inquiriesUnavailable}
                     listingRemainingLabel={formatListingRemainingLabel(remainingListings)}
+                    listingCap={listingCap}
                     limitExhausted={limitExhausted}
                     onNavigateTab={selectTab}
                   />

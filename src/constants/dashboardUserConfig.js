@@ -1,6 +1,7 @@
 /**
  * Curated copy + metric keys for `/dashboard/user`.
  */
+import { AGENT_ACTIVE_LISTING_CAP } from "@/constants/listingTierCaps";
 import { resolveActiveListingCapForTier } from "@/constants/operationalModel";
 import {
   BL_ENABLE_CONVERSATIONS,
@@ -149,8 +150,6 @@ export const USER_DASHBOARD_COPY = Object.freeze({
   actionSubtext: "Create listings, save properties, and explore districts across Belize.",
   tryCreateLead: "Try creating your own listing!",
   listingLimitSubtext: "Listings available on your current tier",
-  upgradeHint:
-    "You have ten active listings on your account. Become an Agent to create more listings and unlock professional tools.",
   upgradeCta: "Upgrade to Agent",
   upgradeToBrokerCta: "Upgrade to Broker",
   agentUpgradePendingLabel: "Agent upgrade request pending editorial review.",
@@ -190,6 +189,15 @@ export function resolveUserDashboardListingCap(tier) {
 export function formatListingRemainingLabel(remaining) {
   const n = Math.max(0, Math.floor(Number(remaining) || 0));
   return `${n} Remaining`;
+}
+
+/**
+ * Shown when a platform user exhausts their active listing quota.
+ * @param {number} listingCap from `resolveUserDashboardListingCap`
+ */
+export function formatUserListingLimitExhaustedMessage(listingCap) {
+  const cap = Math.max(0, Math.floor(Number(listingCap) || 0));
+  return `You have reached the maximum of ${cap} active listings for your account. Upgrade to an Agent account to publish up to ${AGENT_ACTIVE_LISTING_CAP} active listings and unlock professional tools.`;
 }
 
 export function formatTryCreateRemainderChip(remaining, cap) {

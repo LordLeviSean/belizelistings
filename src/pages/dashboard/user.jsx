@@ -308,6 +308,7 @@ export default function UserDashboard() {
                         favoritesUnavailable={favoritesUnavailable}
                         inquiriesUnavailable={inquiriesUnavailable}
                         listingRemainingLabel={formatListingRemainingLabel(remainingListings)}
+                        listingCap={listingCap}
                         limitExhausted={limitExhausted}
                         onNavigateTab={selectTab}
                       />

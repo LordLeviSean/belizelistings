@@ -1,6 +1,9 @@
 import { memo } from "react";
 import { useCountUp } from "@/hooks/useCountUp";
-import { USER_DASHBOARD_COPY } from "@/constants/dashboardUserConfig";
+import {
+  USER_DASHBOARD_COPY,
+  formatUserListingLimitExhaustedMessage,
+} from "@/constants/dashboardUserConfig";
 import styles from "@/styles/Dashboard.module.css";
 
 function NumericStatCard({
@@ -59,6 +62,7 @@ function UserDashboardMetrics({
   favoritesUnavailable,
   inquiriesUnavailable,
   listingRemainingLabel,
+  listingCap,
   limitExhausted,
   onNavigateTab,
 }) {
@@ -93,7 +97,9 @@ function UserDashboardMetrics({
           valueText={listingRemainingLabel}
           exhausted={limitExhausted}
           sublabel={
-            limitExhausted ? USER_DASHBOARD_COPY.upgradeHint : USER_DASHBOARD_COPY.listingLimitSubtext
+            limitExhausted
+              ? formatUserListingLimitExhaustedMessage(listingCap)
+              : USER_DASHBOARD_COPY.listingLimitSubtext
           }
         />
       </div>
