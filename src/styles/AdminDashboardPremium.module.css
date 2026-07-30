@@ -29,7 +29,8 @@
 }
 
 .adminPage.adminPage :global(.operationalStatsShell) {
-  margin-top: -4px;
+  margin-top: -540px;
+  padding-top: 0;
 }
 
 .adminPage.adminPage :global(.adminMainGrid) {
@@ -97,7 +98,8 @@
   }
 
   .adminPage.adminPage :global(.operationalStatsShell) {
-    margin-top: -3px;
+    margin-top: -405px;
+    padding-top: 0;
   }
 
   .adminPage.adminPage :global(.adminMainGrid) {
