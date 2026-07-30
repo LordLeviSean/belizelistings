@@ -3,7 +3,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useShallow } from "zustand/react/shallow";
 import SiteNav from "@/components/SiteNav";
-import { DashboardShell, DashboardTabNav } from "@/components/dashboard";
+import { DashboardShell, DashboardTabNav, DashboardRoleLayout } from "@/components/dashboard";
+import roleLayoutStyles from "@/components/dashboard/DashboardRoleLayout.module.css";
 import UserDashboardAccountTier from "@/components/user/UserDashboardAccountTier";
 import UserDashboardMetrics from "@/components/user/UserDashboardMetrics";
 import UserMyListingsPanel from "@/components/user/UserMyListingsPanel";
@@ -263,6 +264,34 @@ export default function UserDashboard() {
   const limitExhausted = finiteCap && remainingListings === 0;
   const remainderChip = formatTryCreateRemainderChip(remainingListings, listingCap);
 
+  const metricsBlock =
+    showHydratingShell ? (
+      <div
+        className={loadingStyles.hydratingMetrics}
+        aria-busy="true"
+        aria-label="Refreshing dashboard"
+      >
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className={`skeleton ${loadingStyles.hydratingMetricCard}`} />
+        ))}
+      </div>
+    ) : (
+      <UserDashboardMetrics
+        activeListings={activeListings}
+        pendingListings={pendingListings}
+        archivedListings={archivedListings}
+        draftListings={draftListings}
+        favoritesCount={favoritesCount}
+        inquiriesCount={inquiriesCount}
+        favoritesUnavailable={favoritesUnavailable}
+        inquiriesUnavailable={inquiriesUnavailable}
+        listingRemainingLabel={formatListingRemainingLabel(remainingListings)}
+        listingCap={listingCap}
+        limitExhausted={limitExhausted}
+        onNavigateTab={selectTab}
+      />
+    );
+
   return (
     <div className={`${styles.page} ${styles.userDashboardPage}`}>
       <SiteNav active="dashboard" />
@@ -272,48 +301,24 @@ export default function UserDashboard() {
           title={USER_DASHBOARD_COPY.shellTitle}
           subtitle={subtitle}
         >
-          <div className={styles.adminWrapper}>
+          <div className={roleLayoutStyles.contentInner}>
             <ProfileCompletionBanner profileTabHref="/dashboard/user?tab=profile" />
 
-            <DashboardTabNav
-              tabs={visibleTabs}
-              activeTab={activeTab}
-              onSelect={selectTab}
-              tabCounts={tabCounts}
-            />
-
+            <DashboardRoleLayout
+              statsRegionClassName={roleLayoutStyles.statsRegion}
+              mainGridClassName={`${roleLayoutStyles.mainGrid} ${roleLayoutStyles.userMainGrid}`}
+              stats={metricsBlock}
+              navigation={
+                <DashboardTabNav
+                  tabs={visibleTabs}
+                  activeTab={activeTab}
+                  onSelect={selectTab}
+                  tabCounts={tabCounts}
+                />
+              }
+            >
                 {activeTab === USER_DASHBOARD_TAB_IDS.OVERVIEW ? (
                   <>
-                    {showHydratingShell ? (
-                      <div
-                        className={loadingStyles.hydratingMetrics}
-                        aria-busy="true"
-                        aria-label="Refreshing dashboard"
-                      >
-                        {Array.from({ length: 5 }, (_, i) => (
-                          <div
-                            key={i}
-                            className={`skeleton ${loadingStyles.hydratingMetricCard}`}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <UserDashboardMetrics
-                        activeListings={activeListings}
-                        pendingListings={pendingListings}
-                        archivedListings={archivedListings}
-                        draftListings={draftListings}
-                        favoritesCount={favoritesCount}
-                        inquiriesCount={inquiriesCount}
-                        favoritesUnavailable={favoritesUnavailable}
-                        inquiriesUnavailable={inquiriesUnavailable}
-                        listingRemainingLabel={formatListingRemainingLabel(remainingListings)}
-                        listingCap={listingCap}
-                        limitExhausted={limitExhausted}
-                        onNavigateTab={selectTab}
-                      />
-                    )}
-
                     {showHydratingShell ? (
                       <div
                         className={`skeleton ${loadingStyles.hydratingPanel}`}
@@ -498,8 +503,9 @@ export default function UserDashboard() {
                     ) : null}
                   </section>
                 ) : null}
-              </div>
-            </DashboardShell>
+            </DashboardRoleLayout>
+          </div>
+        </DashboardShell>
       </main>
     </div>
   );
