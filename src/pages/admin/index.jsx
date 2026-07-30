@@ -328,19 +328,21 @@ export default function AdminPage() {
             title="Admin Control Center"
             subtitle={`${welcomePhrase} · ${DASHBOARD_ROLE_META[DASHBOARD_ROLE.admin].defaultSubtitle}`}
           >
-            <div className={`${styles.adminWrapper} ${premiumStyles.contentWell}`}>
+            <div className={`${premiumStyles.adminDashboardInner} ${premiumStyles.contentWell}`}>
               <div className={premiumStyles.dataSurface}>
                 <div className={`${premiumStyles.lampTarget}`}>
-                  <AdminOperationalStats
+                  <div className={premiumStyles.adminStatsRegion}>
+                    <AdminOperationalStats
                     total={totals.listings}
                     pending={totals.pending}
                     approved={totals.approved}
                     rejected={totals.rejected}
                     archived={totals.archived}
                     users={totals.users}
-                  />
+                    />
+                  </div>
                 </div>
-                <div className={styles.adminMainGrid}>
+                <div className={premiumStyles.adminMainGridTight}>
                   <section>
                     <DashboardTabNav
                       tabs={visibleTabs}

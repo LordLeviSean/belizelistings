@@ -20,23 +20,22 @@
 }
 
 /*
- * Admin hero → stats: normal document flow, ~8px visual gap.
- * Do not use large negative margins — they pull the strip off-screen.
+ * Admin hero → stats spacing uses module-local classes (admin/index.jsx).
+ * :global(.adminWrapper) / :global(.operationalStatsShell) do NOT match hashed CSS module names.
  */
 
-.adminPage.adminPage :global(.adminWrapper) {
+.adminDashboardInner {
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 0 12px 12px;
 }
 
-.adminPage.adminPage :global(.operationalStatsShell) {
+.adminStatsRegion > div {
   margin-top: 0;
 }
 
-.adminPage.adminPage :global([data-dashboard-role="admin"] .identity) {
-  margin-bottom: 8px;
-}
-
-.adminPage.adminPage :global(.adminMainGrid) {
+.adminMainGridTight {
+  composes: adminMainGrid from "./Dashboard.module.css";
   margin-top: 8px;
   gap: 10px;
 }
@@ -92,19 +91,15 @@
     padding: 8px 10px calc(12px + env(safe-area-inset-bottom));
   }
 
-  .adminPage.adminPage :global(.adminWrapper) {
+  .adminDashboardInner {
     padding: 0 8px calc(10px + env(safe-area-inset-bottom));
   }
 
-  .adminPage.adminPage :global(.operationalStatsShell) {
+  .adminStatsRegion > div {
     margin-top: 0;
   }
 
-  .adminPage.adminPage :global([data-dashboard-role="admin"] .identity) {
-    margin-bottom: 6px;
-  }
-
-  .adminPage.adminPage :global(.adminMainGrid) {
+  .adminMainGridTight {
     margin-top: 6px;
     gap: 8px;
   }
