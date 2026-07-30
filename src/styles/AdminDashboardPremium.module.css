@@ -29,7 +29,7 @@
 }
 
 .adminPage.adminPage :global(.operationalStatsShell) {
-  margin-top: 0;
+  margin-top: -2px;
 }
 
 .adminPage.adminPage :global(.adminMainGrid) {
@@ -43,7 +43,7 @@
 }
 
 .adminPage.adminPage :global([data-dashboard-role="admin"] .identity) {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 /* Admin-only decorative silk — hidden so page shell matches user dashboard exactly */
@@ -63,7 +63,7 @@
   position: relative;
   z-index: 3;
   border-radius: calc(var(--radius) + 2px);
-  padding: 2px;
+  padding: 0;
 }
 
 /* Neon accent — active admin nav tab only (via global class hook). */
@@ -97,7 +97,7 @@
   }
 
   .adminPage.adminPage :global(.operationalStatsShell) {
-    margin-top: 0;
+    margin-top: -1px;
   }
 
   .adminPage.adminPage :global(.adminMainGrid) {
@@ -111,7 +111,7 @@
   }
 
   .adminPage.adminPage :global([data-dashboard-role="admin"] .identity) {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
 
   .silkLeft,
