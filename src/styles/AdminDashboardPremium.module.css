@@ -29,7 +29,7 @@
 }
 
 .adminPage.adminPage :global(.operationalStatsShell) {
-  margin-top: -2px;
+  margin-top: -4px;
 }
 
 .adminPage.adminPage :global(.adminMainGrid) {
@@ -43,7 +43,7 @@
 }
 
 .adminPage.adminPage :global([data-dashboard-role="admin"] .identity) {
-  margin-bottom: 4px;
+  margin-bottom: 0;
 }
 
 /* Admin-only decorative silk — hidden so page shell matches user dashboard exactly */
@@ -97,7 +97,7 @@
   }
 
   .adminPage.adminPage :global(.operationalStatsShell) {
-    margin-top: -1px;
+    margin-top: -3px;
   }
 
   .adminPage.adminPage :global(.adminMainGrid) {
@@ -111,7 +111,7 @@
   }
 
   .adminPage.adminPage :global([data-dashboard-role="admin"] .identity) {
-    margin-bottom: 4px;
+    margin-bottom: 0;
   }
 
   .silkLeft,
