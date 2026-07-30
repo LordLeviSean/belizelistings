@@ -51,12 +51,17 @@
     radial-gradient(ellipse 50% 68% at 14% 0%, rgba(100, 140, 168, 0.14), transparent 72%),
     radial-gradient(ellipse 40% 50% at 88% 8%, rgba(137, 205, 189, 0.08), transparent 70%);
   box-shadow: var(--elev-2), 0 0 0 1px rgba(255, 255, 255, 0.28) inset;
-  margin-bottom: 16px;
-  padding: 12px 16px;
+  margin-bottom: 8px;
+  padding: 10px 14px;
 }
 
 .shell[data-dashboard-role="admin"] {
-  padding: 6px 0 22px;
+  padding: 0 0 12px;
+}
+
+.shell[data-dashboard-role="admin"] .body {
+  margin: 0;
+  padding: 0;
 }
 
 .shell[data-dashboard-role="user"] .identity {
@@ -122,9 +127,18 @@
     padding: 8px 12px calc(24px + env(safe-area-inset-bottom));
   }
 
+  .shell[data-dashboard-role="admin"] {
+    padding: 0 0 calc(10px + env(safe-area-inset-bottom));
+  }
+
   .identity {
     padding: 14px;
     margin-bottom: 16px;
+  }
+
+  .shell[data-dashboard-role="admin"] .identity {
+    margin-bottom: 6px;
+    padding: 10px 12px;
   }
 
   .identityForeground {
