@@ -42,7 +42,8 @@
 
 .adminPage.adminPage [role="tablist"][aria-label="Dashboard sections"] {
   margin-bottom: 6px;
-  gap: 8px 12px;
+  row-gap: 8px;
+  column-gap: 6px;
 }
 
 /* Admin-only decorative silk — hidden so page shell matches user dashboard exactly */
