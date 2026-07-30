@@ -39,7 +39,7 @@ import {
   getVisibleAdminDashboardTabs,
   resolveVisibleAdminDashboardTab,
 } from "../../constants/dashboardAdminConfig";
-import { DashboardShell, DashboardTabNav } from "../../components/dashboard";
+import { DashboardShell, DashboardTabNav, DashboardRoleLayout } from "../../components/dashboard";
 import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "../../constants/dashboardRoles";
 import { isBuyerConversationUnread } from "../../lib/crm/conversationMutations";
 import styles from "../../styles/Dashboard.module.css";
@@ -328,30 +328,188 @@ export default function AdminPage() {
             title="Admin Control Center"
             subtitle={`${welcomePhrase} · ${DASHBOARD_ROLE_META[DASHBOARD_ROLE.admin].defaultSubtitle}`}
           >
-            <div className={`${premiumStyles.adminDashboardInner} ${premiumStyles.contentWell}`}>
-              <div className={premiumStyles.dataSurface}>
-                <div className={`${premiumStyles.lampTarget}`}>
-                  <div className={premiumStyles.adminStatsRegion}>
-                    <AdminOperationalStats
-                    total={totals.listings}
-                    pending={totals.pending}
-                    approved={totals.approved}
-                    rejected={totals.rejected}
-                    archived={totals.archived}
-                    users={totals.users}
-                    />
+            <DashboardRoleLayout
+              contentInnerClassName={`${premiumStyles.adminDashboardInner} ${premiumStyles.contentWell}`}
+              dataSurfaceClassName={premiumStyles.dataSurface}
+              statsLampClassName={premiumStyles.lampTarget}
+              statsRegionClassName={premiumStyles.adminStatsRegion}
+              mainGridClassName={premiumStyles.adminMainGridTight}
+              stats={
+                <AdminOperationalStats
+                  total={totals.listings}
+                  pending={totals.pending}
+                  approved={totals.approved}
+                  rejected={totals.rejected}
+                  archived={totals.archived}
+                  users={totals.users}
+                />
+              }
+              navigation={
+                <DashboardTabNav
+                  tabs={visibleTabs}
+                  activeTab={activeTab}
+                  onSelect={selectTab}
+                  tabCounts={tabCounts}
+                  variant="link"
+                  activeTabClassName="adminTabNeonActive"
+                />
+              }
+              aside={
+                <aside className={`${styles.card} ${premiumStyles.lampTarget}`}>
+                  <h3 className={styles.sectionTitle}>Quick Actions</h3>
+                  <Link
+                    className={`${styles.primaryButton} ${premiumStyles.adminPrimaryAction}`}
+                    href="/admin/marketplace-health"
+                    style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}
+                  >
+                    Marketplace Health
+                  </Link>
+                  <button
+                    type="button"
+                    className={`${styles.primaryButton} ${premiumStyles.adminPrimaryAction}`}
+                    style={{ marginTop: 8 }}
+                    onClick={() => router.push("/dashboard/create")}
+                  >
+                    Create Listing
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.primaryButton} ${premiumStyles.adminPrimaryAction}`}
+                    style={{ marginTop: 8 }}
+                    onClick={() => selectTab(ADMIN_DASHBOARD_TAB_IDS.USERS, { action: "create-user" })}
+                  >
+                    Create User
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.approveButton} ${premiumStyles.adminPrimaryAction}`}
+                    style={{ marginTop: 8 }}
+                    onClick={() => handleBulkAction("approved")}
+                    disabled={bulkLoading === "approved"}
+                  >
+                    {bulkLoading === "approved" ? "Processing..." : "Bulk Approve"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.rejectButton} ${styles.quickDangerMuted}`}
+                    style={{ marginTop: 8 }}
+                    onClick={() => handleBulkAction("rejected")}
+                    disabled={bulkLoading === "rejected"}
+                  >
+                    {bulkLoading === "rejected" ? "Processing..." : "Bulk Reject"}
+                  </button>
+                  <div className={styles.effectControls}>
+                    <div className={styles.effectCard}>
+                      <div>
+                        <p className={styles.livePaletteLabel}>Live Palette Mode</p>
+                        <p className={styles.livePaletteSubtext}>
+                          Subtle district color breathing in the BelizeListings wordmark.
+                        </p>
+                      </div>
+                      <label className={styles.livePaletteSwitch}>
+                        <input
+                          type="checkbox"
+                          checked={livePaletteModeEnabled}
+                          onChange={(e) => setLivePaletteMode(e.target.checked)}
+                          aria-label="Toggle live palette mode"
+                        />
+                        <span className={styles.livePaletteSlider} />
+                      </label>
+                    </div>
+                    <div className={styles.effectCard}>
+                      <div>
+                        <p className={styles.livePaletteLabel}>Pulse Mode</p>
+                        <p className={styles.livePaletteSubtext}>
+                          Calm editorial pulse layered over live palette transitions.
+                        </p>
+                      </div>
+                      <label className={styles.livePaletteSwitch}>
+                        <input
+                          type="checkbox"
+                          checked={pulseModeEnabled}
+                          onChange={(e) => setPulseMode(e.target.checked)}
+                          aria-label="Toggle pulse mode"
+                        />
+                        <span className={styles.livePaletteSlider} />
+                      </label>
+                    </div>
+                    <div className={styles.effectCard}>
+                      <div>
+                        <p className={styles.livePaletteLabel}>Sea Flow Mode</p>
+                        <p className={styles.livePaletteSubtext}>
+                          Layered sea-glass current motion across the full homepage hero canvas.
+                        </p>
+                      </div>
+                      <label className={styles.livePaletteSwitch}>
+                        <input
+                          type="checkbox"
+                          checked={seaFlowModeEnabled}
+                          onChange={(e) => setSeaFlowMode(e.target.checked)}
+                          aria-label="Toggle sea flow mode"
+                        />
+                        <span className={styles.livePaletteSlider} />
+                      </label>
+                    </div>
+                    <div className={`${styles.effectCard} ${styles.effectCardStacked}`}>
+                      <div className={styles.effectCardCopy}>
+                        <p className={styles.livePaletteLabel}>Sea Flow Intensity</p>
+                        <p className={styles.livePaletteSubtext}>
+                          Master multiplier for wave visibility, atmospheric strength, and glow — live
+                          across desktop and mobile homepage, canvas, and ambient layers.
+                        </p>
+                        <p className={styles.livePaletteIndicator}>
+                          {getSeaFlowIntensityLabel(seaFlowIntensity)}
+                        </p>
+                      </div>
+                      <input
+                        type="range"
+                        className={styles.seaFlowIntensityRange}
+                        min="0"
+                        max="500"
+                        step="25"
+                        value={Math.round(seaFlowIntensity * 100)}
+                        onChange={(e) => setSeaFlowIntensity(Number(e.target.value) / 100)}
+                        aria-label="Sea flow intensity"
+                        aria-valuemin={0}
+                        aria-valuemax={500}
+                        aria-valuenow={Math.round(seaFlowIntensity * 100)}
+                        list="sea-flow-intensity-stops"
+                        disabled={!seaFlowModeEnabled}
+                      />
+                      <datalist id="sea-flow-intensity-stops">
+                        <option value="0" label="Disabled" />
+                        <option value="25" label="Very subtle" />
+                        <option value="50" label="Subtle" />
+                        <option value="100" label="Baseline" />
+                        <option value="150" label="Enhanced" />
+                        <option value="200" label="Strong" />
+                        <option value="300" label="Pronounced" />
+                        <option value="400" label="Cinematic" />
+                        <option value="500" label="Maximum" />
+                      </datalist>
+                    </div>
                   </div>
-                </div>
-                <div className={premiumStyles.adminMainGridTight}>
-                  <section>
-                    <DashboardTabNav
-                      tabs={visibleTabs}
-                      activeTab={activeTab}
-                      onSelect={selectTab}
-                      tabCounts={tabCounts}
-                      variant="link"
-                      activeTabClassName="adminTabNeonActive"
-                    />
+                  <h4 style={{ marginTop: 16, marginBottom: 8 }}>Recent Activity</h4>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    {activity.length ? (
+                      activity.map((item) => (
+                        <p key={item.id} className={styles.muted}>
+                          {item.stamp} - {item.message}
+                        </p>
+                      ))
+                    ) : (
+                      <PremiumEmptyState variant="activity" compact title="Operational activity is quiet" />
+                    )}
+                  </div>
+                  <p className={styles.muted} style={{ marginTop: 8 }}>
+                    <span className={styles.liveDot} /> Updated {updatedAtLabel}
+                  </p>
+                  <p className={styles.muted} style={{ marginTop: 12 }}>
+                    Last Action: {lastAction}
+                  </p>
+                </aside>
+              }
+            >
               {activeTab === "pending" && (
                 <PendingListingsPanel
                   profilesRevision={profilesRevision}
@@ -480,155 +638,7 @@ export default function AdminPage() {
                   ) : null}
                 </section>
               ) : null}
-            </section>
-            <aside className={`${styles.card} ${premiumStyles.lampTarget}`}>
-              <h3 className={styles.sectionTitle}>Quick Actions</h3>
-              <Link
-                className={`${styles.primaryButton} ${premiumStyles.adminPrimaryAction}`}
-                href="/admin/marketplace-health"
-                style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}
-              >
-                Marketplace Health
-              </Link>
-              <button
-                type="button"
-                className={`${styles.primaryButton} ${premiumStyles.adminPrimaryAction}`}
-                style={{ marginTop: 8 }}
-                onClick={() => router.push("/dashboard/create")}
-              >
-                Create Listing
-              </button>
-              <button
-                type="button"
-                className={`${styles.primaryButton} ${premiumStyles.adminPrimaryAction}`}
-                style={{ marginTop: 8 }}
-                onClick={() => selectTab(ADMIN_DASHBOARD_TAB_IDS.USERS, { action: "create-user" })}
-              >
-                Create User
-              </button>
-              <button
-                type="button"
-                className={`${styles.approveButton} ${premiumStyles.adminPrimaryAction}`}
-                style={{ marginTop: 8 }}
-                onClick={() => handleBulkAction("approved")}
-                disabled={bulkLoading === "approved"}
-              >
-                {bulkLoading === "approved" ? "Processing..." : "Bulk Approve"}
-              </button>
-              <button type="button" className={`${styles.rejectButton} ${styles.quickDangerMuted}`} style={{ marginTop: 8 }} onClick={() => handleBulkAction("rejected")} disabled={bulkLoading === "rejected"}>
-                {bulkLoading === "rejected" ? "Processing..." : "Bulk Reject"}
-              </button>
-              <div className={styles.effectControls}>
-                <div className={styles.effectCard}>
-                  <div>
-                    <p className={styles.livePaletteLabel}>Live Palette Mode</p>
-                    <p className={styles.livePaletteSubtext}>
-                      Subtle district color breathing in the BelizeListings wordmark.
-                    </p>
-                  </div>
-                  <label className={styles.livePaletteSwitch}>
-                    <input
-                      type="checkbox"
-                      checked={livePaletteModeEnabled}
-                      onChange={(e) => setLivePaletteMode(e.target.checked)}
-                      aria-label="Toggle live palette mode"
-                    />
-                    <span className={styles.livePaletteSlider} />
-                  </label>
-                </div>
-                <div className={styles.effectCard}>
-                  <div>
-                    <p className={styles.livePaletteLabel}>Pulse Mode</p>
-                    <p className={styles.livePaletteSubtext}>
-                      Calm editorial pulse layered over live palette transitions.
-                    </p>
-                  </div>
-                  <label className={styles.livePaletteSwitch}>
-                    <input
-                      type="checkbox"
-                      checked={pulseModeEnabled}
-                      onChange={(e) => setPulseMode(e.target.checked)}
-                      aria-label="Toggle pulse mode"
-                    />
-                    <span className={styles.livePaletteSlider} />
-                  </label>
-                </div>
-                <div className={styles.effectCard}>
-                  <div>
-                    <p className={styles.livePaletteLabel}>Sea Flow Mode</p>
-                    <p className={styles.livePaletteSubtext}>
-                      Layered sea-glass current motion across the full homepage hero canvas.
-                    </p>
-                  </div>
-                  <label className={styles.livePaletteSwitch}>
-                    <input
-                      type="checkbox"
-                      checked={seaFlowModeEnabled}
-                      onChange={(e) => setSeaFlowMode(e.target.checked)}
-                      aria-label="Toggle sea flow mode"
-                    />
-                    <span className={styles.livePaletteSlider} />
-                  </label>
-                </div>
-                <div className={`${styles.effectCard} ${styles.effectCardStacked}`}>
-                  <div className={styles.effectCardCopy}>
-                    <p className={styles.livePaletteLabel}>Sea Flow Intensity</p>
-                    <p className={styles.livePaletteSubtext}>
-                      Master multiplier for wave visibility, atmospheric strength, and glow — live
-                      across desktop and mobile homepage, canvas, and ambient layers.
-                    </p>
-                    <p className={styles.livePaletteIndicator}>
-                      {getSeaFlowIntensityLabel(seaFlowIntensity)}
-                    </p>
-                  </div>
-                  <input
-                    type="range"
-                    className={styles.seaFlowIntensityRange}
-                    min="0"
-                    max="500"
-                    step="25"
-                    value={Math.round(seaFlowIntensity * 100)}
-                    onChange={(e) => setSeaFlowIntensity(Number(e.target.value) / 100)}
-                    aria-label="Sea flow intensity"
-                    aria-valuemin={0}
-                    aria-valuemax={500}
-                    aria-valuenow={Math.round(seaFlowIntensity * 100)}
-                    list="sea-flow-intensity-stops"
-                    disabled={!seaFlowModeEnabled}
-                  />
-                  <datalist id="sea-flow-intensity-stops">
-                    <option value="0" label="Disabled" />
-                    <option value="25" label="Very subtle" />
-                    <option value="50" label="Subtle" />
-                    <option value="100" label="Baseline" />
-                    <option value="150" label="Enhanced" />
-                    <option value="200" label="Strong" />
-                    <option value="300" label="Pronounced" />
-                    <option value="400" label="Cinematic" />
-                    <option value="500" label="Maximum" />
-                  </datalist>
-                </div>
-              </div>
-              <h4 style={{ marginTop: 16, marginBottom: 8 }}>Recent Activity</h4>
-              <div style={{ display: "grid", gap: 6 }}>
-                {activity.length ? (
-                  activity.map((item) => (
-                    <p key={item.id} className={styles.muted}>
-                      {item.stamp} - {item.message}
-                    </p>
-                  ))
-                ) : (
-                  <PremiumEmptyState variant="activity" compact title="Operational activity is quiet" />
-                )}
-              </div>
-              <p className={styles.muted} style={{ marginTop: 8 }}>
-                <span className={styles.liveDot} /> Updated {updatedAtLabel}
-              </p>
-              <p className={styles.muted} style={{ marginTop: 12 }}>Last Action: {lastAction}</p>
-            </aside>
-                </div>
-              </div>
-            </div>
+            </DashboardRoleLayout>
           </DashboardShell>
         </div>
       </main>

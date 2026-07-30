@@ -1,0 +1,31 @@
+/**
+ * Shared dashboard layout rhythm tokens for non-admin roles (Phase 2/3).
+ * Admin keeps premium modifiers in AdminDashboardPremium.module.css.
+ */
+
+.contentInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 12px 12px;
+}
+
+.statsRegion > div {
+  margin-top: 0;
+}
+
+.mainGrid {
+  composes: adminMainGrid from "../../styles/Dashboard.module.css";
+  margin-top: 8px;
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .contentInner {
+    padding: 0 8px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .mainGrid {
+    margin-top: 6px;
+    gap: 8px;
+  }
+}
