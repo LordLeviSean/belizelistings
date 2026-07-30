@@ -51,6 +51,12 @@
     radial-gradient(ellipse 50% 68% at 14% 0%, rgba(100, 140, 168, 0.14), transparent 72%),
     radial-gradient(ellipse 40% 50% at 88% 8%, rgba(137, 205, 189, 0.08), transparent 70%);
   box-shadow: var(--elev-2), 0 0 0 1px rgba(255, 255, 255, 0.28) inset;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+}
+
+.shell[data-dashboard-role="admin"] {
+  padding: 6px 0 22px;
 }
 
 .shell[data-dashboard-role="user"] .identity {

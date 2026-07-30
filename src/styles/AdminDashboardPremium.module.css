@@ -11,11 +11,32 @@
 
 .main {
   composes: main from "./Dashboard.module.css";
+  padding: 12px 16px 24px;
 }
 
 .frame {
   position: relative;
   min-height: calc(100vh - 64px);
+}
+
+/* —— Admin dashboard vertical rhythm (~20% tighter vs prior; matches user density) —— */
+
+.adminPage.adminPage :global(.adminWrapper) {
+  padding: 18px;
+}
+
+.adminPage.adminPage :global(.operationalStatsShell) {
+  margin-top: 17px;
+}
+
+.adminPage.adminPage :global(.adminMainGrid) {
+  margin-top: 14px;
+  gap: 13px;
+}
+
+.adminPage.adminPage [role="tablist"][aria-label="Dashboard sections"] {
+  margin-bottom: 11px;
+  gap: 11px 14px;
 }
 
 /* Admin-only decorative silk — hidden so page shell matches user dashboard exactly */
@@ -60,6 +81,28 @@
 }
 
 @media (max-width: 720px) {
+  .main {
+    padding: 10px 12px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .adminPage.adminPage :global(.adminWrapper) {
+    padding: 12px 10px calc(14px + env(safe-area-inset-bottom));
+  }
+
+  .adminPage.adminPage :global(.operationalStatsShell) {
+    margin-top: 14px;
+  }
+
+  .adminPage.adminPage :global(.adminMainGrid) {
+    margin-top: 12px;
+    gap: 12px;
+  }
+
+  .adminPage.adminPage [role="tablist"][aria-label="Dashboard sections"] {
+    margin-bottom: 10px;
+    gap: 10px 12px;
+  }
+
   .silkLeft,
   .silkRight,
   .silkHeader {
