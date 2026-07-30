@@ -13,6 +13,10 @@
   margin-top: 0;
 }
 
+.userStatsRegion {
+  margin-top: 10px;
+}
+
 .mainGrid {
   composes: adminMainGrid from "../../styles/Dashboard.module.css";
   margin-top: 8px;
@@ -21,6 +25,10 @@
 
 .userMainGrid {
   gap: 12px;
+}
+
+.userMainGridSingle {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .agentMainGrid {
@@ -35,5 +43,9 @@
   .mainGrid {
     margin-top: 6px;
     gap: 8px;
+  }
+
+  .userStatsRegion {
+    margin-top: 8px;
   }
 }

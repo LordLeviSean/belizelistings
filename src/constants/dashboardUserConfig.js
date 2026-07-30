@@ -170,6 +170,12 @@ export const USER_DASHBOARD_COPY = Object.freeze({
     "Brokerage accounts require office verification. You can begin agent onboarding anytime; broker tools unlock after review.",
   primaryCta: "Create Listing",
   secondaryCta: "Saved Favorites",
+  quickActionsTitle: "Quick Actions",
+  quickActionCreateListing: "Create Listing",
+  quickActionUpdateProfile: "Update Profile",
+  quickActionSavedFavorites: "View Saved Favorites",
+  quickActionBrowseListings: "Browse Listings",
+  listingLimitSubtextCompact: "Available on your current tier",
   placeholderComingSoon: "Coming soon",
   inquiriesComingSoon: "Coming soon",
 });
@@ -198,6 +204,12 @@ export function formatListingRemainingLabel(remaining) {
 export function formatUserListingLimitExhaustedMessage(listingCap) {
   const cap = Math.max(0, Math.floor(Number(listingCap) || 0));
   return `You have reached the maximum of ${cap} active listings for your account. Upgrade to an Agent account to publish up to ${AGENT_ACTIVE_LISTING_CAP} active listings and unlock professional tools.`;
+}
+
+/** Compact KPI sublabel — full meaning preserved via accessible label on the limit card. */
+export function formatUserListingLimitExhaustedMessageCompact(listingCap) {
+  const cap = Math.max(0, Math.floor(Number(listingCap) || 0));
+  return `Maximum ${cap} active listings reached. Upgrade to Agent for up to ${AGENT_ACTIVE_LISTING_CAP}.`;
 }
 
 export function formatTryCreateRemainderChip(remaining, cap) {

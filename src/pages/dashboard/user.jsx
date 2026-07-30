@@ -7,6 +7,7 @@ import { DashboardShell, DashboardTabNav, DashboardRoleLayout } from "@/componen
 import roleLayoutStyles from "@/components/dashboard/DashboardRoleLayout.module.css";
 import UserDashboardAccountTier from "@/components/user/UserDashboardAccountTier";
 import UserDashboardMetrics from "@/components/user/UserDashboardMetrics";
+import UserDashboardQuickActions from "@/components/user/UserDashboardQuickActions";
 import UserMyListingsPanel from "@/components/user/UserMyListingsPanel";
 import UserPendingListingsPanel from "@/components/user/UserPendingListingsPanel";
 import UserArchivedListingsPanel from "@/components/user/UserArchivedListingsPanel";
@@ -31,7 +32,6 @@ import {
   USER_DASHBOARD_FINITE_CAP_THRESHOLD,
   USER_DASHBOARD_TAB_IDS,
   formatListingRemainingLabel,
-  formatTryCreateRemainderChip,
   getVisibleUserDashboardTabs,
   normalizeUserDashboardTab,
   resolveVisibleUserDashboardTab,
@@ -262,7 +262,6 @@ export default function UserDashboard() {
   const finiteCap = listingCap < USER_DASHBOARD_FINITE_CAP_THRESHOLD;
   const createDisabled = finiteCap && remainingListings === 0;
   const limitExhausted = finiteCap && remainingListings === 0;
-  const remainderChip = formatTryCreateRemainderChip(remainingListings, listingCap);
 
   const metricsBlock =
     showHydratingShell ? (
@@ -271,7 +270,7 @@ export default function UserDashboard() {
         aria-busy="true"
         aria-label="Refreshing dashboard"
       >
-        {Array.from({ length: 5 }, (_, i) => (
+        {Array.from({ length: 7 }, (_, i) => (
           <div key={i} className={`skeleton ${loadingStyles.hydratingMetricCard}`} />
         ))}
       </div>
@@ -305,8 +304,12 @@ export default function UserDashboard() {
             <ProfileCompletionBanner profileTabHref="/dashboard/user?tab=profile" />
 
             <DashboardRoleLayout
-              statsRegionClassName={roleLayoutStyles.statsRegion}
-              mainGridClassName={`${roleLayoutStyles.mainGrid} ${roleLayoutStyles.userMainGrid}`}
+              statsRegionClassName={`${roleLayoutStyles.statsRegion} ${roleLayoutStyles.userStatsRegion}`}
+              mainGridClassName={`${roleLayoutStyles.mainGrid} ${roleLayoutStyles.userMainGrid} ${
+                activeTab === USER_DASHBOARD_TAB_IDS.OVERVIEW && !showHydratingShell
+                  ? ""
+                  : roleLayoutStyles.userMainGridSingle
+              }`}
               stats={metricsBlock}
               navigation={
                 <DashboardTabNav
@@ -315,6 +318,11 @@ export default function UserDashboard() {
                   onSelect={selectTab}
                   tabCounts={tabCounts}
                 />
+              }
+              aside={
+                activeTab === USER_DASHBOARD_TAB_IDS.OVERVIEW && !showHydratingShell ? (
+                  <UserDashboardQuickActions createDisabled={createDisabled} />
+                ) : null
               }
             >
                 {activeTab === USER_DASHBOARD_TAB_IDS.OVERVIEW ? (
@@ -338,36 +346,9 @@ export default function UserDashboard() {
                     )}
 
                     {!showHydratingShell ? (
-                    <section className={styles.userActionPanel} aria-label="Quick actions">
+                    <section className={styles.userActionPanel} aria-label="Explore more">
                       <h2 className={styles.userActionHeadline}>{USER_DASHBOARD_COPY.actionHeadline}</h2>
                       <p className={styles.userActionSubtext}>{USER_DASHBOARD_COPY.actionSubtext}</p>
-
-                      <div className={styles.userTryRow}>
-                        <span>{USER_DASHBOARD_COPY.tryCreateLead}</span>
-                        {remainderChip ? (
-                          <span className={styles.userTryRemainder}>{remainderChip}</span>
-                        ) : null}
-                      </div>
-
-                      <div className={styles.userCtaRow}>
-                        {createDisabled ? (
-                          <button
-                            type="button"
-                            className={`${styles.primaryButton} ${styles.userPrimaryDisabled}`}
-                            disabled
-                            aria-disabled="true"
-                          >
-                            {USER_DASHBOARD_COPY.primaryCta}
-                          </button>
-                        ) : (
-                          <Link className={styles.primaryButton} href="/dashboard/create">
-                            {USER_DASHBOARD_COPY.primaryCta}
-                          </Link>
-                        )}
-                        <Link className={styles.userCtaSecondary} href="/favorites">
-                          {USER_DASHBOARD_COPY.secondaryCta}
-                        </Link>
-                      </div>
 
                       <div className={styles.userPlaceholderGrid}>
                         {USER_DASHBOARD_PLACEHOLDERS.map((row) => (
