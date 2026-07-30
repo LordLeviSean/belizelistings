@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import SiteNav from "@/components/SiteNav";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { DashboardShell } from "@/components/dashboard";
+import roleLayoutStyles from "@/components/dashboard/DashboardRoleLayout.module.css";
 import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "@/constants/dashboardRoles";
 import useUserRole from "@/hooks/useUserRole";
 import { fetchBrokerTeamAgentIds } from "@/lib/brokerTeamScope";
@@ -110,7 +111,7 @@ export default function BrokerDashboard() {
           title="Brokerage Operations"
           subtitle={`${welcomePhrase} · ${DASHBOARD_ROLE_META[DASHBOARD_ROLE.broker].defaultSubtitle}`}
         >
-          <div className={styles.adminWrapper}>
+          <div className={roleLayoutStyles.contentInner}>
             <Breadcrumbs />
 
             {!brokerageId ? (

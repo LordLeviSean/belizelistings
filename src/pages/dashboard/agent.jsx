@@ -3,7 +3,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useShallow } from "zustand/react/shallow";
 import SiteNav from "@/components/SiteNav";
-import { DashboardShell, DashboardTabNav } from "@/components/dashboard";
+import { DashboardShell, DashboardTabNav, DashboardRoleLayout } from "@/components/dashboard";
+import roleLayoutStyles from "@/components/dashboard/DashboardRoleLayout.module.css";
 import AgentDashboardMetrics from "@/components/agent/AgentDashboardMetrics";
 import AgentBenefitsPanel from "@/components/agent/AgentBenefitsPanel";
 import AgentInventoryPanel from "@/components/agent/AgentInventoryPanel";
@@ -273,43 +274,50 @@ export default function AgentDashboard() {
   const limitExhausted = finiteCap && remainingListings === 0;
   const createDisabled = limitExhausted;
 
+  const metricsBlock =
+    showHydratingShell || (metricsLoading && !myListingsInitialFetchDone) ? (
+      <div className={loadingStyles.hydratingMetrics} aria-busy="true">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className={`skeleton ${loadingStyles.hydratingMetricCard}`} />
+        ))}
+      </div>
+    ) : (
+      <AgentDashboardMetrics
+        activeListings={activeListings}
+        pendingListings={pendingListings}
+        rejectedListings={rejectedListings}
+        archivedListings={archivedListings}
+        draftListings={draftListings}
+        inquiriesCount={inquiriesCount}
+        inquiriesUnavailable={inquiriesUnavailable}
+        listingRemainingLabel={formatListingRemainingLabel(remainingListings)}
+        listingCap={listingCap}
+        limitExhausted={limitExhausted}
+        onNavigateTab={selectTab}
+      />
+    );
+
   return (
     <div className={`${styles.page} ${styles.dashboardWorkspace}`}>
       <SiteNav active="dashboard" />
       <main className={styles.main}>
         <DashboardShell roleKey={DASHBOARD_ROLE.agent} title={AGENT_DASHBOARD_COPY.shellTitle} subtitle={subtitle}>
-          <div className={styles.adminWrapper}>
+          <div className={roleLayoutStyles.contentInner}>
             <ProfileCompletionBanner profileTabHref="/dashboard/agent?tab=profile" />
 
-            {showHydratingShell || (metricsLoading && !myListingsInitialFetchDone) ? (
-                  <div className={loadingStyles.hydratingMetrics} aria-busy="true">
-                    {Array.from({ length: 6 }, (_, i) => (
-                      <div key={i} className={`skeleton ${loadingStyles.hydratingMetricCard}`} />
-                    ))}
-                  </div>
-                ) : (
-                  <AgentDashboardMetrics
-                    activeListings={activeListings}
-                    pendingListings={pendingListings}
-                    rejectedListings={rejectedListings}
-                    archivedListings={archivedListings}
-                    draftListings={draftListings}
-                    inquiriesCount={inquiriesCount}
-                    inquiriesUnavailable={inquiriesUnavailable}
-                    listingRemainingLabel={formatListingRemainingLabel(remainingListings)}
-                    listingCap={listingCap}
-                    limitExhausted={limitExhausted}
-                    onNavigateTab={selectTab}
-                  />
-                )}
-
-            <DashboardTabNav
-              tabs={visibleTabs}
-              activeTab={activeTab}
-              onSelect={selectTab}
-              tabCounts={tabCounts}
-            />
-
+            <DashboardRoleLayout
+              statsRegionClassName={roleLayoutStyles.statsRegion}
+              mainGridClassName={`${roleLayoutStyles.mainGrid} ${roleLayoutStyles.agentMainGrid}`}
+              stats={metricsBlock}
+              navigation={
+                <DashboardTabNav
+                  tabs={visibleTabs}
+                  activeTab={activeTab}
+                  onSelect={selectTab}
+                  tabCounts={tabCounts}
+                />
+              }
+            >
                 {activeTab === AGENT_DASHBOARD_TAB_IDS.OVERVIEW ? (
                   <>
                     {!showHydratingShell ? (
@@ -436,8 +444,9 @@ export default function AgentDashboard() {
                 {activeTab === AGENT_DASHBOARD_TAB_IDS.PROFILE ? (
                   <ProfileCompletionPanel />
                 ) : null}
-              </div>
-            </DashboardShell>
+            </DashboardRoleLayout>
+          </div>
+        </DashboardShell>
       </main>
     </div>
   );

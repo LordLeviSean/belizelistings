@@ -23,6 +23,10 @@
   gap: 12px;
 }
 
+.agentMainGrid {
+  gap: 10px;
+}
+
 @media (max-width: 720px) {
   .contentInner {
     padding: 0 8px calc(10px + env(safe-area-inset-bottom));
