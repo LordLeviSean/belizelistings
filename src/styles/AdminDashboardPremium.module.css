@@ -20,8 +20,8 @@
 }
 
 /*
- * Admin vertical rhythm — normalized stack (no compounded hero→stats band).
- * Hero→stats was ~69px (main 12 + shell 6 + identity 16 + wrapper 18 + stats 17).
+ * Admin hero → stats: normal document flow, ~8px visual gap.
+ * Do not use large negative margins — they pull the strip off-screen.
  */
 
 .adminPage.adminPage :global(.adminWrapper) {
@@ -29,8 +29,11 @@
 }
 
 .adminPage.adminPage :global(.operationalStatsShell) {
-  margin-top: -540px;
-  padding-top: 0;
+  margin-top: 0;
+}
+
+.adminPage.adminPage :global([data-dashboard-role="admin"] .identity) {
+  margin-bottom: 8px;
 }
 
 .adminPage.adminPage :global(.adminMainGrid) {
@@ -41,10 +44,6 @@
 .adminPage.adminPage [role="tablist"][aria-label="Dashboard sections"] {
   margin-bottom: 6px;
   gap: 8px 12px;
-}
-
-.adminPage.adminPage :global([data-dashboard-role="admin"] .identity) {
-  margin-bottom: 0;
 }
 
 /* Admin-only decorative silk — hidden so page shell matches user dashboard exactly */
@@ -98,8 +97,11 @@
   }
 
   .adminPage.adminPage :global(.operationalStatsShell) {
-    margin-top: -405px;
-    padding-top: 0;
+    margin-top: 0;
+  }
+
+  .adminPage.adminPage :global([data-dashboard-role="admin"] .identity) {
+    margin-bottom: 6px;
   }
 
   .adminPage.adminPage :global(.adminMainGrid) {
@@ -110,10 +112,6 @@
   .adminPage.adminPage [role="tablist"][aria-label="Dashboard sections"] {
     margin-bottom: 5px;
     gap: 8px 10px;
-  }
-
-  .adminPage.adminPage :global([data-dashboard-role="admin"] .identity) {
-    margin-bottom: 0;
   }
 
   .silkLeft,
