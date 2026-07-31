@@ -204,77 +204,116 @@ function formatRelativeDays(ts) {
   return `Updated ${days} days ago`;
 }
 
+/** Recent operational window for overview activity (ms). */
+const RECENT_ACTIVITY_WINDOW_MS = 45 * MS_DAY;
+/** Published listings older than this are not shown as "Listing Approved". */
+const RECENT_APPROVAL_WINDOW_MS = 14 * MS_DAY;
+
+function withinWindow(ts, windowMs, nowMs = Date.now()) {
+  if (!Number.isFinite(ts)) return false;
+  return nowMs - ts <= windowMs;
+}
+
 /**
- * Derive compact activity feed items from current listing rows (newest activity first).
- * One primary row per listing (lifecycle priority), optional global health alerts for worst rows.
+ * Derive recent operational activity from listing rows (newest first).
+ * Omits stale live / draft / upgrade noise — only meaningful lifecycle events.
  */
-export function buildAgentActivityFeed(listings, { limit = 16 } = {}) {
+export function buildAgentActivityFeed(listings, { limit = 16, nowMs = Date.now() } = {}) {
   const primary = [];
 
   for (const listing of listings || []) {
     const id = listing?.id;
     if (id == null) continue;
     const lc = getLifecycleStatus(listing);
-    const ts = parseTs(listing) || Date.now();
+    const ts = parseTs(listing) || nowMs;
     const title = String(listing?.title || "Listing").slice(0, 72);
 
     let row = null;
-    if (lc === LISTING_LIFECYCLE.REJECTED) {
+    if (lc === LISTING_LIFECYCLE.REJECTED && withinWindow(ts, RECENT_ACTIVITY_WINDOW_MS, nowMs)) {
       row = {
         id: `feed-${id}`,
         listingId: id,
         ts,
         eventType: AGENT_FEED_EVENT.LIFECYCLE,
-        headline: "Corrections needed before resubmit",
+        headline: "Listing Rejected",
         detail: title,
         tone: "rejected",
       };
-    } else if (lc === LISTING_LIFECYCLE.PENDING_REVIEW) {
+    } else if (
+      lc === LISTING_LIFECYCLE.PENDING_REVIEW &&
+      withinWindow(ts, RECENT_ACTIVITY_WINDOW_MS, nowMs)
+    ) {
       row = {
         id: `feed-${id}`,
         listingId: id,
         ts,
         eventType: AGENT_FEED_EVENT.LIFECYCLE,
-        headline: "In moderation queue",
+        headline: "Listing Pending Review",
         detail: title,
         tone: "pending",
       };
-    } else if (lc === LISTING_LIFECYCLE.DRAFT) {
-      row = {
-        id: `feed-${id}`,
-        listingId: id,
-        ts,
-        eventType: AGENT_FEED_EVENT.DRAFT,
-        headline: "Draft — resume anytime",
-        detail: title,
-        tone: "draft",
-      };
-    } else if (lc === LISTING_LIFECYCLE.ARCHIVED) {
+    } else if (lc === LISTING_LIFECYCLE.ARCHIVED && withinWindow(ts, RECENT_ACTIVITY_WINDOW_MS, nowMs)) {
+      const autoArchived = Boolean(
+        listing?.archived_reason ||
+          listing?.auto_archived ||
+          listing?.closed_at ||
+          listing?.sold_at ||
+          listing?.rented_at
+      );
       row = {
         id: `feed-${id}`,
         listingId: id,
         ts,
         eventType: AGENT_FEED_EVENT.LIFECYCLE,
-        headline: "Archived (not public)",
+        headline: autoArchived ? "Listing Auto Archived" : "Listing Archived",
         detail: title,
         tone: "archived",
       };
-    } else if (lc === LISTING_LIFECYCLE.PUBLISHED) {
-      const intel = evaluateListingIntel(listing);
-      let headline = "Live on BelizeListings";
-      if (intel.healthTier === LISTING_HEALTH_TIER.CRITICAL) {
-        headline = "Live — address listing health";
-      } else if (intel.freshness.stale) {
-        headline = "Live — consider a refresh for visibility";
-      }
+    } else if (
+      (lc === LISTING_LIFECYCLE.SOLD || lc === LISTING_LIFECYCLE.RECENTLY_SOLD) &&
+      withinWindow(ts, RECENT_ACTIVITY_WINDOW_MS, nowMs)
+    ) {
       row = {
         id: `feed-${id}`,
         listingId: id,
         ts,
         eventType: AGENT_FEED_EVENT.LIFECYCLE,
-        headline,
+        headline: "Listing Sold",
         detail: title,
-        tone: intel.healthTier === LISTING_HEALTH_TIER.CRITICAL ? "health" : "approved",
+        tone: "approved",
+      };
+    } else if (
+      (lc === LISTING_LIFECYCLE.RENTED || lc === LISTING_LIFECYCLE.RECENTLY_RENTED) &&
+      withinWindow(ts, RECENT_ACTIVITY_WINDOW_MS, nowMs)
+    ) {
+      row = {
+        id: `feed-${id}`,
+        listingId: id,
+        ts,
+        eventType: AGENT_FEED_EVENT.LIFECYCLE,
+        headline: "Listing Rented",
+        detail: title,
+        tone: "approved",
+      };
+    } else if (lc === LISTING_LIFECYCLE.PUBLISHED && withinWindow(ts, RECENT_APPROVAL_WINDOW_MS, nowMs)) {
+      row = {
+        id: `feed-${id}`,
+        listingId: id,
+        ts,
+        eventType: AGENT_FEED_EVENT.LIFECYCLE,
+        headline: "Listing Approved",
+        detail: title,
+        tone: "approved",
+      };
+    } else if (lc === LISTING_LIFECYCLE.EXPIRED && withinWindow(ts, RECENT_ACTIVITY_WINDOW_MS, nowMs)) {
+      row = {
+        id: `feed-${id}`,
+        listingId: id,
+        ts,
+        eventType: AGENT_FEED_EVENT.LIFECYCLE,
+        headline: "Listing Expiring Soon",
+        detail: title,
+        tone: "health",
       };
     }
 
@@ -288,25 +327,75 @@ export function buildAgentActivityFeed(listings, { limit = 16 } = {}) {
 /**
  * Merge inquiry leads into operational activity (newest first).
  */
-export function mergeActivityWithInquiries(feedItems, inquiries, { limit = 18 } = {}) {
+export function mergeActivityWithInquiries(feedItems, inquiries, { limit = 18, nowMs = Date.now() } = {}) {
   const inquiryRows = [];
   for (const q of inquiries || []) {
     const id = q?.id;
     if (id == null) continue;
-    const tsRaw = q.created_at || q.updated_at;
-    const ts = tsRaw ? new Date(tsRaw).getTime() : Date.now();
+    const status = String(q.status || "").toLowerCase();
+    const isReplied = status === "responded" || status === "closed";
+    const tsRaw = isReplied ? q.updated_at || q.created_at : q.created_at || q.updated_at;
+    const ts = tsRaw ? new Date(tsRaw).getTime() : nowMs;
+    if (!withinWindow(ts, RECENT_ACTIVITY_WINDOW_MS, nowMs)) continue;
     inquiryRows.push({
       id: `inq-${id}`,
       listingId: q.listing_id,
       ts,
       eventType: "inquiry",
-      headline: "New inquiry received",
-      detail: String(q.body || "Lead message").slice(0, 96),
-      tone: q.read_at ? "approved" : "pending",
+      headline: isReplied ? "Inquiry Replied" : "New Inquiry",
+      detail: String(q.body || "Buyer message").slice(0, 96),
+      tone: isReplied ? "approved" : "pending",
     });
   }
 
   const merged = [...inquiryRows, ...(feedItems || [])];
+  merged.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  return merged.slice(0, limit);
+}
+
+/**
+ * Merge viewing request status into operational activity (newest first).
+ */
+export function mergeActivityWithViewings(feedItems, viewings, { limit = 18, nowMs = Date.now() } = {}) {
+  const viewingRows = [];
+  for (const v of viewings || []) {
+    const id = v?.id;
+    if (id == null) continue;
+    const status = String(v.status || "").toLowerCase();
+    const tsRaw = v.updated_at || v.confirmed_at || v.created_at;
+    const ts = tsRaw ? new Date(tsRaw).getTime() : nowMs;
+    if (!withinWindow(ts, RECENT_ACTIVITY_WINDOW_MS, nowMs)) continue;
+
+    let headline = null;
+    let tone = "pending";
+    if (status === "pending" || status === "requested") {
+      headline = "Viewing Requested";
+      tone = "pending";
+    } else if (status === "confirmed") {
+      headline = "Viewing Confirmed";
+      tone = "approved";
+    } else if (status === "rescheduled") {
+      headline = "Viewing Rescheduled";
+      tone = "pending";
+    } else if (status === "cancelled" || status === "declined") {
+      headline = "Viewing Cancelled";
+      tone = "archived";
+    } else {
+      continue;
+    }
+
+    viewingRows.push({
+      id: `view-${id}`,
+      listingId: v.listing_id,
+      ts,
+      eventType: "viewing",
+      headline,
+      detail: String(v.requester_name || v.requester_email || "Buyer viewing").slice(0, 96),
+      tone,
+    });
+  }
+
+  const merged = [...viewingRows, ...(feedItems || [])];
   merged.sort((a, b) => (b.ts || 0) - (a.ts || 0));
   return merged.slice(0, limit);
 }

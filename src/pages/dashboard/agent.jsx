@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import { useShallow } from "zustand/react/shallow";
 import SiteNav from "@/components/SiteNav";
 import { DashboardShell, DashboardTabNav, DashboardRoleLayout } from "@/components/dashboard";
 import roleLayoutStyles from "@/components/dashboard/DashboardRoleLayout.module.css";
 import AgentDashboardMetrics from "@/components/agent/AgentDashboardMetrics";
+import AgentDashboardQuickActions from "@/components/agent/AgentDashboardQuickActions";
 import AgentBenefitsPanel from "@/components/agent/AgentBenefitsPanel";
 import AgentInventoryPanel from "@/components/agent/AgentInventoryPanel";
 import { AgentActivityFeed } from "@/components/operational";
@@ -25,7 +25,6 @@ import {
   AGENT_DASHBOARD_TAB_IDS,
   AGENT_DASHBOARD_TABS,
   AGENT_INVENTORY_FILTERS,
-  formatListingRemainingLabel,
   normalizeAgentDashboardTab,
   USER_DASHBOARD_FINITE_CAP_THRESHOLD,
 } from "@/constants/dashboardAgentConfig";
@@ -215,7 +214,12 @@ export default function AgentDashboard() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (activeTab !== AGENT_DASHBOARD_TAB_IDS.VIEWINGS) return;
+    if (
+      activeTab !== AGENT_DASHBOARD_TAB_IDS.VIEWINGS &&
+      activeTab !== AGENT_DASHBOARD_TAB_IDS.OVERVIEW
+    ) {
+      return;
+    }
     loadViewings();
   }, [activeTab, loadViewings]);
 
@@ -290,9 +294,6 @@ export default function AgentDashboard() {
         draftListings={draftListings}
         inquiriesCount={inquiriesCount}
         inquiriesUnavailable={inquiriesUnavailable}
-        listingRemainingLabel={formatListingRemainingLabel(remainingListings)}
-        listingCap={listingCap}
-        limitExhausted={limitExhausted}
         onNavigateTab={selectTab}
       />
     );
@@ -306,8 +307,12 @@ export default function AgentDashboard() {
             <ProfileCompletionBanner profileTabHref="/dashboard/agent?tab=profile" />
 
             <DashboardRoleLayout
-              statsRegionClassName={roleLayoutStyles.statsRegion}
-              mainGridClassName={`${roleLayoutStyles.mainGrid} ${roleLayoutStyles.agentMainGrid}`}
+              statsRegionClassName={`${roleLayoutStyles.statsRegion} ${roleLayoutStyles.userStatsRegion}`}
+              mainGridClassName={`${roleLayoutStyles.mainGrid} ${roleLayoutStyles.agentMainGrid} ${
+                activeTab === AGENT_DASHBOARD_TAB_IDS.OVERVIEW && !showHydratingShell
+                  ? ""
+                  : roleLayoutStyles.agentMainGridSingle
+              }`}
               stats={metricsBlock}
               navigation={
                 <DashboardTabNav
@@ -317,43 +322,37 @@ export default function AgentDashboard() {
                   tabCounts={tabCounts}
                 />
               }
+              aside={
+                activeTab === AGENT_DASHBOARD_TAB_IDS.OVERVIEW && !showHydratingShell ? (
+                  <AgentDashboardQuickActions
+                    createDisabled={createDisabled}
+                    username={profile?.username}
+                  />
+                ) : null
+              }
             >
                 {activeTab === AGENT_DASHBOARD_TAB_IDS.OVERVIEW ? (
                   <>
-                    {!showHydratingShell ? (
+                    {showHydratingShell ? (
+                      <div className={`skeleton ${loadingStyles.hydratingPanel}`} aria-hidden />
+                    ) : (
                       <div className={styles.agentIntelLayout}>
                         <AgentActivityFeed
                           listings={myListingsRows}
                           inquiries={inquiriesRows}
+                          viewings={agentViewings}
                           onOpenListing={(listingId) => router.push(`/listing/${listingId}`)}
                         />
                         <div className={styles.agentListingColumn}>
-                          <AgentBenefitsPanel username={profile?.username} />
+                          <AgentBenefitsPanel
+                            username={profile?.username}
+                            activeListings={activeListings}
+                            listingCap={listingCap}
+                            limitExhausted={limitExhausted}
+                          />
                         </div>
                       </div>
-                    ) : null}
-
-                    {!showHydratingShell ? (
-                      <section className={styles.userActionPanel} aria-label="Quick actions">
-                        <h2 className={styles.userActionHeadline}>{AGENT_DASHBOARD_COPY.actionHeadline}</h2>
-                        <p className={styles.userActionSubtext}>{AGENT_DASHBOARD_COPY.actionSubtext}</p>
-                        <div className={styles.userCtaRow}>
-                          {createDisabled ? (
-                            <button
-                              type="button"
-                              className={`${styles.primaryButton} ${styles.userPrimaryDisabled}`}
-                              disabled
-                            >
-                              {AGENT_DASHBOARD_COPY.primaryCta}
-                            </button>
-                          ) : (
-                            <Link className={styles.primaryButton} href="/dashboard/create">
-                              {AGENT_DASHBOARD_COPY.primaryCta}
-                            </Link>
-                          )}
-                        </div>
-                      </section>
-                    ) : null}
+                    )}
                   </>
                 ) : null}
 

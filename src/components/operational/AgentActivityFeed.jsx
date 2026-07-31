@@ -1,5 +1,10 @@
 import { useMemo } from "react";
-import { buildAgentActivityFeed, mergeActivityWithInquiries } from "@/utils/listingIntel";
+import {
+  buildAgentActivityFeed,
+  mergeActivityWithInquiries,
+  mergeActivityWithViewings,
+} from "@/utils/listingIntel";
+import { AGENT_DASHBOARD_COPY } from "@/constants/dashboardAgentConfig";
 import ActivityFeedCard from "./ActivityFeedCard";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import opStyles from "./OperationalIntel.module.css";
@@ -20,15 +25,21 @@ function formatFeedTime(ts) {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export default function AgentActivityFeed({ listings, inquiries = [], onOpenListing }) {
+export default function AgentActivityFeed({
+  listings,
+  inquiries = [],
+  viewings = [],
+  onOpenListing,
+}) {
   const items = useMemo(() => {
     const base = buildAgentActivityFeed(listings, { limit: 24 });
-    return mergeActivityWithInquiries(base, inquiries, { limit: 18 });
-  }, [listings, inquiries]);
+    const withInquiries = mergeActivityWithInquiries(base, inquiries, { limit: 24 });
+    return mergeActivityWithViewings(withInquiries, viewings, { limit: 12 });
+  }, [listings, inquiries, viewings]);
 
   return (
-    <aside className={opStyles.activityPanel} aria-label="Operational activity">
-      <h2 className={opStyles.activityHeader}>Activity</h2>
+    <aside className={opStyles.activityPanel} aria-label={AGENT_DASHBOARD_COPY.activityHeadline}>
+      <h2 className={opStyles.activityHeader}>{AGENT_DASHBOARD_COPY.activityHeadline}</h2>
       <div className={opStyles.activityList}>
         {items.length === 0 ? (
           <PremiumEmptyState variant="activity" compact className={opStyles.activityEmpty} />

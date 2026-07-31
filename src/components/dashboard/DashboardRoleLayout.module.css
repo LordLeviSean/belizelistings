@@ -32,7 +32,11 @@
 }
 
 .agentMainGrid {
-  gap: 10px;
+  gap: 12px;
+}
+
+.agentMainGridSingle {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (max-width: 720px) {

@@ -63,5 +63,38 @@ describe("listingIntel", () => {
     ]);
     expect(feed.length).toBe(1);
     expect(feed[0].tone).toBe("rejected");
+    expect(feed[0].headline).toBe("Listing Rejected");
+  });
+
+  test("buildAgentActivityFeed omits stale published Live entries", () => {
+    const feed = buildAgentActivityFeed([
+      {
+        id: "old-live",
+        title: "Old Beach Villa",
+        status: LISTING_LIFECYCLE.PUBLISHED,
+        updated_at: new Date(Date.now() - 60 * 86400000).toISOString(),
+      },
+      {
+        id: "fresh-approved",
+        title: "Fresh Condo",
+        status: LISTING_LIFECYCLE.PUBLISHED,
+        updated_at: new Date().toISOString(),
+      },
+    ]);
+    expect(feed.map((item) => item.listingId)).toEqual(["fresh-approved"]);
+    expect(feed[0].headline).toBe("Listing Approved");
+    expect(feed.some((item) => /Live on BelizeListings/i.test(item.headline))).toBe(false);
+  });
+
+  test("buildAgentActivityFeed omits draft resume noise", () => {
+    const feed = buildAgentActivityFeed([
+      {
+        id: "d1",
+        title: "Draft home",
+        status: LISTING_LIFECYCLE.DRAFT,
+        updated_at: new Date().toISOString(),
+      },
+    ]);
+    expect(feed).toHaveLength(0);
   });
 });

@@ -1,11 +1,7 @@
 import { memo } from "react";
-import DashboardLimitStatCard from "@/components/dashboard/DashboardLimitStatCard";
 import DashboardMetricsStrip from "@/components/dashboard/DashboardMetricsStrip";
 import DashboardOperationalStatCard from "@/components/dashboard/DashboardOperationalStatCard";
-import {
-  AGENT_DASHBOARD_COPY,
-  formatAgentListingLimitExhaustedMessage,
-} from "@/constants/dashboardAgentConfig";
+import dashboardStyles from "@/styles/Dashboard.module.css";
 
 function AgentDashboardMetrics({
   activeListings,
@@ -15,9 +11,6 @@ function AgentDashboardMetrics({
   draftListings,
   inquiriesCount,
   inquiriesUnavailable,
-  listingRemainingLabel,
-  listingCap,
-  limitExhausted,
   onNavigateTab,
 }) {
   const go = (tab) => {
@@ -26,30 +19,8 @@ function AgentDashboardMetrics({
 
   return (
     <DashboardMetricsStrip
-      secondary={
-        <>
-          <DashboardOperationalStatCard
-            label="Archived"
-            value={archivedListings}
-            variant="Archived"
-            onClick={onNavigateTab ? () => go("listings") : undefined}
-          />
-          <DashboardOperationalStatCard
-            label="Draft"
-            value={draftListings}
-            variant="Draft"
-            onClick={onNavigateTab ? () => go("listings") : undefined}
-          />
-          <DashboardOperationalStatCard
-            label="Inquiries"
-            value={inquiriesCount}
-            variant="Inquiries"
-            unavailable={inquiriesUnavailable}
-            unavailableDisplay="Coming soon"
-            onClick={onNavigateTab ? () => go("inquiries") : undefined}
-          />
-        </>
-      }
+      shellClassName={`${dashboardStyles.operationalStatsShell} ${dashboardStyles.userOperationalStatsShell}`}
+      primaryGridClassName={`${dashboardStyles.operationalStatsGrid} ${dashboardStyles.userOperationalStatsGrid}`}
     >
       <DashboardOperationalStatCard
         label="Active Listings"
@@ -69,15 +40,25 @@ function AgentDashboardMetrics({
         variant="Rejected"
         onClick={onNavigateTab ? () => go("listings") : undefined}
       />
-      <DashboardLimitStatCard
-        label="Listing Limit Remaining"
-        valueText={listingRemainingLabel}
-        exhausted={limitExhausted}
-        sublabel={
-          limitExhausted
-            ? formatAgentListingLimitExhaustedMessage(listingCap)
-            : AGENT_DASHBOARD_COPY.listingLimitSubtext
-        }
+      <DashboardOperationalStatCard
+        label="Archived"
+        value={archivedListings}
+        variant="Archived"
+        onClick={onNavigateTab ? () => go("listings") : undefined}
+      />
+      <DashboardOperationalStatCard
+        label="Draft"
+        value={draftListings}
+        variant="Draft"
+        onClick={onNavigateTab ? () => go("listings") : undefined}
+      />
+      <DashboardOperationalStatCard
+        label="Inquiries"
+        value={inquiriesCount}
+        variant="Inquiries"
+        unavailable={inquiriesUnavailable}
+        unavailableDisplay="Coming soon"
+        onClick={onNavigateTab ? () => go("inbox") : undefined}
       />
     </DashboardMetricsStrip>
   );

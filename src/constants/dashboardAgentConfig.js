@@ -79,9 +79,20 @@ export const AGENT_DASHBOARD_COPY = Object.freeze({
   actionHeadline: "Ready to publish?",
   actionSubtext: "Create a listing when you are ready — drafts stay in the Listings tab.",
   primaryCta: "Create Listing",
+  listingLimitPanelLabel: "Active listing capacity",
   listingLimitSubtext: "Active listing slots on your Agent tier",
-  benefitsHeadline: "Your Agent Benefits",
-  activityHeadline: "Recent activity",
+  listingLimitExhaustedHint:
+    "Archive, sell, or rent a listing to free a slot before publishing another.",
+  benefitsHeadline: "Agent Tools",
+  benefitsSubtext: "Professional capabilities on your Agent account.",
+  activityHeadline: "Recent Activity",
+  quickActionsTitle: "Quick Actions",
+  quickActionCreateListing: "Create Listing",
+  quickActionViewPublicProfile: "View Public Profile",
+  quickActionEditProfile: "Edit Profile",
+  quickActionViewInbox: "View Inbox",
+  quickActionViewViewings: "View Viewings",
+  quickActionBrowseMarketplace: "Browse Marketplace",
   welcomeModalTitle: "Welcome to BelizeListings Agent",
   welcomeModalSubtext:
     "Your upgrade is approved. You now have access to professional listing tools and a public agent profile.",
@@ -89,9 +100,11 @@ export const AGENT_DASHBOARD_COPY = Object.freeze({
 
 export const AGENT_BENEFITS = Object.freeze([
   `Up to ${AGENT_ACTIVE_LISTING_CAP} active listings`,
-  "Public agent profile",
-  "Inquiry inbox",
-  "Editorial review and trust signals",
+  "Public Agent Profile",
+  "CRM Inbox",
+  "Viewing Management",
+  "Trust & Verification Signals",
+  "Featured Listings (when available)",
 ]);
 
 export const AGENT_WELCOME_STORAGE_KEY = "bl_agent_welcome_seen_v1";
