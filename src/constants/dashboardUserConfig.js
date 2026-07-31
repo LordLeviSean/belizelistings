@@ -175,7 +175,7 @@ export const USER_DASHBOARD_COPY = Object.freeze({
   quickActionUpdateProfile: "Update Profile",
   quickActionSavedFavorites: "View Saved Favorites",
   quickActionBrowseListings: "Browse Listings",
-  listingLimitSubtextCompact: "Available on your current tier",
+  listingLimitPanelLabel: "Listing limit",
   placeholderComingSoon: "Coming soon",
   inquiriesComingSoon: "Coming soon",
 });
@@ -195,6 +195,22 @@ export function resolveUserDashboardListingCap(tier) {
 export function formatListingRemainingLabel(remaining) {
   const n = Math.max(0, Math.floor(Number(remaining) || 0));
   return `${n} Remaining`;
+}
+
+/** Dynamic slots copy for the account listing-limit panel. */
+export function formatUserListingSlotsUsedLabel(used, cap) {
+  const active = Math.max(0, Math.floor(Number(used) || 0));
+  const limit = Math.max(0, Math.floor(Number(cap) || 0));
+  return `${active} of ${limit} slots used`;
+}
+
+export function formatUserListingLimitMaximumReached(cap) {
+  const limit = Math.max(0, Math.floor(Number(cap) || 0));
+  return `Maximum ${limit} active listings reached`;
+}
+
+export function formatUserListingLimitUpgradeHint() {
+  return `Upgrade to an Agent account to publish up to ${AGENT_ACTIVE_LISTING_CAP} active listings and unlock professional tools.`;
 }
 
 /**

@@ -1,12 +1,7 @@
 import { memo } from "react";
-import DashboardLimitStatCard from "@/components/dashboard/DashboardLimitStatCard";
 import DashboardMetricsStrip from "@/components/dashboard/DashboardMetricsStrip";
 import DashboardOperationalStatCard from "@/components/dashboard/DashboardOperationalStatCard";
-import {
-  USER_DASHBOARD_COPY,
-  formatUserListingLimitExhaustedMessage,
-  formatUserListingLimitExhaustedMessageCompact,
-} from "@/constants/dashboardUserConfig";
+import { USER_DASHBOARD_COPY } from "@/constants/dashboardUserConfig";
 import dashboardStyles from "@/styles/Dashboard.module.css";
 
 function UserDashboardMetrics({
@@ -18,9 +13,6 @@ function UserDashboardMetrics({
   draftListings,
   favoritesUnavailable,
   inquiriesUnavailable,
-  listingRemainingLabel,
-  listingCap,
-  limitExhausted,
   onNavigateTab,
 }) {
   const go = (tab) => {
@@ -50,20 +42,6 @@ function UserDashboardMetrics({
         variant="Favorites"
         unavailable={favoritesUnavailable}
         onClick={onNavigateTab ? () => go("saved-favorites") : undefined}
-      />
-      <DashboardLimitStatCard
-        label="Listing Limit Remaining"
-        valueText={listingRemainingLabel}
-        exhausted={limitExhausted}
-        sublabel={
-          limitExhausted
-            ? formatUserListingLimitExhaustedMessageCompact(listingCap)
-            : USER_DASHBOARD_COPY.listingLimitSubtextCompact
-        }
-        sublabelAccessible={
-          limitExhausted ? formatUserListingLimitExhaustedMessage(listingCap) : undefined
-        }
-        compact
       />
       <DashboardOperationalStatCard
         label="Archived"

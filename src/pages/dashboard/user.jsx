@@ -31,7 +31,6 @@ import {
   USER_DASHBOARD_PLACEHOLDERS,
   USER_DASHBOARD_FINITE_CAP_THRESHOLD,
   USER_DASHBOARD_TAB_IDS,
-  formatListingRemainingLabel,
   getVisibleUserDashboardTabs,
   normalizeUserDashboardTab,
   resolveVisibleUserDashboardTab,
@@ -270,7 +269,7 @@ export default function UserDashboard() {
         aria-busy="true"
         aria-label="Refreshing dashboard"
       >
-        {Array.from({ length: 7 }, (_, i) => (
+        {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className={`skeleton ${loadingStyles.hydratingMetricCard}`} />
         ))}
       </div>
@@ -284,9 +283,6 @@ export default function UserDashboard() {
         inquiriesCount={inquiriesCount}
         favoritesUnavailable={favoritesUnavailable}
         inquiriesUnavailable={inquiriesUnavailable}
-        listingRemainingLabel={formatListingRemainingLabel(remainingListings)}
-        listingCap={listingCap}
-        limitExhausted={limitExhausted}
         onNavigateTab={selectTab}
       />
     );
@@ -338,7 +334,7 @@ export default function UserDashboard() {
                         tier={tier}
                         listingCap={listingCap}
                         activeListings={activeListings}
-                        remainingListings={remainingListings}
+                        limitExhausted={limitExhausted}
                         userId={user.id}
                         username={profile?.username}
                         email={profile?.email ?? user?.email}

@@ -32,7 +32,7 @@
 /* Soft shell while profile re-hydrates with cached session (no full-page blank) */
 .hydratingMetrics {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 0;
 }

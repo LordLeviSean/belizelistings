@@ -1,11 +1,13 @@
 import { memo, useCallback, useEffect, useState } from "react";
+import { Gauge } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import {
-  USER_ACCOUNT_ROLE_LABELS,
   USER_DASHBOARD_COPY,
   USER_DASHBOARD_FINITE_CAP_THRESHOLD,
   USER_UPGRADE_PATHS,
-  formatListingRemainingLabel,
+  formatUserListingLimitMaximumReached,
+  formatUserListingLimitUpgradeHint,
+  formatUserListingSlotsUsedLabel,
 } from "@/constants/dashboardUserConfig";
 import { PUBLIC_ACTIVE_LISTING_CAP } from "@/constants/operationalModel";
 import { AGENT_UPGRADE_TOAST } from "@/constants/agentUpgradeNotifications";
@@ -24,7 +26,7 @@ function UserDashboardAccountTier({
   tier,
   listingCap,
   activeListings,
-  remainingListings,
+  limitExhausted = false,
   userId,
   username,
   email,
@@ -38,11 +40,9 @@ function UserDashboardAccountTier({
   const [pendingLoading, setPendingLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const roleLabel = USER_ACCOUNT_ROLE_LABELS[role] || USER_ACCOUNT_ROLE_LABELS.user;
   const finiteCap = listingCap < USER_DASHBOARD_FINITE_CAP_THRESHOLD;
   const capDisplay = finiteCap ? listingCap : PUBLIC_ACTIVE_LISTING_CAP;
   const used = Math.max(0, Number(activeListings) || 0);
-  const remaining = Math.max(0, Number(remainingListings) || 0);
   const hasPendingUpgrade = Boolean(pendingRequest?.id);
 
   const refreshPending = useCallback(async () => {
@@ -121,6 +121,10 @@ function UserDashboardAccountTier({
     void refetchProfile?.();
   };
 
+  const listingLimitAccessibleLabel = limitExhausted
+    ? `${formatUserListingSlotsUsedLabel(used, capDisplay)}. ${formatUserListingLimitMaximumReached(capDisplay)}. ${formatUserListingLimitUpgradeHint()}`
+    : `${formatUserListingSlotsUsedLabel(used, capDisplay)}. ${USER_DASHBOARD_COPY.listingLimitSubtext}`;
+
   return (
     <section className={styles.userTierBlock} aria-label="Account and listing capacity">
       <div className={styles.userTierHeader}>
@@ -128,34 +132,39 @@ function UserDashboardAccountTier({
         <p className={styles.userTierSubtext}>{USER_DASHBOARD_COPY.accountTierSubtext}</p>
       </div>
 
-      <div className={styles.userTierGrid}>
-        <div className={styles.userTierStat}>
-          <span className={styles.userTierStatLabel}>Role</span>
-          <span className={styles.userTierStatValue}>{roleLabel}</span>
+      {finiteCap ? (
+        <div
+          className={`${styles.userListingLimitPanel} ${
+            limitExhausted ? styles.userListingLimitPanelExhausted : ""
+          }`}
+          aria-label={listingLimitAccessibleLabel}
+        >
+          <div className={styles.userListingLimitCopy}>
+            <p className={styles.userListingLimitLabel}>{USER_DASHBOARD_COPY.listingLimitPanelLabel}</p>
+            <p className={styles.userListingLimitSlots} aria-hidden="true">
+              {formatUserListingSlotsUsedLabel(used, capDisplay)}
+            </p>
+            {limitExhausted ? (
+              <>
+                <p className={styles.userListingLimitStatus} aria-hidden="true">
+                  {formatUserListingLimitMaximumReached(capDisplay)}
+                </p>
+                <p className={styles.userListingLimitHint} aria-hidden="true">
+                  {formatUserListingLimitUpgradeHint()}
+                </p>
+              </>
+            ) : (
+              <p className={styles.userListingLimitHint} aria-hidden="true">
+                {USER_DASHBOARD_COPY.listingLimitSubtext}
+              </p>
+            )}
+          </div>
+          <Gauge className={styles.userListingLimitGauge} aria-hidden />
         </div>
-        <div className={styles.userTierStat}>
-          <span className={styles.userTierStatLabel}>Active cap</span>
-          <span className={styles.userTierStatValue}>{finiteCap ? capDisplay : "Unlimited"}</span>
-        </div>
-        <div className={styles.userTierStat}>
-          <span className={styles.userTierStatLabel}>Used</span>
-          <span className={styles.userTierStatValue}>{used}</span>
-        </div>
-        <div className={styles.userTierStat}>
-          <span className={styles.userTierStatLabel}>Remaining</span>
-          <span className={styles.userTierStatValue}>
-            {finiteCap ? formatListingRemainingLabel(remaining) : "—"}
-          </span>
-        </div>
-      </div>
-
-      <p className={styles.userTierSummary}>
-        {roleLabel} · {used} active
-        {finiteCap ? ` · ${remaining} slot${remaining === 1 ? "" : "s"} left` : ""}
-      </p>
+      ) : null}
 
       {hasPendingUpgrade ? (
-        <p className={styles.userTierSummary} style={{ marginTop: 8 }}>
+        <p className={styles.userTierSummary} style={{ marginTop: 12 }}>
           {USER_DASHBOARD_COPY.agentUpgradePendingLabel}
         </p>
       ) : null}

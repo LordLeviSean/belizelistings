@@ -1,5 +1,14 @@
 /** @jest-environment jsdom */
 
+jest.mock("next/router", () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    pathname: "/dashboard/user",
+    query: {},
+  }),
+}));
+
 jest.mock("../../lib/featureFlags", () => ({
   BL_ENABLE_CONVERSATIONS: true,
   BL_ENABLE_INQUIRIES: true,
@@ -10,6 +19,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
 import UserDashboardMetrics from "./UserDashboardMetrics";
+import UserDashboardAccountTier from "./UserDashboardAccountTier";
 import UserDashboardQuickActions from "./UserDashboardQuickActions";
 import { partitionDashboardTabs } from "../../lib/dashboardTabGroups";
 import dashboardStyles from "../../styles/Dashboard.module.css";
@@ -18,6 +28,9 @@ import {
   getVisibleUserDashboardTabs,
   formatUserListingLimitExhaustedMessage,
   formatUserListingLimitExhaustedMessageCompact,
+  formatUserListingLimitMaximumReached,
+  formatUserListingLimitUpgradeHint,
+  formatUserListingSlotsUsedLabel,
   resolveUserDashboardListingCap,
 } from "../../constants/dashboardUserConfig";
 import { PUBLIC_USER_ACTIVE_LISTING_CAP, AGENT_ACTIVE_LISTING_CAP } from "../../constants/listingTierCaps";
@@ -26,11 +39,33 @@ jest.mock("../../hooks/useCountUp", () => ({
   useCountUp: (value) => value,
 }));
 
-const USER_KPI_LABELS = [
+jest.mock("../../lib/supabaseClient", () => ({
+  supabase: {
+    channel: () => ({
+      on: () => ({ subscribe: () => ({}) }),
+    }),
+    removeChannel: () => {},
+  },
+}));
+
+jest.mock("../../hooks/useUserRole", () => ({
+  __esModule: true,
+  default: () => ({ refetchProfile: jest.fn() }),
+}));
+
+jest.mock("../ui/ToastProvider", () => ({
+  useToast: () => ({ showToast: jest.fn() }),
+}));
+
+jest.mock("../../lib/agentUpgradeRequests", () => ({
+  fetchPendingAgentUpgradeRequestForUser: async () => ({ data: null, error: null }),
+  submitAgentUpgradeRequest: async () => ({ data: null, error: null }),
+}));
+
+const USER_STATS_LABELS = [
   "Active Listings",
   "Pending Approval",
   "Saved Favorites",
-  "Listing Limit Remaining",
   "Archived",
   "Draft",
   "Inquiries",
@@ -57,7 +92,7 @@ describe("user dashboard shared layout", () => {
     ]);
   });
 
-  test("compact stats strip renders all seven KPIs in one shared strip", () => {
+  test("compact stats strip renders six KPIs without listing limit card", () => {
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -72,21 +107,45 @@ describe("user dashboard shared layout", () => {
           draftListings={0}
           favoritesUnavailable={false}
           inquiriesUnavailable={false}
-          listingRemainingLabel="3 Remaining"
-          listingCap={PUBLIC_USER_ACTIVE_LISTING_CAP}
-          limitExhausted={false}
         />
       );
     });
 
     const text = container.textContent;
-    for (const label of USER_KPI_LABELS) {
+    for (const label of USER_STATS_LABELS) {
       expect(text).toContain(label);
     }
+    expect(text).not.toContain("Listing Limit Remaining");
+    expect(container.querySelectorAll('[role="group"]').length).toBe(6);
     expect(container.querySelector(`.${dashboardStyles.userOperationalStatsGrid}`)).not.toBeNull();
     expect(container.querySelector(`.${dashboardStyles.operationalStatsGridSecondary}`)).toBeNull();
     expect(text).not.toContain("Total Listings");
     expect(text).not.toContain("Bulk Approve");
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  test("account section shows dynamic slots used and upgrade copy when limit exhausted", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        <UserDashboardAccountTier
+          role="user"
+          listingCap={PUBLIC_USER_ACTIVE_LISTING_CAP}
+          activeListings={5}
+          limitExhausted
+          userId="user-1"
+        />
+      );
+    });
+
+    const text = container.textContent;
+    expect(text).toContain(formatUserListingSlotsUsedLabel(5, PUBLIC_USER_ACTIVE_LISTING_CAP));
+    expect(text).toContain(formatUserListingLimitMaximumReached(PUBLIC_USER_ACTIVE_LISTING_CAP));
+    expect(text).toContain(formatUserListingLimitUpgradeHint());
+    expect(text).toContain("Upgrade to Agent");
     act(() => root.unmount());
     container.remove();
   });
@@ -98,6 +157,7 @@ describe("user dashboard shared layout", () => {
     expect(formatUserListingLimitExhaustedMessageCompact(cap)).toBe(
       `Maximum ${PUBLIC_USER_ACTIVE_LISTING_CAP} active listings reached. Upgrade to Agent for up to ${AGENT_ACTIVE_LISTING_CAP}.`
     );
+    expect(formatUserListingSlotsUsedLabel(0, cap)).toBe("0 of 5 slots used");
   });
 });
 
