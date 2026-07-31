@@ -64,4 +64,26 @@ describe("listingModerationNotifications", () => {
     const pres = buildNotificationPresentation(eventType, payload);
     expect(pres.href).toBe("/dashboard/user?tab=my-listings&listing=42");
   });
+
+  test("sold / rented / auto-archived presentations are explicit (not generic fallback)", () => {
+    const sold = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.LISTING_MARKED_SOLD, {
+      listing_id: 9,
+      listing_title: "Sea Villa",
+    });
+    expect(sold.title).toBe("Listing marked as sold");
+    expect(sold.body).toMatch(/Sea Villa/);
+    expect(sold.href).toContain("/dashboard/");
+
+    const rented = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.LISTING_MARKED_RENTED, {
+      listing_id: 9,
+      listing_title: "Sea Villa",
+    });
+    expect(rented.title).toBe("Listing marked as rented");
+
+    const archived = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.LISTING_AUTO_ARCHIVED, {
+      listing_id: 9,
+    });
+    expect(archived.title).toBe("Listing archived");
+    expect(archived.body).not.toBe("Something changed in your BelizeListings workspace.");
+  });
 });

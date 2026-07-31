@@ -199,7 +199,7 @@
   overflow: visible;
   pointer-events: auto;
   position: static;
-  touch-action: manipulation;
+  touch-action: pan-y;
   cursor: default;
   transform: scale(1.132, 1.186) translate(0.12%, 0);
   transform-origin: center bottom;

@@ -5,7 +5,6 @@ import PendingListingsPanel from "../../components/PendingListingsPanel";
 import AllListingsPanel from "../../components/AllListingsPanel";
 import ManageUsersPanel from "../../components/ManageUsersPanel";
 import OperatorListingsPanel from "../../components/OperatorListingsPanel";
-import BuyerInquiriesPanel from "../../components/inquiry/BuyerInquiriesPanel";
 import BuyerViewingsPanel from "../../components/inquiry/BuyerViewingsPanel";
 import UserInboxPanel from "../../components/inquiry/UserInboxPanel";
 import { supabase } from "../../lib/supabaseClient";
@@ -70,7 +69,6 @@ export default function AdminPage() {
   const [profilesRevision, setProfilesRevision] = useState(0);
   const [upgradeRequestsRevision, setUpgradeRequestsRevision] = useState(0);
   const [listingsRevision, setListingsRevision] = useState(0);
-  const [buyerInquiries, setBuyerInquiries] = useState([]);
   const [buyerViewings, setBuyerViewings] = useState([]);
   const [buyerConversations, setBuyerConversations] = useState([]);
   const [buyerListingsById, setBuyerListingsById] = useState({});
@@ -100,8 +98,7 @@ export default function AdminPage() {
   const loadBuyerCrm = useCallback(async () => {
     if (!user?.id) return;
     setBuyerCrmLoading(true);
-    const { inquiries, viewings, conversations, listingsById } = await loadBuyerCrmData(supabase, user.id);
-    setBuyerInquiries(inquiries);
+    const { viewings, conversations, listingsById } = await loadBuyerCrmData(supabase, user.id);
     setBuyerViewings(viewings);
     setBuyerConversations(conversations);
     setBuyerListingsById(listingsById);

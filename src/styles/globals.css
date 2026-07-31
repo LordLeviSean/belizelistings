@@ -16,8 +16,9 @@ body {
   overflow: visible;
 }
 
-/* Homepage shell owns atmosphere — avoid stacking global body wash underneath */
+/* Homepage shell owns atmosphere — do not rasterize the global fixed+blur wash */
 body:has(.home-map-page-root)::before {
+  display: none;
   opacity: 0;
 }
 

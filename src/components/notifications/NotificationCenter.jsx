@@ -539,16 +539,30 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
 
       try {
         if (item.notificationId && item.unread && user?.id) {
-          const applied = applyRealtimeUnreadMarkRead(itemsRef.current, item.notificationId);
+          const snapshot = itemsRef.current;
+          const applied = applyRealtimeUnreadMarkRead(snapshot, item.notificationId);
           setItems(applied.items);
           itemsRef.current = applied.items;
           if (applied.didMarkRead) {
             setUnreadBadgeCount((count) => Math.max(0, count - 1));
           }
-          await markNotificationRead(supabase, {
-            notificationId: item.notificationId,
-            userId: user.id,
-          });
+          try {
+            await markNotificationRead(supabase, {
+              notificationId: item.notificationId,
+              userId: user.id,
+            });
+          } catch (markErr) {
+            setItems(snapshot);
+            itemsRef.current = snapshot;
+            if (applied.didMarkRead) {
+              setUnreadBadgeCount((count) => count + 1);
+            }
+            if (typeof console !== "undefined") {
+              console.warn("[notifications] mark-read failed; restored unread state", {
+                message: markErr?.message || String(markErr),
+              });
+            }
+          }
         }
         await router.push(href);
       } catch (err) {

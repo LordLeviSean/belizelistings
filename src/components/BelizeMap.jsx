@@ -143,6 +143,12 @@ const BelizeMap = ({
       }
     }
 
+    // Hover dim/tooltip is desktop-only — on touch, mouseenter fires on finger-down
+    // and forces class churn across every district while the user is trying to scroll.
+    const supportsHover =
+      typeof window !== "undefined" &&
+      Boolean(window.matchMedia?.("(hover: hover) and (pointer: fine)")?.matches);
+
     for (const regionId of BELIZE_MAP_REGION_ORDER) {
       const cfg = BELIZE_MAP_REGION_CONFIG[regionId];
       if (!cfg?.slug) continue;
@@ -244,15 +250,19 @@ const BelizeMap = ({
         }, FLY_MS);
       };
 
-      group.addEventListener("mouseenter", onEnter);
-      group.addEventListener("mousemove", onMove);
-      group.addEventListener("mouseleave", onLeave);
+      if (supportsHover) {
+        group.addEventListener("mouseenter", onEnter);
+        group.addEventListener("mousemove", onMove);
+        group.addEventListener("mouseleave", onLeave);
+      }
       group.addEventListener("click", onClick);
 
       disposers.push(() => {
-        group.removeEventListener("mouseenter", onEnter);
-        group.removeEventListener("mousemove", onMove);
-        group.removeEventListener("mouseleave", onLeave);
+        if (supportsHover) {
+          group.removeEventListener("mouseenter", onEnter);
+          group.removeEventListener("mousemove", onMove);
+          group.removeEventListener("mouseleave", onLeave);
+        }
         group.removeEventListener("click", onClick);
         group.classList.remove(styles.mapDistrictGroup);
         group.classList.remove(styles.districtHover);

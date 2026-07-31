@@ -32,7 +32,9 @@
 .page::before,
 .page::after {
   content: "";
-  position: fixed;
+  /* Absolute (not fixed): fixed+blur on viewport edges paints black compositor
+     slivers on first desktop paint. .page is position:relative — same visual wash. */
+  position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: -1;
@@ -73,7 +75,7 @@
 }
 
 .pageMainLoading {
-  min-height: min(83.2dvh, calc(100dvh - var(--site-nav-height, 48px) - 60px));
+  min-height: min(83.2svh, calc(100svh - var(--site-nav-height, 48px) - 60px));
 }
 
 .cardSkeleton {
@@ -1333,6 +1335,21 @@
   }
 }
 
+/* Desktop-wide only (~15% larger map footprint; tablet 801–1160 unchanged) */
+@media (min-width: 1161px) {
+  .heroCanvas {
+    grid-template-columns: minmax(340px, 0.8fr) minmax(500px, 1.2fr);
+    min-height: min(54vh, 474px);
+  }
+
+  .mapPane {
+    width: min(100%, 630px);
+    height: clamp(336px, 49vh, 472px);
+    min-height: 336px;
+    max-height: 472px;
+  }
+}
+
 @media (max-width: 1160px) {
   .heroCanvas {
     grid-template-columns: 1fr;
@@ -1526,11 +1543,6 @@
     overscroll-behavior-y: none;
   }
 
-  .page::before,
-  .page::after {
-    position: absolute;
-  }
-
   .pageMain {
     width: calc(100% - 16px);
     padding-top: calc(4px + env(safe-area-inset-top, 0px));
@@ -1634,9 +1646,11 @@
     z-index: 1;
     width: 100%;
     max-width: 100%;
-    min-height: min(83.2dvh, calc(100dvh - var(--site-nav-height, 48px) - 60px));
-    height: min(83.2dvh, calc(100dvh - var(--site-nav-height, 48px) - 60px));
-    max-height: min(83.2dvh, calc(100dvh - var(--site-nav-height, 48px) - 60px));
+    /* svh: static viewport — dvh reflowed every toolbar frame during scroll and
+       fought the compositor on this large SVG + blur hero. Footprint unchanged. */
+    min-height: min(83.2svh, calc(100svh - var(--site-nav-height, 48px) - 60px));
+    height: min(83.2svh, calc(100svh - var(--site-nav-height, 48px) - 60px));
+    max-height: min(83.2svh, calc(100svh - var(--site-nav-height, 48px) - 60px));
     margin: 0 auto;
     padding: 0;
     box-sizing: border-box;
@@ -1650,7 +1664,8 @@
     box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    touch-action: manipulation;
+    /* Prefer document vertical scroll; taps still select districts */
+    touch-action: pan-y;
   }
 
   .mobileMapHero .mapPaneMapWrap {

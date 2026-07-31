@@ -213,6 +213,48 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       });
       break;
 
+    case NOTIFICATION_EVENT_TYPES.LISTING_MARKED_SOLD:
+      category = NOTIFICATION_CATEGORIES.LISTING_EVENT;
+      title = "Listing marked as sold";
+      body = `${listingTitle} will be archived automatically in 48 hours.`;
+      entityType = "listing";
+      entityId = listingId ? String(listingId) : null;
+      dedupeKey = dedupeKey ?? `listing_marked_sold:${listingId ?? ""}`;
+      href = resolveNotificationDestination({
+        eventType,
+        role: recipientRole || "user",
+        payload,
+      });
+      break;
+
+    case NOTIFICATION_EVENT_TYPES.LISTING_MARKED_RENTED:
+      category = NOTIFICATION_CATEGORIES.LISTING_EVENT;
+      title = "Listing marked as rented";
+      body = `${listingTitle} will be archived automatically in 48 hours.`;
+      entityType = "listing";
+      entityId = listingId ? String(listingId) : null;
+      dedupeKey = dedupeKey ?? `listing_marked_rented:${listingId ?? ""}`;
+      href = resolveNotificationDestination({
+        eventType,
+        role: recipientRole || "user",
+        payload,
+      });
+      break;
+
+    case NOTIFICATION_EVENT_TYPES.LISTING_AUTO_ARCHIVED:
+      category = NOTIFICATION_CATEGORIES.LISTING_EVENT;
+      title = "Listing archived";
+      body = "Your closed listing has been archived.";
+      entityType = "listing";
+      entityId = listingId ? String(listingId) : null;
+      dedupeKey = dedupeKey ?? `listing_auto_archived:${listingId ?? ""}`;
+      href = resolveNotificationDestination({
+        eventType,
+        role: recipientRole || "user",
+        payload,
+      });
+      break;
+
     case NOTIFICATION_EVENT_TYPES.AGENT_UPGRADE_SUBMITTED:
       category = NOTIFICATION_CATEGORIES.GUIDANCE;
       title = "Agent upgrade request submitted";
