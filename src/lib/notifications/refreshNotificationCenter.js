@@ -1,7 +1,10 @@
 import { BL_ENABLE_NOTIFICATIONS } from "../featureFlags";
 import {
   NOTIFICATION_DROPDOWN_READ_RETENTION_HOURS,
+  countUnreadNotificationCenterItems,
   mergeNotificationCenterItems,
+  preserveMissedRealtimeUnreadArrivals,
+  resolveUnreadNotificationBadgeCount,
 } from "./notificationCenterQuery";
 import { fetchNotifications, fetchUnreadNotificationCount, mapNotificationsForCenter } from "./fetchNotifications";
 
@@ -19,6 +22,7 @@ export async function fetchDurableInboxForNotificationCenter(supabase, userId, o
     return {
       durableItems: [],
       unreadCount: 0,
+      unreadReliable: false,
       skipped: true,
       error: null,
     };
@@ -36,7 +40,8 @@ export async function fetchDurableInboxForNotificationCenter(supabase, userId, o
   if (notificationResult.error) {
     return {
       durableItems: [],
-      unreadCount: unreadResult.skipped ? 0 : unreadResult.count ?? 0,
+      unreadCount: 0,
+      unreadReliable: false,
       skipped: false,
       error: notificationResult.error,
     };
@@ -49,12 +54,50 @@ export async function fetchDurableInboxForNotificationCenter(supabase, userId, o
         sortAt: item.when,
       }));
 
+  const localUnread = countUnreadNotificationCenterItems(durableItems);
+  const unreadReliable = !unreadResult.skipped && !unreadResult.error;
+  const unreadCount = unreadReliable
+    ? Math.max(unreadResult.count ?? 0, localUnread)
+    : localUnread;
+
   return {
     durableItems,
-    unreadCount: unreadResult.skipped ? 0 : unreadResult.count ?? 0,
+    unreadCount,
+    unreadReliable,
     skipped: notificationResult.skipped,
     error: null,
   };
+}
+
+/**
+ * Apply a durable refresh onto local state without dropping realtime unread arrivals
+ * or clearing the badge when the server count is briefly stale.
+ */
+export function applyDurableNotificationRefresh({
+  previousItems = [],
+  durableItems = [],
+  supplementalItems = [],
+  serverUnreadCount = 0,
+  serverCountReliable = false,
+  previousUnreadCount = 0,
+  limit = 10,
+  formatWhen = (iso) => iso,
+} = {}) {
+  const merged = buildNotificationCenterItems({
+    durableItems,
+    supplementalItems,
+    limit,
+    formatWhen,
+  });
+  const reconciled = reconcileNotificationCenterAfterRefresh(previousItems, merged);
+  const items = preserveMissedRealtimeUnreadArrivals(previousItems, reconciled, { limit });
+  const unreadCount = resolveUnreadNotificationBadgeCount({
+    serverUnreadCount,
+    serverCountReliable,
+    items,
+    previousCount: previousUnreadCount,
+  });
+  return { items, unreadCount };
 }
 
 /**
@@ -79,6 +122,7 @@ export function buildNotificationCenterItems({
 
 /**
  * Reconcile a manual/automatic refetch with any optimistic local read state.
+ * Does not resurrect unread for items the user already marked read locally.
  */
 export function reconcileNotificationCenterAfterRefresh(previousItems, nextItems) {
   const previousById = new Map((previousItems || []).map((item) => [item.id, item]));
@@ -95,3 +139,5 @@ export function reconcileNotificationCenterAfterRefresh(previousItems, nextItems
     return item;
   });
 }
+
+export { resolveUnreadNotificationBadgeCount, preserveMissedRealtimeUnreadArrivals };

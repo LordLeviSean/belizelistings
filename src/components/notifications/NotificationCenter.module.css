@@ -36,19 +36,49 @@
     opacity var(--dur-2) var(--ease-default);
 }
 
-.unreadBadgePulse {
-  animation: notifyUnreadBadgePulse var(--dur-5) var(--ease-in-out) infinite;
+/* Brief arrival attention on the Notifications pill — two soft pulses, then settle. */
+.triggerArrivalAttention {
+  animation: notifyArrivalPulse 1.6s var(--ease-in-out) 1;
 }
 
-@keyframes notifyUnreadBadgePulse {
+.unreadBadgeArrival {
+  animation: notifyUnreadBadgeArrival 1.6s var(--ease-in-out) 1;
+}
+
+@keyframes notifyArrivalPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(137, 205, 189, 0);
+  }
+  20%,
+  55% {
+    box-shadow:
+      0 0 0 3px rgba(137, 205, 189, 0.34),
+      0 0 18px rgba(232, 168, 158, 0.22);
+  }
+  37%,
+  72% {
+    box-shadow:
+      0 0 0 1px rgba(137, 205, 189, 0.16),
+      0 0 8px rgba(232, 168, 158, 0.1);
+  }
+}
+
+@keyframes notifyUnreadBadgeArrival {
   0%,
   100% {
     transform: scale(1);
-    opacity: 1;
+    filter: brightness(1);
   }
-  50% {
-    transform: scale(1.045);
-    opacity: 0.9;
+  20%,
+  55% {
+    transform: scale(1.08);
+    filter: brightness(1.08);
+  }
+  37%,
+  72% {
+    transform: scale(1.02);
+    filter: brightness(1.03);
   }
 }
 
@@ -337,7 +367,8 @@
     transform: none;
   }
 
-  .unreadBadgePulse {
+  .triggerArrivalAttention,
+  .unreadBadgeArrival {
     animation: none;
   }
 

@@ -73,3 +73,85 @@ export function patchNotificationCenterItemRead(items, notificationId, readAt) {
 export function countUnreadNotificationCenterItems(items) {
   return (items || []).filter((item) => item.unread).length;
 }
+
+/**
+ * Canonical unread badge count shared by navbar + dropdown.
+ * Never let a stale/unreliable server count hide visibly unread durable rows.
+ */
+export function resolveUnreadNotificationBadgeCount({
+  serverUnreadCount = null,
+  serverCountReliable = false,
+  items = [],
+  previousCount = 0,
+} = {}) {
+  const localUnread = countUnreadNotificationCenterItems(items);
+  if (serverCountReliable && Number.isFinite(Number(serverUnreadCount))) {
+    return Math.max(Math.max(0, Number(serverUnreadCount)), localUnread);
+  }
+  return Math.max(Math.max(0, Number(previousCount) || 0), localUnread);
+}
+
+/**
+ * Realtime INSERT merge — dedupe by id, report whether a new unread arrived.
+ */
+export function applyRealtimeUnreadInsert(items, incoming, { limit = 10 } = {}) {
+  if (!incoming?.id) {
+    return { items: items || [], isNew: false, isNewUnread: false };
+  }
+  const existed = (items || []).some((item) => item.id === incoming.id);
+  const nextItems = prependDurableNotificationItem(items, incoming, limit);
+  return {
+    items: nextItems,
+    isNew: !existed,
+    isNewUnread: !existed && Boolean(incoming.unread),
+  };
+}
+
+/**
+ * Realtime / optimistic mark-read — clears unread and reports whether badge should drop.
+ */
+export function applyRealtimeUnreadMarkRead(items, notificationId, readAt) {
+  const id = String(notificationId || "");
+  if (!id) {
+    return { items: items || [], didMarkRead: false };
+  }
+  const previous = (items || []).find((item) => String(item.notificationId || "") === id);
+  const wasUnread = Boolean(previous?.unread);
+  return {
+    items: patchNotificationCenterItemRead(items, id, readAt),
+    didMarkRead: wasUnread,
+  };
+}
+
+/**
+ * Keep unread durable rows that arrived via realtime while a refetch was in flight.
+ */
+export function preserveMissedRealtimeUnreadArrivals(previousItems, nextItems, { limit = 10 } = {}) {
+  const reconciled = nextItems || [];
+  const nextIds = new Set(reconciled.map((item) => item.id));
+  const missed = (previousItems || []).filter(
+    (item) => item?.notificationId && item.unread && item.id && !nextIds.has(item.id)
+  );
+  if (!missed.length) return reconciled;
+  return [...missed, ...reconciled].slice(0, limit);
+}
+
+/**
+ * Arrival attention triggers once per notification ID.
+ * @param {Set<string>} seenIds
+ * @param {string|number|null|undefined} notificationId
+ */
+export function shouldTriggerNotificationArrivalAttention(seenIds, notificationId) {
+  const id = String(notificationId || "").trim();
+  if (!id || !seenIds) return false;
+  if (seenIds.has(id)) return false;
+  seenIds.add(id);
+  return true;
+}
+
+export function prefersReducedMotion() {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}

@@ -18,18 +18,21 @@ import { BL_ENABLE_NOTIFICATIONS } from "@/lib/featureFlags";
 import { markNotificationRead } from "@/lib/notifications/markNotificationRead";
 import {
   NOTIFICATION_DROPDOWN_READ_RETENTION_HOURS,
-  patchNotificationCenterItemRead,
-  prependDurableNotificationItem,
+  applyRealtimeUnreadInsert,
+  applyRealtimeUnreadMarkRead,
+  prefersReducedMotion,
+  shouldTriggerNotificationArrivalAttention,
 } from "@/lib/notifications/notificationCenterQuery";
 import {
   NOTIFICATION_CENTER_FRIENDLY_LOAD_ERROR,
-  buildNotificationCenterItems,
+  applyDurableNotificationRefresh,
   fetchDurableInboxForNotificationCenter,
-  reconcileNotificationCenterAfterRefresh,
 } from "@/lib/notifications/refreshNotificationCenter";
 import { mapNotificationRowToCenterItem } from "@/lib/notifications/notificationCopyRegistry";
 import nav from "../SiteNavUnified.module.css";
 import styles from "./NotificationCenter.module.css";
+
+const ARRIVAL_ATTENTION_MS = 1600;
 
 function formatWhen(iso) {
   if (!iso) return "";
@@ -55,17 +58,42 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
   const [refreshError, setRefreshError] = useState(null);
   const [items, setItems] = useState([]);
   const [unreadBadgeCount, setUnreadBadgeCount] = useState(0);
+  const [arrivalAttention, setArrivalAttention] = useState(false);
   const rootRef = useRef(null);
   const mountedRef = useRef(true);
   const loadInFlightRef = useRef(false);
   const itemsRef = useRef([]);
+  const unreadBadgeCountRef = useRef(0);
+  const arrivalSeenIdsRef = useRef(new Set());
+  const arrivalTimerRef = useRef(null);
   const isDrawer = layout === "drawer";
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      if (arrivalTimerRef.current) {
+        window.clearTimeout(arrivalTimerRef.current);
+      }
     };
+  }, []);
+
+  useEffect(() => {
+    unreadBadgeCountRef.current = unreadBadgeCount;
+  }, [unreadBadgeCount]);
+
+  const triggerArrivalAttention = useCallback((notificationId) => {
+    if (!shouldTriggerNotificationArrivalAttention(arrivalSeenIdsRef.current, notificationId)) {
+      return;
+    }
+    if (prefersReducedMotion()) return;
+    setArrivalAttention(true);
+    if (arrivalTimerRef.current) {
+      window.clearTimeout(arrivalTimerRef.current);
+    }
+    arrivalTimerRef.current = window.setTimeout(() => {
+      if (mountedRef.current) setArrivalAttention(false);
+    }, ARRIVAL_ATTENTION_MS);
   }, []);
 
   const refreshNotificationCenter = useCallback(async ({ manual = false } = {}) => {
@@ -77,10 +105,12 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
     }
     const supplemental = [];
     const previousItems = itemsRef.current;
+    const previousUnreadCount = unreadBadgeCountRef.current;
 
     try {
       let durableItems = [];
       let unreadCount = 0;
+      let unreadReliable = false;
       if (BL_ENABLE_NOTIFICATIONS) {
         const durableResult = await fetchDurableInboxForNotificationCenter(supabase, user.id, {
           limit: 12,
@@ -90,10 +120,12 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
           if (mountedRef.current && manual) {
             setRefreshError(NOTIFICATION_CENTER_FRIENDLY_LOAD_ERROR);
           }
+          // Preserve list + badge on failure — never reset to zero.
           return;
         }
         durableItems = durableResult.durableItems;
         unreadCount = durableResult.unreadCount;
+        unreadReliable = Boolean(durableResult.unreadReliable);
       }
 
       if (role === "agent") {
@@ -331,23 +363,24 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
       }
 
       if (!mountedRef.current) return;
-      const merged = buildNotificationCenterItems({
+      const applied = applyDurableNotificationRefresh({
+        previousItems,
         durableItems,
         supplementalItems: supplemental,
+        serverUnreadCount: unreadCount,
+        serverCountReliable: BL_ENABLE_NOTIFICATIONS ? unreadReliable : true,
+        previousUnreadCount,
         limit: 10,
         formatWhen,
       });
-      setItems(reconcileNotificationCenterAfterRefresh(previousItems, merged));
-      if (BL_ENABLE_NOTIFICATIONS) {
-        setUnreadBadgeCount(unreadCount);
-      } else {
-        setUnreadBadgeCount(supplemental.filter((item) => item.unread).length);
-      }
+      setItems(applied.items);
+      setUnreadBadgeCount(applied.unreadCount);
       setRefreshError(null);
     } catch {
       if (mountedRef.current && manual) {
         setRefreshError(NOTIFICATION_CENTER_FRIENDLY_LOAD_ERROR);
       }
+      // Preserve existing items + unread badge on unexpected refresh failure.
     } finally {
       if (mountedRef.current) {
         setBusy(false);
@@ -436,9 +469,12 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
             sortAt: row.created_at,
             when: formatWhen(row.created_at),
           };
-          setItems((prev) => prependDurableNotificationItem(prev, mapped, 10));
-          if (!row.read_at) {
+          const applied = applyRealtimeUnreadInsert(itemsRef.current, mapped, { limit: 10 });
+          setItems(applied.items);
+          itemsRef.current = applied.items;
+          if (applied.isNewUnread) {
             setUnreadBadgeCount((count) => count + 1);
+            triggerArrivalAttention(row.id);
           }
         }
       )
@@ -449,7 +485,12 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
           const row = payload?.new;
           if (!row?.id) return;
           if (row.read_at) {
-            setItems((prev) => patchNotificationCenterItemRead(prev, row.id, row.read_at));
+            const applied = applyRealtimeUnreadMarkRead(itemsRef.current, row.id, row.read_at);
+            setItems(applied.items);
+            itemsRef.current = applied.items;
+            if (applied.didMarkRead) {
+              setUnreadBadgeCount((count) => Math.max(0, count - 1));
+            }
           } else {
             void load();
           }
@@ -459,7 +500,7 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
     return () => {
       void supabase.removeChannel(ch);
     };
-  }, [user?.id, load]);
+  }, [user?.id, load, triggerArrivalAttention]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -488,32 +529,6 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
     return () => window.removeEventListener("keydown", onEsc, true);
   }, [open]);
 
-  if (!user) return null;
-
-  if (loading) {
-    const skeletonClass = isDrawer
-      ? `${nav.navLink} ${nav.drawerNavLink} ${nav.navLinkIdle}`
-      : `${nav.navLink} ${nav.navPillNotifications} ${nav.navLinkIdle}`;
-    return (
-      <div className={`${styles.root}${isDrawer ? ` ${styles.rootDrawer}` : ""}`}>
-        <span className={skeletonClass} aria-busy="true" aria-label="Loading notifications">
-          <span className={nav.navLinkInner}>
-            <Loader2 className={`${nav.navIcon} ${nav.navIconSpin}`} strokeWidth={1.85} aria-hidden />
-            Notifications
-          </span>
-        </span>
-      </div>
-    );
-  }
-
-  const unreadCount = BL_ENABLE_NOTIFICATIONS
-    ? unreadBadgeCount
-    : items.filter((x) => x.unread).length;
-  const badgeText = unreadCount > 99 ? "99+" : String(unreadCount);
-  const triggerClass = isDrawer
-    ? `${nav.navLink} ${nav.navBtn} ${nav.drawerNavLink} ${nav.navPillNotifications}`
-    : `${nav.navLink} ${nav.navPillNotifications}`;
-
   const handleNotificationNavigate = useCallback(
     async (item) => {
       const href = item?.href;
@@ -524,8 +539,12 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
 
       try {
         if (item.notificationId && item.unread && user?.id) {
-          setItems((prev) => patchNotificationCenterItemRead(prev, item.notificationId));
-          setUnreadBadgeCount((count) => Math.max(0, count - 1));
+          const applied = applyRealtimeUnreadMarkRead(itemsRef.current, item.notificationId);
+          setItems(applied.items);
+          itemsRef.current = applied.items;
+          if (applied.didMarkRead) {
+            setUnreadBadgeCount((count) => Math.max(0, count - 1));
+          }
           await markNotificationRead(supabase, {
             notificationId: item.notificationId,
             userId: user.id,
@@ -544,13 +563,37 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
     [onNavigate, router, user?.id]
   );
 
+  if (!user) return null;
+
+  if (loading) {
+    const skeletonClass = isDrawer
+      ? `${nav.navLink} ${nav.drawerNavLink} ${nav.navLinkIdle}`
+      : `${nav.navLink} ${nav.navPillNotifications} ${nav.navLinkIdle}`;
+    return (
+      <div className={`${styles.root}${isDrawer ? ` ${styles.rootDrawer}` : ""}`}>
+        <span className={skeletonClass} aria-busy="true" aria-label="Loading notifications">
+          <span className={nav.navLinkInner}>
+            <Loader2 className={`${nav.navIcon} ${nav.navIconSpin}`} strokeWidth={1.85} aria-hidden />
+            Notifications
+          </span>
+        </span>
+      </div>
+    );
+  }
+
+  const unreadCount = unreadBadgeCount;
+  const badgeText = unreadCount > 99 ? "99+" : String(unreadCount);
+  const triggerClass = isDrawer
+    ? `${nav.navLink} ${nav.navBtn} ${nav.drawerNavLink} ${nav.navPillNotifications}`
+    : `${nav.navLink} ${nav.navPillNotifications}`;
+
   return (
     <div className={`${styles.root}${isDrawer ? ` ${styles.rootDrawer}` : ""}`} ref={rootRef}>
       <button
         type="button"
         className={`${triggerClass} ${
           open ? `${nav.navLinkActive} ${nav.navPillNotificationsActive}` : ""
-        }`}
+        }${arrivalAttention ? ` ${styles.triggerArrivalAttention}` : ""}`}
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label={
@@ -564,7 +607,10 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
           <Bell className={nav.navIcon} fill="currentColor" strokeWidth={1.85} aria-hidden />
           Notifications
           {unreadCount > 0 ? (
-            <span className={`${styles.unreadBadge} ${styles.unreadBadgePulse}`} aria-hidden>
+            <span
+              className={`${styles.unreadBadge}${arrivalAttention ? ` ${styles.unreadBadgeArrival}` : ""}`}
+              aria-hidden
+            >
               {badgeText}
             </span>
           ) : null}
