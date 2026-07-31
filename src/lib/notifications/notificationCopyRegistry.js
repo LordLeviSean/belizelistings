@@ -2,6 +2,7 @@ import { LISTING_LIFECYCLE } from "@/constants/operationalModel";
 import { resolveNotificationDestination, resolveGeographicUpdateListingsHref } from "@/lib/dashboardCrmRoutes";
 import {
   resolveAgentUpgradeAdminNotificationHref,
+  resolveAgentUpgradeApprovedNotificationHref,
   resolveAgentUpgradeUserNotificationHref,
 } from "@/lib/notifications/agentUpgradeNotifications";
 import {
@@ -230,6 +231,26 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityId = upgradeRequestId ? String(upgradeRequestId) : null;
       dedupeKey = dedupeKey ?? `agent_upgrade_requested:${upgradeRequestId ?? ""}`;
       href = resolveAgentUpgradeAdminNotificationHref(upgradeRequestId);
+      break;
+
+    case NOTIFICATION_EVENT_TYPES.AGENT_UPGRADE_APPROVED:
+      category = NOTIFICATION_CATEGORIES.GUIDANCE;
+      title = "Agent upgrade approved";
+      body = "Your account now has Agent access.";
+      entityType = "agent_upgrade_request";
+      entityId = upgradeRequestId ? String(upgradeRequestId) : null;
+      dedupeKey = dedupeKey ?? `agent_upgrade_approved:${upgradeRequestId ?? ""}`;
+      href = resolveAgentUpgradeApprovedNotificationHref();
+      break;
+
+    case NOTIFICATION_EVENT_TYPES.AGENT_UPGRADE_DECLINED:
+      category = NOTIFICATION_CATEGORIES.MODERATION;
+      title = "Agent upgrade request declined";
+      body = "Your Agent access request was not approved at this time.";
+      entityType = "agent_upgrade_request";
+      entityId = upgradeRequestId ? String(upgradeRequestId) : null;
+      dedupeKey = dedupeKey ?? `agent_upgrade_declined:${upgradeRequestId ?? ""}`;
+      href = resolveAgentUpgradeUserNotificationHref();
       break;
 
     default:

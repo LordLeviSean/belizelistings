@@ -1,7 +1,10 @@
 import {
+  buildAgentUpgradeApprovedNotificationPayload,
+  buildAgentUpgradeDeclinedNotificationPayload,
   buildAgentUpgradeRequestedNotificationPayload,
   buildAgentUpgradeSubmittedNotificationPayload,
   resolveAgentUpgradeAdminNotificationHref,
+  resolveAgentUpgradeApprovedNotificationHref,
   resolveAgentUpgradeUserNotificationHref,
 } from "./agentUpgradeNotifications";
 import { buildNotificationPresentation } from "./notificationCopyRegistry";
@@ -47,5 +50,29 @@ describe("agentUpgradeNotifications", () => {
     const b = buildAgentUpgradeSubmittedNotificationPayload({ upgradeRequestId: "cycle-2" }).payload
       .dedupe_key;
     expect(a).not.toBe(b);
+  });
+
+  test("decline notifications are cycle-specific and do not reuse user_id dedupe", () => {
+    const cycle1 = buildAgentUpgradeDeclinedNotificationPayload({ upgradeRequestId: "cycle-1" }).payload
+      .dedupe_key;
+    const cycle2 = buildAgentUpgradeDeclinedNotificationPayload({ upgradeRequestId: "cycle-2" }).payload
+      .dedupe_key;
+    expect(cycle1).toBe("agent_upgrade_declined:cycle-1");
+    expect(cycle2).toBe("agent_upgrade_declined:cycle-2");
+    expect(cycle1).not.toBe(cycle2);
+  });
+
+  test("approval presentation links to agent dashboard", () => {
+    const pres = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.AGENT_UPGRADE_APPROVED, {
+      upgrade_request_id: "cycle-9",
+    });
+    expect(pres.href).toBe(resolveAgentUpgradeApprovedNotificationHref());
+    expect(pres.dedupeKey).toBe("agent_upgrade_approved:cycle-9");
+  });
+
+  test("decline presentation links back to user upgrade area", () => {
+    const { payload } = buildAgentUpgradeDeclinedNotificationPayload({ upgradeRequestId: "cycle-9" });
+    const pres = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.AGENT_UPGRADE_DECLINED, payload);
+    expect(pres.href).toBe(resolveAgentUpgradeUserNotificationHref());
   });
 });

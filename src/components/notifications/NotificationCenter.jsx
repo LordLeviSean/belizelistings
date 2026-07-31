@@ -279,47 +279,52 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
         }
 
         const { data: pendingUpgrade } = await fetchPendingAgentUpgradeRequestForUser(user.id);
-        if (pendingUpgrade?.id && !BL_ENABLE_NOTIFICATIONS) {
-          summaries.unshift({
-            id: "agent-upgrade-pending",
-            category: "guidance",
-            title: "Agent upgrade pending",
-            detail: "Your Agent access request is awaiting review.",
-            href: "/dashboard/user",
-            when: formatWhen(pendingUpgrade.requested_at),
-            unread: true,
-          });
-        }
+        if (!BL_ENABLE_NOTIFICATIONS) {
+          if (pendingUpgrade?.id) {
+            summaries.unshift({
+              id: "agent-upgrade-pending",
+              category: "guidance",
+              title: "Agent upgrade pending",
+              detail: "Your Agent access request is awaiting review.",
+              href: "/dashboard/user",
+              when: formatWhen(pendingUpgrade.requested_at),
+              unread: true,
+            });
+          } else {
+            const { data: recentUpgradeRows } = await supabase
+              .from("agent_upgrade_requests")
+              .select("id,status,reviewed_at,updated_at,requested_at")
+              .eq("user_id", user.id)
+              .in("status", [
+                AGENT_UPGRADE_REQUEST_STATUS.APPROVED,
+                AGENT_UPGRADE_REQUEST_STATUS.REJECTED,
+              ])
+              .order("reviewed_at", { ascending: false })
+              .limit(1);
 
-        const { data: recentUpgradeRows } = await supabase
-          .from("agent_upgrade_requests")
-          .select("id,status,reviewed_at,updated_at")
-          .eq("user_id", user.id)
-          .in("status", [AGENT_UPGRADE_REQUEST_STATUS.APPROVED, AGENT_UPGRADE_REQUEST_STATUS.REJECTED])
-          .order("reviewed_at", { ascending: false })
-          .limit(1);
-
-        const recentUpgrade = recentUpgradeRows?.[0];
-        if (recentUpgrade?.status === AGENT_UPGRADE_REQUEST_STATUS.APPROVED) {
-          summaries.unshift({
-            id: `agent-upgrade-approved-${recentUpgrade.id}`,
-            category: "guidance",
-            title: "Agent access approved",
-            detail: AGENT_UPGRADE_TOAST.APPROVED,
-            href: "/dashboard/agent",
-            when: formatWhen(recentUpgrade.reviewed_at || recentUpgrade.updated_at),
-            unread: false,
-          });
-        } else if (recentUpgrade?.status === AGENT_UPGRADE_REQUEST_STATUS.REJECTED) {
-          summaries.unshift({
-            id: `agent-upgrade-rejected-${recentUpgrade.id}`,
-            category: "moderation",
-            title: "Agent upgrade declined",
-            detail: AGENT_UPGRADE_TOAST.REJECTED,
-            href: "/dashboard/user",
-            when: formatWhen(recentUpgrade.reviewed_at || recentUpgrade.updated_at),
-            unread: true,
-          });
+            const recentUpgrade = recentUpgradeRows?.[0];
+            if (recentUpgrade?.status === AGENT_UPGRADE_REQUEST_STATUS.APPROVED) {
+              summaries.unshift({
+                id: `agent-upgrade-approved-${recentUpgrade.id}`,
+                category: "guidance",
+                title: "Agent access approved",
+                detail: AGENT_UPGRADE_TOAST.APPROVED,
+                href: "/dashboard/agent",
+                when: formatWhen(recentUpgrade.reviewed_at || recentUpgrade.updated_at),
+                unread: false,
+              });
+            } else if (recentUpgrade?.status === AGENT_UPGRADE_REQUEST_STATUS.REJECTED) {
+              summaries.unshift({
+                id: `agent-upgrade-rejected-${recentUpgrade.id}`,
+                category: "moderation",
+                title: "Agent upgrade declined",
+                detail: AGENT_UPGRADE_TOAST.REJECTED,
+                href: "/dashboard/user",
+                when: formatWhen(recentUpgrade.reviewed_at || recentUpgrade.updated_at),
+                unread: false,
+              });
+            }
+          }
         }
 
         supplemental.push(...summaries);

@@ -187,6 +187,37 @@ export async function resolveAgentUpgradeRequest({ requestId, reviewerId, nextSt
     return { ok: false, error: { message: "Missing request context." } };
   }
 
+  const { data: rpcData, error: rpcError } = await supabase.rpc("resolve_agent_upgrade_request", {
+    p_request_id: id,
+    p_next_status: nextStatus,
+    p_user_id: uid,
+  });
+
+  if (!rpcError && rpcData?.ok) {
+    return {
+      ok: true,
+      error: null,
+      cycleId: id,
+      idempotent: Boolean(rpcData.idempotent),
+      status: rpcData.status ?? nextStatus,
+    };
+  }
+
+  if (rpcError) {
+    const msg = String(rpcError.message || "").toLowerCase();
+    const missingRpc =
+      rpcError.code === "PGRST202" ||
+      rpcError.code === "42883" ||
+      msg.includes("resolve_agent_upgrade_request") ||
+      msg.includes("could not find the function");
+    if (!missingRpc) {
+      if (msg.includes("request_not_pending")) {
+        return { ok: false, error: { message: "request_not_pending" } };
+      }
+      return { ok: false, error: rpcError };
+    }
+  }
+
   if (nextStatus === AGENT_UPGRADE_REQUEST_STATUS.APPROVED) {
     const { error: roleError } = await supabase.from("profiles").update({ role: "agent" }).eq("id", uid);
     if (roleError) {
@@ -194,7 +225,7 @@ export async function resolveAgentUpgradeRequest({ requestId, reviewerId, nextSt
     }
   }
 
-  const { error: requestError } = await supabase
+  const { data: updatedRows, error: requestError } = await supabase
     .from("agent_upgrade_requests")
     .update({
       status: nextStatus,
@@ -202,11 +233,25 @@ export async function resolveAgentUpgradeRequest({ requestId, reviewerId, nextSt
       reviewed_by: reviewer,
     })
     .eq("id", id)
-    .eq("status", AGENT_UPGRADE_REQUEST_STATUS.PENDING);
+    .eq("status", AGENT_UPGRADE_REQUEST_STATUS.PENDING)
+    .select("id,status")
+    .maybeSingle();
 
   if (requestError) {
     return { ok: false, error: requestError };
   }
 
-  return { ok: true, error: null, cycleId: id };
+  if (!updatedRows?.id) {
+    const { data: existing } = await supabase
+      .from("agent_upgrade_requests")
+      .select("id,status")
+      .eq("id", id)
+      .maybeSingle();
+    if (existing?.status === nextStatus) {
+      return { ok: true, error: null, cycleId: id, idempotent: true, status: existing.status };
+    }
+    return { ok: false, error: { message: "request_not_pending" } };
+  }
+
+  return { ok: true, error: null, cycleId: id, idempotent: false, status: nextStatus };
 }

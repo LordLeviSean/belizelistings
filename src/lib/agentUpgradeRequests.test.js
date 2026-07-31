@@ -15,6 +15,7 @@ import {
   fetchPendingAgentUpgradeRequestForUser,
   fetchPendingAgentUpgradeRequests,
   getAgentUpgradeCycleId,
+  resolveAgentUpgradeRequest,
   submitAgentUpgradeRequest,
 } from "./agentUpgradeRequests";
 import { AGENT_UPGRADE_REQUEST_STATUS } from "@/constants/agentUpgradeNotifications";
@@ -260,5 +261,28 @@ describe("agentUpgradeRequests cycle model", () => {
 
     expect(data?.id).toBe("cycle-2-new");
     expect(data?.id).not.toBe("cycle-1-old");
+  });
+
+  test("resolveAgentUpgradeRequest uses RPC and returns idempotent result", async () => {
+    supabase.rpc.mockResolvedValue({
+      data: { ok: true, idempotent: true, cycle_id: "req-1", status: "rejected" },
+      error: null,
+    });
+
+    const result = await resolveAgentUpgradeRequest({
+      requestId: "req-1",
+      reviewerId: "admin-1",
+      nextStatus: AGENT_UPGRADE_REQUEST_STATUS.REJECTED,
+      userId: "user-1",
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledWith("resolve_agent_upgrade_request", {
+      p_request_id: "req-1",
+      p_next_status: AGENT_UPGRADE_REQUEST_STATUS.REJECTED,
+      p_user_id: "user-1",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.idempotent).toBe(true);
+    expect(result.cycleId).toBe("req-1");
   });
 });

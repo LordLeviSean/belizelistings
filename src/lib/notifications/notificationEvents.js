@@ -21,6 +21,8 @@ export const NOTIFICATION_EVENT_TYPES = Object.freeze({
   LISTING_REJECTED: "listing_rejected",
   AGENT_UPGRADE_SUBMITTED: "agent_upgrade_submitted",
   AGENT_UPGRADE_REQUESTED: "agent_upgrade_requested",
+  AGENT_UPGRADE_APPROVED: "agent_upgrade_approved",
+  AGENT_UPGRADE_DECLINED: "agent_upgrade_declined",
 });
 
 /**
