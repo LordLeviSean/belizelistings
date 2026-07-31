@@ -9,7 +9,7 @@ import {
 import { deriveUserDashboardListingCounts } from "@/lib/userDashboardListingTruth";
 import { isTransientNetworkError } from "@/lib/supabaseCompat";
 import { logDashboardMetricFailureOnce } from "@/lib/dashboardMetricsTelemetry";
-import { BL_ENABLE_INQUIRIES } from "@/lib/featureFlags";
+import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES } from "@/lib/featureFlags";
 import { BL_USER_DASHBOARD_METRICS_EVENT } from "@/lib/userDashboardMetricsBus";
 import {
   reconcileMyListingRows,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/userDashboardListingReconcile";
 import { isMissingTableError, isTerminalDashboardCountError } from "@/lib/supabaseCompat";
 import { resolveUserDashboardListingCap } from "@/constants/dashboardUserConfig";
+import { resolveDashboardActiveInquiryCount } from "@/lib/crm/activeInquiryMetrics";
 
 const METRICS_DEBOUNCE_MS = 480;
 
@@ -322,6 +323,33 @@ const useUserDashboardStore = create((set, get) => ({
         }
       );
     }
+    if (BL_ENABLE_CONVERSATIONS) {
+      channel = channel
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "conversations",
+            filter: `buyer_id=eq.${userId}`,
+          },
+          () => {
+            get()._scheduleDebouncedRealtimeBatch();
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "conversations",
+            filter: `agent_id=eq.${userId}`,
+          },
+          () => {
+            get()._scheduleDebouncedRealtimeBatch();
+          }
+        );
+    }
     channel.subscribe();
     realtimeChannel = channel;
   },
@@ -377,13 +405,22 @@ const useUserDashboardStore = create((set, get) => ({
       select: "listing_id",
       filters: [{ column: "user_id", op: "eq", value: uid }],
     };
-    const inqRequestShape = {
-      resource: "listing_inquiries",
-      operation: "select",
-      countMode: "exact",
-      head: true,
-      filters: [{ column: "sender_user_id", op: "eq", value: uid }],
-    };
+    const inqRequestShape = BL_ENABLE_CONVERSATIONS
+      ? {
+          resource: "conversations",
+          operation: "select",
+          filters: [
+            { column: "agent_id|buyer_id", op: "eq", value: uid },
+            { note: "active Inbox conversations (canonical Inquiries KPI)" },
+          ],
+        }
+      : {
+          resource: "listing_inquiries",
+          operation: "select",
+          countMode: "exact",
+          head: true,
+          filters: [{ column: "sender_user_id", op: "eq", value: uid }],
+        };
 
     try {
       const favQuery = skipFav
@@ -395,10 +432,19 @@ const useUserDashboardStore = create((set, get) => ({
 
       const inqQuery = skipInq
         ? Promise.resolve({ count: 0, error: null, _skipped: true })
-        : supabase
-            .from("listing_inquiries")
-            .select("id", { count: "exact", head: true })
-            .eq("sender_user_id", uid);
+        : BL_ENABLE_CONVERSATIONS
+          ? resolveDashboardActiveInquiryCount(supabase, uid, {
+              includeOwner: true,
+              includeBuyer: true,
+            }).then((r) => ({
+              count: r.count,
+              error: r.error,
+              _canonical: true,
+            }))
+          : supabase
+              .from("listing_inquiries")
+              .select("id", { count: "exact", head: true })
+              .eq("sender_user_id", uid);
 
       const derivedCounts = deriveUserDashboardListingCounts(get().myListingsRows);
       const listingCountsPromise = Promise.resolve({

@@ -16,6 +16,7 @@ import {
 } from "@/lib/userDashboardListingReconcile";
 import { resolveUserDashboardListingCap } from "@/constants/dashboardAgentConfig";
 import { countOwnerInboxUnread } from "@/lib/crm/conversationGrouping";
+import { countActiveInquiryConversations } from "@/lib/crm/activeInquiryMetrics";
 import { filterInboxConversations } from "@/lib/crm/conversationFilters";
 import { fetchConversationsForAgent } from "@/lib/crm/conversationMutations";
 import { fetchInquiriesForAgent } from "@/lib/listingInquiries";
@@ -302,15 +303,19 @@ const useAgentDashboardStore = create((set, get) => ({
 
       if (error) {
         const terminal = isTerminalDashboardCountError(error) || isMissingTableError(error);
-        patchIfChanged(set, get, {
-          inquiriesRows: [],
-          inquiriesCount: 0,
-          unreadInquiryCount: 0,
-        });
+        const failPatch = { inquiriesRows: [] };
+        if (!BL_ENABLE_CONVERSATIONS) {
+          failPatch.inquiriesCount = 0;
+          failPatch.unreadInquiryCount = 0;
+        }
+        patchIfChanged(set, get, failPatch);
         if (terminal && !skipInq) {
           skipInq = true;
           patchIfChanged(set, get, { inquiriesUnavailable: true });
           get().attachRealtime(uid);
+        }
+        if (BL_ENABLE_CONVERSATIONS) {
+          void get().loadConversationInbox({ quiet: true });
         }
         return;
       }
@@ -318,12 +323,16 @@ const useAgentDashboardStore = create((set, get) => ({
       const rows = data || [];
       const patch = {
         inquiriesRows: rows,
-        inquiriesCount: rows.length,
       };
       if (BL_ENABLE_CONVERSATIONS) {
+        // Inquiries KPI is owned by loadConversationInbox (active Inbox conversations).
         void get().loadConversationInbox({ quiet: true });
       } else {
-        patch.unreadInquiryCount = rows.filter(
+        const nonViewing = rows.filter(
+          (q) => String(q?.inquiry_type || "") !== "schedule_viewing" && q?.conversation_id
+        );
+        patch.inquiriesCount = nonViewing.length;
+        patch.unreadInquiryCount = nonViewing.filter(
           (q) => !q.read_at && q.status === INQUIRY_STATUS.NEW
         ).length;
       }
@@ -346,8 +355,11 @@ const useAgentDashboardStore = create((set, get) => ({
       if (genAtStart !== loadGen || !get()._sessionUserId) return;
       if (error) return;
 
-      const unread = countOwnerInboxUnread(filterInboxConversations(data || []));
-      patchIfChanged(set, get, { unreadInquiryCount: unread });
+      const inbox = filterInboxConversations(data || []);
+      patchIfChanged(set, get, {
+        inquiriesCount: countActiveInquiryConversations(inbox),
+        unreadInquiryCount: countOwnerInboxUnread(inbox),
+      });
     } finally {
       if (!quiet && genAtStart === loadGen) {
         /* reserved for future loading indicator */
@@ -370,7 +382,11 @@ const useAgentDashboardStore = create((set, get) => ({
 
     try {
       applyListingMetricsFromRows(set, get, get().myListingsRows);
-      if (!skipInq) void get().loadInquiries({ quiet: true });
+      if (!skipInq) {
+        void get().loadInquiries({ quiet: true });
+      } else if (BL_ENABLE_CONVERSATIONS) {
+        void get().loadConversationInbox({ quiet: true });
+      }
     } finally {
       metricsInflight = false;
       const runCoalesced = pendingCoalescedMetrics && genAtStart === loadGen && get()._sessionUserId;

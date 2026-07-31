@@ -1,4 +1,6 @@
-import { BL_ENABLE_INQUIRIES } from "./featureFlags";
+import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES } from "./featureFlags";
+import { isViewingOnlyConversation } from "./crm/conversationFilters";
+import { CONVERSATION_INQUIRY_EMBED } from "./crm/conversationMutations";
 import { isMissingTableError, isTerminalListingQueryError } from "./supabaseCompat";
 
 const RPC_METRICS = "get_owner_listing_metrics";
@@ -36,15 +38,50 @@ export function applyListingMetricsToRows(rows, metricsMap = {}) {
 
 /**
  * Client fallback when get_owner_listing_metrics RPC is unavailable.
- * Only inquiries are readable via RLS; views/saves default to 0.
+ * Canonical inquiries = distinct active Inbox conversations per listing.
  */
 async function fetchInquiryCountsFallback(client, listingIds, ownerUserId) {
-  if (!BL_ENABLE_INQUIRIES || !ownerUserId) {
+  if ((!BL_ENABLE_INQUIRIES && !BL_ENABLE_CONVERSATIONS) || !ownerUserId) {
     return { map: {}, error: null, partial: true };
   }
+
+  const map = {};
+  for (const id of listingIds) {
+    map[String(id)] = zeroMetrics();
+  }
+
+  if (BL_ENABLE_CONVERSATIONS) {
+    const { data, error } = await client
+      .from("conversations")
+      .select(`id,listing_id,${CONVERSATION_INQUIRY_EMBED}`)
+      .eq("agent_id", ownerUserId)
+      .is("agent_deleted_at", null)
+      .is("agent_archived_at", null)
+      .in("listing_id", listingIds);
+
+    if (error) {
+      return { map: {}, error, partial: true };
+    }
+
+    const seen = new Set();
+    for (const row of data || []) {
+      const lid = row?.listing_id;
+      const cid = row?.id;
+      if (lid == null || cid == null) continue;
+      if (isViewingOnlyConversation(row)) continue;
+      const dedupeKey = `${lid}:${cid}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+      const key = String(lid);
+      if (!map[key]) map[key] = zeroMetrics();
+      map[key].inquiries += 1;
+    }
+    return { map, error: null, partial: true };
+  }
+
   const { data, error } = await client
     .from("listing_inquiries")
-    .select("listing_id,inquiry_type")
+    .select("listing_id,inquiry_type,conversation_id")
     .in("listing_id", listingIds)
     .eq("agent_user_id", ownerUserId);
 
@@ -52,18 +89,14 @@ async function fetchInquiryCountsFallback(client, listingIds, ownerUserId) {
     return { map: {}, error, partial: true };
   }
 
-  const map = {};
   for (const row of data || []) {
     const lid = row?.listing_id;
     if (lid == null) continue;
     if (String(row?.inquiry_type || "") === "schedule_viewing") continue;
+    if (!row?.conversation_id) continue;
     const key = String(lid);
     if (!map[key]) map[key] = zeroMetrics();
     map[key].inquiries += 1;
-  }
-  for (const id of listingIds) {
-    const key = String(id);
-    if (!map[key]) map[key] = zeroMetrics();
   }
   return { map, error: null, partial: true };
 }

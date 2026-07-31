@@ -3,6 +3,9 @@ import {
   fetchProfileRowWithTiers,
   PROFILE_ROLE_ONLY_SELECT,
 } from "../../../lib/profileSelectContract";
+import { CONVERSATION_INQUIRY_EMBED } from "../../../lib/crm/conversationMutations";
+import { filterInboxConversations } from "../../../lib/crm/conversationFilters";
+import { countActiveInquiryConversations } from "../../../lib/crm/activeInquiryMetrics";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -140,7 +143,11 @@ export default async function handler(req, res) {
         .from("listing_events")
         .select("id", { head: true, count: "exact" })
         .gte("occurred_at", todayStart),
-      adminClient.from("listing_inquiries").select("id", { head: true, count: "exact" }),
+      adminClient
+        .from("conversations")
+        .select(`id,${CONVERSATION_INQUIRY_EMBED}`)
+        .is("agent_deleted_at", null)
+        .is("agent_archived_at", null),
       adminClient
         .from("listing_events")
         .select("id,listing_id,event_type,visibility,occurred_at")
@@ -165,6 +172,9 @@ export default async function handler(req, res) {
     ]);
 
     const countOrZero = (r) => (r.error ? null : r.count ?? 0);
+    const activeInboxInquiryTotal = inquiriesRes.error
+      ? null
+      : countActiveInquiryConversations(filterInboxConversations(inquiriesRes.data || []));
 
     const { data: orphanInquiries } = await adminClient
       .from("listing_inquiries")
@@ -216,7 +226,7 @@ export default async function handler(req, res) {
         notification_queue_pending: countOrZero(notifPendingRes),
         notification_queue_failed: countOrZero(notifFailedRes),
         events_today: countOrZero(eventsTodayRes),
-        inquiries_total: countOrZero(inquiriesRes),
+        inquiries_total: activeInboxInquiryTotal,
         orphan_conversation_refs: orphanConversationRefs,
         orphan_viewing_refs: orphanViewingRefs,
         orphan_records: orphanConversationRefs + orphanViewingRefs,

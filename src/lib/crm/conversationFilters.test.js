@@ -27,4 +27,11 @@ describe("conversationFilters", () => {
     ];
     expect(filterInboxConversations(rows).map((r) => r.id)).toEqual(["c2"]);
   });
+
+  test("legacy / hidden conversations are not revived by filter (caller omits deleted)", () => {
+    const activeOnly = [
+      { id: "alive", listing_inquiries: { inquiry_type: INQUIRY_TYPE.GENERAL } },
+    ];
+    expect(filterInboxConversations(activeOnly)).toHaveLength(1);
+  });
 });

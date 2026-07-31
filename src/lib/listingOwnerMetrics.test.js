@@ -2,6 +2,7 @@
 
 jest.mock("./featureFlags", () => ({
   BL_ENABLE_INQUIRIES: true,
+  BL_ENABLE_CONVERSATIONS: true,
 }));
 
 import {
@@ -44,26 +45,39 @@ describe("listingOwnerMetrics", () => {
     expect(map["42"]).toEqual({ views: 9, saves: 3, inquiries: 2 });
   });
 
-  test("fetchOwnerListingMetricsMap excludes schedule_viewing inquiries in fallback", async () => {
+  test("fallback counts active Inbox conversations and excludes schedule_viewing", async () => {
+    const inMock = jest.fn().mockResolvedValue({
+      data: [
+        {
+          id: "c1",
+          listing_id: 5,
+          listing_inquiries: { inquiry_type: "general" },
+        },
+        {
+          id: "c2",
+          listing_id: 5,
+          listing_inquiries: { inquiry_type: "schedule_viewing" },
+        },
+        {
+          id: "c3",
+          listing_id: 6,
+          listing_inquiries: { inquiry_type: "general" },
+        },
+      ],
+      error: null,
+    });
+    const isMock = jest.fn().mockReturnValue({
+      is: jest.fn().mockReturnValue({ in: inMock }),
+    });
+    const eqMock = jest.fn().mockReturnValue({ is: isMock });
+    const selectMock = jest.fn().mockReturnValue({ eq: eqMock });
     const client = {
       rpc: jest.fn().mockResolvedValue({ data: null, error: { code: "PGRST202" } }),
-      from: jest.fn(() => ({
-        select: jest.fn().mockReturnValue({
-          in: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({
-              data: [
-                { listing_id: 5, inquiry_type: "general" },
-                { listing_id: 5, inquiry_type: "schedule_viewing" },
-                { listing_id: 6, inquiry_type: "general" },
-              ],
-              error: null,
-            }),
-          }),
-        }),
-      })),
+      from: jest.fn(() => ({ select: selectMock })),
     };
 
     const { map } = await fetchOwnerListingMetricsMap(client, [5, 6], "owner-1");
+    expect(client.from).toHaveBeenCalledWith("conversations");
     expect(map["5"].inquiries).toBe(1);
     expect(map["6"].inquiries).toBe(1);
     expect(map["5"].views).toBe(0);
