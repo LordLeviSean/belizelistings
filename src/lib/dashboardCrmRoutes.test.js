@@ -87,6 +87,12 @@ describe("dashboardCrmRoutes", () => {
     expect(resolveAdminDashboardTabFromQuery({ tab: "owner-inbox" })).toBe(ADMIN_DASHBOARD_TAB_IDS.INBOX);
   });
 
+  test("resolveAdminDashboardTabFromQuery opens upgrades for request deep link", () => {
+    expect(resolveAdminDashboardTabFromQuery({ request: "cycle-uuid" })).toBe(
+      ADMIN_DASHBOARD_TAB_IDS.UPGRADES
+    );
+  });
+
   test("resolveMessageConversationPath uses Inbox tab", () => {
     expect(
       resolveMessageConversationPath({ role: "user", side: "owner", conversationId: "c1" })

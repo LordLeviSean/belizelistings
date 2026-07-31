@@ -352,5 +352,8 @@ export function resolveAdminDashboardTabFromQuery(query = {}) {
   const listing = Array.isArray(query.listing) ? query.listing[0] : query.listing;
   if (listing) return ADMIN_DASHBOARD_TAB_IDS.LISTINGS;
 
+  const upgradeRequest = Array.isArray(query.request) ? query.request[0] : query.request;
+  if (upgradeRequest) return ADMIN_DASHBOARD_TAB_IDS.UPGRADES;
+
   return ADMIN_DASHBOARD_TAB_IDS.PENDING;
 }

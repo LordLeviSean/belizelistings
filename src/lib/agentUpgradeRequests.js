@@ -124,13 +124,56 @@ export async function submitAgentUpgradeRequest(payload) {
     status: AGENT_UPGRADE_REQUEST_STATUS.PENDING,
   };
 
+  const { data: rpcData, error: rpcError } = await supabase.rpc("submit_agent_upgrade_request", {
+    p_username: row.username,
+    p_email: row.email,
+  });
+
+  if (!rpcError && rpcData?.ok) {
+    const embedded = rpcData.request && typeof rpcData.request === "object" ? rpcData.request : null;
+    if (embedded?.id) {
+      return { data: embedded, error: null, cycleId: String(embedded.id) };
+    }
+    const cycleId = rpcData.upgrade_request_id ?? rpcData.cycle_id ?? null;
+    if (cycleId) {
+      const { data: fetched, error: fetchError } = await supabase
+        .from("agent_upgrade_requests")
+        .select(REQUEST_COLUMNS)
+        .eq("id", cycleId)
+        .maybeSingle();
+      return { data: fetched ?? null, error: fetchError ?? null, cycleId: cycleId ? String(cycleId) : null };
+    }
+  }
+
+  if (rpcError) {
+    const msg = String(rpcError.message || "").toLowerCase();
+    const missingRpc =
+      rpcError.code === "PGRST202" ||
+      rpcError.code === "42883" ||
+      msg.includes("submit_agent_upgrade_request") ||
+      msg.includes("could not find the function");
+    if (!missingRpc) {
+      if (rpcError.code === "23505" || msg.includes("duplicate_pending_request")) {
+        return {
+          data: null,
+          error: { code: "23505", message: "duplicate_pending_request" },
+        };
+      }
+      return { data: null, error: rpcError };
+    }
+  }
+
   const { data, error } = await supabase
     .from("agent_upgrade_requests")
     .insert(row)
     .select(REQUEST_COLUMNS)
     .single();
 
-  return { data: data ?? null, error: error ?? null };
+  return {
+    data: data ?? null,
+    error: error ?? null,
+    cycleId: data?.id ? String(data.id) : null,
+  };
 }
 
 /**

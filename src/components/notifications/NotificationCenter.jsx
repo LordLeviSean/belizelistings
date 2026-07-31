@@ -163,16 +163,18 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
         ]);
         const n = !error && typeof count === "number" ? count : 0;
         const upgradeRows = upgradeResult.data || [];
-        for (const row of upgradeRows.slice(0, 5)) {
-          supplemental.push({
-            id: `admin-agent-upgrade-${row.id}`,
-            category: "guidance",
-            title: "Agent upgrade request",
-            detail: formatAdminAgentUpgradeNotification(row.username || row.email),
-            href: "/admin?tab=upgrades",
-            when: formatWhen(row.requested_at),
-            unread: true,
-          });
+        if (!BL_ENABLE_NOTIFICATIONS) {
+          for (const row of upgradeRows.slice(0, 5)) {
+            supplemental.push({
+              id: `admin-agent-upgrade-${row.id}`,
+              category: "guidance",
+              title: "Agent upgrade request",
+              detail: formatAdminAgentUpgradeNotification(row.username || row.email),
+              href: `/admin?tab=upgrades&request=${encodeURIComponent(row.id)}`,
+              when: formatWhen(row.requested_at),
+              unread: true,
+            });
+          }
         }
         supplemental.push({
           id: "admin-moderation",
@@ -277,7 +279,7 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
         }
 
         const { data: pendingUpgrade } = await fetchPendingAgentUpgradeRequestForUser(user.id);
-        if (pendingUpgrade?.id) {
+        if (pendingUpgrade?.id && !BL_ENABLE_NOTIFICATIONS) {
           summaries.unshift({
             id: "agent-upgrade-pending",
             category: "guidance",

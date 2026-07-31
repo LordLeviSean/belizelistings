@@ -1,5 +1,9 @@
-import { resolveNotificationDestination, resolveGeographicUpdateListingsHref } from "@/lib/dashboardCrmRoutes";
 import { LISTING_LIFECYCLE } from "@/constants/operationalModel";
+import { resolveNotificationDestination, resolveGeographicUpdateListingsHref } from "@/lib/dashboardCrmRoutes";
+import {
+  resolveAgentUpgradeAdminNotificationHref,
+  resolveAgentUpgradeUserNotificationHref,
+} from "@/lib/notifications/agentUpgradeNotifications";
 import {
   resolveListingTitle,
   resolveSenderName,
@@ -37,6 +41,13 @@ export function buildNotificationPresentation(eventType, payload = {}) {
   const listingTitle = resolveListingTitle(payload);
   const senderName = resolveSenderName(payload);
   const slotLabel = resolveSlotLabel(payload);
+  const upgradeRequestId =
+    payload.upgrade_request_id ?? payload.upgradeRequestId ?? null;
+  const requesterName =
+    payload.requester_name ??
+    payload.requesterName ??
+    payload.username ??
+    "A user";
 
   let category = NOTIFICATION_CATEGORIES.SYSTEM;
   let title = "Operational update";
@@ -199,6 +210,26 @@ export function buildNotificationPresentation(eventType, payload = {}) {
         role: recipientRole || "user",
         payload: { ...payload, to_status: LISTING_LIFECYCLE.REJECTED },
       });
+      break;
+
+    case NOTIFICATION_EVENT_TYPES.AGENT_UPGRADE_SUBMITTED:
+      category = NOTIFICATION_CATEGORIES.GUIDANCE;
+      title = "Agent upgrade request submitted";
+      body = "Your request for Agent access is now awaiting review.";
+      entityType = "agent_upgrade_request";
+      entityId = upgradeRequestId ? String(upgradeRequestId) : null;
+      dedupeKey = dedupeKey ?? `agent_upgrade_submitted:${upgradeRequestId ?? ""}`;
+      href = resolveAgentUpgradeUserNotificationHref();
+      break;
+
+    case NOTIFICATION_EVENT_TYPES.AGENT_UPGRADE_REQUESTED:
+      category = NOTIFICATION_CATEGORIES.MODERATION;
+      title = "New Agent upgrade request";
+      body = `${String(requesterName).trim() || "A user"} has requested Agent access.`;
+      entityType = "agent_upgrade_request";
+      entityId = upgradeRequestId ? String(upgradeRequestId) : null;
+      dedupeKey = dedupeKey ?? `agent_upgrade_requested:${upgradeRequestId ?? ""}`;
+      href = resolveAgentUpgradeAdminNotificationHref(upgradeRequestId);
       break;
 
     default:

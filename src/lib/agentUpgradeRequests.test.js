@@ -3,6 +3,7 @@
 jest.mock("./supabaseClient", () => ({
   supabase: {
     from: jest.fn(),
+    rpc: jest.fn(),
   },
 }));
 
@@ -116,7 +117,70 @@ describe("agentUpgradeRequests cycle model", () => {
     ).toEqual({ canSubmit: false, reason: "already_agent" });
   });
 
-  test("submitAgentUpgradeRequest creates pending cycle on first submit", async () => {
+  test("submitAgentUpgradeRequest creates pending cycle via RPC when available", async () => {
+    supabase.rpc.mockResolvedValue({
+      data: {
+        ok: true,
+        upgrade_request_id: "new-cycle",
+        cycle_id: "new-cycle",
+        request: {
+          id: "new-cycle",
+          user_id: "user-1",
+          status: AGENT_UPGRADE_REQUEST_STATUS.PENDING,
+        },
+      },
+      error: null,
+    });
+    supabase.from.mockReturnValue(chain({ data: null, error: null }));
+
+    const { data, error, cycleId } = await submitAgentUpgradeRequest({
+      userId: "user-1",
+      username: "testuser",
+      email: "test@example.com",
+      currentRole: "user",
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledWith("submit_agent_upgrade_request", {
+      p_username: "testuser",
+      p_email: "test@example.com",
+    });
+    expect(error).toBeNull();
+    expect(data?.id).toBe("new-cycle");
+    expect(cycleId).toBe("new-cycle");
+  });
+
+  test("submitAgentUpgradeRequest falls back to insert when RPC missing", async () => {
+    const insertResult = {
+      data: {
+        id: "legacy-cycle",
+        user_id: "user-1",
+        status: AGENT_UPGRADE_REQUEST_STATUS.PENDING,
+      },
+      error: null,
+    };
+    supabase.rpc.mockResolvedValue({
+      data: null,
+      error: { code: "PGRST202", message: "Could not find the function submit_agent_upgrade_request" },
+    });
+    let call = 0;
+    supabase.from.mockImplementation(() => {
+      call += 1;
+      if (call === 1) {
+        return chain({ data: null, error: null });
+      }
+      return chain(insertResult);
+    });
+
+    const { data, cycleId } = await submitAgentUpgradeRequest({
+      userId: "user-1",
+      currentRole: "user",
+    });
+
+    expect(data?.id).toBe("legacy-cycle");
+    expect(cycleId).toBe("legacy-cycle");
+  });
+
+  test("submitAgentUpgradeRequest creates pending cycle on first submit (legacy path)", async () => {
     const insertResult = {
       data: {
         id: "new-cycle",
@@ -125,6 +189,10 @@ describe("agentUpgradeRequests cycle model", () => {
       },
       error: null,
     };
+    supabase.rpc.mockResolvedValue({
+      data: null,
+      error: { code: "PGRST202", message: "Could not find the function submit_agent_upgrade_request" },
+    });
     let call = 0;
     supabase.from.mockImplementation(() => {
       call += 1;
@@ -148,6 +216,10 @@ describe("agentUpgradeRequests cycle model", () => {
   });
 
   test("submitAgentUpgradeRequest blocks duplicate pending before insert", async () => {
+    supabase.rpc.mockResolvedValue({
+      data: null,
+      error: { code: "23505", message: "duplicate_pending_request" },
+    });
     supabase.from.mockReturnValue(
       chain({
         data: { id: "existing", status: AGENT_UPGRADE_REQUEST_STATUS.PENDING },
@@ -171,14 +243,15 @@ describe("agentUpgradeRequests cycle model", () => {
       user_id: "user-1",
       status: AGENT_UPGRADE_REQUEST_STATUS.PENDING,
     };
-    let call = 0;
-    supabase.from.mockImplementation(() => {
-      call += 1;
-      if (call === 1) {
-        return chain({ data: null, error: null });
-      }
-      return chain({ data: newCycle, error: null });
+    supabase.rpc.mockResolvedValue({
+      data: {
+        ok: true,
+        upgrade_request_id: "cycle-2-new",
+        request: newCycle,
+      },
+      error: null,
     });
+    supabase.from.mockReturnValue(chain({ data: null, error: null }));
 
     const { data } = await submitAgentUpgradeRequest({
       userId: "user-1",
