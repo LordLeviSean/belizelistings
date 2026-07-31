@@ -1,9 +1,15 @@
 import { supabase } from "@/lib/supabaseClient";
 import { isMissingTableError } from "@/lib/supabaseCompat";
 import { AGENT_UPGRADE_REQUEST_STATUS } from "@/constants/agentUpgradeNotifications";
+import {
+  deriveAgentUpgradeSubmissionEligibility,
+  getAgentUpgradeCycleId,
+} from "@/lib/agentUpgradeCycle";
+
+export { getAgentUpgradeCycleId, deriveAgentUpgradeSubmissionEligibility };
 
 const REQUEST_COLUMNS =
-  "id,user_id,username,email,requested_at,current_user_role,requested_user_role,status,reviewed_at,reviewed_by";
+  "id,user_id,username,email,requested_at,current_user_role,requested_user_role,status,reviewed_at,reviewed_by,created_at,updated_at";
 
 /**
  * @param {string} userId
@@ -39,12 +45,74 @@ export async function fetchPendingAgentUpgradeRequests() {
 }
 
 /**
+ * Latest resolved (approved/rejected) cycle for a user.
+ */
+export async function fetchLatestResolvedAgentUpgradeRequestForUser(userId) {
+  if (!userId) return { data: null, error: null };
+  const { data, error } = await supabase
+    .from("agent_upgrade_requests")
+    .select(REQUEST_COLUMNS)
+    .eq("user_id", userId)
+    .in("status", [
+      AGENT_UPGRADE_REQUEST_STATUS.APPROVED,
+      AGENT_UPGRADE_REQUEST_STATUS.REJECTED,
+    ])
+    .order("reviewed_at", { ascending: false, nullsFirst: false })
+    .order("requested_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error && isMissingTableError(error)) {
+    return { data: null, error: null, unavailable: true };
+  }
+  return { data: data ?? null, error: error ?? null };
+}
+
+/**
+ * Full request history newest-first (audit / admin context).
+ */
+export async function fetchAgentUpgradeRequestHistoryForUser(userId, { limit = 20 } = {}) {
+  if (!userId) return { data: [], error: null };
+  const { data, error } = await supabase
+    .from("agent_upgrade_requests")
+    .select(REQUEST_COLUMNS)
+    .eq("user_id", userId)
+    .order("requested_at", { ascending: false })
+    .limit(Math.max(1, Math.min(limit, 50)));
+  if (error && isMissingTableError(error)) {
+    return { data: [], error: null, unavailable: true };
+  }
+  return { data: data ?? [], error: error ?? null };
+}
+
+/**
+ * @param {{ profileRole?: string, pendingRequest?: object|null }} args
+ */
+export function canSubmitAgentUpgradeRequest(args = {}) {
+  return deriveAgentUpgradeSubmissionEligibility(args);
+}
+
+/**
  * @param {{ userId: string, username?: string|null, email?: string|null, currentRole?: string }} payload
  */
 export async function submitAgentUpgradeRequest(payload) {
   const userId = String(payload?.userId || "").trim();
   if (!userId) {
     return { data: null, error: { message: "Missing user id." } };
+  }
+
+  const { data: pending, error: pendingError } = await fetchPendingAgentUpgradeRequestForUser(userId);
+  if (pendingError) {
+    return { data: null, error: pendingError };
+  }
+  const eligibility = deriveAgentUpgradeSubmissionEligibility({
+    profileRole: payload.currentRole,
+    pendingRequest: pending,
+  });
+  if (!eligibility.canSubmit && eligibility.reason === "pending_exists") {
+    return {
+      data: null,
+      error: { code: "23505", message: "duplicate_pending_request" },
+    };
   }
 
   const row = {
@@ -97,5 +165,5 @@ export async function resolveAgentUpgradeRequest({ requestId, reviewerId, nextSt
     return { ok: false, error: requestError };
   }
 
-  return { ok: true, error: null };
+  return { ok: true, error: null, cycleId: id };
 }
