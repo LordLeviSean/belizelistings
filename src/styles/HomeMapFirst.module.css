@@ -578,6 +578,14 @@
   transform: translateY(var(--home-map-adjust-y, 0));
 }
 
+/* Desktop-only map artwork presence — scale SVG inside unchanged container */
+@media (min-width: 1161px) {
+  .heroRight .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg svg) {
+    transform: scale(1.2, 1.257) translate(0.12%, 0);
+    transform-origin: center bottom;
+  }
+}
+
 
 .featuredSection {
   position: relative;
