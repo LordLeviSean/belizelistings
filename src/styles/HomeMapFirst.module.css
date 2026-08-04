@@ -3,6 +3,8 @@
   isolation: isolate;
   min-height: 100vh;
   min-height: 100dvh;
+  /* Homepage map adjustment — vertical offset (desktop + mobile hero map) */
+  --home-map-adjust-y: 50px;
   --ui-ease: cubic-bezier(0.32, 0.06, 0.2, 1);
   --ui-radius: 14px;
   --ui-blur-strong: blur(22px);
@@ -568,6 +570,12 @@
 .mapPaneMapWrap > * {
   position: relative;
   z-index: 1;
+}
+
+/* Map adjustment: shift hero map graphic down without resizing the pane */
+.heroRight .mapPaneMapWrap,
+.mobileMapHero .mapPaneMapWrap {
+  transform: translateY(var(--home-map-adjust-y, 0));
 }
 
 
@@ -1332,21 +1340,6 @@
     inset: -2% -2% auto;
     height: min(280px, 42vh);
     opacity: 0.38;
-  }
-}
-
-/* Desktop-wide only (~15% larger map footprint; tablet 801–1160 unchanged) */
-@media (min-width: 1161px) {
-  .heroCanvas {
-    grid-template-columns: minmax(340px, 0.8fr) minmax(500px, 1.2fr);
-    min-height: min(54vh, 474px);
-  }
-
-  .mapPane {
-    width: min(100%, 630px);
-    height: clamp(336px, 49vh, 472px);
-    min-height: 336px;
-    max-height: 472px;
   }
 }
 
