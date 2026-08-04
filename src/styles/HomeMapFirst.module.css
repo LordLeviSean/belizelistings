@@ -1338,6 +1338,14 @@
     margin-bottom: 18px;
   }
 
+  .heroLeft .heroTrustLine {
+    margin-top: 11px;
+  }
+
+  .heroLeft .heroSearchBlock {
+    width: min(485px, 100%);
+  }
+
   .communitySection {
     margin-top: 6px;
     padding-top: 4px;
