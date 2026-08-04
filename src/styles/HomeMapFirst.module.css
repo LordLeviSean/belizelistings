@@ -3,7 +3,7 @@
   isolation: isolate;
   min-height: 100vh;
   min-height: 100dvh;
-  /* Homepage map adjustment — vertical offset (desktop + mobile hero map) */
+  /* Homepage map adjustment — mobile/tablet hero map vertical offset */
   --home-map-adjust-y: 50px;
   --ui-ease: cubic-bezier(0.32, 0.06, 0.2, 1);
   --ui-radius: 14px;
@@ -580,6 +580,10 @@
 
 /* Desktop-only map artwork presence — scale SVG inside unchanged container */
 @media (min-width: 1161px) {
+  .page {
+    --home-map-adjust-y: 30px;
+  }
+
   .heroRight .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg svg) {
     transform: scale(1.2, 1.257) translate(0.12%, 0);
     transform-origin: center bottom;
