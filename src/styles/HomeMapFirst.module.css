@@ -580,7 +580,7 @@
 /* Desktop-only map artwork presence — scale SVG inside unchanged container */
 @media (min-width: 1161px) {
   .page {
-    --home-map-adjust-y: 25px;
+    --home-map-adjust-y: 28px;
   }
 
   .heroRight .mapPaneMapWrap svg {
@@ -1689,6 +1689,7 @@
     align-items: center;
     justify-content: center;
     overflow: visible;
+    transform: none;
   }
 
   .mobileMapHero .mapPaneMapWrap > div {
