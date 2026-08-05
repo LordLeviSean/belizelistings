@@ -7,8 +7,15 @@
  */
 html,
 body {
-  max-width: 100vw;
-  overflow-x: hidden;
+  /* 100vw includes the scrollbar gutter and creates an unpainted edge stripe on Windows. */
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+html {
+  background-color: var(--bg-main);
+  /* Light-first product — avoid dark browser canvas gutters at viewport edges. */
+  color-scheme: light;
 }
 
 /* Home + district share `home-map-page-root` — document scroll only */
@@ -18,8 +25,14 @@ body {
 
 /* Homepage shell owns atmosphere — do not rasterize the global fixed+blur wash */
 body:has(.home-map-page-root)::before {
+  content: none;
   display: none;
   opacity: 0;
+  filter: none;
+}
+
+html:has(.home-map-page-root) {
+  background-color: #fdfcfb;
 }
 
 body:has(.home-map-page-root) {
@@ -278,12 +291,6 @@ select:focus-visible {
 
 .interactive:hover {
   transform: translateY(var(--hover-lift-xs));
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
 }
 
 #mainland_base {

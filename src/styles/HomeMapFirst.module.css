@@ -46,8 +46,8 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  overflow: hidden;
-  contain: strict;
+  /* Do not clip blurred pseudo-layers — overflow/contain paints black compositor slivers at edges. */
+  overflow: visible;
   transform: translateZ(0);
   opacity: calc(0.94 + 0.06 * (var(--sea-flow-tier, 1) - 1));
 }
