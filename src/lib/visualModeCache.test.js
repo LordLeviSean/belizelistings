@@ -2,13 +2,14 @@
 
 import { readVisualModeCache, writeVisualModeCache } from "./visualModeCache";
 import { LIVE_PALETTE_MODE_KEY } from "../utils/livePaletteMode";
+import { PULSE_MODE_KEY } from "../utils/pulseMode";
 
 describe("visualModeCache", () => {
   beforeEach(() => {
     window.localStorage.clear();
   });
 
-  test("writeVisualModeCache persists confirmed server state", () => {
+  test("writeVisualModeCache persists palette and pulse only", () => {
     writeVisualModeCache({
       livePalette: true,
       pulse: false,
@@ -17,21 +18,21 @@ describe("visualModeCache", () => {
     });
 
     expect(window.localStorage.getItem(LIVE_PALETTE_MODE_KEY)).toBe("1");
-    expect(readVisualModeCache()).toEqual({
-      livePalette: true,
-      pulse: false,
-      seaFlow: true,
-      seaFlowIntensity: 1.25,
-    });
+    expect(window.localStorage.getItem(PULSE_MODE_KEY)).toBe("0");
+    expect(window.localStorage.getItem("blz_sea_flow_mode_v1")).toBeNull();
+    expect(window.localStorage.getItem("blz_sea_flow_intensity_v1")).toBeNull();
   });
 
-  test("stale cache is readable but normalized", () => {
-    window.localStorage.setItem(LIVE_PALETTE_MODE_KEY, "1");
-    window.localStorage.setItem("blz_pulse_mode_v1", "0");
+  test("readVisualModeCache purges legacy sea flow keys", () => {
+    window.localStorage.setItem(LIVE_PALETTE_MODE_KEY, "0");
+    window.localStorage.setItem(PULSE_MODE_KEY, "1");
     window.localStorage.setItem("blz_sea_flow_mode_v1", "1");
     window.localStorage.setItem("blz_sea_flow_intensity_v1", "2");
 
-    expect(readVisualModeCache().livePalette).toBe(true);
-    expect(readVisualModeCache().seaFlowIntensity).toBe(2);
+    expect(readVisualModeCache()).toEqual({
+      livePalette: false,
+      pulse: true,
+    });
+    expect(window.localStorage.getItem("blz_sea_flow_mode_v1")).toBeNull();
   });
 });

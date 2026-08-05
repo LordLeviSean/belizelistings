@@ -32,7 +32,7 @@ describe("visual mode API routes", () => {
     process.env = origEnv;
   });
 
-  test("GET /api/visual-mode returns only the four public settings", async () => {
+  test("GET /api/visual-mode returns normalized public settings without sea flow", async () => {
     createClient.mockReturnValue({
       rpc: jest.fn().mockResolvedValue({
         data: {
@@ -52,8 +52,6 @@ describe("visual mode API routes", () => {
     expect(res.json).toHaveBeenCalledWith({
       livePalette: true,
       pulse: false,
-      seaFlow: true,
-      seaFlowIntensity: 1,
       source: "server",
     });
   });
@@ -70,8 +68,6 @@ describe("visual mode API routes", () => {
       expect.objectContaining({
         livePalette: false,
         pulse: false,
-        seaFlow: false,
-        seaFlowIntensity: 0.5,
         source: "defaults",
       })
     );
@@ -91,8 +87,6 @@ describe("visual mode API routes", () => {
         body: {
           livePalette: true,
           pulse: false,
-          seaFlow: false,
-          seaFlowIntensity: 0.5,
         },
       },
       res
@@ -120,8 +114,6 @@ describe("visual mode API routes", () => {
         body: {
           livePalette: true,
           pulse: false,
-          seaFlow: false,
-          seaFlowIntensity: 0.5,
         },
       },
       res
@@ -130,19 +122,20 @@ describe("visual mode API routes", () => {
     expect(res.status).toHaveBeenCalledWith(403);
   });
 
-  test("PATCH /api/admin/visual-mode succeeds for admin RPC update", async () => {
+  test("PATCH /api/admin/visual-mode succeeds and forces dormant sea flow RPC values", async () => {
     const getUser = jest.fn().mockResolvedValue({ data: { user: { id: "admin-1" } } });
+    const rpc = jest.fn().mockResolvedValue({
+      data: {
+        livePalette: true,
+        pulse: true,
+        seaFlow: false,
+        seaFlowIntensity: 0.5,
+      },
+      error: null,
+    });
     createClient.mockReturnValue({
       auth: { getUser },
-      rpc: jest.fn().mockResolvedValue({
-        data: {
-          livePalette: true,
-          pulse: true,
-          seaFlow: false,
-          seaFlowIntensity: 0.75,
-        },
-        error: null,
-      }),
+      rpc,
     });
 
     const res = mockRes();
@@ -153,20 +146,23 @@ describe("visual mode API routes", () => {
         body: {
           livePalette: true,
           pulse: true,
-          seaFlow: false,
-          seaFlowIntensity: 0.75,
         },
       },
       res
     );
 
     expect(getUser).toHaveBeenCalledWith("admin-token");
+    expect(rpc).toHaveBeenCalledWith("update_visual_mode_platform_config", {
+      p_live_palette_mode: true,
+      p_pulse_mode: true,
+      p_sea_flow_mode: false,
+      p_sea_flow_intensity: 0.5,
+    });
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         livePalette: true,
         pulse: true,
-        seaFlowIntensity: 0.75,
         source: "server",
       })
     );
@@ -194,8 +190,6 @@ describe("visual mode API routes", () => {
         body: {
           livePalette: true,
           pulse: false,
-          seaFlow: false,
-          seaFlowIntensity: 0.5,
         },
       },
       res
@@ -207,7 +201,7 @@ describe("visual mode API routes", () => {
     );
   });
 
-  test("PATCH /api/admin/visual-mode rejects invalid intensity", async () => {
+  test("PATCH /api/admin/visual-mode rejects missing fields", async () => {
     createClient.mockReturnValue({
       auth: {
         getUser: jest.fn().mockResolvedValue({ data: { user: { id: "admin-1" } } }),
@@ -222,9 +216,6 @@ describe("visual mode API routes", () => {
         headers: { authorization: "Bearer admin-token" },
         body: {
           livePalette: false,
-          pulse: false,
-          seaFlow: false,
-          seaFlowIntensity: 99,
         },
       },
       res
@@ -232,7 +223,7 @@ describe("visual mode API routes", () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: "invalid_intensity" })
+      expect.objectContaining({ code: "invalid_payload" })
     );
   });
 });

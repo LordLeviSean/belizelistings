@@ -7,8 +7,6 @@ import {
 } from "./visualModeDocument";
 import { LIVE_PALETTE_MODE_KEY } from "../utils/livePaletteMode";
 import { PULSE_MODE_KEY } from "../utils/pulseMode";
-import { SEA_FLOW_MODE_KEY } from "../utils/seaFlowMode";
-import { SEA_FLOW_INTENSITY_KEY, SEA_FLOW_INTENSITY_DEFAULT } from "../utils/seaFlowIntensity";
 
 describe("visualModeDocument", () => {
   beforeEach(() => {
@@ -16,7 +14,7 @@ describe("visualModeDocument", () => {
     document.documentElement.removeAttribute("data-live-palette");
     document.documentElement.removeAttribute("data-pulse-mode");
     document.documentElement.removeAttribute("data-sea-flow");
-    document.documentElement.style.removeProperty("--sea-flow-intensity");
+    document.documentElement.style.setProperty("--sea-flow-intensity", "5");
     window.matchMedia = jest.fn().mockImplementation(() => ({
       matches: false,
       addEventListener: jest.fn(),
@@ -28,61 +26,44 @@ describe("visualModeDocument", () => {
     expect(readVisualModeState()).toEqual({
       livePalette: false,
       pulse: false,
-      seaFlow: false,
-      seaFlowIntensity: SEA_FLOW_INTENSITY_DEFAULT,
     });
   });
 
-  test("readVisualModeState reads optional client cache", () => {
+  test("readVisualModeState ignores legacy sea flow cache keys", () => {
     window.localStorage.setItem(LIVE_PALETTE_MODE_KEY, "1");
-    window.localStorage.setItem(PULSE_MODE_KEY, "1");
-    window.localStorage.setItem(SEA_FLOW_MODE_KEY, "1");
-    window.localStorage.setItem(SEA_FLOW_INTENSITY_KEY, "1.5");
+    window.localStorage.setItem(PULSE_MODE_KEY, "0");
+    window.localStorage.setItem("blz_sea_flow_mode_v1", "1");
+    window.localStorage.setItem("blz_sea_flow_intensity_v1", "5");
 
     expect(readVisualModeState()).toEqual({
       livePalette: true,
-      pulse: true,
-      seaFlow: true,
-      seaFlowIntensity: 1.5,
+      pulse: false,
     });
+    expect(window.localStorage.getItem("blz_sea_flow_mode_v1")).toBeNull();
+    expect(window.localStorage.getItem("blz_sea_flow_intensity_v1")).toBeNull();
   });
 
-  test("syncVisualModeDocument applies state to documentElement", () => {
+  test("syncVisualModeDocument applies palette and pulse only", () => {
     syncVisualModeDocument({
       livePalette: true,
       pulse: false,
       seaFlow: true,
-      seaFlowIntensity: 2,
+      seaFlowIntensity: 5,
     });
 
     expect(document.documentElement.dataset.livePalette).toBe("true");
     expect(document.documentElement.dataset.pulseMode).toBe("false");
-    expect(document.documentElement.dataset.seaFlow).toBe("on");
-    expect(document.documentElement.style.getPropertyValue("--sea-flow-intensity")).toBe("2");
-    expect(document.documentElement.style.getPropertyValue("--sea-flow-speed")).not.toBe("");
-    expect(document.documentElement.style.getPropertyValue("--sea-flow-motion")).not.toBe("");
+    expect(document.documentElement.dataset.seaFlow).toBeUndefined();
+    expect(document.documentElement.style.getPropertyValue("--sea-flow-intensity")).toBe("");
   });
 
-  test("syncVisualModeDocument disables sea flow when mode is off", () => {
-    syncVisualModeDocument({
-      livePalette: false,
-      pulse: false,
-      seaFlow: false,
-      seaFlowIntensity: 0.5,
-    });
-
-    expect(document.documentElement.dataset.seaFlow).toBe("off");
-  });
-
-  test("bootstrap script references production localStorage keys", () => {
+  test("bootstrap script references only live palette and pulse keys", () => {
     const script = getVisualModeBootstrapScript();
     expect(script).toContain(LIVE_PALETTE_MODE_KEY);
     expect(script).toContain(PULSE_MODE_KEY);
-    expect(script).toContain(SEA_FLOW_MODE_KEY);
-    expect(script).toContain(SEA_FLOW_INTENSITY_KEY);
-    expect(script).toContain("--sea-flow-speed");
-    expect(script).toContain("--sea-flow-tier");
-    expect(script).toContain("blzApplySeaFlowVars");
+    expect(script).toContain('removeAttribute("data-sea-flow")');
+    expect(script).not.toContain("blzApplySeaFlowVars");
+    expect(script).not.toContain("--sea-flow-speed");
   });
 
   test("syncVisualModeDocument records reduced-motion preference", () => {
@@ -95,8 +76,6 @@ describe("visualModeDocument", () => {
     syncVisualModeDocument({
       livePalette: false,
       pulse: false,
-      seaFlow: false,
-      seaFlowIntensity: SEA_FLOW_INTENSITY_DEFAULT,
     });
 
     expect(document.documentElement.dataset.reducedMotion).toBe("true");

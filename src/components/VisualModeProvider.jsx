@@ -4,8 +4,6 @@ import { normalizeVisualModeConfig, VISUAL_MODE_DEFAULTS } from "../lib/visualMo
 import { readVisualModeCache, writeVisualModeCache } from "../lib/visualModeCache";
 import { LIVE_PALETTE_MODE_EVENT } from "../utils/livePaletteMode";
 import { PULSE_MODE_EVENT } from "../utils/pulseMode";
-import { SEA_FLOW_MODE_EVENT } from "../utils/seaFlowMode";
-import { SEA_FLOW_INTENSITY_EVENT } from "../utils/seaFlowIntensity";
 import { supabase } from "../lib/supabaseClient";
 
 const VisualModeContext = createContext(null);
@@ -16,10 +14,6 @@ function dispatchVisualModeEvents(config) {
     new CustomEvent(LIVE_PALETTE_MODE_EVENT, { detail: { enabled: config.livePalette } })
   );
   window.dispatchEvent(new CustomEvent(PULSE_MODE_EVENT, { detail: { enabled: config.pulse } }));
-  window.dispatchEvent(new CustomEvent(SEA_FLOW_MODE_EVENT, { detail: { enabled: config.seaFlow } }));
-  window.dispatchEvent(
-    new CustomEvent(SEA_FLOW_INTENSITY_EVENT, { detail: { intensity: config.seaFlowIntensity } })
-  );
 }
 
 function resolveInitialConfig(initialConfig) {
@@ -142,28 +136,16 @@ export function VisualModeProvider({ children, initialConfig = null }) {
     (enabled) => updateVisualMode({ pulse: Boolean(enabled) }),
     [updateVisualMode]
   );
-  const setSeaFlow = useCallback(
-    (enabled) => updateVisualMode({ seaFlow: Boolean(enabled) }),
-    [updateVisualMode]
-  );
-  const setSeaFlowIntensity = useCallback(
-    (intensity) => updateVisualMode({ seaFlowIntensity: intensity }),
-    [updateVisualMode]
-  );
 
   const value = useMemo(
     () => ({
       livePalette: config.livePalette,
       pulse: config.pulse,
-      seaFlow: config.seaFlow,
-      seaFlowIntensity: config.seaFlowIntensity,
       configReady,
       updateError,
       updating,
       setLivePalette,
       setPulse,
-      setSeaFlow,
-      setSeaFlowIntensity,
       updateVisualMode,
     }),
     [
@@ -173,8 +155,6 @@ export function VisualModeProvider({ children, initialConfig = null }) {
       updating,
       setLivePalette,
       setPulse,
-      setSeaFlow,
-      setSeaFlowIntensity,
       updateVisualMode,
     ]
   );

@@ -1,5 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
-import { normalizeVisualModeConfig, VISUAL_MODE_DEFAULTS } from "./visualModeConfig";
+import {
+  normalizeVisualModeConfig,
+  toVisualModeRpcPayload,
+  VISUAL_MODE_DEFAULTS,
+} from "./visualModeConfig";
 
 export function createAnonSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -50,11 +54,12 @@ export async function updateVisualModePlatformConfig(client, config) {
     return { ok: false, error: "client_unavailable" };
   }
 
+  const rpcPayload = toVisualModeRpcPayload(config);
   const { data, error } = await client.rpc("update_visual_mode_platform_config", {
-    p_live_palette_mode: config.livePalette,
-    p_pulse_mode: config.pulse,
-    p_sea_flow_mode: config.seaFlow,
-    p_sea_flow_intensity: config.seaFlowIntensity,
+    p_live_palette_mode: rpcPayload.livePalette,
+    p_pulse_mode: rpcPayload.pulse,
+    p_sea_flow_mode: rpcPayload.seaFlow,
+    p_sea_flow_intensity: rpcPayload.seaFlowIntensity,
   });
 
   if (error) {

@@ -10,7 +10,6 @@ import UserInboxPanel from "../../components/inquiry/UserInboxPanel";
 import { supabase } from "../../lib/supabaseClient";
 import useUserRole from "../../hooks/useUserRole";
 import { useVisualMode } from "../../components/VisualModeProvider";
-import { getSeaFlowIntensityLabel } from "../../utils/seaFlowIntensity";
 import { ACTIVITY_SIGNAL_TYPES } from "../../constants/trustModel";
 import { clearAllFavoritesForListings } from "../../lib/favorites";
 import { isMissingColumnError } from "../../lib/supabaseCompat";
@@ -73,12 +72,8 @@ export default function AdminPage() {
   const {
     livePalette: livePaletteModeEnabled,
     pulse: pulseModeEnabled,
-    seaFlow: seaFlowModeEnabled,
-    seaFlowIntensity,
     setLivePalette: setLivePaletteMode,
     setPulse: setPulseMode,
-    setSeaFlow: setSeaFlowMode,
-    setSeaFlowIntensity,
     updateError: visualModeUpdateError,
     updating: visualModeUpdating,
   } = useVisualMode();
@@ -88,13 +83,6 @@ export default function AdminPage() {
       void setter(event.target.checked).catch(() => {});
     };
   }, []);
-
-  const handleSeaFlowIntensityChange = useCallback(
-    (event) => {
-      void setSeaFlowIntensity(Number(event.target.value) / 100).catch(() => {});
-    },
-    [setSeaFlowIntensity]
-  );
 
   const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
   const visibleTabs = useMemo(() => getVisibleAdminDashboardTabs(), [crmTabsEnabled]);
@@ -454,62 +442,6 @@ export default function AdminPage() {
                         />
                         <span className={styles.livePaletteSlider} />
                       </label>
-                    </div>
-                    <div className={styles.effectCard}>
-                      <div>
-                        <p className={styles.livePaletteLabel}>Sea Flow Mode</p>
-                        <p className={styles.livePaletteSubtext}>
-                          Layered sea-glass current motion across the full homepage hero canvas.
-                        </p>
-                      </div>
-                      <label className={styles.livePaletteSwitch}>
-                        <input
-                          type="checkbox"
-                          checked={seaFlowModeEnabled}
-                          onChange={handleVisualModeToggle(setSeaFlowMode)}
-                          disabled={visualModeUpdating}
-                          aria-label="Toggle sea flow mode"
-                        />
-                        <span className={styles.livePaletteSlider} />
-                      </label>
-                    </div>
-                    <div className={`${styles.effectCard} ${styles.effectCardStacked}`}>
-                      <div className={styles.effectCardCopy}>
-                        <p className={styles.livePaletteLabel}>Sea Flow Intensity</p>
-                        <p className={styles.livePaletteSubtext}>
-                          Master multiplier for wave visibility, atmospheric strength, and glow — live
-                          across desktop and mobile homepage, canvas, and ambient layers.
-                        </p>
-                        <p className={styles.livePaletteIndicator}>
-                          {getSeaFlowIntensityLabel(seaFlowIntensity)}
-                        </p>
-                      </div>
-                      <input
-                        type="range"
-                        className={styles.seaFlowIntensityRange}
-                        min="0"
-                        max="500"
-                        step="25"
-                        value={Math.round(seaFlowIntensity * 100)}
-                        onChange={handleSeaFlowIntensityChange}
-                        aria-label="Sea flow intensity"
-                        aria-valuemin={0}
-                        aria-valuemax={500}
-                        aria-valuenow={Math.round(seaFlowIntensity * 100)}
-                        list="sea-flow-intensity-stops"
-                        disabled={!seaFlowModeEnabled || visualModeUpdating}
-                      />
-                      <datalist id="sea-flow-intensity-stops">
-                        <option value="0" label="Disabled" />
-                        <option value="25" label="Very subtle" />
-                        <option value="50" label="Subtle" />
-                        <option value="100" label="Baseline" />
-                        <option value="150" label="Enhanced" />
-                        <option value="200" label="Strong" />
-                        <option value="300" label="Pronounced" />
-                        <option value="400" label="Cinematic" />
-                        <option value="500" label="Maximum" />
-                      </datalist>
                     </div>
                   </div>
                   <h4 style={{ marginTop: 16, marginBottom: 8 }}>Recent Activity</h4>

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Visual regression captures — signed out/in, drawer, notifications, Sea Flow levels.
+ * Visual regression captures — signed out/in, drawer, notifications.
  * Signed-in flows skip gracefully without QA_EMAIL/QA_PASSWORD.
  */
 import { readFileSync, mkdirSync, existsSync, writeFileSync } from "node:fs";
@@ -11,7 +11,6 @@ import {
   MOBILE_VIEWPORTS,
   DESKTOP_VIEWPORT,
   SCREENSHOT_ROOT,
-  SEA_FLOW_LEVELS,
   hasSignedInCredentials,
   QA_EMAIL,
   QA_PASSWORD,
@@ -29,17 +28,6 @@ async function capture(page, name) {
   await page.screenshot({ path, fullPage: false });
   manifest.shots.push(path);
   return path;
-}
-
-async function setSeaFlow(page, level) {
-  await page.evaluate((pct) => {
-    try {
-      localStorage.setItem("belizelistings-sea-flow-intensity", String(pct));
-      localStorage.setItem("belizelistings-sea-flow-mode", pct > 0 ? "on" : "off");
-    } catch {
-      /* ignore */
-    }
-  }, level);
 }
 
 async function mockSignedIn(page) {
@@ -144,18 +132,6 @@ try {
     manifest.skipped.push(signedInSkipMessage());
   }
   await ctxIn.close();
-
-  // Sea Flow levels (desktop)
-  const ctxSea = await browser.newContext({ viewport: DESKTOP_VIEWPORT });
-  const pageSea = await ctxSea.newPage();
-  await pageSea.goto(`${QA_BASE_URL}/`, { waitUntil: "domcontentloaded", timeout: 90000 });
-  for (const level of SEA_FLOW_LEVELS) {
-    await setSeaFlow(pageSea, level);
-    await pageSea.reload({ waitUntil: "domcontentloaded" });
-    await pageSea.waitForTimeout(1500);
-    await capture(pageSea, `desktop-sea-flow-${level}`);
-  }
-  await ctxSea.close();
 
   if (hasSignedInCredentials()) {
     manifest.note = `Real signed-in capture available via QA_EMAIL (${QA_EMAIL.slice(0, 3)}***) — extend script for prod login if needed.`;

@@ -7,19 +7,13 @@ function readCss(relativePath) {
   return readFileSync(join(ROOT, relativePath), "utf8");
 }
 
-function ruleBlock(css, selector) {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = css.match(new RegExp(`${escaped}\\s*\\{[^}]*\\}`, "s"));
-  return match?.[0] ?? "";
-}
-
 describe("homepage viewport artifact guards", () => {
-  test("page sea-flow layers do not clip blurred gradients to black edges", () => {
+  test("sea flow layers are fully removed from homepage CSS", () => {
     const css = readCss("src/styles/HomeMapFirst.module.css");
-    const block = ruleBlock(css, ".pageSeaFlowLayers");
-    expect(block).toContain("overflow: visible");
-    expect(block).not.toMatch(/overflow:\s*hidden/);
-    expect(block).not.toMatch(/contain:\s*strict/);
+    expect(css).not.toMatch(/\.pageSeaFlowLayers\b/);
+    expect(css).not.toMatch(/\.heroCanvasSeaFlowLayers\b/);
+    expect(css).not.toMatch(/--sea-flow-/);
+    expect(css).not.toMatch(/@keyframes seaFlow/);
   });
 
   test("document shell avoids 100vw gutter and forces light canvas color", () => {

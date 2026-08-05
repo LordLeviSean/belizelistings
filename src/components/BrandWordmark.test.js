@@ -65,8 +65,6 @@ describe("BrandWordmark", () => {
       json: async () => ({
         livePalette: false,
         pulse: false,
-        seaFlow: false,
-        seaFlowIntensity: 0.5,
         source: "server",
       }),
     });
@@ -76,8 +74,6 @@ describe("BrandWordmark", () => {
     const view = renderWordmark({
       livePalette: false,
       pulse: false,
-      seaFlow: false,
-      seaFlowIntensity: 0.5,
     });
     await act(async () => {
       await Promise.resolve();
@@ -92,8 +88,6 @@ describe("BrandWordmark", () => {
     const view = renderWordmark({
       livePalette: true,
       pulse: true,
-      seaFlow: false,
-      seaFlowIntensity: 0.5,
     });
     await act(async () => {
       await Promise.resolve();
@@ -112,8 +106,6 @@ describe("BrandWordmark", () => {
       json: async () => ({
         livePalette: false,
         pulse: false,
-        seaFlow: false,
-        seaFlowIntensity: 0.5,
         source: "server",
       }),
     });
@@ -133,8 +125,6 @@ describe("BrandWordmark", () => {
     const view = renderWordmark({
       livePalette: false,
       pulse: true,
-      seaFlow: false,
-      seaFlowIntensity: 0.5,
     });
     await act(async () => {
       await Promise.resolve();
