@@ -16,10 +16,13 @@ const ROOT = path.resolve(__dirname, "..");
 const SOURCE = path.join(ROOT, "public/brand/belizelistings-logo-source.png");
 const OUT = path.join(ROOT, "public");
 
+/** Matches homepage shell token (`globals.css` / `.page` gradient terminus). */
+export const PWA_ICON_BACKGROUND = { r: 253, g: 252, b: 251, alpha: 1 };
+
 /** Left mark crop — "B" + wave reads best at favicon sizes. */
 const MARK_CROP = { left: 0, top: 0, width: 300, height: 341 };
 
-async function buildMarkPipeline() {
+async function buildMarkBuffer() {
   const meta = await sharp(SOURCE).metadata();
   const crop = {
     left: MARK_CROP.left,
@@ -40,38 +43,69 @@ async function buildMarkPipeline() {
       bottom: padBottom,
       left: padLeft,
       right: padRight,
-      background: { r: 255, g: 255, b: 255, alpha: 1 },
+      background: PWA_ICON_BACKGROUND,
     })
-    .resize(side, side, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } });
+    .png({ compressionLevel: 9 })
+    .toBuffer();
 }
 
-async function writePng(pipeline, size, filename, { sharpen = false } = {}) {
-  let img = pipeline.clone().resize(size, size, {
-    fit: "contain",
-    background: { r: 255, g: 255, b: 255, alpha: 1 },
+async function writeSquarePng(markBuffer, size, filename, { sharpen = false, insetRatio = 0.14 } = {}) {
+  const logoMax = Math.max(1, Math.round(size * (1 - insetRatio * 2)));
+  let mark = sharp(markBuffer).resize(logoMax, logoMax, {
+    fit: "inside",
+    background: PWA_ICON_BACKGROUND,
   });
   if (sharpen && size <= 32) {
-    img = img.sharpen({ sigma: 0.6 });
+    mark = mark.sharpen({ sigma: 0.6 });
   }
-  await img.png({ compressionLevel: 9 }).toFile(path.join(OUT, filename));
+
+  const logoBuffer = await mark.png({ compressionLevel: 9 }).toBuffer();
+  const markMeta = await sharp(logoBuffer).metadata();
+  if ((markMeta.width || 0) > size || (markMeta.height || 0) > size) {
+    throw new Error(
+      `${filename} mark exceeds canvas (${markMeta.width}x${markMeta.height} > ${size}x${size})`
+    );
+  }
+
+  const outPath = path.join(OUT, filename);
+  await sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 4,
+      background: PWA_ICON_BACKGROUND,
+    },
+  })
+    .composite([{ input: logoBuffer, gravity: "center" }])
+    .png({ compressionLevel: 9 })
+    .toFile(outPath);
+
+  const { width, height } = await sharp(outPath).metadata();
+  if (width !== size || height !== size) {
+    throw new Error(`${filename} expected ${size}x${size}, got ${width}x${height}`);
+  }
 }
 
 async function main() {
   await fs.access(SOURCE);
-  const mark = await buildMarkPipeline();
+  const markBuffer = await buildMarkBuffer();
+  const squareMeta = await sharp(markBuffer).metadata();
+  if (squareMeta.width !== squareMeta.height) {
+    throw new Error(`Mark source must be square, got ${squareMeta.width}x${squareMeta.height}`);
+  }
 
   const sizes = [
-    { size: 16, file: "favicon-16x16.png", sharpen: true },
-    { size: 32, file: "favicon-32x32.png", sharpen: true },
-    { size: 180, file: "apple-touch-icon.png" },
-    { size: 192, file: "android-chrome-192x192.png" },
-    { size: 512, file: "android-chrome-512x512.png" },
-    { size: 150, file: "mstile-150x150.png" },
+    { size: 16, file: "favicon-16x16.png", sharpen: true, insetRatio: 0.1 },
+    { size: 32, file: "favicon-32x32.png", sharpen: true, insetRatio: 0.1 },
+    { size: 180, file: "apple-touch-icon.png", insetRatio: 0.14 },
+    { size: 192, file: "android-chrome-192x192.png", insetRatio: 0.14 },
+    { size: 512, file: "android-chrome-512x512.png", insetRatio: 0.18 },
+    { size: 150, file: "mstile-150x150.png", insetRatio: 0.14 },
   ];
 
-  for (const { size, file, sharpen } of sizes) {
-    await writePng(mark, size, file, { sharpen });
-    console.log(`wrote ${file}`);
+  for (const { size, file, sharpen, insetRatio } of sizes) {
+    await writeSquarePng(markBuffer, size, file, { sharpen, insetRatio });
+    console.log(`wrote ${file} (${size}x${size})`);
   }
 
   const png16 = await sharp(path.join(OUT, "favicon-16x16.png")).toBuffer();

@@ -1,11 +1,14 @@
 {
+  "id": "/",
   "name": "BelizeListings",
   "short_name": "BelizeListings",
   "description": "Belize's Living Property Map",
+  "lang": "en",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#fdfcfb",
+  "theme_color": "#fdfcfb",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
