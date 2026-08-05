@@ -1,6 +1,5 @@
 .page {
   position: relative;
-  isolation: isolate;
   min-height: 100vh;
   min-height: 100dvh;
   /* Homepage map adjustment — tablet hero map vertical offset (mobile unchanged) */
@@ -78,13 +77,11 @@
 
 .heroSection {
   position: relative;
-  isolation: isolate;
   padding: 0;
 }
 
-.heroCanvas {
+.heroLayout {
   position: relative;
-  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(360px, 0.86fr) minmax(440px, 1.14fr);
   gap: 10px;
@@ -92,25 +89,10 @@
   min-height: min(48vh, 412px);
   padding: 8px 10px 10px;
   border-radius: 0;
-  overflow: hidden;
+  overflow: visible;
   background: transparent;
   box-shadow: none;
   border: 0;
-}
-
-.heroCanvasAtmosphere {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-  border-radius: inherit;
-}
-
-.heroCanvas::before,
-.heroCanvas::after {
-  content: none;
-  display: none;
 }
 
 .heroLeft {
@@ -1013,38 +995,6 @@
   color: rgba(94, 124, 130, 0.68);
 }
 
-@keyframes heroAtmosphereGlow {
-  0% {
-    opacity: 0.88;
-    transform: translate3d(-0.12%, 0.08%, 0) scale(1);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0.14%, -0.1%, 0) scale(1.004);
-  }
-}
-
-@keyframes atmosphereDrift {
-  0% {
-    transform: translate3d(-0.18%, 0.18%, 0) scale(1);
-  }
-  100% {
-    transform: translate3d(0.18%, -0.18%, 0) scale(1.004);
-  }
-}
-
-@keyframes grainDrift {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  50% {
-    transform: translate3d(-0.45%, 0.45%, 0);
-  }
-  100% {
-    transform: translate3d(0.45%, -0.45%, 0);
-  }
-}
-
 /*
  * Desktop document scroll — single continuous page (Hero → Featured → Community → Footer).
  * Avoid nested vertical scroll; let atmosphere bleed between sections instead of clipped panels.
@@ -1060,7 +1010,7 @@
     padding-bottom: 18px;
   }
 
-  .heroCanvas {
+  .heroLayout {
     overflow: visible;
   }
 
@@ -1099,7 +1049,7 @@
 }
 
 @media (max-width: 1160px) {
-  .heroCanvas {
+  .heroLayout {
     grid-template-columns: 1fr;
     min-height: 0;
     gap: 0;
@@ -1161,7 +1111,7 @@
 }
 
 @media (max-width: 768px) {
-  .heroCanvas {
+  .heroLayout {
     gap: 0;
     padding: 6px 6px 0;
     border-radius: 0;
@@ -1305,7 +1255,7 @@
     overflow: visible;
   }
 
-  .heroCanvasMobile {
+  .heroLayoutMobile {
     display: block;
     min-height: 0;
     gap: 0;
@@ -1347,7 +1297,6 @@
     align-items: center;
     order: 1;
     position: relative;
-    isolation: isolate;
     width: 100%;
     margin: 0;
     padding: 0;
@@ -1662,12 +1611,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .page::before,
-  .page::after,
-  .heroCanvas::before {
-    animation: none !important;
-  }
-
   .propertyMedia :global(img),
   .propertyCard,
   .statCard,

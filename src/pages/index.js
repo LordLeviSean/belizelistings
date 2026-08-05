@@ -315,7 +315,6 @@ export default function HomePage() {
       <div className={styles.mapPane}>
         <div className={styles.mapPaneMapWrap}>
           <BelizeMap
-            showAmbientVeil
             districtListingCounts={districtListingCounts}
             onMapReady={() => patchReadySignal("mapInitialized")}
             onDistrictClick={(slug) => router.push(`/listings/district/${slug}`)}
@@ -375,7 +374,7 @@ export default function HomePage() {
 
       <main id="home-main-content" className={styles.pageMain} tabIndex={-1}>
         <section className={styles.heroSection}>
-          <div className={`${styles.heroCanvas} ${styles.heroCanvasMobile}`}>
+          <div className={`${styles.heroLayout} ${styles.heroLayoutMobile}`}>
             <div className={styles.mobileHeroFlow}>
               <div className={styles.mobileMapHero} aria-label="Belize property map">
                 {renderHeroMap({ showCaption: false })}

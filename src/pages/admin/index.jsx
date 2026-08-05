@@ -9,7 +9,6 @@ import BuyerViewingsPanel from "../../components/inquiry/BuyerViewingsPanel";
 import UserInboxPanel from "../../components/inquiry/UserInboxPanel";
 import { supabase } from "../../lib/supabaseClient";
 import useUserRole from "../../hooks/useUserRole";
-import { useVisualMode } from "../../components/VisualModeProvider";
 import { ACTIVITY_SIGNAL_TYPES } from "../../constants/trustModel";
 import { clearAllFavoritesForListings } from "../../lib/favorites";
 import { isMissingColumnError } from "../../lib/supabaseCompat";
@@ -69,20 +68,6 @@ export default function AdminPage() {
   const [buyerConversations, setBuyerConversations] = useState([]);
   const [buyerListingsById, setBuyerListingsById] = useState({});
   const [buyerCrmLoading, setBuyerCrmLoading] = useState(false);
-  const {
-    livePalette: livePaletteModeEnabled,
-    pulse: pulseModeEnabled,
-    setLivePalette: setLivePaletteMode,
-    setPulse: setPulseMode,
-    updateError: visualModeUpdateError,
-    updating: visualModeUpdating,
-  } = useVisualMode();
-
-  const handleVisualModeToggle = useCallback((setter) => {
-    return (event) => {
-      void setter(event.target.checked).catch(() => {});
-    };
-  }, []);
 
   const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
   const visibleTabs = useMemo(() => getVisibleAdminDashboardTabs(), [crmTabsEnabled]);
@@ -401,49 +386,6 @@ export default function AdminPage() {
                   >
                     {bulkLoading === "rejected" ? "Processing..." : "Bulk Reject"}
                   </button>
-                  <div className={styles.effectControls}>
-                    {visualModeUpdateError ? (
-                      <p className={styles.livePaletteSubtext} role="alert">
-                        {visualModeUpdateError}
-                      </p>
-                    ) : null}
-                    <div className={styles.effectCard}>
-                      <div>
-                        <p className={styles.livePaletteLabel}>Live Palette Mode</p>
-                        <p className={styles.livePaletteSubtext}>
-                          Subtle district color breathing in the BelizeListings wordmark.
-                        </p>
-                      </div>
-                      <label className={styles.livePaletteSwitch}>
-                        <input
-                          type="checkbox"
-                          checked={livePaletteModeEnabled}
-                          onChange={handleVisualModeToggle(setLivePaletteMode)}
-                          disabled={visualModeUpdating}
-                          aria-label="Toggle live palette mode"
-                        />
-                        <span className={styles.livePaletteSlider} />
-                      </label>
-                    </div>
-                    <div className={styles.effectCard}>
-                      <div>
-                        <p className={styles.livePaletteLabel}>Pulse Mode</p>
-                        <p className={styles.livePaletteSubtext}>
-                          Calm editorial pulse layered over live palette transitions.
-                        </p>
-                      </div>
-                      <label className={styles.livePaletteSwitch}>
-                        <input
-                          type="checkbox"
-                          checked={pulseModeEnabled}
-                          onChange={handleVisualModeToggle(setPulseMode)}
-                          disabled={visualModeUpdating}
-                          aria-label="Toggle pulse mode"
-                        />
-                        <span className={styles.livePaletteSlider} />
-                      </label>
-                    </div>
-                  </div>
                   <h4 style={{ marginTop: 16, marginBottom: 8 }}>Recent Activity</h4>
                   <div style={{ display: "grid", gap: 6 }}>
                     {activity.length ? (
