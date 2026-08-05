@@ -37,6 +37,68 @@
   display: none;
 }
 
+/**
+ * Full-homepage sea-flow — sits on .page behind all homepage content when enabled.
+ * Uses --sea-flow-intensity from VisualModeProvider (not hero panels).
+ */
+.pageSeaFlowLayers {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+  transform: translateZ(0);
+  --sea-flow-drift: calc(0.22 + 0.78 * min(var(--sea-flow-intensity, 0.5), 3));
+  --sea-flow-blur-a: calc(22px + 58px * min(var(--sea-flow-intensity, 0.5), 2));
+  --sea-flow-blur-b: calc(28px + 64px * min(var(--sea-flow-intensity, 0.5), 2));
+}
+
+.pageSeaFlowLayers::before {
+  content: "";
+  position: absolute;
+  inset: -58% -52%;
+  z-index: 0;
+  opacity: calc(0.018 + 0.52 * var(--sea-flow-intensity, 0.5) * min(var(--sea-flow-intensity, 0.5), 1.5));
+  background:
+    radial-gradient(ellipse 92% 86% at 22% 58%, rgba(22, 92, 98, 0.38), transparent 62%),
+    radial-gradient(ellipse 88% 80% at 82% 36%, rgba(24, 72, 118, 0.32), transparent 64%),
+    radial-gradient(ellipse 78% 74% at 52% 78%, rgba(28, 102, 108, 0.28), transparent 66%);
+  filter: blur(var(--sea-flow-blur-a));
+  will-change: transform;
+  animation:
+    seaFlowDriftA 74s var(--ambient-ease-drift) infinite alternate,
+    seaFlowPastelCycle var(--ambient-cycle-e) var(--ambient-ease-drift) infinite alternate,
+    mapShimmerDrift 96s var(--ambient-ease-drift) infinite alternate;
+}
+
+.pageSeaFlowLayers::after {
+  content: "";
+  position: absolute;
+  inset: -64% -56%;
+  z-index: 1;
+  opacity: calc(0.014 + 0.38 * var(--sea-flow-intensity, 0.5) * min(var(--sea-flow-intensity, 0.5), 1.5));
+  background:
+    radial-gradient(ellipse 74% 68% at 28% 34%, rgba(18, 68, 88, 0.28), transparent 58%),
+    radial-gradient(ellipse 82% 74% at 72% 66%, rgba(26, 88, 108, 0.22), transparent 62%),
+    conic-gradient(
+      from 210deg at 50% 50%,
+      rgba(16, 58, 78, 0.22),
+      rgba(24, 88, 98, 0.24),
+      rgba(22, 72, 108, 0.22),
+      rgba(28, 98, 112, 0.2),
+      rgba(18, 68, 88, 0.22),
+      rgba(16, 58, 78, 0.22)
+    );
+  filter: blur(var(--sea-flow-blur-b)) saturate(calc(1 + 0.16 * min(var(--sea-flow-intensity, 0.5), 2)));
+  mix-blend-mode: normal;
+  will-change: transform;
+  animation:
+    seaFlowDriftB var(--ambient-cycle-d) var(--ambient-ease-drift) infinite alternate,
+    seaFlowSurge 84s var(--ambient-ease-drift) infinite alternate,
+    mapShimmerDriftAlt 110s var(--ambient-ease-drift) infinite alternate;
+}
+
 .pageMain {
   position: relative;
   z-index: 1;
@@ -1880,7 +1942,9 @@
   }
 
   .heroCanvasSeaFlowLayers::before,
-  .heroCanvasSeaFlowLayers::after {
+  .heroCanvasSeaFlowLayers::after,
+  .pageSeaFlowLayers::before,
+  .pageSeaFlowLayers::after {
     animation: none !important;
     transform: none !important;
     filter: blur(74px);

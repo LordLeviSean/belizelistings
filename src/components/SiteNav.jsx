@@ -2,7 +2,6 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { DM_Sans } from "next/font/google";
 import {
   Bell,
   ChevronLeft,
@@ -16,21 +15,13 @@ import {
 } from "lucide-react";
 import useUserRole from "../hooks/useUserRole";
 import { useAuthGate } from "./auth/AuthGateProvider";
-import useLivePaletteMode from "../hooks/useLivePaletteMode";
-import usePulseMode from "../hooks/usePulseMode";
+import BrandWordmark from "./BrandWordmark";
 import styles from "./SiteNavUnified.module.css";
 import NotificationCenter from "./notifications/NotificationCenter";
 
 const BODY_DRAWER_CLASS = "site-nav-drawer-open";
 /** Ignore backdrop taps right after open (iOS ghost-tap guard). */
 const BACKDROP_TAP_GUARD_MS = 380;
-
-/** Premium geometric-humanist wordmark only — scoped to nav brand link */
-const brandWordmarkFont = DM_Sans({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  display: "swap",
-});
 
 /**
  * @param {{ active?: "browse" | "favorites" | "dashboard" | "agents" | "auto", variant?: "full" | "userDashboard" }} props
@@ -70,9 +61,6 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const toggleAccountMenu = useCallback(() => {
     setMobileMenuOpen((open) => !open);
   }, []);
-
-  const { enabled: livePaletteModeEnabled } = useLivePaletteMode();
-  const { enabled: pulseModeEnabled } = usePulseMode();
 
   const canShowMobileDrawer = authLayoutReady && Boolean(user);
   const drawerOpen = mobileMenuOpen && canShowMobileDrawer;
@@ -252,9 +240,6 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
       </header>
     );
   }
-
-  const brandLetters = "BelizeListings".split("");
-  const belizeEnd = 6;
 
   const signedOutNavTight =
     authLayoutReady && !loading && !user;
@@ -521,25 +506,7 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
           signedInNavCluster ? ` ${styles.navbarSignedIn}` : ""
         }`}
       >
-        <Link href="/" className={`${styles.brand} ${brandWordmarkFont.className}`}>
-          <span
-            aria-label="BelizeListings"
-            className={styles.brandWordmark}
-            data-live={livePaletteModeEnabled ? "true" : "false"}
-            data-pulse={pulseModeEnabled ? "true" : "false"}
-          >
-            {brandLetters.map((ch, i) => (
-              <span
-                key={`${ch}-${i}`}
-                className={`${styles.brandLetter} ${
-                  i < belizeEnd ? styles.brandLetterBelize : styles.brandLetterListings
-                }`}
-              >
-                {ch}
-              </span>
-            ))}
-          </span>
-        </Link>
+        <BrandWordmark />
 
         <nav className={`${styles.navLinks} ${styles.navLinksDesktop}`} aria-label="Primary navigation">
           {renderNavActions("desktop")}

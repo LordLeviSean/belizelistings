@@ -42,6 +42,8 @@ import {
 import { isGeographicUpdateModalEligible } from "../lib/geography/geographicUpdateLaunch";
 import { supabase } from "../lib/supabaseClient";
 
+import { useVisualMode } from "../components/VisualModeProvider";
+import { seaFlowIntensityStyle } from "../utils/seaFlowIntensity";
 import styles from "../styles/HomeMapFirst.module.css";
 
 const HomeAdvancedFiltersModal = dynamic(
@@ -89,6 +91,7 @@ export default function HomePage() {
   const { user } = useAuth();
   const { role } = useRoleAccess(user?.id);
   const { profile } = useUserRole();
+  const { seaFlow, seaFlowIntensity } = useVisualMode();
 
   const [listingsData, setListingsData] = useState([]);
   const [listingsLoading, setListingsLoading] = useState(true);
@@ -361,7 +364,12 @@ export default function HomePage() {
   );
 
   return (
-    <div className={`${styles.page} home-map-page-root`}>
+    <div
+      className={`${styles.page} home-map-page-root`}
+      data-sea-flow={seaFlow ? "on" : "off"}
+      style={seaFlowIntensityStyle(seaFlowIntensity)}
+    >
+      {seaFlow ? <div className={styles.pageSeaFlowLayers} aria-hidden /> : null}
       {showTransition ? (
         <HomeMapAwakensTransition
           ready={isHomeReady}

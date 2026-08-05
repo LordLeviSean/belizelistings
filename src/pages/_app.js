@@ -18,6 +18,7 @@ import { ToastProvider } from "@/components/ui/ToastProvider";
 import { FavoriteSignupPromptProvider } from "@/components/FavoriteSignupPromptProvider";
 import Footer from "@/components/Footer";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
+import { VisualModeProvider } from "@/components/VisualModeProvider";
 
 function ModerationNotificationListener() {
   useListingModerationNotifications();
@@ -44,6 +45,7 @@ function AppWithAlerts({ Component, pageProps }) {
   }, []);
 
   return (
+    <VisualModeProvider>
     <ToastProvider>
       <PageTitleProvider routeTitle={pageTitle} routeDescription={pageDescription}>
       <UserRoleProvider>
@@ -72,6 +74,7 @@ function AppWithAlerts({ Component, pageProps }) {
       </UserRoleProvider>
       </PageTitleProvider>
     </ToastProvider>
+    </VisualModeProvider>
   );
 }
 
