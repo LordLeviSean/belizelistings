@@ -3,9 +3,10 @@
 import {
   SEA_FLOW_INTENSITY_DEFAULT,
   SEA_FLOW_INTENSITY_MAX,
+  SEA_FLOW_PREVIOUS_MAX_VISUAL,
   clampSeaFlowIntensity,
   computeSeaFlowIntensityVisualVars,
-  normalizeSeaFlowIntensityPower,
+  normalizeSeaFlowIntensityTier,
   seaFlowIntensityFromPercent,
   seaFlowIntensityStyle,
   seaFlowIntensityToPercent,
@@ -35,37 +36,52 @@ describe("seaFlowIntensity calibration", () => {
     expect(clampSeaFlowIntensity(Number.NaN)).toBe(SEA_FLOW_INTENSITY_DEFAULT);
   });
 
-  test("maps major intensity steps to progressively higher perceptual power", () => {
-    const steps = [0.5, 1, 2, 3, 4, 5].map(normalizeSeaFlowIntensityPower);
+  test("maps major intensity steps to progressively higher visual tier", () => {
+    const steps = [0.5, 1, 2, 3, 4, 5].map(normalizeSeaFlowIntensityTier);
     for (let i = 1; i < steps.length; i += 1) {
       expect(steps[i]).toBeGreaterThan(steps[i - 1]);
     }
-    expect(steps[0]).toBeCloseTo(0.12, 2);
-    expect(steps[steps.length - 1]).toBeCloseTo(1, 2);
+    expect(steps[0]).toBeCloseTo(1, 2);
+    expect(steps[steps.length - 1]).toBeGreaterThan(2);
   });
 
-  test("calculated visual variables are materially different at 0.5 and 5.0", () => {
-    const subtle = computeSeaFlowIntensityVisualVars(0.5);
+  test("new 50% baseline is at least as strong as previous 500% maximum", () => {
+    const baseline = computeSeaFlowIntensityVisualVars(0.5);
+    const prev = SEA_FLOW_PREVIOUS_MAX_VISUAL;
+
+    expect(Number(baseline["--sea-flow-opacity-dark"])).toBeGreaterThanOrEqual(prev.opacityA);
+    expect(Number(baseline["--sea-flow-opacity-light"])).toBeGreaterThanOrEqual(prev.opacityB);
+    expect(Number(baseline["--sea-flow-motion"])).toBeGreaterThanOrEqual(prev.motion);
+    expect(Number(baseline["--sea-flow-speed"])).toBeGreaterThanOrEqual(prev.speed);
+    expect(parseInt(baseline["--sea-flow-blur-a"], 10)).toBeGreaterThanOrEqual(prev.blurA);
+    expect(parseInt(baseline["--sea-flow-blur-b"], 10)).toBeGreaterThanOrEqual(prev.blurB);
+  });
+
+  test("calculated visual variables are materially stronger at 5.0 than 0.5", () => {
+    const baseline = computeSeaFlowIntensityVisualVars(0.5);
     const extreme = computeSeaFlowIntensityVisualVars(5);
 
-    expect(Number(extreme["--sea-flow-opacity-a"])).toBeGreaterThan(
-      Number(subtle["--sea-flow-opacity-a"]) * 2.5
+    expect(Number(extreme["--sea-flow-opacity-dark"])).toBeGreaterThan(
+      Number(baseline["--sea-flow-opacity-dark"]) + 0.15
     );
     expect(Number(extreme["--sea-flow-speed"])).toBeGreaterThan(
-      Number(subtle["--sea-flow-speed"]) * 2
+      Number(baseline["--sea-flow-speed"]) + 0.8
     );
     expect(Number(extreme["--sea-flow-motion"])).toBeGreaterThan(
-      Number(subtle["--sea-flow-motion"]) * 2.5
+      Number(baseline["--sea-flow-motion"]) * 1.8
     );
     expect(parseInt(extreme["--sea-flow-blur-a"], 10)).toBeGreaterThan(
-      parseInt(subtle["--sea-flow-blur-a"], 10) + 40
+      parseInt(baseline["--sea-flow-blur-a"], 10) + 40
     );
   });
 
   test("seaFlowIntensityStyle exposes derived vars for live CSS updates", () => {
     const style = seaFlowIntensityStyle(3);
     expect(style["--sea-flow-intensity"]).toBe("3");
-    expect(style["--sea-flow-power"]).toBeTruthy();
+    expect(style["--sea-flow-tier"]).toBeTruthy();
+    expect(style["--sea-flow-opacity-dark"]).toBeTruthy();
+    expect(style["--sea-flow-opacity-light"]).toBeTruthy();
+    expect(style["--sea-flow-opacity-glow"]).toBeTruthy();
     expect(style["--sea-flow-speed"]).toBeTruthy();
     expect(style["--sea-flow-motion"]).toBeTruthy();
   });

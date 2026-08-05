@@ -81,6 +81,7 @@ describe("visualModeDocument", () => {
     expect(script).toContain(SEA_FLOW_MODE_KEY);
     expect(script).toContain(SEA_FLOW_INTENSITY_KEY);
     expect(script).toContain("--sea-flow-speed");
+    expect(script).toContain("--sea-flow-tier");
     expect(script).toContain("blzApplySeaFlowVars");
   });
 

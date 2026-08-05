@@ -1,10 +1,24 @@
 export const SEA_FLOW_INTENSITY_KEY = "blz_sea_flow_intensity_v1";
 export const SEA_FLOW_INTENSITY_EVENT = "blz-sea-flow-intensity-change";
 
-/** 50% — subtle default across homepage, canvas, and ambient layers */
+/** 50% — visible baseline (prior-generation maximum strength) */
 export const SEA_FLOW_INTENSITY_DEFAULT = 0.5;
 export const SEA_FLOW_INTENSITY_MAX = 5;
 export const SEA_FLOW_INTENSITY_STOPS = [0, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5];
+
+/** Prior calibration maximum (stored 5.0) — new 50% baseline targets these strengths. */
+export const SEA_FLOW_PREVIOUS_MAX_VISUAL = Object.freeze({
+  opacityA: 0.52,
+  opacityB: 0.45,
+  motion: 3.2,
+  speed: 2.2,
+  blurA: 96,
+  blurB: 118,
+  drift: 4.2,
+  saturate: 1.68,
+  glow: 0.76,
+  brightness: 1.08,
+});
 
 export const SEA_FLOW_INTENSITY_LABELS = {
   0: "Disabled",
@@ -70,38 +84,55 @@ export function snapSeaFlowIntensity(intensity) {
 }
 
 /**
- * Nonlinear perceptual power for CSS (0.12 at 50% … 1.0 at 500%).
- * Keeps the stored 0.5–5.0 range but expands visible differentiation.
+ * Visual tier: 1.0 at 50% (prior maximum) → ~2.4 at 500%.
+ * Stored server values remain 0.5–5.0; tier drives presentation only.
  */
-export function normalizeSeaFlowIntensityPower(intensity) {
+export function normalizeSeaFlowIntensityTier(intensity) {
   const raw = clampSeaFlowIntensity(intensity);
   const span = SEA_FLOW_INTENSITY_MAX - SEA_FLOW_INTENSITY_DEFAULT;
   const linear = span > 0 ? Math.max(0, (raw - SEA_FLOW_INTENSITY_DEFAULT) / span) : 0;
-  const curved = Math.pow(linear, 0.82);
-  return 0.12 + curved * 0.88;
+  return 1 + Math.pow(linear, 0.78) * 1.4;
+}
+
+/** @deprecated alias — tier replaces prior power curve */
+export function normalizeSeaFlowIntensityPower(intensity) {
+  return normalizeSeaFlowIntensityTier(intensity);
 }
 
 /**
  * Derived CSS variables for Sea Flow presentation layers.
- * Raw intensity remains on --sea-flow-intensity for server parity.
+ * Tier 1.0 ≈ prior-generation 500% appearance (new 50% baseline).
  */
 export function computeSeaFlowIntensityVisualVars(intensity) {
   const raw = snapSeaFlowIntensity(intensity);
-  const power = normalizeSeaFlowIntensityPower(raw);
+  const tier = normalizeSeaFlowIntensityTier(raw);
+  const rise = tier - 1;
+  const prev = SEA_FLOW_PREVIOUS_MAX_VISUAL;
+
+  const opacityDark = Math.min(0.94, 0.58 + 0.26 * rise);
+  const opacityLight = Math.min(0.88, 0.5 + 0.24 * rise);
+  const opacityGlow = Math.min(0.82, 0.36 + 0.3 * rise);
 
   return {
     "--sea-flow-intensity": String(raw),
-    "--sea-flow-power": power.toFixed(4),
-    "--sea-flow-drift": (0.42 + 3.78 * power).toFixed(4),
-    "--sea-flow-motion": (0.38 + 2.82 * power).toFixed(4),
-    "--sea-flow-blur-a": `${Math.round(14 + 82 * power)}px`,
-    "--sea-flow-blur-b": `${Math.round(20 + 98 * power)}px`,
-    "--sea-flow-opacity-a": (0.06 + 0.46 * power).toFixed(4),
-    "--sea-flow-opacity-b": (0.05 + 0.4 * power).toFixed(4),
-    "--sea-flow-speed": (0.42 + 1.78 * power).toFixed(4),
-    "--sea-flow-saturate": (1 + 0.68 * power).toFixed(4),
-    "--sea-flow-glow": (0.14 + 0.62 * power).toFixed(4),
-    "--sea-flow-brightness": (0.86 + 0.22 * power).toFixed(4),
+    "--sea-flow-power": tier.toFixed(4),
+    "--sea-flow-tier": tier.toFixed(4),
+    "--sea-flow-drift": (prev.drift * tier).toFixed(4),
+    "--sea-flow-motion": (prev.motion * tier).toFixed(4),
+    "--sea-flow-blur-a": `${Math.round(prev.blurA + 54 * rise)}px`,
+    "--sea-flow-blur-b": `${Math.round(prev.blurB + 64 * rise)}px`,
+    "--sea-flow-opacity-a": opacityDark.toFixed(4),
+    "--sea-flow-opacity-b": opacityLight.toFixed(4),
+    "--sea-flow-opacity-dark": opacityDark.toFixed(4),
+    "--sea-flow-opacity-light": opacityLight.toFixed(4),
+    "--sea-flow-opacity-glow": opacityGlow.toFixed(4),
+    "--sea-flow-speed": (prev.speed + 1.4 * rise).toFixed(4),
+    "--sea-flow-saturate": (prev.saturate + 0.55 * rise).toFixed(4),
+    "--sea-flow-glow": Math.min(1, prev.glow + 0.34 * rise).toFixed(4),
+    "--sea-flow-brightness": (prev.brightness + 0.16 * rise).toFixed(4),
+    "--sea-flow-brightness-dark": Math.max(0.68, 0.9 - 0.2 * rise).toFixed(4),
+    "--sea-flow-contrast": (1.1 + 0.18 * rise).toFixed(4),
+    "--sea-flow-gradient-strength": Math.min(1.42, 1.04 + 0.28 * rise).toFixed(4),
   };
 }
 
@@ -122,18 +153,26 @@ export function seaFlowIntensityStyle(intensity) {
 export function getSeaFlowIntensityBootstrapScriptBody() {
   return (
     "function blzApplySeaFlowVars(el,si){var r=Math.min(5,Math.max(0,parseFloat(si)||0.5));" +
-    "var lin=Math.max(0,(r-0.5)/4.5);var p=0.12+Math.pow(lin,0.82)*0.88;" +
+    "var lin=Math.max(0,(r-0.5)/4.5);var t=1+Math.pow(lin,0.78)*1.4;var rise=t-1;" +
+    "var od=Math.min(0.94,0.58+0.26*rise);var ol=Math.min(0.88,0.5+0.24*rise);var og=Math.min(0.82,0.36+0.3*rise);" +
     'el.style.setProperty("--sea-flow-intensity",String(r));' +
-    'el.style.setProperty("--sea-flow-power",p.toFixed(4));' +
-    'el.style.setProperty("--sea-flow-drift",(0.42+3.78*p).toFixed(4));' +
-    'el.style.setProperty("--sea-flow-motion",(0.38+2.82*p).toFixed(4));' +
-    'el.style.setProperty("--sea-flow-blur-a",Math.round(14+82*p)+"px");' +
-    'el.style.setProperty("--sea-flow-blur-b",Math.round(20+98*p)+"px");' +
-    'el.style.setProperty("--sea-flow-opacity-a",(0.06+0.46*p).toFixed(4));' +
-    'el.style.setProperty("--sea-flow-opacity-b",(0.05+0.4*p).toFixed(4));' +
-    'el.style.setProperty("--sea-flow-speed",(0.42+1.78*p).toFixed(4));' +
-    'el.style.setProperty("--sea-flow-saturate",(1+0.68*p).toFixed(4));' +
-    'el.style.setProperty("--sea-flow-glow",(0.14+0.62*p).toFixed(4));' +
-    'el.style.setProperty("--sea-flow-brightness",(0.86+0.22*p).toFixed(4));}'
+    'el.style.setProperty("--sea-flow-power",t.toFixed(4));' +
+    'el.style.setProperty("--sea-flow-tier",t.toFixed(4));' +
+    'el.style.setProperty("--sea-flow-drift",(4.2*t).toFixed(4));' +
+    'el.style.setProperty("--sea-flow-motion",(3.2*t).toFixed(4));' +
+    'el.style.setProperty("--sea-flow-blur-a",Math.round(96+54*rise)+"px");' +
+    'el.style.setProperty("--sea-flow-blur-b",Math.round(118+64*rise)+"px");' +
+    'el.style.setProperty("--sea-flow-opacity-a",od.toFixed(4));' +
+    'el.style.setProperty("--sea-flow-opacity-b",ol.toFixed(4));' +
+    'el.style.setProperty("--sea-flow-opacity-dark",od.toFixed(4));' +
+    'el.style.setProperty("--sea-flow-opacity-light",ol.toFixed(4));' +
+    'el.style.setProperty("--sea-flow-opacity-glow",og.toFixed(4));' +
+    'el.style.setProperty("--sea-flow-speed",(2.2+1.4*rise).toFixed(4));' +
+    'el.style.setProperty("--sea-flow-saturate",(1.68+0.55*rise).toFixed(4));' +
+    'el.style.setProperty("--sea-flow-glow",Math.min(1,0.76+0.34*rise).toFixed(4));' +
+    'el.style.setProperty("--sea-flow-brightness",(1.08+0.16*rise).toFixed(4));' +
+    'el.style.setProperty("--sea-flow-brightness-dark",Math.max(0.68,(0.9-0.2*rise)).toFixed(4));' +
+    'el.style.setProperty("--sea-flow-contrast",(1.1+0.18*rise).toFixed(4));' +
+    'el.style.setProperty("--sea-flow-gradient-strength",Math.min(1.42,(1.04+0.28*rise)).toFixed(4));}'
   );
 }
