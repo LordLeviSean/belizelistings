@@ -26,9 +26,6 @@ import { getRegionLabel } from "../constants/geographyLayer";
 import { fetchApprovedListingsWithImages } from "../lib/listingQueries";
 import { filterListings } from "../utils/filterListings";
 import { getLifecycleStatus, getListingRegionSlug, isListingActivelyAvailable } from "../utils/canonicalListing";
-import useSeaFlowMode from "../hooks/useSeaFlowMode";
-import useSeaFlowIntensity from "../hooks/useSeaFlowIntensity";
-import { seaFlowIntensityStyle } from "../utils/seaFlowIntensity";
 import { useFavoriteSignupPrompt } from "../components/FavoriteSignupPromptProvider";
 import useAuth from "../hooks/useAuth";
 import useRoleAccess from "../hooks/useRoleAccess";
@@ -141,8 +138,6 @@ export default function HomePage() {
   const [compactSearchPlaceholder, setCompactSearchPlaceholder] = useState(false);
   const featuredScrollRef = useRef(null);
   const featuredPausedRef = useRef(false);
-  const { enabled: seaFlowModeEnabled } = useSeaFlowMode();
-  const { intensity: seaFlowIntensity } = useSeaFlowIntensity();
   const { isFavorite, toggleFavorite, isBusy, isAuthenticated } = useFavorites();
   const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
 
@@ -380,16 +375,7 @@ export default function HomePage() {
 
       <main id="home-main-content" className={styles.pageMain} tabIndex={-1}>
         <section className={styles.heroSection}>
-          <div
-            className={`${styles.heroCanvas} ${styles.heroCanvasMobile}`}
-            style={seaFlowIntensityStyle(seaFlowIntensity)}
-            data-sea-flow={seaFlowModeEnabled ? "on" : "off"}
-          >
-            <div className={styles.heroCanvasAtmosphere} aria-hidden>
-              <div className={styles.heroCanvasStaticWash} />
-              {seaFlowModeEnabled ? <div className={styles.heroCanvasSeaFlowLayers} /> : null}
-            </div>
-
+          <div className={`${styles.heroCanvas} ${styles.heroCanvasMobile}`}>
             <div className={styles.mobileHeroFlow}>
               <div className={styles.mobileMapHero} aria-label="Belize property map">
                 {renderHeroMap({ showCaption: false })}

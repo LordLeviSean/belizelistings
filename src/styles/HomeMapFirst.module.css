@@ -33,34 +33,8 @@
 
 .page::before,
 .page::after {
-  content: "";
-  /* Absolute (not fixed): fixed+blur on viewport edges paints black compositor
-     slivers on first desktop paint. .page is position:relative — same visual wash.
-     Negative inset gives blur kernels room so they do not clip to black at x=0/y=0. */
-  position: absolute;
-  inset: -32px;
-  pointer-events: none;
-  z-index: -1;
-}
-
-.page::before {
-  opacity: 0.38;
-  background:
-    radial-gradient(circle at 14% 18%, rgba(236, 214, 244, 0.16), transparent 36%),
-    radial-gradient(circle at 94% 8%, rgba(250, 220, 232, 0.12), transparent 34%),
-    radial-gradient(circle at 18% 26%, rgba(72, 198, 186, 0.24), transparent 38%),
-    radial-gradient(circle at 68% 20%, rgba(152, 186, 240, 0.24), transparent 40%),
-    radial-gradient(circle at 78% 76%, rgba(255, 186, 152, 0.2), transparent 42%);
-  filter: blur(28px);
-  animation: atmosphereDrift var(--ambient-cycle-a) var(--ambient-ease-drift) infinite alternate;
-}
-
-.page::after {
-  opacity: 0.12;
-  background:
-    linear-gradient(115deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0)),
-    radial-gradient(ellipse 58% 70% at 48% 52%, rgba(58, 170, 196, 0.1), transparent 74%);
-  animation: grainDrift var(--ambient-cycle-b) var(--ambient-ease-drift) infinite;
+  content: none;
+  display: none;
 }
 
 .pageMain {
@@ -117,9 +91,8 @@
   align-items: stretch;
   min-height: min(48vh, 412px);
   padding: 8px 10px 10px;
-  border-radius: calc(var(--ui-radius) + 2px);
+  border-radius: 0;
   overflow: hidden;
-  --sea-flow-intensity: 0.5;
   background: transparent;
   box-shadow: none;
   border: 0;
@@ -157,29 +130,10 @@
   pointer-events: none;
 }
 
-.heroCanvas::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(ellipse 54% 38% at 62% 56%, rgba(92, 200, 220, 0.14), transparent 78%),
-    radial-gradient(ellipse 52% 36% at 18% 30%, rgba(120, 224, 204, 0.16), transparent 76%),
-    radial-gradient(ellipse 42% 32% at 88% 12%, rgba(198, 200, 250, 0.1), transparent 72%);
-  filter: blur(40px);
-  opacity: calc(0.08 + 0.44 * var(--sea-flow-intensity, 0.5));
-  animation: heroAtmosphereGlow var(--ambient-cycle-c) var(--ambient-ease-drift) infinite alternate;
-}
-
+.heroCanvas::before,
 .heroCanvas::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0));
-  opacity: 0.14;
+  content: none;
+  display: none;
 }
 
 .heroLeft {
@@ -255,13 +209,8 @@
 }
 
 .searchShell::after {
-  content: "";
-  position: absolute;
-  inset: 1px;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(125deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 50%);
-  opacity: 0.4;
+  content: none;
+  display: none;
 }
 
 .searchIcon {
@@ -366,47 +315,25 @@
   align-items: center;
   justify-content: center;
   min-height: 100%;
-  border-radius: var(--ui-radius);
+  border-radius: 0;
   padding: 7px 8px;
-  background:
-    radial-gradient(circle at 92% -20%, rgba(248, 224, 240, 0.12), transparent 48%),
-    linear-gradient(168deg, #fdfefe 0%, #f8fcfb 100%);
-  box-shadow:
-    var(--ui-shadow-soft),
-    0 1px 0 rgba(255, 255, 255, 0.45) inset,
-    0 20px 40px rgba(200, 180, 220, 0.035);
+  background: transparent;
+  box-shadow: none;
   text-align: center;
   isolation: isolate;
-  transition:
-    transform 560ms var(--ui-ease),
-    box-shadow 560ms var(--ui-ease),
-    filter 560ms var(--ui-ease);
+  transition: none;
 }
 
-.statCard::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 0;
-  background: rgba(255, 255, 255, 0.98);
-}
-
+.statCard::before,
 .statCard::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
-  opacity: 0.35;
+  content: none;
+  display: none;
 }
 
 .statCard:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--ui-shadow-hover);
-  filter: brightness(1.012);
+  transform: none;
+  box-shadow: none;
+  filter: none;
 }
 
 .statIcon {
@@ -669,17 +596,8 @@
 }
 
 .communitySection::before {
-  content: "";
-  position: absolute;
-  inset: -3% -2% auto;
-  height: min(340px, 58vh);
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 90% 80% at 50% -10%, rgba(255, 240, 250, 0.2), transparent 62%),
-    radial-gradient(ellipse 70% 60% at 8% 50%, rgba(230, 244, 255, 0.14), transparent 68%);
-  filter: blur(36px);
-  opacity: 0.46;
-  z-index: -1;
+  content: none;
+  display: none;
 }
 
 .recentPanel {
@@ -1319,11 +1237,6 @@
     overflow: visible;
   }
 
-  /* Keep atmosphere wash clipped — negative inset + blur must not bleed into page margins */
-  .heroCanvasAtmosphere {
-    overflow: hidden;
-  }
-
   /* Let vertical wheel/trackpad scroll reach the document over the horizontal band */
   .featuredCarouselViewport {
     touch-action: auto;
@@ -1355,12 +1268,6 @@
     margin-top: 6px;
     padding-top: 4px;
     padding-bottom: 14px;
-  }
-
-  .communitySection::before {
-    inset: -2% -2% auto;
-    height: min(280px, 42vh);
-    opacity: 0.38;
   }
 }
 
@@ -1576,16 +1483,8 @@
     min-height: 0;
     gap: 0;
     padding: 6px 6px 0;
-    border-radius: calc(var(--ui-radius) + 1px);
+    border-radius: 0;
     overflow: visible;
-  }
-
-  .heroCanvasMobile::before {
-    display: none;
-  }
-
-  .heroCanvasMobile::after {
-    opacity: 0.06;
   }
 
   .heroCanvasMobile .heroCanvasStaticWash {
@@ -1839,17 +1738,13 @@
     flex-wrap: nowrap;
     align-items: stretch;
     gap: 0;
-    padding: 7px 6px;
-    border-radius: var(--ui-radius);
-    background:
-      radial-gradient(circle at 92% -20%, rgba(248, 224, 240, 0.1), transparent 48%),
-      linear-gradient(168deg, rgba(253, 254, 254, 0.78) 0%, rgba(248, 252, 251, 0.62) 100%);
-    border: 1px solid rgba(152, 192, 184, 0.18);
-    box-shadow:
-      var(--ui-shadow-soft),
-      0 1px 0 rgba(255, 255, 255, 0.38) inset;
-    backdrop-filter: blur(12px) saturate(1.04);
-    -webkit-backdrop-filter: blur(12px) saturate(1.04);
+    padding: 7px 0;
+    border-radius: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .heroStatsBlock .statCard {
