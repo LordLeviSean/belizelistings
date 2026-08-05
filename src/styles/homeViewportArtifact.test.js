@@ -11,6 +11,44 @@ function readSource(relativePath) {
   return readFileSync(join(ROOT, relativePath), "utf8");
 }
 
+describe("homepage plain background guards", () => {
+  test("homepage root uses one plain base color only", () => {
+    const css = readCss("src/styles/HomeMapFirst.module.css");
+    const pageBlock = css.match(/\.page\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(pageBlock).toMatch(/background-color:\s*var\(--home-base-color\)/);
+    expect(pageBlock).not.toMatch(/background-image:/);
+    expect(pageBlock).not.toMatch(/radial-gradient\(/);
+    expect(pageBlock).not.toMatch(/linear-gradient\(/);
+  });
+
+  test("structural homepage sections have no decorative backgrounds or masks", () => {
+    const css = readCss("src/styles/HomeMapFirst.module.css");
+    expect(css).toMatch(/\.featuredSection[\s\S]*background:\s*transparent/);
+    expect(css).toMatch(/\.featuredCarouselViewport[\s\S]*background:\s*transparent/);
+    expect(css).not.toMatch(/\.featuredCarouselViewport[\s\S]*mask-image:/);
+    expect(css).toMatch(/\.communitySection[\s\S]*background:\s*transparent/);
+    expect(css).toMatch(/\.communityCard[\s\S]*background:\s*transparent/);
+    expect(css).toMatch(/\.communityCard::after[\s\S]*content:\s*none/);
+  });
+
+  test("listing card styles remain unchanged", () => {
+    const css = readCss("src/styles/HomeMapFirst.module.css");
+    const listingCard = readSource("src/components/ListingCard.jsx");
+    expect(listingCard).toMatch(/homeStyles\.propertyCard/);
+    expect(css).toMatch(/\.propertyCard\s*\{[\s\S]*radial-gradient\(circle at 18% -8%/);
+    expect(css).toMatch(/\.propertyCardLand\s*\{[\s\S]*radial-gradient\(circle at 22% 0%/);
+    expect(css).toMatch(/\.propertyMedia::after[\s\S]*linear-gradient\(/);
+  });
+
+  test("homepage still renders map and functional hero content", () => {
+    const page = readSource("src/pages/index.js");
+    expect(page).toMatch(/BelizeMap/);
+    expect(page).toMatch(/heroHeadline/);
+    expect(page).toMatch(/featuredCarouselViewport/);
+    expect(page).toMatch(/showAmbientVeil=\{false\}/);
+  });
+});
+
 describe("homepage viewport artifact guards", () => {
   test("decorative hero canvas is retired in favor of static hero layout", () => {
     const css = readCss("src/styles/HomeMapFirst.module.css");
