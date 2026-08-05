@@ -59,6 +59,8 @@ describe("visualModeDocument", () => {
     expect(document.documentElement.dataset.pulseMode).toBe("false");
     expect(document.documentElement.dataset.seaFlow).toBe("on");
     expect(document.documentElement.style.getPropertyValue("--sea-flow-intensity")).toBe("2");
+    expect(document.documentElement.style.getPropertyValue("--sea-flow-speed")).not.toBe("");
+    expect(document.documentElement.style.getPropertyValue("--sea-flow-motion")).not.toBe("");
   });
 
   test("syncVisualModeDocument disables sea flow when mode is off", () => {
@@ -78,6 +80,8 @@ describe("visualModeDocument", () => {
     expect(script).toContain(PULSE_MODE_KEY);
     expect(script).toContain(SEA_FLOW_MODE_KEY);
     expect(script).toContain(SEA_FLOW_INTENSITY_KEY);
+    expect(script).toContain("--sea-flow-speed");
+    expect(script).toContain("blzApplySeaFlowVars");
   });
 
   test("syncVisualModeDocument records reduced-motion preference", () => {
