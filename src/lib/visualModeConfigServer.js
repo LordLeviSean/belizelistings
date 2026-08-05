@@ -16,6 +16,10 @@ export function createAuthedSupabaseClient(accessToken) {
     global: {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
     },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
   });
 }
 
@@ -59,8 +63,10 @@ export async function updateVisualModePlatformConfig(client, config) {
         ? "admin_required"
         : error.message?.includes("invalid_sea_flow_intensity") || error.code === "22023"
           ? "invalid_intensity"
-          : "update_failed";
-    return { ok: false, error: code, message: error.message };
+          : error.code === "22P02" || error.message?.includes("invalid input syntax for type numeric")
+            ? "invalid_intensity_storage"
+            : "update_failed";
+    return { ok: false, error: code, message: error.message, pgCode: error.code ?? null };
   }
 
   return { ok: true, config: normalizeVisualModeConfig(data) };

@@ -131,10 +131,9 @@ describe("visual mode API routes", () => {
   });
 
   test("PATCH /api/admin/visual-mode succeeds for admin RPC update", async () => {
+    const getUser = jest.fn().mockResolvedValue({ data: { user: { id: "admin-1" } } });
     createClient.mockReturnValue({
-      auth: {
-        getUser: jest.fn().mockResolvedValue({ data: { user: { id: "admin-1" } } }),
-      },
+      auth: { getUser },
       rpc: jest.fn().mockResolvedValue({
         data: {
           livePalette: true,
@@ -161,6 +160,7 @@ describe("visual mode API routes", () => {
       res
     );
 
+    expect(getUser).toHaveBeenCalledWith("admin-token");
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -169,6 +169,41 @@ describe("visual mode API routes", () => {
         seaFlowIntensity: 0.75,
         source: "server",
       })
+    );
+  });
+
+  test("PATCH /api/admin/visual-mode maps broken intensity storage RPC failure", async () => {
+    createClient.mockReturnValue({
+      auth: {
+        getUser: jest.fn().mockResolvedValue({ data: { user: { id: "admin-1" } } }),
+      },
+      rpc: jest.fn().mockResolvedValue({
+        data: null,
+        error: {
+          message: 'invalid input syntax for type numeric: "0.5#"',
+          code: "22P02",
+        },
+      }),
+    });
+
+    const res = mockRes();
+    await adminHandler(
+      {
+        method: "PATCH",
+        headers: { authorization: "Bearer admin-token" },
+        body: {
+          livePalette: true,
+          pulse: false,
+          seaFlow: false,
+          seaFlowIntensity: 0.5,
+        },
+      },
+      res
+    );
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "invalid_intensity_storage" })
     );
   });
 
