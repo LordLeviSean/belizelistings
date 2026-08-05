@@ -16,6 +16,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ ...VISUAL_MODE_DEFAULTS, source: "defaults" });
   }
 
-  res.setHeader("Cache-Control", "public, max-age=30, s-maxage=30, stale-while-revalidate=60");
+  res.setHeader("Cache-Control", "no-store");
   return res.status(200).json({ ...result.config, source: "server" });
 }
