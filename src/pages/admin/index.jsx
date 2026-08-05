@@ -9,10 +9,7 @@ import BuyerViewingsPanel from "../../components/inquiry/BuyerViewingsPanel";
 import UserInboxPanel from "../../components/inquiry/UserInboxPanel";
 import { supabase } from "../../lib/supabaseClient";
 import useUserRole from "../../hooks/useUserRole";
-import useLivePaletteMode from "../../hooks/useLivePaletteMode";
-import usePulseMode from "../../hooks/usePulseMode";
-import useSeaFlowMode from "../../hooks/useSeaFlowMode";
-import useSeaFlowIntensity from "../../hooks/useSeaFlowIntensity";
+import { useVisualMode } from "../../components/VisualModeProvider";
 import { getSeaFlowIntensityLabel } from "../../utils/seaFlowIntensity";
 import { ACTIVITY_SIGNAL_TYPES } from "../../constants/trustModel";
 import { clearAllFavoritesForListings } from "../../lib/favorites";
@@ -73,10 +70,31 @@ export default function AdminPage() {
   const [buyerConversations, setBuyerConversations] = useState([]);
   const [buyerListingsById, setBuyerListingsById] = useState({});
   const [buyerCrmLoading, setBuyerCrmLoading] = useState(false);
-  const { enabled: livePaletteModeEnabled, setMode: setLivePaletteMode } = useLivePaletteMode();
-  const { enabled: pulseModeEnabled, setMode: setPulseMode } = usePulseMode();
-  const { enabled: seaFlowModeEnabled, setMode: setSeaFlowMode } = useSeaFlowMode();
-  const { intensity: seaFlowIntensity, setIntensity: setSeaFlowIntensity } = useSeaFlowIntensity();
+  const {
+    livePalette: livePaletteModeEnabled,
+    pulse: pulseModeEnabled,
+    seaFlow: seaFlowModeEnabled,
+    seaFlowIntensity,
+    setLivePalette: setLivePaletteMode,
+    setPulse: setPulseMode,
+    setSeaFlow: setSeaFlowMode,
+    setSeaFlowIntensity,
+    updateError: visualModeUpdateError,
+    updating: visualModeUpdating,
+  } = useVisualMode();
+
+  const handleVisualModeToggle = useCallback((setter) => {
+    return (event) => {
+      void setter(event.target.checked).catch(() => {});
+    };
+  }, []);
+
+  const handleSeaFlowIntensityChange = useCallback(
+    (event) => {
+      void setSeaFlowIntensity(Number(event.target.value) / 100).catch(() => {});
+    },
+    [setSeaFlowIntensity]
+  );
 
   const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
   const visibleTabs = useMemo(() => getVisibleAdminDashboardTabs(), [crmTabsEnabled]);
@@ -396,6 +414,11 @@ export default function AdminPage() {
                     {bulkLoading === "rejected" ? "Processing..." : "Bulk Reject"}
                   </button>
                   <div className={styles.effectControls}>
+                    {visualModeUpdateError ? (
+                      <p className={styles.livePaletteSubtext} role="alert">
+                        {visualModeUpdateError}
+                      </p>
+                    ) : null}
                     <div className={styles.effectCard}>
                       <div>
                         <p className={styles.livePaletteLabel}>Live Palette Mode</p>
@@ -407,7 +430,8 @@ export default function AdminPage() {
                         <input
                           type="checkbox"
                           checked={livePaletteModeEnabled}
-                          onChange={(e) => setLivePaletteMode(e.target.checked)}
+                          onChange={handleVisualModeToggle(setLivePaletteMode)}
+                          disabled={visualModeUpdating}
                           aria-label="Toggle live palette mode"
                         />
                         <span className={styles.livePaletteSlider} />
@@ -424,7 +448,8 @@ export default function AdminPage() {
                         <input
                           type="checkbox"
                           checked={pulseModeEnabled}
-                          onChange={(e) => setPulseMode(e.target.checked)}
+                          onChange={handleVisualModeToggle(setPulseMode)}
+                          disabled={visualModeUpdating}
                           aria-label="Toggle pulse mode"
                         />
                         <span className={styles.livePaletteSlider} />
@@ -441,7 +466,8 @@ export default function AdminPage() {
                         <input
                           type="checkbox"
                           checked={seaFlowModeEnabled}
-                          onChange={(e) => setSeaFlowMode(e.target.checked)}
+                          onChange={handleVisualModeToggle(setSeaFlowMode)}
+                          disabled={visualModeUpdating}
                           aria-label="Toggle sea flow mode"
                         />
                         <span className={styles.livePaletteSlider} />
@@ -465,13 +491,13 @@ export default function AdminPage() {
                         max="500"
                         step="25"
                         value={Math.round(seaFlowIntensity * 100)}
-                        onChange={(e) => setSeaFlowIntensity(Number(e.target.value) / 100)}
+                        onChange={handleSeaFlowIntensityChange}
                         aria-label="Sea flow intensity"
                         aria-valuemin={0}
                         aria-valuemax={500}
                         aria-valuenow={Math.round(seaFlowIntensity * 100)}
                         list="sea-flow-intensity-stops"
-                        disabled={!seaFlowModeEnabled}
+                        disabled={!seaFlowModeEnabled || visualModeUpdating}
                       />
                       <datalist id="sea-flow-intensity-stops">
                         <option value="0" label="Disabled" />

@@ -33,7 +33,7 @@ describe("visualModeDocument", () => {
     });
   });
 
-  test("readVisualModeState reads all toggles from localStorage", () => {
+  test("readVisualModeState reads optional client cache", () => {
     window.localStorage.setItem(LIVE_PALETTE_MODE_KEY, "1");
     window.localStorage.setItem(PULSE_MODE_KEY, "1");
     window.localStorage.setItem(SEA_FLOW_MODE_KEY, "1");

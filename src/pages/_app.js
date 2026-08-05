@@ -19,6 +19,7 @@ import { FavoriteSignupPromptProvider } from "@/components/FavoriteSignupPromptP
 import Footer from "@/components/Footer";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
 import { VisualModeProvider } from "@/components/VisualModeProvider";
+import { fetchPublicVisualModeConfigServerSide } from "@/lib/visualModeConfigServer";
 
 function ModerationNotificationListener() {
   useListingModerationNotifications();
@@ -45,7 +46,7 @@ function AppWithAlerts({ Component, pageProps }) {
   }, []);
 
   return (
-    <VisualModeProvider>
+    <VisualModeProvider initialConfig={pageProps.visualModeConfig}>
     <ToastProvider>
       <PageTitleProvider routeTitle={pageTitle} routeDescription={pageDescription}>
       <UserRoleProvider>
@@ -81,3 +82,22 @@ function AppWithAlerts({ Component, pageProps }) {
 export default function App(props) {
   return <AppWithAlerts {...props} />;
 }
+
+App.getInitialProps = async (appContext) => {
+  let pageProps = {};
+  if (appContext.Component.getInitialProps) {
+    pageProps = await appContext.Component.getInitialProps(appContext.ctx);
+  }
+
+  let visualModeConfig = null;
+  if (appContext.ctx.req) {
+    visualModeConfig = await fetchPublicVisualModeConfigServerSide();
+  }
+
+  return {
+    pageProps: {
+      ...pageProps,
+      visualModeConfig,
+    },
+  };
+};

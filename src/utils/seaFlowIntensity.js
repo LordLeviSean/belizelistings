@@ -1,5 +1,7 @@
 export const SEA_FLOW_INTENSITY_KEY = "blz_sea_flow_intensity_v1";
 export const SEA_FLOW_INTENSITY_EVENT = "blz-sea-flow-intensity-change";
+import { readVisualModeCache } from "../lib/visualModeCache";
+
 /** 50% — subtle default across homepage, canvas, and ambient layers */
 export const SEA_FLOW_INTENSITY_DEFAULT = 0.5;
 export const SEA_FLOW_INTENSITY_MAX = 5;
@@ -35,10 +37,7 @@ export function getSeaFlowIntensityLabel(intensity) {
 }
 
 export function readSeaFlowIntensity() {
-  if (typeof window === "undefined") return SEA_FLOW_INTENSITY_DEFAULT;
-  const raw = window.localStorage.getItem(SEA_FLOW_INTENSITY_KEY);
-  if (raw == null || raw === "") return SEA_FLOW_INTENSITY_DEFAULT;
-  return clampSeaFlowIntensity(raw);
+  return readVisualModeCache().seaFlowIntensity;
 }
 
 export function writeSeaFlowIntensity(intensity) {

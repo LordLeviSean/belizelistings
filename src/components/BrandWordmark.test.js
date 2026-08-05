@@ -5,8 +5,14 @@ import { createRoot } from "react-dom/client";
 import { act } from "react";
 import BrandWordmark from "./BrandWordmark";
 import { VisualModeProvider } from "./VisualModeProvider";
-import { writeLivePaletteMode } from "../utils/livePaletteMode";
-import { writePulseMode } from "../utils/pulseMode";
+
+jest.mock("../lib/supabaseClient", () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn().mockResolvedValue({ data: { session: null } }),
+    },
+  },
+}));
 
 jest.mock("next/link", () => {
   return function MockLink({ href, className, children }) {
@@ -22,13 +28,15 @@ jest.mock("next/font/google", () => ({
   DM_Sans: () => ({ className: "mock-dm-sans" }),
 }));
 
-function renderWordmark() {
+global.fetch = jest.fn();
+
+function renderWordmark(initialConfig = null) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   act(() => {
     root.render(
-      <VisualModeProvider>
+      <VisualModeProvider initialConfig={initialConfig}>
         <BrandWordmark />
       </VisualModeProvider>
     );
@@ -52,10 +60,25 @@ describe("BrandWordmark", () => {
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
     }));
+    fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        livePalette: false,
+        pulse: false,
+        seaFlow: false,
+        seaFlowIntensity: 0.5,
+        source: "server",
+      }),
+    });
   });
 
   test("renders static wordmark when both modes are disabled", async () => {
-    const view = renderWordmark();
+    const view = renderWordmark({
+      livePalette: false,
+      pulse: false,
+      seaFlow: false,
+      seaFlowIntensity: 0.5,
+    });
     await act(async () => {
       await Promise.resolve();
     });
@@ -65,10 +88,13 @@ describe("BrandWordmark", () => {
     view.unmount();
   });
 
-  test("applies live palette and pulse data attributes from global config", async () => {
-    writeLivePaletteMode(true);
-    writePulseMode(true);
-    const view = renderWordmark();
+  test("applies live palette and pulse data attributes from server config", async () => {
+    const view = renderWordmark({
+      livePalette: true,
+      pulse: true,
+      seaFlow: false,
+      seaFlowIntensity: 0.5,
+    });
     await act(async () => {
       await Promise.resolve();
     });
@@ -78,9 +104,38 @@ describe("BrandWordmark", () => {
     view.unmount();
   });
 
-  test("pulse-only does not enable live palette attribute", async () => {
-    writePulseMode(true);
+  test("server fetch overrides stale localStorage cache", async () => {
+    window.localStorage.setItem("blz_live_palette_mode_v1", "1");
+    window.localStorage.setItem("blz_pulse_mode_v1", "1");
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        livePalette: false,
+        pulse: false,
+        seaFlow: false,
+        seaFlowIntensity: 0.5,
+        source: "server",
+      }),
+    });
+
     const view = renderWordmark();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    const wordmark = view.wordmark();
+    expect(wordmark?.getAttribute("data-live")).toBe("false");
+    expect(wordmark?.getAttribute("data-pulse")).toBe("false");
+    view.unmount();
+  });
+
+  test("pulse-only does not enable live palette attribute", async () => {
+    const view = renderWordmark({
+      livePalette: false,
+      pulse: true,
+      seaFlow: false,
+      seaFlowIntensity: 0.5,
+    });
     await act(async () => {
       await Promise.resolve();
     });
