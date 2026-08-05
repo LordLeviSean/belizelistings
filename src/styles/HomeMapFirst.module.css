@@ -35,9 +35,10 @@
 .page::after {
   content: "";
   /* Absolute (not fixed): fixed+blur on viewport edges paints black compositor
-     slivers on first desktop paint. .page is position:relative — same visual wash. */
+     slivers on first desktop paint. .page is position:relative — same visual wash.
+     Negative inset gives blur kernels room so they do not clip to black at x=0/y=0. */
   position: absolute;
-  inset: 0;
+  inset: -32px;
   pointer-events: none;
   z-index: -1;
 }
@@ -1318,8 +1319,9 @@
     overflow: visible;
   }
 
+  /* Keep atmosphere wash clipped — negative inset + blur must not bleed into page margins */
   .heroCanvasAtmosphere {
-    overflow: visible;
+    overflow: hidden;
   }
 
   /* Let vertical wheel/trackpad scroll reach the document over the horizontal band */
