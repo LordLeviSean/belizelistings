@@ -9,6 +9,11 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+[[headers]]
+  for = "/site.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json; charset=UTF-8"
+
 # Scheduled functions (Netlify → Next.js API with CRON_SECRET):
 #   process-notifications-cron.mjs — */5 * * * *
 #   archive-closed-listings-cron.mjs — */15 * * * *
