@@ -21,6 +21,7 @@ import AppErrorBoundary from "@/components/AppErrorBoundary";
 import { VisualModeProvider } from "@/components/VisualModeProvider";
 import GlobalSeaFlowLayer from "@/components/GlobalSeaFlowLayer";
 import { fetchPublicVisualModeConfigServerSide } from "@/lib/visualModeConfigServer";
+import { registerBelizeListingsServiceWorker } from "@/lib/pwa/registerServiceWorker";
 
 function ModerationNotificationListener() {
   useListingModerationNotifications();
@@ -44,6 +45,10 @@ function AppWithAlerts({ Component, pageProps }) {
 
   useEffect(() => {
     skipPageEnterRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    registerBelizeListingsServiceWorker();
   }, []);
 
   return (
