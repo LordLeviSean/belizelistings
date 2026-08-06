@@ -29,11 +29,6 @@ export default function HomeMapAwakensTransition({ ready = false, onResolved }) 
     window.setTimeout(() => {
       setPhase("done");
       onResolved?.();
-      const main = document.getElementById("home-main-content");
-      if (main && typeof main.focus === "function") {
-        if (!main.hasAttribute("tabindex")) main.setAttribute("tabindex", "-1");
-        main.focus({ preventScroll: true });
-      }
     }, FADE_MS);
   }, [onResolved]);
 

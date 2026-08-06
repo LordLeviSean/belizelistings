@@ -40,6 +40,12 @@ describe("homepage static background guards", () => {
     expect(css).toMatch(/\.propertyMedia::after[\s\S]*linear-gradient\(/);
   });
 
+  test("splash dismiss does not programmatically focus homepage main", () => {
+    const splash = readSource("src/components/home/HomeMapAwakensTransition.jsx");
+    expect(splash).not.toMatch(/getElementById\("home-main-content"\)/);
+    expect(splash).not.toMatch(/\.focus\s*\(/);
+  });
+
   test("homepage still renders map and functional hero content", () => {
     const page = readSource("src/pages/index.js");
     expect(page).toMatch(/BelizeMap/);
