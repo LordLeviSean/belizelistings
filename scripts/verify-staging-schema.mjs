@@ -115,6 +115,43 @@ const CHECKS = [
       return { ok: exists, detail: exists ? "rpc callable" : msg };
     },
   },
+  {
+    id: "push_subscriptions table",
+    migration: "20260806160000_push_subscriptions_foundation.sql",
+    async run(admin) {
+      const { error } = await admin.from("push_subscriptions").select("id").limit(1);
+      return { ok: !error, detail: error?.message || "table readable" };
+    },
+  },
+  {
+    id: "register_push_subscription rpc",
+    migration: "20260806160000_push_subscriptions_foundation.sql",
+    async run(admin) {
+      const { error } = await admin.rpc("register_push_subscription", {
+        p_endpoint: "https://push.example.test/subscription",
+        p_p256dh: "x".repeat(32),
+        p_auth_secret: "y".repeat(32),
+      });
+      const msg = String(error?.message || "");
+      const exists = !msg.includes("Could not find the function");
+      return { ok: exists, detail: exists ? "rpc callable" : msg };
+    },
+  },
+  {
+    id: "select_active_push_subscriptions_for_delivery rpc",
+    migration: "20260806160000_push_subscriptions_foundation.sql",
+    async run(admin) {
+      const { data, error } = await admin.rpc("select_active_push_subscriptions_for_delivery", {
+        p_user_id: "00000000-0000-0000-0000-000000000000",
+      });
+      const msg = String(error?.message || "");
+      const exists = !msg.includes("Could not find the function");
+      return {
+        ok: exists && !error,
+        detail: error?.message || `rpc callable rows=${Array.isArray(data) ? data.length : 0}`,
+      };
+    },
+  },
 ];
 
 async function main() {
