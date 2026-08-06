@@ -254,6 +254,7 @@ const BelizeMap = ({
       const onKeyDown = (e) => {
         if (e.key !== "Enter" && e.key !== " ") return;
         e.preventDefault();
+        group.dataset.keyboardActivate = "1";
         group.click();
       };
 
@@ -285,6 +286,13 @@ const BelizeMap = ({
         e.preventDefault();
         e.stopPropagation();
         if (clickedRegionRef.current) return;
+
+        const viaKeyboard = group.dataset.keyboardActivate === "1";
+        delete group.dataset.keyboardActivate;
+        if (!viaKeyboard) {
+          group.blur();
+        }
+
         setClickedRegionId(regionId);
         clearHoverTooltip();
 

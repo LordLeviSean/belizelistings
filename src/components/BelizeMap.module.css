@@ -305,6 +305,26 @@
   will-change: transform, filter;
 }
 
+/* Pointer clicks focus the SVG group — suppress the browser bounding-box ring. */
+.mapDistrictGroup:focus {
+  outline: none;
+}
+
+.mapDistrictGroup:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Keyboard-only — highlight the district shape, not the group bounding box. */
+.mapDistrictGroup:focus-visible {
+  outline: none;
+}
+
+.mapDistrictGroup:focus-visible :global(path) {
+  stroke: rgba(168, 230, 218, 0.96);
+  stroke-width: 2.4;
+  filter: drop-shadow(0 0 10px rgba(120, 214, 200, 0.42));
+}
+
 .mapDistrictGroup :global(path) {
   pointer-events: auto;
   transition:
