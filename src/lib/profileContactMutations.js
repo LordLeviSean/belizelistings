@@ -14,14 +14,18 @@ function trimOrNull(value) {
 export function buildProfileContactPayload(fields = {}) {
   const phone = trimOrNull(fields.phone);
   const now = new Date().toISOString();
+  const showEmailPublic = fields.show_email_public === true || fields.showEmailPublic === true;
+  const showPhonePublic = fields.show_phone_public !== false && fields.showPhonePublic !== false;
+  const authEmail = trimOrNull(fields.auth_email ?? fields.authEmail ?? fields.email);
+
   const payload = {
     phone,
     whatsapp: trimOrNull(fields.whatsapp),
     brokerage_name: trimOrNull(fields.brokerage_name ?? fields.brokerageName),
     brokerage_phone: trimOrNull(fields.brokerage_phone ?? fields.brokeragePhone),
-    contact_email_display: trimOrNull(fields.contact_email_display ?? fields.contactEmailDisplay),
-    show_email_public: fields.show_email_public !== false && fields.showEmailPublic !== false,
-    show_phone_public: fields.show_phone_public !== false && fields.showPhonePublic !== false,
+    show_email_public: showEmailPublic,
+    show_phone_public: showPhonePublic,
+    contact_email_display: showEmailPublic ? trimOrNull(fields.contact_email_display ?? fields.contactEmailDisplay ?? authEmail) : null,
     updated_at: now,
   };
 

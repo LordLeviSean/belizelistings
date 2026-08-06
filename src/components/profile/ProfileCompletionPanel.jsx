@@ -18,7 +18,7 @@ export default function ProfileCompletionPanel({ compact = false }) {
   const [whatsapp, setWhatsapp] = useState("");
   const [brokerageName, setBrokerageName] = useState("");
   const [brokeragePhone, setBrokeragePhone] = useState("");
-  const [showEmailPublic, setShowEmailPublic] = useState(true);
+  const [showEmailPublic, setShowEmailPublic] = useState(false);
   const [showPhonePublic, setShowPhonePublic] = useState(true);
   const [saving, setSaving] = useState(false);
   const [phoneError, setPhoneError] = useState("");
@@ -31,7 +31,7 @@ export default function ProfileCompletionPanel({ compact = false }) {
     setWhatsapp(String(profile?.whatsapp ?? ""));
     setBrokerageName(String(profile?.brokerage_name ?? ""));
     setBrokeragePhone(String(profile?.brokerage_phone ?? ""));
-    setShowEmailPublic(profile?.show_email_public !== false);
+    setShowEmailPublic(profile?.show_email_public === true && Boolean(String(profile?.contact_email_display ?? "").trim()));
     setShowPhonePublic(profile?.show_phone_public !== false);
   }, [profile]);
 
@@ -51,6 +51,7 @@ export default function ProfileCompletionPanel({ compact = false }) {
       brokerage_phone: brokeragePhone,
       show_email_public: showEmailPublic,
       show_phone_public: showPhonePublic,
+      auth_email: email,
       profile_completed_at: profile?.profile_completed_at,
     });
     setSaving(false);
@@ -182,7 +183,7 @@ export default function ProfileCompletionPanel({ compact = false }) {
             checked={showEmailPublic}
             onChange={(e) => setShowEmailPublic(e.target.checked)}
           />
-          <span>Show email on listing contact cards</span>
+          <span>Show my email publicly</span>
         </label>
       </fieldset>
 

@@ -1,4 +1,12 @@
 import { formatCapitalizedProfileDisplayName } from "./profileDisplayName";
+import {
+  applyPublicContactVisibility,
+  isEmailPubliclyVisible,
+  isPhonePubliclyVisible,
+  resolvePublicContactEmail,
+  resolvePublicContactPhone,
+  resolvePublicContactWhatsApp,
+} from "./profileContactVisibility";
 
 /**
  * Normalize RPC / profile row into public listing contact shape.
@@ -7,21 +15,34 @@ import { formatCapitalizedProfileDisplayName } from "./profileDisplayName";
  */
 export function normalizeListingOwnerContact(raw) {
   if (!raw || typeof raw !== "object") return null;
+
+  const profileHints = {
+    show_email_public: raw.show_email_public,
+    show_phone_public: raw.show_phone_public,
+    contact_email_display: raw.contact_email_display,
+    phone: raw.phone,
+    whatsapp: raw.whatsapp,
+  };
+
   const displayName = formatCapitalizedProfileDisplayName({
     username: raw.username ?? raw.display_name,
-    email: raw.email,
+    email: null,
   });
-  return {
+
+  const base = {
     userId: raw.user_id ?? raw.userId ?? null,
-    displayName: displayName || "Your listing agent",
+    displayName: displayName || raw.display_name || "Your listing agent",
     brokerageName: String(raw.brokerage_name ?? raw.brokerageName ?? "").trim() || null,
     brokeragePhone: String(raw.brokerage_phone ?? raw.brokeragePhone ?? "").trim() || null,
     phone: String(raw.phone ?? "").trim() || null,
     whatsapp: String(raw.whatsapp ?? "").trim() || null,
     email: String(raw.email ?? "").trim() || null,
-    showEmailPublic: raw.show_email_public !== false,
-    showPhonePublic: raw.show_phone_public !== false,
+    contactEmailDisplay: String(raw.contact_email_display ?? "").trim() || null,
+    showEmailPublic: isEmailPubliclyVisible(profileHints),
+    showPhonePublic: isPhonePubliclyVisible(profileHints),
   };
+
+  return applyPublicContactVisibility(base, profileHints);
 }
 
 /**
@@ -31,13 +52,10 @@ export function normalizeListingOwnerContact(raw) {
  */
 export function resolveListingContactFromProfile(ownerProfile) {
   if (!ownerProfile?.id) return null;
-  const showEmail = ownerProfile.show_email_public !== false;
-  const showPhone = ownerProfile.show_phone_public !== false;
-  const phone = showPhone ? String(ownerProfile.phone ?? "").trim() || null : null;
-  let whatsapp = String(ownerProfile.whatsapp ?? "").trim() || null;
-  if (!whatsapp && phone) whatsapp = phone;
-  const emailRaw = ownerProfile.contact_email_display ?? ownerProfile.email;
-  const email = showEmail ? String(emailRaw ?? "").trim() || null : null;
+
+  const email = resolvePublicContactEmail(ownerProfile);
+  const phone = resolvePublicContactPhone(ownerProfile);
+  const whatsapp = resolvePublicContactWhatsApp(ownerProfile);
 
   return normalizeListingOwnerContact({
     user_id: ownerProfile.id,
@@ -47,45 +65,40 @@ export function resolveListingContactFromProfile(ownerProfile) {
     whatsapp,
     brokerage_name: ownerProfile.brokerage_name,
     brokerage_phone: ownerProfile.brokerage_phone,
-    show_email_public: showEmail,
-    show_phone_public: showPhone,
+    contact_email_display: ownerProfile.contact_email_display,
+    show_email_public: ownerProfile.show_email_public,
+    show_phone_public: ownerProfile.show_phone_public,
   });
 }
 
 /**
- * Legacy listing-level contact fields (deprecated; kept for graceful fallback).
+ * Legacy listing-level contact fields — name/brokerage only; never expose email/phone without consent.
  * @param {object|null|undefined} listing
  * @returns {object|null}
  */
 export function resolveListingContactFromListingFields(listing) {
   if (!listing) return null;
   const hasLegacy =
-    listing.agent_phone ||
-    listing.agent_email ||
-    listing.agent_name ||
-    listing.agent ||
-    listing.agency_name ||
-    listing.brokerage_name;
+    listing.agent_name || listing.agent || listing.agency_name || listing.brokerage_name;
   if (!hasLegacy) return null;
 
   return normalizeListingOwnerContact({
     display_name: listing.agent_name || listing.agent,
-    email: listing.agent_email,
-    phone: listing.agent_phone,
-    whatsapp: listing.agent_phone,
     brokerage_name: listing.brokerage_name || listing.agency_name,
+    show_email_public: false,
+    show_phone_public: false,
   });
 }
 
 /**
- * Preferred resolver: owner profile → legacy listing fields.
+ * Preferred resolver: owner profile → legacy listing fields (display metadata only).
  * @param {object|null|undefined} listing
  * @param {object|null|undefined} ownerProfile
  * @returns {object|null}
  */
 export function resolveListingContact(listing, ownerProfile) {
   const fromProfile = resolveListingContactFromProfile(ownerProfile);
-  if (fromProfile && (fromProfile.phone || fromProfile.email || fromProfile.whatsapp)) {
+  if (fromProfile && (fromProfile.phone || fromProfile.email || fromProfile.whatsapp || fromProfile.displayName)) {
     return fromProfile;
   }
   return resolveListingContactFromListingFields(listing);
@@ -110,7 +123,7 @@ export async function fetchListingOwnerContact(client, listingId) {
   if (error) {
     const msg = String(error.message ?? "").toLowerCase();
     const unavailable =
-      msg.includes("function") && msg.includes("does not exist") ||
+      (msg.includes("function") && msg.includes("does not exist")) ||
       msg.includes("could not find") ||
       error.code === "PGRST202";
     return { contact: null, error, unavailable };
@@ -121,4 +134,13 @@ export async function fetchListingOwnerContact(client, listingId) {
     error: null,
     unavailable: false,
   };
+}
+
+/** @param {object|null|undefined} contact */
+export function hasPublicDirectContactMethods(contact) {
+  if (!contact) return false;
+  return Boolean(
+    (contact.showPhonePublic !== false && (contact.phone || contact.whatsapp)) ||
+      (contact.showEmailPublic && contact.email)
+  );
 }

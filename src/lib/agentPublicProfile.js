@@ -1,7 +1,10 @@
-import { PROFILE_OWNER_MINIMAL_SELECT } from "./profileSelectContract";
-import { isMissingRelationshipError } from "./supabaseCompat";
+import { isMissingRelationshipError, isMissingColumnError } from "./supabaseCompat";
 import { filterBrowsableInventory, getListingRegionSlug } from "../utils/canonicalListing";
 import { mapListingWithImages } from "../utils/listingImage";
+import {
+  fetchPublicAgentProfileByUsername,
+  PROFILE_PUBLIC_AGENT_SELECT,
+} from "./profileSelectContract";
 
 const PUBLIC_AGENT_ROLES = new Set(["agent", "broker"]);
 
@@ -62,11 +65,10 @@ export async function fetchAgentPublicProfile(supabaseClient, rawUsername) {
     return { profile: null, listings: [], unavailable: false };
   }
 
-  const { data: profile, error: profileError } = await supabaseClient
-    .from("profiles")
-    .select(PROFILE_OWNER_MINIMAL_SELECT)
-    .eq("username", username)
-    .maybeSingle();
+  const { data: profile, error: profileError } = await fetchPublicAgentProfileByUsername(
+    supabaseClient,
+    username
+  );
 
   if (profileError || !profile?.id) {
     return { profile: null, listings: [], unavailable: Boolean(profileError) };
@@ -101,12 +103,27 @@ export function deriveAgentProfileRegions(listings) {
 export async function fetchAgentDirectory(supabaseClient) {
   if (!supabaseClient) return { agents: [], unavailable: true };
 
-  const { data: profiles, error: profilesError } = await supabaseClient
-    .from("profiles")
-    .select(PROFILE_OWNER_MINIMAL_SELECT)
-    .in("role", ["agent", "broker"])
-    .not("username", "is", null)
-    .order("username", { ascending: true });
+  let profiles = [];
+  let profilesError = null;
+
+  for (const columns of PROFILE_PUBLIC_AGENT_SELECT) {
+    const result = await supabaseClient
+      .from("profiles")
+      .select(columns)
+      .in("role", ["agent", "broker"])
+      .not("username", "is", null)
+      .order("username", { ascending: true });
+
+    if (!result.error) {
+      profiles = result.data || [];
+      profilesError = null;
+      break;
+    }
+    profilesError = result.error;
+    if (!isMissingColumnError(result.error)) {
+      break;
+    }
+  }
 
   if (profilesError) {
     return { agents: [], unavailable: true };

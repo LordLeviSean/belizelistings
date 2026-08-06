@@ -7,6 +7,7 @@ import {
   MOBILE_CONTACT_MQ,
 } from "@/lib/deviceDetection";
 import {
+  hasPublicDirectContactMethods,
   resolveListingContact,
   resolveListingContactFromListingFields,
 } from "@/lib/listingContactResolver";
@@ -23,9 +24,21 @@ function looksLikeEmail(s) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
 }
 
-function formatPhoneDisplay(digits) {
-  if (!digits) return "";
-  return String(digits).replace(/^(\d{3})(\d{3})(\d+)$/, "+$1 $2 $3").replace(/^\+?(\d)/, "+$1");
+function formatBelizePhoneDisplay(raw = "") {
+  const digits = digitsOnly(raw);
+  if (digits.length < 7) return "";
+  const normalized = digits.startsWith("501") ? digits : `501${digits.replace(/^0+/, "")}`;
+  if (normalized.length === 10) {
+    return `+${normalized.slice(0, 3)} ${normalized.slice(3, 6)} ${normalized.slice(6)}`;
+  }
+  return raw.trim();
+}
+
+function formatPhoneHref(raw = "") {
+  const digits = digitsOnly(raw);
+  if (digits.length < 7) return "";
+  const normalized = digits.startsWith("501") ? digits : `501${digits.replace(/^0+/, "")}`;
+  return `tel:+${normalized}`;
 }
 
 export default function ContactAgentModal({
@@ -52,12 +65,12 @@ export default function ContactAgentModal({
 
   const displayName = contact?.displayName || "Your listing agent";
   const brokerageLabel = contact?.brokerageName || "";
+  const hasDirectContact = hasPublicDirectContactMethods(contact);
 
   const phoneRaw = contact?.showPhonePublic !== false ? String(contact?.phone || "").trim() : "";
-  const phoneDigits = digitsOnly(phoneRaw);
-  const hasPhone = phoneDigits.length >= 7;
-  const phoneDisplay = phoneRaw || (hasPhone ? formatPhoneDisplay(phoneDigits) : "");
-  const phoneHref = hasPhone ? `tel:+${phoneDigits.replace(/^0+/, "")}` : "";
+  const hasPhone = digitsOnly(phoneRaw).length >= 7;
+  const phoneDisplay = hasPhone ? formatBelizePhoneDisplay(phoneRaw) : "";
+  const phoneHref = hasPhone ? formatPhoneHref(phoneRaw) : "";
 
   const waRaw =
     contact?.showPhonePublic !== false
@@ -65,15 +78,14 @@ export default function ContactAgentModal({
       : "";
   const waDigits = digitsOnly(waRaw);
   const hasWhatsApp = waDigits.length >= 7;
-  const waDisplay = waRaw || (hasWhatsApp ? formatPhoneDisplay(waDigits) : "");
+  const waDisplay = hasWhatsApp ? formatBelizePhoneDisplay(waRaw) : "";
   const waHref = hasWhatsApp
     ? `https://wa.me/${waDigits}?text=${encodeURIComponent(
         `Hi — I'm interested in "${listing?.title || "this listing"}" on BelizeListings.\n${listingUrl}`
       )}`
     : "";
 
-  const agentEmail =
-    contact?.showEmailPublic !== false ? String(contact?.email || "").trim() : "";
+  const agentEmail = contact?.showEmailPublic === true ? String(contact?.email || "").trim() : "";
   const hasEmail = looksLikeEmail(agentEmail);
   const mailHref = hasEmail
     ? `mailto:${agentEmail}?subject=${encodeURIComponent(`Listing: ${listing?.title || ""}`)}&body=${encodeURIComponent(`Hi,\n\nI'm interested in this property on BelizeListings:\n${listingUrl}\n`)}`
@@ -199,34 +211,42 @@ export default function ContactAgentModal({
         <div className={styles.heroText}>
           <p className={styles.agentName}>{displayName}</p>
           {brokerageLabel ? <p className={styles.brokerage}>{brokerageLabel}</p> : null}
+          {listing?.title ? (
+            <p className={styles.listingContext}>{listing.title}</p>
+          ) : null}
         </div>
       </div>
 
-      <div className={styles.contactCard} aria-label="Agent contact details">
-        {renderContactRow({
-          icon: Phone,
-          label: "Phone",
-          value: phoneDisplay,
-          href: phoneHref,
-          disabledHint: "Phone is not published for this listing.",
-        })}
-        {renderContactRow({
-          icon: MessageCircle,
-          label: "WhatsApp",
-          value: waDisplay,
-          copyValue: waDigits || waDisplay,
-          href: waHref,
-          showWaWeb: true,
-          disabledHint: "WhatsApp is not on file for this agent yet.",
-        })}
-        {renderContactRow({
-          icon: Mail,
-          label: "Email",
-          value: agentEmail,
-          href: mailHref,
-          disabledHint: "Email is not published for this listing.",
-        })}
-      </div>
+      {!hasDirectContact ? (
+        <p className={styles.privateContactNotice}>
+          Direct contact details are private. Send a secure message through BelizeListings.
+        </p>
+      ) : (
+        <div className={styles.contactCard} aria-label="Agent contact details">
+          {renderContactRow({
+            icon: Phone,
+            label: "Phone",
+            value: phoneDisplay,
+            href: phoneHref,
+          })}
+          {renderContactRow({
+            icon: MessageCircle,
+            label: "WhatsApp",
+            value: waDisplay,
+            copyValue: waDigits || waDisplay,
+            href: waHref,
+            showWaWeb: true,
+          })}
+          {hasEmail
+            ? renderContactRow({
+                icon: Mail,
+                label: "Email",
+                value: agentEmail,
+                href: mailHref,
+              })
+            : null}
+        </div>
+      )}
 
       <p className={styles.lede}>
         Choose how you would like to reach out. For a richer note, message via BelizeListings when

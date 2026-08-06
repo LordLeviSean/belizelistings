@@ -10,6 +10,11 @@ import { DASHBOARD_ROLE } from "@/constants/dashboardRoles";
 import { supabase } from "@/lib/supabaseClient";
 import { fetchAgentPublicProfile, deriveAgentProfileRegions } from "@/lib/agentPublicProfile";
 import { buildFeaturedBrowseListingCardProps } from "@/lib/listingCardBrowse";
+import {
+  buildPublicAgentProfileContact,
+  resolvePublicContactEmail,
+  resolvePublicContactPhone,
+} from "@/lib/profileContactVisibility";
 import { formatProfileDisplayLabel } from "@/lib/profileDisplayName";
 import { getRegionLabel, normalizeRegionSlug } from "@/constants/geographyLayer";
 import styles from "@/styles/AgentPublicProfile.module.css";
@@ -62,6 +67,10 @@ export default function AgentPublicProfilePage() {
   const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
   const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
   const [carouselIndexById, setCarouselIndexById] = useState({});
+
+  const publicContact = useMemo(() => buildPublicAgentProfileContact(profile), [profile]);
+  const publicPhone = useMemo(() => resolvePublicContactPhone(profile), [profile]);
+  const publicEmail = useMemo(() => resolvePublicContactEmail(profile), [profile]);
 
   const handleFavoriteClick = (listingId) => {
     if (!isAuthenticated) {
@@ -121,11 +130,26 @@ export default function AgentPublicProfilePage() {
                   </div>
                 ) : null}
               </dl>
-              {profile?.email ? (
+              {publicPhone ? (
                 <p className={styles.contactLine}>
-                  <a href={`mailto:${encodeURIComponent(String(profile.email).trim())}`}>
-                    Contact {displayName}
-                  </a>
+                  <a href={`tel:${publicPhone.replace(/\s+/g, "")}`}>Call {displayName}</a>
+                  {publicEmail ? (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <a href={`mailto:${encodeURIComponent(publicEmail)}`}>Email {displayName}</a>
+                    </>
+                  ) : null}
+                  {listings.length > 0 ? (
+                    <span className={styles.contactHint}>
+                      {" "}
+                      · or open a listing below to schedule a viewing
+                    </span>
+                  ) : null}
+                </p>
+              ) : publicEmail ? (
+                <p className={styles.contactLine}>
+                  <a href={`mailto:${encodeURIComponent(publicEmail)}`}>Email {displayName}</a>
                   {listings.length > 0 ? (
                     <span className={styles.contactHint}>
                       {" "}
@@ -135,7 +159,13 @@ export default function AgentPublicProfilePage() {
                 </p>
               ) : listings.length > 0 ? (
                 <p className={styles.contactLine}>
-                  Open a listing below to contact this agent — no login required.
+                  Direct contact details are private. Open a listing below to send a secure message
+                  — no login required.
+                </p>
+              ) : !publicContact.hasDirectContact ? (
+                <p className={styles.contactLine}>
+                  Direct contact details are private. Send a secure message through BelizeListings
+                  when listings are available.
                 </p>
               ) : null}
             </header>

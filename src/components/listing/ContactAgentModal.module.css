@@ -46,6 +46,25 @@
   line-height: 1.3;
 }
 
+.listingContext {
+  margin: 4px 0 0;
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: rgba(72, 104, 96, 0.68);
+  line-height: 1.35;
+}
+
+.privateContactNotice {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 178, 164, 0.22);
+  background: rgba(255, 255, 255, 0.62);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(48, 78, 72, 0.82);
+}
+
 .contactCard {
   display: flex;
   flex-direction: column;

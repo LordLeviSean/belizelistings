@@ -57,6 +57,16 @@ export const PROFILE_OWNER_SELECT =
 /** Batch owner labels when timestamps are unavailable. */
 export const PROFILE_OWNER_MINIMAL_SELECT = "id, username, email, role";
 
+/**
+ * Public agent directory / profile — no auth email; contact fields gated client-side.
+ * @see profileContactVisibility.js
+ */
+export const PROFILE_PUBLIC_AGENT_SELECT = [
+  `id, username, role, created_at, phone, whatsapp, contact_email_display, show_email_public, show_phone_public`,
+  "id, username, role, created_at",
+  PROFILE_OWNER_MINIMAL_SELECT,
+];
+
 /** Server / API: role gate only. */
 export const PROFILE_ROLE_ONLY_SELECT = "role";
 
@@ -92,6 +102,42 @@ export async function fetchProfileRowWithTiers(supabaseClient, userId, tiers = P
       .from("profiles")
       .select(columns)
       .eq("id", userId)
+      .maybeSingle();
+
+    if (!error) {
+      return { data: data ?? null, error: null };
+    }
+
+    lastError = error;
+    if (!isMissingColumnError(error)) {
+      break;
+    }
+  }
+  return { data: null, error: lastError };
+}
+
+/**
+ * Public agent profile lookup by username — tiered select without auth email when possible.
+ * @param {import("@supabase/supabase-js").SupabaseClient} supabaseClient
+ * @param {string} username
+ * @param {string[]} [tiers]
+ */
+export async function fetchPublicAgentProfileByUsername(
+  supabaseClient,
+  username,
+  tiers = PROFILE_PUBLIC_AGENT_SELECT
+) {
+  const normalized = String(username || "").trim();
+  if (!supabaseClient || !normalized) {
+    return { data: null, error: null };
+  }
+
+  let lastError = null;
+  for (const columns of tiers) {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select(columns)
+      .eq("username", normalized)
       .maybeSingle();
 
     if (!error) {
