@@ -100,6 +100,12 @@ async function main() {
     { size: 180, file: "apple-touch-icon.png", insetRatio: 0.14 },
     { size: 192, file: "android-chrome-192x192.png", insetRatio: 0.14 },
     { size: 512, file: "android-chrome-512x512.png", insetRatio: 0.18 },
+    {
+      size: 512,
+      file: "android-chrome-512x512-maskable.png",
+      // W3C maskable safe zone: circle r=40% of width — keep mark inside ~56% canvas.
+      insetRatio: 0.22,
+    },
     { size: 150, file: "mstile-150x150.png", insetRatio: 0.14 },
   ];
 

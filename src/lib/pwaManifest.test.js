@@ -59,6 +59,7 @@ describe("PWA manifest and install metadata", () => {
       { file: "apple-touch-icon.png", size: 180 },
       { file: "android-chrome-192x192.png", size: 192 },
       { file: "android-chrome-512x512.png", size: 512 },
+      { file: "android-chrome-512x512-maskable.png", size: 512 },
     ];
 
     for (const { file, size } of checks) {
@@ -66,6 +67,67 @@ describe("PWA manifest and install metadata", () => {
       expect(meta.width).toBe(size);
       expect(meta.height).toBe(size);
     }
+  });
+
+  test("manifest uses dedicated maskable icon separate from any-purpose 512", () => {
+    const any512 = manifest.icons.filter(
+      (icon) => icon.sizes === "512x512" && icon.purpose === "any"
+    );
+    const maskable512 = manifest.icons.filter(
+      (icon) => icon.sizes === "512x512" && icon.purpose === "maskable"
+    );
+
+    expect(any512).toHaveLength(1);
+    expect(maskable512).toHaveLength(1);
+    expect(any512[0].src).toBe("/android-chrome-512x512.png");
+    expect(maskable512[0].src).toBe("/android-chrome-512x512-maskable.png");
+    expect(any512[0].src).not.toBe(maskable512[0].src);
+
+    const maskablePath = path.join(PUBLIC, "android-chrome-512x512-maskable.png");
+    expect(fs.existsSync(maskablePath)).toBe(true);
+  });
+
+  test("maskable icon is a distinct asset with tighter logo inset than any icon", async () => {
+    const anyPath = path.join(PUBLIC, "android-chrome-512x512.png");
+    const maskablePath = path.join(PUBLIC, "android-chrome-512x512-maskable.png");
+
+    expect(fs.readFileSync(anyPath).equals(fs.readFileSync(maskablePath))).toBe(false);
+
+    // Opaque shell — compare logo footprint via non-background pixel bounds (#fdfcfb).
+    const bg = { r: 253, g: 252, b: 251 };
+    const contentBounds = async (filePath) => {
+      const { data, info } = await sharp(filePath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      let minX = info.width;
+      let minY = info.height;
+      let maxX = 0;
+      let maxY = 0;
+      for (let y = 0; y < info.height; y += 1) {
+        for (let x = 0; x < info.width; x += 1) {
+          const i = (y * info.width + x) * info.channels;
+          const dr = Math.abs(data[i] - bg.r);
+          const dg = Math.abs(data[i + 1] - bg.g);
+          const db = Math.abs(data[i + 2] - bg.b);
+          if (dr + dg + db > 18) {
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+          }
+        }
+      }
+      return { width: maxX - minX + 1, height: maxY - minY + 1 };
+    };
+
+    const [anyBounds, maskableBounds] = await Promise.all([
+      contentBounds(anyPath),
+      contentBounds(maskablePath),
+    ]);
+
+    expect(maskableBounds.width).toBeLessThan(anyBounds.width);
+    expect(maskableBounds.height).toBeLessThan(anyBounds.height);
+    // W3C maskable safe zone: circle diameter ~80% of 512 ≈ 410px.
+    expect(maskableBounds.width).toBeLessThanOrEqual(410);
+    expect(maskableBounds.height).toBeLessThanOrEqual(410);
   });
 
   test("document head includes install metadata once and links manifest once", () => {
