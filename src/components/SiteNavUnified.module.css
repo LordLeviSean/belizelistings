@@ -348,6 +348,19 @@
     0 1px 0 rgba(255, 255, 255, 0.36) inset;
 }
 
+.navPillInstall {
+  background: rgba(228, 244, 238, 0.9);
+  border-color: rgba(118, 184, 164, 0.42);
+  color: rgba(30, 72, 58, 0.94);
+  box-shadow:
+    0 10px 24px rgba(10, 20, 28, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.36) inset;
+}
+
+.navPillInstall:hover {
+  border-color: rgba(92, 168, 148, 0.48);
+}
+
 .navDashboardActive {
   background: rgba(249, 233, 204, 0.96);
   border-color: rgba(214, 187, 126, 0.58);

@@ -14,8 +14,12 @@ import {
   UsersRound,
 } from "lucide-react";
 import useUserRole from "../hooks/useUserRole";
+import { useInstallationState } from "../hooks/useInstallationState";
 import { useAuthGate } from "./auth/AuthGateProvider";
 import BrandWordmark from "./BrandWordmark";
+import InstallAppModal from "./pwa/InstallAppModal";
+import InstallAppNavItem from "./pwa/InstallAppNavItem";
+import { shouldShowInstallAppEntry } from "./pwa/installAppVisibility";
 import styles from "./SiteNavUnified.module.css";
 import NotificationCenter from "./notifications/NotificationCenter";
 import { resolveSiteNavActiveFromPath } from "../lib/siteNavRouting";
@@ -42,6 +46,30 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const accountMenuBtnRef = useRef(null);
   const drawerOpenedAtRef = useRef(0);
   const [drawerExtrasReady, setDrawerExtrasReady] = useState(false);
+  const [installModalOpen, setInstallModalOpen] = useState(false);
+  const [installClientReady, setInstallClientReady] = useState(false);
+  const installTriggerRef = useRef(null);
+  const openInstallModal = useCallback(() => {
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      installTriggerRef.current = document.activeElement;
+    }
+    setInstallModalOpen(true);
+  }, []);
+
+  const installationState = useInstallationState();
+  const showInstallAppEntry = shouldShowInstallAppEntry(installationState, {
+    clientReady: installClientReady,
+  });
+
+  useEffect(() => {
+    setInstallClientReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (installationState.isInstalled && installModalOpen) {
+      setInstallModalOpen(false);
+    }
+  }, [installationState.isInstalled, installModalOpen]);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -425,12 +453,25 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     );
   };
 
+  const renderInstallAppNavItem = (variant) => {
+    if (!showInstallAppEntry) return null;
+    const { onNavigate } = navContextClasses(variant);
+    return (
+      <InstallAppNavItem
+        variant={variant}
+        onNavigate={onNavigate}
+        onOpen={openInstallModal}
+      />
+    );
+  };
+
   const renderNavActions = (variant = "desktop") => (
     <>
       {renderFavoritesLink(variant)}
       <div className={styles.authSessionCluster}>
         {renderDashboardButton(variant)}
         {renderAgentsLink(variant)}
+        {renderInstallAppNavItem(variant)}
         {renderNotificationCenter(variant, { deferDrawerMount: variant === "drawer" })}
         <div className={navContextClasses(variant).isDrawer ? styles.drawerAuthSlot : styles.authAccountSlot}>
           {renderAuthSlot(variant)}
@@ -443,6 +484,7 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     <>
       {renderFavoritesLink(variant)}
       {renderAgentsLink(variant)}
+      {!user ? renderInstallAppNavItem(variant) : null}
       <div className={styles.authAccountSlot}>{renderAuthSlot(variant, { mode: user ? "account" : "default" })}</div>
     </>
   );
@@ -454,6 +496,7 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
     return (
       <>
         {renderDashboardButton(variant)}
+        {renderInstallAppNavItem(variant)}
         <div className={styles.drawerAuthSlot}>{renderAuthSlot(variant)}</div>
         {showNotifications
           ? renderNotificationCenter(variant, { deferDrawerMount: false })
@@ -508,6 +551,11 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
         </nav>
       </header>
       {mobileDrawerLayer}
+      <InstallAppModal
+        isOpen={installModalOpen}
+        onClose={() => setInstallModalOpen(false)}
+        returnFocusRef={installTriggerRef}
+      />
     </>
   );
 }
