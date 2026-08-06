@@ -22,6 +22,7 @@ import { VisualModeProvider } from "@/components/VisualModeProvider";
 import GlobalSeaFlowLayer from "@/components/GlobalSeaFlowLayer";
 import { fetchPublicVisualModeConfigServerSide } from "@/lib/visualModeConfigServer";
 import { registerBelizeListingsServiceWorker } from "@/lib/pwa/registerServiceWorker";
+import { InstallationStateProvider } from "@/lib/pwa/InstallationStateProvider";
 
 function ModerationNotificationListener() {
   useListingModerationNotifications();
@@ -52,6 +53,7 @@ function AppWithAlerts({ Component, pageProps }) {
   }, []);
 
   return (
+    <InstallationStateProvider>
     <VisualModeProvider initialConfig={pageProps.visualModeConfig}>
       <GlobalSeaFlowLayer />
       <ToastProvider>
@@ -83,6 +85,7 @@ function AppWithAlerts({ Component, pageProps }) {
         </PageTitleProvider>
       </ToastProvider>
     </VisualModeProvider>
+    </InstallationStateProvider>
   );
 }
 

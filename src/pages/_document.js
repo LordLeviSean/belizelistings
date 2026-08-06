@@ -2,12 +2,14 @@ import { Html, Head, Main, NextScript } from "next/document";
 import { SITE_NAME } from "@/lib/siteMetadata";
 import { PWA_THEME_COLOR } from "@/lib/pwaConstants";
 import { getVisualModeBootstrapScript } from "@/lib/visualModeDocument";
+import { getInstallationBootstrapScript } from "@/lib/pwa/installationBootstrap";
 
 export default function Document() {
   return (
     <Html lang="en">
       <Head>
         <script dangerouslySetInnerHTML={{ __html: getVisualModeBootstrapScript() }} />
+        <script dangerouslySetInnerHTML={{ __html: getInstallationBootstrapScript() }} />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
