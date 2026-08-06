@@ -9,6 +9,7 @@ import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import { DASHBOARD_ROLE } from "@/constants/dashboardRoles";
 import { supabase } from "@/lib/supabaseClient";
 import { fetchAgentPublicProfile, deriveAgentProfileRegions } from "@/lib/agentPublicProfile";
+import { buildFeaturedBrowseListingCardProps } from "@/lib/listingCardBrowse";
 import { formatProfileDisplayLabel } from "@/lib/profileDisplayName";
 import { getRegionLabel, normalizeRegionSlug } from "@/constants/geographyLayer";
 import styles from "@/styles/AgentPublicProfile.module.css";
@@ -145,21 +146,22 @@ export default function AgentPublicProfilePage() {
               </div>
             ) : (
               <div className={styles.grid}>
-                {listings.map((listing) => (
-                  <ListingCard
-                    key={listing.id}
-                    listing={listing}
-                    showFavoriteButton
-                    isFavorited={isFavorite(listing.id)}
-                    favoriteBusy={isBusy(listing.id)}
-                    onFavoriteClick={handleFavoriteClick}
-                    imageSizes="(max-width: 760px) 100vw, (max-width: 980px) 50vw, 33vw"
-                    carouselIndex={Number(carouselIndexById[listing.id] || 0)}
-                    onCarouselIndexChange={(nextIndex) =>
-                      setCarouselIndexById((prev) => ({ ...prev, [listing.id]: nextIndex }))
-                    }
-                  />
-                ))}
+                {listings.map((listing, index) => {
+                  const cardProps = buildFeaturedBrowseListingCardProps(listing, index, {
+                    isFavorite,
+                    isBusy,
+                    onFavoriteClick: handleFavoriteClick,
+                    carouselIndexById,
+                    onCarouselIndexChange: (listingId, nextIndex) =>
+                      setCarouselIndexById((prev) => ({ ...prev, [listingId]: nextIndex })),
+                  });
+                  if (!cardProps) return null;
+                  return (
+                    <div key={listing.id} className={styles.gridItem}>
+                      <ListingCard {...cardProps} />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </>

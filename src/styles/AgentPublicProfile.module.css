@@ -83,8 +83,12 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(min(296px, 100%), 300px));
+  gap: 10px;
+}
+
+.gridItem {
+  min-width: 0;
 }
 
 .empty {
@@ -105,5 +109,9 @@
 @media (max-width: 640px) {
   .main {
     padding: 20px 16px 48px;
+  }
+
+  .grid {
+    gap: 12px;
   }
 }
