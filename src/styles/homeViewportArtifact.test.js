@@ -40,10 +40,11 @@ describe("homepage static background guards", () => {
     expect(css).toMatch(/\.propertyMedia::after[\s\S]*linear-gradient\(/);
   });
 
-  test("splash dismiss does not programmatically focus homepage main", () => {
-    const splash = readSource("src/components/home/HomeMapAwakensTransition.jsx");
-    expect(splash).not.toMatch(/getElementById\("home-main-content"\)/);
-    expect(splash).not.toMatch(/\.focus\s*\(/);
+  test("homepage does not mount first-load splash transition", () => {
+    const page = readSource("src/pages/index.js");
+    expect(page).not.toMatch(/HomeMapAwakensTransition/);
+    expect(page).not.toMatch(/useHomeLoadingTransitionGate/);
+    expect(page).not.toMatch(/bl_home_splash_seen_v1/);
   });
 
   test("homepage still renders map and functional hero content", () => {

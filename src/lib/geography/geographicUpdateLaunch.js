@@ -33,6 +33,9 @@ export const GEOGRAPHIC_UPDATE_MODAL_COPY = Object.freeze({
   learnMoreHref: `/learn-more#${GEO_UPDATE?.slug || "geographic-update-v1"}`,
 });
 
+/** Delay before showing the geographic update modal after homepage mount. */
+export const GEO_UPDATE_MODAL_DELAY_MS = 1500;
+
 const SESSION_KEY_PREFIX = "bl_geo_update_modal_session";
 
 /** YYYY-MM-DD in the visitor's local timezone. */

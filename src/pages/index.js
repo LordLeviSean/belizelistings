@@ -31,15 +31,10 @@ import useAuth from "../hooks/useAuth";
 import useRoleAccess from "../hooks/useRoleAccess";
 import useUserRole from "../hooks/useUserRole";
 import GeographicUpdateModal from "../components/home/GeographicUpdateModal";
-import HomeMapAwakensTransition, {
-  useHomeLoadingTransitionGate,
-} from "../components/home/HomeMapAwakensTransition";
 import {
-  evaluateHomePageReadiness,
   GEO_UPDATE_MODAL_DELAY_MS,
-  HOME_READINESS_INITIAL,
-} from "../lib/homePageReadiness";
-import { isGeographicUpdateModalEligible } from "../lib/geography/geographicUpdateLaunch";
+  isGeographicUpdateModalEligible,
+} from "../lib/geography/geographicUpdateLaunch";
 import { supabase } from "../lib/supabaseClient";
 
 import styles from "../styles/HomeMapFirst.module.css";
@@ -97,32 +92,8 @@ export default function HomePage() {
   const [carouselIndexById, setCarouselIndexById] = useState({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [geoUpdateOpen, setGeoUpdateOpen] = useState(false);
-  const { showTransition, dismissTransition } = useHomeLoadingTransitionGate();
-  const [homeReadySignals, setHomeReadySignals] = useState(() => ({ ...HOME_READINESS_INITIAL }));
-  const [transitionComplete, setTransitionComplete] = useState(false);
-
-  const patchReadySignal = useCallback((key, value = true) => {
-    setHomeReadySignals((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
-  }, []);
-
-  const isHomeReady = useMemo(
-    () => evaluateHomePageReadiness(homeReadySignals),
-    [homeReadySignals]
-  );
 
   useEffect(() => {
-    patchReadySignal("shell", true);
-    patchReadySignal("hero", true);
-    patchReadySignal("searchReady", true);
-    patchReadySignal("navInteractive", true);
-  }, [patchReadySignal]);
-
-  useEffect(() => {
-    if (!showTransition) setTransitionComplete(true);
-  }, [showTransition]);
-
-  useEffect(() => {
-    if (!transitionComplete) return undefined;
     const timer = window.setTimeout(() => {
       if (
         isGeographicUpdateModalEligible({
@@ -134,7 +105,7 @@ export default function HomePage() {
       }
     }, GEO_UPDATE_MODAL_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [transitionComplete, user?.id, role]);
+  }, [user?.id, role]);
   const [compactSearchPlaceholder, setCompactSearchPlaceholder] = useState(false);
   const featuredScrollRef = useRef(null);
   const featuredPausedRef = useRef(false);
@@ -153,7 +124,6 @@ export default function HomePage() {
         images: Array.isArray(l.images) ? l.images : [],
       }));
       setListingsData(normalizedPreview);
-      patchReadySignal("featuredListingsReady", true);
 
       const { data: fullData } = await fetchApprovedListingsWithImages();
       const normalizedFull = (fullData || []).map((l) => ({
@@ -163,11 +133,11 @@ export default function HomePage() {
       }));
       if (normalizedFull.length) setListingsData(normalizedFull);
     } catch {
-      patchReadySignal("featuredListingsReady", true);
+      /* listings unavailable */
     } finally {
       setListingsLoading(false);
     }
-  }, [patchReadySignal]);
+  }, []);
 
   useEffect(() => {
     fetchListings();
@@ -317,7 +287,6 @@ export default function HomePage() {
           <BelizeMap
             showAmbientVeil={false}
             districtListingCounts={districtListingCounts}
-            onMapReady={() => patchReadySignal("mapInitialized")}
             onDistrictClick={(slug) => router.push(`/listings/district/${slug}`)}
           />
         </div>
@@ -362,15 +331,6 @@ export default function HomePage() {
 
   return (
     <div className={`${styles.page} home-map-page-root`}>
-      {showTransition ? (
-        <HomeMapAwakensTransition
-          ready={isHomeReady}
-          onResolved={() => {
-            dismissTransition();
-            setTransitionComplete(true);
-          }}
-        />
-      ) : null}
       <SiteNav active="browse" />
 
       <main id="home-main-content" className={styles.pageMain} tabIndex={-1}>
