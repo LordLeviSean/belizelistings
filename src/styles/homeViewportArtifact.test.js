@@ -11,14 +11,14 @@ function readSource(relativePath) {
   return readFileSync(join(ROOT, relativePath), "utf8");
 }
 
-describe("homepage plain background guards", () => {
-  test("homepage root uses one plain base color only", () => {
+describe("homepage static background guards", () => {
+  test("homepage root uses the unified static whitish gradient", () => {
     const css = readCss("src/styles/HomeMapFirst.module.css");
     const pageBlock = css.match(/\.page\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    expect(pageBlock).toMatch(/background-color:\s*var\(--home-base-color\)/);
-    expect(pageBlock).not.toMatch(/background-image:/);
-    expect(pageBlock).not.toMatch(/radial-gradient\(/);
-    expect(pageBlock).not.toMatch(/linear-gradient\(/);
+    expect(pageBlock).toMatch(/linear-gradient\(\s*165deg,\s*#f2faf8 0%/);
+    expect(pageBlock).toMatch(/#fdfcfb 100%/);
+    expect(pageBlock).toMatch(/radial-gradient\(ellipse 56% 44% at 4% 8%/);
+    expect(pageBlock).not.toMatch(/--home-base-color/);
   });
 
   test("structural homepage sections have no decorative backgrounds or masks", () => {

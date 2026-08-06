@@ -12,9 +12,22 @@
   --ui-shadow-hover:
     0 22px 40px rgba(96, 128, 136, 0.18),
     0 0 0 1px rgba(255, 255, 255, 0.35) inset;
-  --home-base-color: #fdfcfb;
   color: #26464f;
-  background-color: var(--home-base-color);
+  background:
+    radial-gradient(ellipse 56% 44% at 4% 8%, rgba(232, 210, 244, 0.165), transparent 72%),
+    radial-gradient(ellipse 52% 40% at 96% 2%, rgba(250, 220, 235, 0.138), transparent 68%),
+    radial-gradient(ellipse 52% 36% at 92% 88%, rgba(255, 200, 186, 0.172), transparent 76%),
+    radial-gradient(ellipse 50% 40% at 10% 8%, rgba(92, 210, 198, 0.22), transparent 70%),
+    radial-gradient(ellipse 42% 36% at 88% 4%, rgba(176, 198, 250, 0.26), transparent 66%),
+    radial-gradient(ellipse 58% 48% at 86% 88%, rgba(255, 210, 188, 0.232), transparent 78%),
+    linear-gradient(
+      165deg,
+      #f2faf8 0%,
+      #e6f7f7 22%,
+      #edf4fc 54%,
+      #faf6f4 82%,
+      #fdfcfb 100%
+    );
 }
 
 .page::before,
