@@ -164,7 +164,15 @@ export default function LearnMoreExperience() {
       <SiteNav active="browse" />
 
       <div className={styles.wrapper}>
-        <BackButton label="Back" className={styles.backButton} />
+        <div className={styles.mobileToolbar}>
+          <BackButton label="Back" className={styles.mobileBackButton} ariaLabel="Back to previous page" />
+          <div className={styles.mobileToolbarCopy}>
+            <p className={styles.mobileToolbarEyebrow}>Release notes</p>
+            <p className={styles.mobileToolbarTitle}>Platform Updates</p>
+          </div>
+        </div>
+
+        <BackButton label="Back" className={`${styles.backButton} ${styles.backButtonDesktop}`} />
 
         <header className={styles.intro}>
           <p className={styles.introEyebrow}>BelizeListings Release Notes</p>
@@ -173,6 +181,9 @@ export default function LearnMoreExperience() {
             The permanent archive of BelizeListings milestones—geography, communication, performance,
             and everything that follows. Timed homepage announcements retire here when their window
             closes.
+          </p>
+          <p className={styles.introLeadMobile}>
+            Milestones, releases, and the permanent archive of what shipped on BelizeListings.
           </p>
         </header>
 

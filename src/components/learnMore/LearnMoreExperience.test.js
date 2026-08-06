@@ -96,4 +96,10 @@ describe("LearnMoreExperience", () => {
       expect(tab.tagName).toBe("BUTTON");
     });
   });
+
+  test("renders mobile toolbar shell markup", () => {
+    renderLearnMore();
+    expect(document.querySelector('[class*="mobileToolbar"]')).toBeTruthy();
+    expect(document.querySelector('[class*="introLeadMobile"]')).toBeTruthy();
+  });
 });
