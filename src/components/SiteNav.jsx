@@ -18,6 +18,7 @@ import { useAuthGate } from "./auth/AuthGateProvider";
 import BrandWordmark from "./BrandWordmark";
 import styles from "./SiteNavUnified.module.css";
 import NotificationCenter from "./notifications/NotificationCenter";
+import { resolveSiteNavActiveFromPath } from "../lib/siteNavRouting";
 
 const BODY_DRAWER_CLASS = "site-nav-drawer-open";
 /** Ignore backdrop taps right after open (iOS ghost-tap guard). */
@@ -136,20 +137,7 @@ export default function SiteNav({ active = "auto", variant = "full" }) {
   const route = router.pathname || "";
   const isHomepage = route === "/";
   const isFavoritesPage = route === "/favorites";
-  const routeActive = (() => {
-    if (route === "/favorites") return "favorites";
-    if (route === "/agents" || route.startsWith("/agents/")) return "agents";
-    if (route.startsWith("/dashboard") || route.startsWith("/admin")) return "dashboard";
-    if (
-      route === "/" ||
-      route === "/search" ||
-      route.startsWith("/listing/") ||
-      route.startsWith("/listings/district/")
-    ) {
-      return "browse";
-    }
-    return null;
-  })();
+  const routeActive = resolveSiteNavActiveFromPath(route);
   const resolvedActive = active === "auto" ? routeActive : active;
   const favoritesNavActive = resolvedActive === "favorites";
   const agentsNavActive = resolvedActive === "agents";
