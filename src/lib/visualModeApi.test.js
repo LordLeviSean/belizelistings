@@ -32,7 +32,7 @@ describe("visual mode API routes", () => {
     process.env = origEnv;
   });
 
-  test("GET /api/visual-mode returns normalized public settings without sea flow", async () => {
+  test("GET /api/visual-mode returns normalized public settings including sea flow", async () => {
     createClient.mockReturnValue({
       rpc: jest.fn().mockResolvedValue({
         data: {
@@ -52,6 +52,8 @@ describe("visual mode API routes", () => {
     expect(res.json).toHaveBeenCalledWith({
       livePalette: true,
       pulse: false,
+      seaFlow: true,
+      seaFlowIntensity: 1,
       source: "server",
     });
   });
@@ -68,6 +70,7 @@ describe("visual mode API routes", () => {
       expect.objectContaining({
         livePalette: false,
         pulse: false,
+        seaFlow: false,
         source: "defaults",
       })
     );
@@ -87,6 +90,8 @@ describe("visual mode API routes", () => {
         body: {
           livePalette: true,
           pulse: false,
+          seaFlow: false,
+          seaFlowIntensity: 0.5,
         },
       },
       res
@@ -114,6 +119,8 @@ describe("visual mode API routes", () => {
         body: {
           livePalette: true,
           pulse: false,
+          seaFlow: true,
+          seaFlowIntensity: 1,
         },
       },
       res
@@ -122,14 +129,14 @@ describe("visual mode API routes", () => {
     expect(res.status).toHaveBeenCalledWith(403);
   });
 
-  test("PATCH /api/admin/visual-mode succeeds and forces dormant sea flow RPC values", async () => {
+  test("PATCH /api/admin/visual-mode succeeds with full visual config", async () => {
     const getUser = jest.fn().mockResolvedValue({ data: { user: { id: "admin-1" } } });
     const rpc = jest.fn().mockResolvedValue({
       data: {
         livePalette: true,
         pulse: true,
-        seaFlow: false,
-        seaFlowIntensity: 0.5,
+        seaFlow: true,
+        seaFlowIntensity: 1.25,
       },
       error: null,
     });
@@ -146,6 +153,8 @@ describe("visual mode API routes", () => {
         body: {
           livePalette: true,
           pulse: true,
+          seaFlow: true,
+          seaFlowIntensity: 1.25,
         },
       },
       res
@@ -155,14 +164,16 @@ describe("visual mode API routes", () => {
     expect(rpc).toHaveBeenCalledWith("update_visual_mode_platform_config", {
       p_live_palette_mode: true,
       p_pulse_mode: true,
-      p_sea_flow_mode: false,
-      p_sea_flow_intensity: 0.5,
+      p_sea_flow_mode: true,
+      p_sea_flow_intensity: 1.25,
     });
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         livePalette: true,
         pulse: true,
+        seaFlow: true,
+        seaFlowIntensity: 1.25,
         source: "server",
       })
     );
@@ -190,6 +201,8 @@ describe("visual mode API routes", () => {
         body: {
           livePalette: true,
           pulse: false,
+          seaFlow: false,
+          seaFlowIntensity: 0.5,
         },
       },
       res

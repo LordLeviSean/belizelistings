@@ -303,3 +303,183 @@ select:focus-visible {
   }
 }
 
+/*
+ * Global Sea Flow — fixed non-interactive background when html[data-sea-flow="on"].
+ * Intensity vars are applied to documentElement by VisualModeProvider / bootstrap script.
+ */
+html[data-sea-flow="off"] .globalSeaFlowLayers {
+  display: none;
+}
+
+.globalSeaFlowLayers {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: visible;
+  transform: translateZ(0);
+  opacity: calc(0.94 + 0.06 * (var(--sea-flow-tier, 1) - 1));
+}
+
+.globalSeaFlowLayers::before {
+  content: "";
+  position: absolute;
+  inset: -62% -56%;
+  z-index: 0;
+  opacity: var(--sea-flow-opacity-dark, 0.58);
+  background:
+    radial-gradient(
+      ellipse 92% 86% at 22% 58%,
+      rgba(14, 72, 82, calc(0.52 * var(--sea-flow-gradient-strength, 1.04))),
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 88% 80% at 82% 36%,
+      rgba(16, 58, 98, calc(0.46 * var(--sea-flow-gradient-strength, 1.04))),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 78% 74% at 52% 78%,
+      rgba(18, 82, 92, calc(0.4 * var(--sea-flow-gradient-strength, 1.04))),
+      transparent 62%
+    );
+  filter: blur(var(--sea-flow-blur-a, 96px)) saturate(var(--sea-flow-saturate, 1.68))
+    brightness(var(--sea-flow-brightness-dark, 0.9)) contrast(var(--sea-flow-contrast, 1.1));
+  will-change: transform;
+  animation:
+    seaFlowDriftA calc(88s / var(--sea-flow-speed, 2.2)) var(--ambient-ease-drift) infinite alternate,
+    seaFlowPastelCycle calc(108s / var(--sea-flow-speed, 2.2)) var(--ambient-ease-drift) infinite alternate,
+    mapShimmerDrift calc(118s / var(--sea-flow-speed, 2.2)) var(--ambient-ease-drift) infinite alternate;
+}
+
+.globalSeaFlowLayers::after {
+  content: "";
+  position: absolute;
+  inset: -68% -60%;
+  z-index: 1;
+  opacity: var(--sea-flow-opacity-light, 0.5);
+  background:
+    radial-gradient(
+      ellipse 74% 68% at 28% 34%,
+      rgba(12, 58, 78, calc(0.38 * var(--sea-flow-gradient-strength, 1.04))),
+      transparent 54%
+    ),
+    radial-gradient(
+      ellipse 82% 74% at 72% 66%,
+      rgba(20, 78, 98, calc(0.32 * var(--sea-flow-gradient-strength, 1.04))),
+      transparent 58%
+    ),
+    conic-gradient(
+      from 210deg at 50% 50%,
+      rgba(12, 48, 68, calc(0.3 * var(--sea-flow-gradient-strength, 1.04))),
+      rgba(18, 72, 88, calc(0.34 * var(--sea-flow-gradient-strength, 1.04))),
+      rgba(16, 62, 82, calc(0.3 * var(--sea-flow-gradient-strength, 1.04))),
+      rgba(22, 86, 98, calc(0.28 * var(--sea-flow-gradient-strength, 1.04))),
+      rgba(14, 56, 76, calc(0.3 * var(--sea-flow-gradient-strength, 1.04))),
+      rgba(12, 48, 68, calc(0.3 * var(--sea-flow-gradient-strength, 1.04)))
+    );
+  filter: blur(var(--sea-flow-blur-b, 118px)) saturate(var(--sea-flow-saturate, 1.68))
+    brightness(var(--sea-flow-brightness, 1.08)) contrast(var(--sea-flow-contrast, 1.1));
+  mix-blend-mode: soft-light;
+  will-change: transform;
+  animation:
+    seaFlowDriftB calc(74s / var(--sea-flow-speed, 2.2)) var(--ambient-ease-drift) infinite alternate,
+    seaFlowSurge calc(96s / var(--sea-flow-speed, 2.2)) var(--ambient-ease-drift) infinite alternate,
+    mapShimmerDriftAlt calc(124s / var(--sea-flow-speed, 2.2)) var(--ambient-ease-drift) infinite alternate;
+}
+
+@keyframes seaFlowDriftA {
+  0% {
+    transform: translate3d(calc(-7.8% * var(--sea-flow-motion, 3.2)), calc(6.8% * var(--sea-flow-motion, 3.2)), 0)
+      scale(calc(0.984 + 0.024 * var(--sea-flow-motion, 3.2)))
+      rotate(calc(-0.9deg * var(--sea-flow-motion, 3.2)));
+  }
+  100% {
+    transform: translate3d(calc(7.8% * var(--sea-flow-motion, 3.2)), calc(-6.8% * var(--sea-flow-motion, 3.2)), 0)
+      scale(calc(1 + 0.024 * var(--sea-flow-motion, 3.2)))
+      rotate(calc(0.9deg * var(--sea-flow-motion, 3.2)));
+  }
+}
+
+@keyframes seaFlowDriftB {
+  0% {
+    transform: translate3d(calc(7.2% * var(--sea-flow-motion, 3.2)), calc(-6.2% * var(--sea-flow-motion, 3.2)), 0)
+      scale(calc(0.986 + 0.02 * var(--sea-flow-motion, 3.2)))
+      rotate(calc(0.96deg * var(--sea-flow-motion, 3.2)));
+  }
+  100% {
+    transform: translate3d(calc(-7.2% * var(--sea-flow-motion, 3.2)), calc(6.2% * var(--sea-flow-motion, 3.2)), 0)
+      scale(calc(1 + 0.02 * var(--sea-flow-motion, 3.2)))
+      rotate(calc(-0.96deg * var(--sea-flow-motion, 3.2)));
+  }
+}
+
+@keyframes seaFlowPastelCycle {
+  0% {
+    filter: blur(calc(var(--sea-flow-blur-a, 96px) + 4px)) hue-rotate(calc(-3.6deg * var(--sea-flow-power, 1)))
+      saturate(calc(var(--sea-flow-saturate, 1.68) + 0.06 * var(--sea-flow-power, 1)))
+      contrast(calc(var(--sea-flow-contrast, 1.1) + 0.02 * var(--sea-flow-power, 1)))
+      brightness(calc(var(--sea-flow-brightness-dark, 0.9) + 0.03 * var(--sea-flow-power, 1)));
+  }
+  33% {
+    filter: blur(calc(var(--sea-flow-blur-a, 96px) + 8px)) hue-rotate(calc(4.8deg * var(--sea-flow-power, 1)))
+      saturate(calc(var(--sea-flow-saturate, 1.68) + 0.12 * var(--sea-flow-power, 1)))
+      contrast(calc(var(--sea-flow-contrast, 1.1) + 0.04 * var(--sea-flow-power, 1)))
+      brightness(calc(var(--sea-flow-brightness-dark, 0.9) + 0.05 * var(--sea-flow-power, 1)));
+  }
+  66% {
+    filter: blur(calc(var(--sea-flow-blur-a, 96px) + 6px)) hue-rotate(calc(-4.2deg * var(--sea-flow-power, 1)))
+      saturate(calc(var(--sea-flow-saturate, 1.68) + 0.09 * var(--sea-flow-power, 1)))
+      contrast(calc(var(--sea-flow-contrast, 1.1) + 0.03 * var(--sea-flow-power, 1)))
+      brightness(calc(var(--sea-flow-brightness-dark, 0.9) + 0.04 * var(--sea-flow-power, 1)));
+  }
+  100% {
+    filter: blur(calc(var(--sea-flow-blur-a, 96px) + 4px)) hue-rotate(calc(-3.6deg * var(--sea-flow-power, 1)))
+      saturate(calc(var(--sea-flow-saturate, 1.68) + 0.06 * var(--sea-flow-power, 1)))
+      contrast(calc(var(--sea-flow-contrast, 1.1) + 0.02 * var(--sea-flow-power, 1)))
+      brightness(calc(var(--sea-flow-brightness-dark, 0.9) + 0.03 * var(--sea-flow-power, 1)));
+  }
+}
+
+@keyframes seaFlowSurge {
+  0% {
+    filter: blur(calc(var(--sea-flow-blur-b, 118px) + 6px))
+      saturate(calc(var(--sea-flow-saturate, 1.68) + 0.05 * var(--sea-flow-power, 1)))
+      brightness(calc(var(--sea-flow-brightness, 1.08) - 0.03 * var(--sea-flow-power, 1)))
+      contrast(calc(var(--sea-flow-contrast, 1.1) + 0.02 * var(--sea-flow-power, 1)));
+  }
+  100% {
+    filter: blur(calc(var(--sea-flow-blur-b, 118px) + 14px))
+      saturate(calc(var(--sea-flow-saturate, 1.68) + 0.18 * var(--sea-flow-power, 1)))
+      brightness(calc(var(--sea-flow-brightness, 1.08) + 0.06 * var(--sea-flow-power, 1)))
+      contrast(calc(var(--sea-flow-contrast, 1.1) + 0.06 * var(--sea-flow-power, 1)));
+  }
+}
+
+@keyframes mapShimmerDrift {
+  0% {
+    opacity: calc(var(--sea-flow-opacity-glow, 0.36) * 0.82);
+  }
+  100% {
+    opacity: calc(var(--sea-flow-opacity-glow, 0.36) * 1.08);
+  }
+}
+
+@keyframes mapShimmerDriftAlt {
+  0% {
+    opacity: calc(var(--sea-flow-opacity-glow, 0.36) * 0.68);
+  }
+  100% {
+    opacity: calc(var(--sea-flow-opacity-glow, 0.36) * 0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-reduced-motion="true"] .globalSeaFlowLayers::before,
+  html[data-reduced-motion="true"] .globalSeaFlowLayers::after {
+    animation: none !important;
+    transform: none !important;
+    filter: blur(74px);
+  }
+}
+

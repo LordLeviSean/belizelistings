@@ -19,6 +19,13 @@ jest.mock("next/font/google", () => ({
   DM_Sans: () => ({ className: "mock-dm-sans" }),
 }));
 
+jest.mock("./VisualModeProvider", () => ({
+  useVisualMode: () => ({
+    livePalette: false,
+    pulse: false,
+  }),
+}));
+
 function renderWordmark() {
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -41,12 +48,12 @@ describe("BrandWordmark", () => {
     global.IS_REACT_ACT_ENVIRONMENT = true;
   });
 
-  test("renders static wordmark without visual-mode data attributes", () => {
+  test("renders wordmark with visual-mode data attributes from provider", () => {
     const view = renderWordmark();
     const wordmark = view.wordmark();
     expect(wordmark).toBeTruthy();
-    expect(wordmark?.getAttribute("data-live")).toBeNull();
-    expect(wordmark?.getAttribute("data-pulse")).toBeNull();
+    expect(wordmark?.getAttribute("data-live")).toBe("false");
+    expect(wordmark?.getAttribute("data-pulse")).toBe("false");
     expect(wordmark?.textContent).toContain("BelizeListings");
     view.unmount();
   });

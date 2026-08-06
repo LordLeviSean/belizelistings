@@ -94,29 +94,45 @@ describe("homepage viewport artifact guards", () => {
   });
 });
 
-describe("visual mode retirement guards", () => {
-  test("admin dashboard source has no visual-mode controls", () => {
+describe("visual mode restoration guards", () => {
+  test("admin dashboard uses modal visual editor, not inline effect controls", () => {
     const admin = readSource("src/pages/admin/index.jsx");
-    expect(admin).not.toMatch(/useVisualMode/);
+    expect(admin).toMatch(/PlatformVisualEditorModal/);
+    expect(admin).toMatch(/Open Visual Editor/);
     expect(admin).not.toMatch(/effectControls/);
-    expect(admin).not.toMatch(/Live Palette/);
-    expect(admin).not.toMatch(/Pulse Mode/);
-    expect(admin).not.toMatch(/Sea Flow/);
+    expect(admin).not.toMatch(/useVisualMode\(/);
   });
 
-  test("nav wordmark CSS has no live palette or pulse selectors", () => {
+  test("nav wordmark CSS includes live palette and pulse selectors", () => {
     const css = readCss("src/components/SiteNavUnified.module.css");
-    expect(css).not.toMatch(/\[data-live=/);
-    expect(css).not.toMatch(/\[data-pulse=/);
-    expect(css).not.toMatch(/@keyframes districtPalette/);
-    expect(css).not.toMatch(/@keyframes brandPulseOnlyBreathe/);
+    expect(css).toMatch(/\[data-live=/);
+    expect(css).toMatch(/\[data-pulse=/);
+    expect(css).toMatch(/@keyframes districtPalette/);
+    expect(css).toMatch(/@keyframes brandPulseOnlyBreathe/);
   });
 
-  test("bootstrap purges legacy visual-mode storage keys", () => {
+  test("bootstrap applies visual-mode cache before first paint", () => {
     const doc = readSource("src/pages/_document.js");
-    expect(doc).toMatch(/blz_live_palette_mode_v1/);
-    expect(doc).toMatch(/blz_pulse_mode_v1/);
-    expect(doc).toMatch(/removeAttribute\("data-live-palette"\)/);
-    expect(doc).not.toMatch(/VisualModeProvider/);
+    const bootstrap = readSource("src/lib/visualModeDocument.js");
+    expect(doc).toMatch(/getVisualModeBootstrapScript/);
+    expect(bootstrap).toMatch(/blz_live_palette_mode_v1/);
+    expect(bootstrap).toMatch(/data-live-palette/);
+    expect(doc).not.toMatch(/removeAttribute\("data-live-palette"\)/);
+  });
+
+  test("global sea flow lives in globals.css, not homepage module", () => {
+    const homeCss = readCss("src/styles/HomeMapFirst.module.css");
+    const globals = readCss("src/styles/globals.css");
+    expect(homeCss).not.toMatch(/\.pageSeaFlowLayers\b/);
+    expect(homeCss).not.toMatch(/@keyframes seaFlow/);
+    expect(globals).toMatch(/\.globalSeaFlowLayers\b/);
+    expect(globals).toMatch(/@keyframes seaFlowDriftA/);
+  });
+
+  test("app mounts VisualModeProvider and global sea flow layer", () => {
+    const app = readSource("src/pages/_app.js");
+    expect(app).toMatch(/VisualModeProvider/);
+    expect(app).toMatch(/GlobalSeaFlowLayer/);
+    expect(app).toMatch(/fetchPublicVisualModeConfigServerSide/);
   });
 });

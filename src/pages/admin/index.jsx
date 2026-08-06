@@ -41,6 +41,8 @@ import premiumStyles from "../../styles/AdminDashboardPremium.module.css";
 import loadingStyles from "../../styles/UserDashboard.module.css";
 import PremiumEmptyState from "../../components/ui/PremiumEmptyState";
 import Link from "next/link";
+import PlatformVisualEditorModal from "../../components/admin/PlatformVisualEditorModal";
+import platformVisualStyles from "../../components/admin/PlatformVisualEditorEntry.module.css";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -68,6 +70,7 @@ export default function AdminPage() {
   const [buyerConversations, setBuyerConversations] = useState([]);
   const [buyerListingsById, setBuyerListingsById] = useState({});
   const [buyerCrmLoading, setBuyerCrmLoading] = useState(false);
+  const [visualEditorOpen, setVisualEditorOpen] = useState(false);
 
   const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
   const visibleTabs = useMemo(() => getVisibleAdminDashboardTabs(), [crmTabsEnabled]);
@@ -352,6 +355,19 @@ export default function AdminPage() {
                   >
                     Marketplace Health
                   </Link>
+                  <div className={platformVisualStyles.platformVisualEntry}>
+                    <p className={platformVisualStyles.platformVisualTitle}>Visual Editor</p>
+                    <p className={platformVisualStyles.platformVisualHint}>
+                      Customize the platform&apos;s global visual effects.
+                    </p>
+                    <button
+                      type="button"
+                      className={`${styles.primaryButton} ${premiumStyles.adminPrimaryAction} ${platformVisualStyles.platformVisualButton}`}
+                      onClick={() => setVisualEditorOpen(true)}
+                    >
+                      Open Visual Editor
+                    </button>
+                  </div>
                   <button
                     type="button"
                     className={`${styles.primaryButton} ${premiumStyles.adminPrimaryAction}`}
@@ -539,6 +555,10 @@ export default function AdminPage() {
           </DashboardShell>
         </div>
       </main>
+      <PlatformVisualEditorModal
+        open={visualEditorOpen}
+        onClose={() => setVisualEditorOpen(false)}
+      />
     </div>
   );
 }

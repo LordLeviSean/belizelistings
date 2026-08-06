@@ -3,10 +3,8 @@
 import {
   normalizeVisualModeConfig,
   parseBooleanConfigValue,
-  toVisualModeRpcPayload,
   validateVisualModePatch,
   VISUAL_MODE_DEFAULTS,
-  VISUAL_MODE_RETIRED_SEA_FLOW_RPC,
 } from "./visualModeConfig";
 
 describe("visualModeConfig", () => {
@@ -14,29 +12,19 @@ describe("visualModeConfig", () => {
     expect(normalizeVisualModeConfig()).toEqual(VISUAL_MODE_DEFAULTS);
   });
 
-  test("parses RPC payload booleans and ignores retired sea flow fields", () => {
+  test("parses RPC payload booleans and intensity", () => {
     expect(
       normalizeVisualModeConfig({
         livePalette: true,
         pulse: "1",
-        seaFlow: true,
-        seaFlowIntensity: "5",
+        seaFlow: false,
+        seaFlowIntensity: "1.5",
       })
     ).toEqual({
       livePalette: true,
       pulse: true,
-    });
-  });
-
-  test("validateVisualModePatch accepts live palette and pulse only", () => {
-    expect(
-      validateVisualModePatch({
-        livePalette: true,
-        pulse: false,
-      })
-    ).toEqual({
-      livePalette: true,
-      pulse: false,
+      seaFlow: false,
+      seaFlowIntensity: 1.5,
     });
   });
 
@@ -45,23 +33,21 @@ describe("visualModeConfig", () => {
       validateVisualModePatch({
         livePalette: "maybe",
         pulse: false,
+        seaFlow: false,
+        seaFlowIntensity: 0.5,
       })
     ).toThrow(/Boolean visual-mode fields/);
   });
 
-  test("toVisualModeRpcPayload always sends dormant sea flow values", () => {
-    expect(
-      toVisualModeRpcPayload({
-        livePalette: true,
-        pulse: true,
-        seaFlow: true,
-        seaFlowIntensity: 5,
+  test("validateVisualModePatch rejects out-of-range intensity", () => {
+    expect(() =>
+      validateVisualModePatch({
+        livePalette: false,
+        pulse: false,
+        seaFlow: false,
+        seaFlowIntensity: 2,
       })
-    ).toEqual({
-      livePalette: true,
-      pulse: true,
-      ...VISUAL_MODE_RETIRED_SEA_FLOW_RPC,
-    });
+    ).toThrow(/between 0\.5 and 1\.5/);
   });
 
   test("parseBooleanConfigValue handles common truthy/falsy values", () => {

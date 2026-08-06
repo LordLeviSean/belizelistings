@@ -18,6 +18,9 @@ import { ToastProvider } from "@/components/ui/ToastProvider";
 import { FavoriteSignupPromptProvider } from "@/components/FavoriteSignupPromptProvider";
 import Footer from "@/components/Footer";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
+import { VisualModeProvider } from "@/components/VisualModeProvider";
+import GlobalSeaFlowLayer from "@/components/GlobalSeaFlowLayer";
+import { fetchPublicVisualModeConfigServerSide } from "@/lib/visualModeConfigServer";
 
 function ModerationNotificationListener() {
   useListingModerationNotifications();
@@ -44,37 +47,59 @@ function AppWithAlerts({ Component, pageProps }) {
   }, []);
 
   return (
-    <ToastProvider>
-      <PageTitleProvider routeTitle={pageTitle} routeDescription={pageDescription}>
-      <UserRoleProvider>
-        <ModerationNotificationListener />
-        <AuthGateProvider>
-          <ListingEngagementAuthPromptProvider>
-          <FavoriteSignupPromptProvider>
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={router.pathname}
-              initial={skipPageEnterRef.current ? false : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={pageTransition}
-              style={{ minHeight: 0, overflow: "visible" }}
-            >
-              <AppErrorBoundary>
-                <Component {...pageProps} />
-              </AppErrorBoundary>
-            </motion.div>
-          </AnimatePresence>
-          <Footer />
-          </FavoriteSignupPromptProvider>
-          </ListingEngagementAuthPromptProvider>
-        </AuthGateProvider>
-      </UserRoleProvider>
-      </PageTitleProvider>
-    </ToastProvider>
+    <VisualModeProvider initialConfig={pageProps.visualModeConfig}>
+      <GlobalSeaFlowLayer />
+      <ToastProvider>
+        <PageTitleProvider routeTitle={pageTitle} routeDescription={pageDescription}>
+          <UserRoleProvider>
+            <ModerationNotificationListener />
+            <AuthGateProvider>
+              <ListingEngagementAuthPromptProvider>
+                <FavoriteSignupPromptProvider>
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={router.pathname}
+                      initial={skipPageEnterRef.current ? false : { opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={pageTransition}
+                      style={{ minHeight: 0, overflow: "visible" }}
+                    >
+                      <AppErrorBoundary>
+                        <Component {...pageProps} />
+                      </AppErrorBoundary>
+                    </motion.div>
+                  </AnimatePresence>
+                  <Footer />
+                </FavoriteSignupPromptProvider>
+              </ListingEngagementAuthPromptProvider>
+            </AuthGateProvider>
+          </UserRoleProvider>
+        </PageTitleProvider>
+      </ToastProvider>
+    </VisualModeProvider>
   );
 }
 
 export default function App(props) {
   return <AppWithAlerts {...props} />;
 }
+
+App.getInitialProps = async (appContext) => {
+  let pageProps = {};
+  if (appContext.Component.getInitialProps) {
+    pageProps = await appContext.Component.getInitialProps(appContext.ctx);
+  }
+
+  let visualModeConfig = null;
+  if (appContext.ctx.req) {
+    visualModeConfig = await fetchPublicVisualModeConfigServerSide();
+  }
+
+  return {
+    pageProps: {
+      ...pageProps,
+      visualModeConfig,
+    },
+  };
+};
