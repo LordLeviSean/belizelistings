@@ -120,6 +120,14 @@ describe("visual mode restoration guards", () => {
     expect(doc).not.toMatch(/removeAttribute\("data-live-palette"\)/);
   });
 
+  test("desktop hero map uses fluid fit scale instead of fixed overscale", () => {
+    const css = readCss("src/styles/HomeMapFirst.module.css");
+    const desktopBlock = css.match(/@media \(min-width: 1161px\)\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(desktopBlock).not.toMatch(/scale\(1\.26,\s*1\.32\)/);
+    expect(desktopBlock).toMatch(/translateY\(clamp\(/);
+    expect(desktopBlock).toMatch(/scale\([\s\S]*min\(1\.14,\s*max\(1\.04,/);
+  });
+
   test("global sea flow lives in globals.css, not homepage module", () => {
     const homeCss = readCss("src/styles/HomeMapFirst.module.css");
     const globals = readCss("src/styles/globals.css");

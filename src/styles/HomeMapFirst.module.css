@@ -406,15 +406,48 @@
   transform: translateY(var(--home-map-adjust-y, 0));
 }
 
-/* Desktop-only map artwork presence — scale SVG inside unchanged container */
+/*
+ * Desktop hero map fit — scale to keep the full Belize silhouette visible.
+ * Fixed scale(1.26, 1.32) with bottom origin overflowed the hero headroom (top clip at 1920×1080).
+ */
 @media (min-width: 1161px) {
-  .page {
-    --home-map-adjust-y: 45px;
+  .heroLayout {
+    min-height: min(50vh, 448px);
   }
 
+  .heroRight {
+    justify-content: flex-end;
+    padding-top: clamp(4px, 1.2vh, 16px);
+  }
+
+  .heroRight .mapPaneMapWrap {
+    transform: translateY(clamp(18px, 4.5vh, 50px));
+  }
+
+  .heroMapDesktop .mapPane {
+    width: min(100%, 560px);
+    height: clamp(292px, 41vh, 418px);
+    max-height: min(418px, calc(100svh - var(--site-nav-height, 48px) - 358px));
+  }
+
+  .heroRight .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg) {
+    transform: translateY(0);
+    height: 100%;
+    max-height: 100%;
+  }
+
+  .heroRight .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg svg),
   .heroRight .mapPaneMapWrap svg {
-    transform: scale(1.26, 1.32) translate(0.12%, 0) !important;
+    transform: scale(
+        min(1.14, max(1.04, calc(0.76 + 100vh / 3200))),
+        min(1.12, max(1, calc(0.72 + 100vh / 2800)))
+      )
+      translate(0.12%, 0) !important;
     transform-origin: center bottom !important;
+    height: 100%;
+    width: auto;
+    max-height: 100%;
+    max-width: 100%;
   }
 }
 
@@ -998,7 +1031,7 @@
 
   .heroSection {
     overflow: visible;
-    padding-bottom: 18px;
+    padding-bottom: calc(18px + clamp(12px, 4.5vh, 50px));
   }
 
   .heroLayout {
@@ -1075,13 +1108,17 @@
     justify-content: flex-end;
     align-items: center;
     margin-top: 0;
-    padding-top: 0;
+    padding-top: clamp(2px, 0.8vh, 10px);
+  }
+
+  .heroRight .mapPaneMapWrap {
+    transform: translateY(clamp(12px, 3vh, 36px));
   }
 
   .mapPane {
     min-height: 280px;
-    height: clamp(280px, 42vh, 340px);
-    max-height: none;
+    height: clamp(280px, 40vh, 360px);
+    max-height: min(360px, calc(100svh - var(--site-nav-height, 48px) - 380px));
     margin-top: 0;
     overflow: visible;
   }
@@ -1093,11 +1130,21 @@
 
   .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg) {
     transform: translateY(0);
+    height: 100%;
+    max-height: 100%;
   }
 
   .mapPaneMapWrap :global(.map.mapFitLayout .mapStage .mapSvg svg) {
-    transform: scale(1.06, 1.1) translate(0, 0);
+    transform: scale(
+        min(1.08, max(1, calc(0.8 + 100vh / 3500))),
+        min(1.08, max(1, calc(0.78 + 100vh / 3200)))
+      )
+      translate(0, 0);
     transform-origin: center bottom;
+    height: 100%;
+    width: auto;
+    max-height: 100%;
+    max-width: 100%;
   }
 }
 
