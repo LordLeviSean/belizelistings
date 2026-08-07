@@ -67,6 +67,8 @@ export default function DeviceNotificationsPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [testBusy, setTestBusy] = useState(false);
+  const [testFeedback, setTestFeedback] = useState(null);
   const [status, setStatus] = useState(null);
 
   const refreshStatus = useCallback(async () => {
@@ -151,6 +153,70 @@ export default function DeviceNotificationsPanel() {
     [busy, getAccessToken, refreshStatus, showToast, status, user?.id]
   );
 
+  const handleSendTest = useCallback(async () => {
+    if (!user?.id || testBusy || !status?.currentDeviceRegistered) return;
+
+    setTestBusy(true);
+    setTestFeedback(null);
+
+    const token = await getAccessToken();
+    if (!token) {
+      setTestBusy(false);
+      setTestFeedback({
+        tone: "error",
+        message: "Sign in again to send a test notification.",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/push/test", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (response.status === 429) {
+        setTestFeedback({
+          tone: "error",
+          message: "Please wait a minute before sending another test notification.",
+        });
+        return;
+      }
+
+      if (!response.ok || !payload?.ok) {
+        const message =
+          payload?.error === "no_active_subscriptions"
+            ? "No enabled devices were found for your account."
+            : payload?.error === "vapid_not_configured"
+              ? "Device notifications are not configured yet."
+              : "Could not send a test notification right now.";
+        setTestFeedback({ tone: "error", message });
+        return;
+      }
+
+      setTestFeedback({
+        tone: "success",
+        message:
+          payload.delivered > 0
+            ? `Test accepted for ${payload.delivered} enabled device${payload.delivered === 1 ? "" : "s"}. Delivery may appear on every enabled device for this account.`
+            : "Test accepted. Check each enabled device for delivery.",
+      });
+    } catch {
+      setTestFeedback({
+        tone: "error",
+        message: "Could not send a test notification right now.",
+      });
+    } finally {
+      setTestBusy(false);
+    }
+  }, [getAccessToken, status?.currentDeviceRegistered, testBusy, user?.id]);
+
   const ui = useMemo(() => {
     if (!status) return null;
     return statusCopy(status.capability.capability, status.currentDeviceRegistered);
@@ -210,6 +276,38 @@ export default function DeviceNotificationsPanel() {
           <span className={styles.switchSlider} aria-hidden="true" />
         </label>
       </div>
+
+      {switchChecked ? (
+        <div className={styles.testRow}>
+          <div className={styles.testCopy}>
+            <p className={styles.controlLabel}>Send test notification</p>
+            <p className={styles.controlHint}>
+              Deliberately sends a safe test alert to every enabled device for your signed-in account.
+              Delivery timing depends on your platform and whether the app is open.
+            </p>
+            {testFeedback ? (
+              <p
+                className={
+                  testFeedback.tone === "success" ? styles.testFeedbackSuccess : styles.testFeedbackError
+                }
+                role="status"
+                aria-live="polite"
+              >
+                {testFeedback.message}
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            className={styles.testButton}
+            onClick={handleSendTest}
+            disabled={loading || busy || testBusy}
+            aria-busy={testBusy}
+          >
+            {testBusy ? "Sending…" : "Send test notification"}
+          </button>
+        </div>
+      ) : null}
 
       {status?.activeDevices?.length > 1 ? (
         <ul className={styles.deviceList} aria-label="Registered notification devices">

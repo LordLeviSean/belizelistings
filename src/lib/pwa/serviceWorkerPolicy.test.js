@@ -49,6 +49,13 @@ describe("BelizeListings service worker safety policy", () => {
     expect(swSource).not.toMatch(/caches\.delete\s*\(\s*['"][^'"]+['"]\s*\)/);
   });
 
+  test("includes push and notificationclick handlers without fetch interception", () => {
+    expect(swSource).toMatch(/addEventListener\s*\(\s*['"]push['"]/);
+    expect(swSource).toMatch(/addEventListener\s*\(\s*['"]notificationclick['"]/);
+    expect(swSource).toMatch(/importScripts\s*\(\s*["']\/sw-push-logic\.js["']\s*\)/);
+    expect(swSource).not.toMatch(/addEventListener\s*\(\s*['"]fetch['"]/);
+  });
+
   test("application shell registers the service worker once", () => {
     const appSource = read(APP_PATH);
     expect(appSource).toContain("registerBelizeListingsServiceWorker");

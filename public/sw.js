@@ -5,8 +5,11 @@
  * - No precache or runtime cache writes.
  * - No fetch interception (browser default network behavior).
  * - Activate may delete only belizelistings-sw-* caches owned by prior versions.
+ * - Push + notificationclick handlers for lock-screen delivery (Step 5C).
  */
 /* eslint-disable no-restricted-globals */
+
+importScripts("/sw-push-logic.js");
 
 const CACHE_PREFIX = "belizelistings-sw";
 
@@ -25,6 +28,16 @@ self.addEventListener("activate", (event) => {
           .map((key) => caches.delete(key))
       );
     })()
+  );
+});
+
+self.addEventListener("push", (event) => {
+  event.waitUntil(self.BL_PUSH.handlePushEvent(event, self.registration));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.waitUntil(
+    self.BL_PUSH.handleNotificationClick(event, self.clients, self.location.origin)
   );
 });
 
