@@ -3,8 +3,8 @@ import { LISTING_EVENT_TYPES } from "../listingEvents/listingEventTypes";
 import {
   enqueueNotificationEvent,
   NOTIFICATION_EVENT_TYPES,
-  triggerNotificationDelivery,
 } from "../notifications/notificationEvents";
+import { triggerServerNotificationDelivery } from "../notifications/triggerServerNotificationDelivery";
 import { BL_ENABLE_NOTIFICATIONS } from "../featureFlags";
 import {
   CRM_PIPELINE_STAGE,
@@ -211,7 +211,7 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
           })
         ),
       },
-      { deliver: BL_ENABLE_NOTIFICATIONS }
+      { deliver: false }
     );
   }
 
@@ -228,7 +228,7 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
   }
 
   if (BL_ENABLE_NOTIFICATIONS) {
-    await triggerNotificationDelivery(client, { limit: 5 });
+    await triggerServerNotificationDelivery(client, { limit: 5 });
   }
 
   return { data: message, error: null };
@@ -308,7 +308,7 @@ export async function sendAgentReply(client, { conversationId, agentUserId, body
           dedupePrefix: "agent_replied",
         })),
       },
-      { deliver: BL_ENABLE_NOTIFICATIONS }
+      { deliver: false }
     );
   }
 
@@ -325,7 +325,7 @@ export async function sendAgentReply(client, { conversationId, agentUserId, body
   }
 
   if (BL_ENABLE_NOTIFICATIONS) {
-    await triggerNotificationDelivery(client, { limit: 5 });
+    await triggerServerNotificationDelivery(client, { limit: 5 });
   }
 
   return { data: message, error: null };

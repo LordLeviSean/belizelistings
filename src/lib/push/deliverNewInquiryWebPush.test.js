@@ -10,7 +10,6 @@ jest.mock("./sendWebPushToUser", () => ({
 
 import { sendWebPushToUser } from "./sendWebPushToUser";
 import {
-  claimNotificationWebPushDelivery,
   deliverNewInquiryWebPush,
   resolveTrustedRecipientRole,
 } from "./deliverNewInquiryWebPush";
@@ -51,10 +50,8 @@ function buildAdminClient(overrides = {}) {
         })),
         update: jest.fn(() => ({
           eq: jest.fn(() => ({
-            is: jest.fn(() => ({
-              select: jest.fn(() => ({
-                maybeSingle: jest.fn().mockResolvedValue({ data: { id: "notif-1" }, error: null }),
-              })),
+            select: jest.fn(() => ({
+              maybeSingle: jest.fn().mockResolvedValue({ data: { id: "notif-1" }, error: null }),
             })),
           })),
         })),
@@ -176,7 +173,131 @@ describe("deliverNewInquiryWebPush", () => {
     expect(result.push.error).toBe("no_active_subscriptions");
   });
 
-  test("is idempotent when push was already claimed", async () => {
+  test("does not mark delivered when no active subscriptions", async () => {
+    const update = jest.fn();
+    sendWebPushToUser.mockResolvedValue({
+      ok: false,
+      error: "no_active_subscriptions",
+      attempted: 0,
+      delivered: 0,
+      temporaryFailures: 0,
+      deactivated: 0,
+    });
+
+    const adminClient = buildAdminClient();
+    adminClient.from = jest.fn((table) => {
+      if (table === "notifications") {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(function eq(field) {
+              if (field === "id") {
+                return {
+                  maybeSingle: jest.fn().mockResolvedValue({
+                    data: {
+                      id: "notif-1",
+                      payload: { conversation_id: "conv-1" },
+                    },
+                    error: null,
+                  }),
+                  eq: jest.fn(() => ({
+                    maybeSingle: jest.fn().mockResolvedValue({
+                      data: { payload: { conversation_id: "conv-1" } },
+                      error: null,
+                    }),
+                  })),
+                };
+              }
+              return { maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }) };
+            }),
+          })),
+          update,
+        };
+      }
+      if (table === "profiles") {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              maybeSingle: jest.fn().mockResolvedValue({ data: { role: "agent" }, error: null }),
+            })),
+          })),
+        };
+      }
+      return {};
+    });
+
+    await deliverNewInquiryWebPush(adminClient, {
+      ok: true,
+      event_type: "new_inquiry",
+      recipient_id: "agent-1",
+      notification_id: "notif-1",
+      dedupe_key: "new_inquiry:inq-1",
+    });
+
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  test("marks delivered only after provider success", async () => {
+    const update = jest.fn(() => ({
+      eq: jest.fn(() => ({
+        select: jest.fn(() => ({
+          maybeSingle: jest.fn().mockResolvedValue({ data: { id: "notif-1" }, error: null }),
+        })),
+      })),
+    }));
+
+    const adminClient = buildAdminClient();
+    adminClient.from = jest.fn((table) => {
+      if (table === "notifications") {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(function eq(field) {
+              if (field === "id") {
+                return {
+                  maybeSingle: jest.fn().mockResolvedValue({
+                    data: {
+                      id: "notif-1",
+                      payload: { conversation_id: "conv-1" },
+                    },
+                    error: null,
+                  }),
+                  eq: jest.fn(() => ({
+                    maybeSingle: jest.fn().mockResolvedValue({
+                      data: { payload: { conversation_id: "conv-1" } },
+                      error: null,
+                    }),
+                  })),
+                };
+              }
+              return { maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }) };
+            }),
+          })),
+          update,
+        };
+      }
+      if (table === "profiles") {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              maybeSingle: jest.fn().mockResolvedValue({ data: { role: "agent" }, error: null }),
+            })),
+          })),
+        };
+      }
+      return {};
+    });
+
+    await deliverNewInquiryWebPush(adminClient, {
+      ok: true,
+      event_type: "new_inquiry",
+      recipient_id: "agent-1",
+      notification_id: "notif-1",
+      dedupe_key: "new_inquiry:inq-1",
+    });
+
+    expect(update).toHaveBeenCalled();
+  });
+
+  test("is idempotent when push was already delivered", async () => {
     const adminClient = buildAdminClient();
     adminClient.from = jest.fn((table) => {
       if (table === "notifications") {
@@ -220,13 +341,11 @@ describe("deliverNewInquiryWebPush", () => {
     await expect(resolveTrustedRecipientRole(adminClient, "agent-1")).resolves.toBe("agent");
   });
 
-  test("claimNotificationWebPushDelivery marks notification payload once", async () => {
+  test("markNotificationWebPushDelivered marks notification payload once", async () => {
     const update = jest.fn(() => ({
       eq: jest.fn(() => ({
-        is: jest.fn(() => ({
-          select: jest.fn(() => ({
-            maybeSingle: jest.fn().mockResolvedValue({ data: { id: "notif-1" }, error: null }),
-          })),
+        select: jest.fn(() => ({
+          maybeSingle: jest.fn().mockResolvedValue({ data: { id: "notif-1" }, error: null }),
         })),
       })),
     }));
@@ -245,7 +364,8 @@ describe("deliverNewInquiryWebPush", () => {
       })),
     };
 
-    await expect(claimNotificationWebPushDelivery(adminClient, "notif-1")).resolves.toBe(true);
+    const { markNotificationWebPushDelivered } = await import("./deliverNewInquiryWebPush");
+    await expect(markNotificationWebPushDelivered(adminClient, "notif-1")).resolves.toBe(true);
     expect(update).toHaveBeenCalled();
   });
 });

@@ -12,7 +12,7 @@ const WEB_PUSH_DELIVERED_KEY = "_web_push_delivered";
  * @param {import('@supabase/supabase-js').SupabaseClient} adminClient
  * @param {string} notificationId
  */
-export async function claimNotificationWebPushDelivery(adminClient, notificationId) {
+export async function markNotificationWebPushDelivered(adminClient, notificationId) {
   if (!adminClient?.from || !notificationId) {
     return false;
   }
@@ -33,7 +33,7 @@ export async function claimNotificationWebPushDelivery(adminClient, notification
       : {};
 
   if (payload[WEB_PUSH_DELIVERED_KEY] === true) {
-    return false;
+    return true;
   }
 
   const { data: updated, error: updateError } = await adminClient
@@ -45,15 +45,41 @@ export async function claimNotificationWebPushDelivery(adminClient, notification
       },
     })
     .eq("id", notificationId)
-    .is("payload->>_web_push_delivered", null)
     .select("id")
     .maybeSingle();
 
-  if (updateError || !updated?.id) {
+  return Boolean(updated?.id && !updateError);
+}
+
+/**
+ * @param {import('@supabase/supabase-js').SupabaseClient} adminClient
+ * @param {string} notificationId
+ */
+export async function hasNotificationWebPushDelivered(adminClient, notificationId) {
+  if (!adminClient?.from || !notificationId) {
     return false;
   }
 
-  return true;
+  const { data: existing } = await adminClient
+    .from("notifications")
+    .select("payload")
+    .eq("id", notificationId)
+    .maybeSingle();
+
+  const payload =
+    existing?.payload && typeof existing.payload === "object" && !Array.isArray(existing.payload)
+      ? existing.payload
+      : {};
+
+  return payload[WEB_PUSH_DELIVERED_KEY] === true;
+}
+
+/**
+ * @deprecated Pre-claim blocked legitimate retries. Use markNotificationWebPushDelivered after success.
+ */
+export async function claimNotificationWebPushDelivery(adminClient, notificationId) {
+  const already = await hasNotificationWebPushDelivered(adminClient, notificationId);
+  return !already;
 }
 
 /**
@@ -107,8 +133,7 @@ export async function deliverNewInquiryWebPush(adminClient, deliverResult) {
     return { ok: true, skipped: true, reason: "missing_delivery_identity" };
   }
 
-  const claimed = await claimNotificationWebPushDelivery(adminClient, notificationId);
-  if (!claimed) {
+  if (await hasNotificationWebPushDelivered(adminClient, notificationId)) {
     return { ok: true, skipped: true, reason: "already_delivered" };
   }
 
@@ -142,6 +167,9 @@ export async function deliverNewInquiryWebPush(adminClient, deliverResult) {
 
   try {
     const result = await sendWebPushToUser(adminClient, recipientId, built);
+    if (result.delivered > 0) {
+      await markNotificationWebPushDelivered(adminClient, notificationId);
+    }
     return {
       ok: true,
       skipped: false,
@@ -151,6 +179,57 @@ export async function deliverNewInquiryWebPush(adminClient, deliverResult) {
   } catch {
     return { ok: true, skipped: false, reason: "push_send_failed" };
   }
+}
+
+/**
+ * Retry push for delivered in-app new_inquiry rows that never reached a device.
+ *
+ * @param {import('@supabase/supabase-js').SupabaseClient} adminClient
+ * @param {{ hours?: number, limit?: number }} [options]
+ */
+export async function reconcileUndeliveredNewInquiryPushes(adminClient, { hours = 48, limit = 20 } = {}) {
+  if (!BL_ENABLE_NOTIFICATIONS || !adminClient?.from) {
+    return { ok: true, attempted: 0, delivered: 0 };
+  }
+
+  const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+  const { data: rows, error } = await adminClient
+    .from("notifications")
+    .select("id,recipient_user_id,event_type,dedupe_key,payload,created_at")
+    .eq("event_type", NOTIFICATION_EVENT_TYPES.NEW_INQUIRY)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(Math.max(1, limit));
+
+  if (error || !rows?.length) {
+    return { ok: true, attempted: 0, delivered: 0 };
+  }
+
+  let attempted = 0;
+  let delivered = 0;
+
+  for (const row of rows) {
+    const payload =
+      row.payload && typeof row.payload === "object" && !Array.isArray(row.payload) ? row.payload : {};
+    if (payload[WEB_PUSH_DELIVERED_KEY] === true) {
+      continue;
+    }
+
+    attempted += 1;
+    const outcome = await deliverNewInquiryWebPush(adminClient, {
+      ok: true,
+      event_type: NOTIFICATION_EVENT_TYPES.NEW_INQUIRY,
+      recipient_id: row.recipient_user_id,
+      notification_id: row.id,
+      dedupe_key: row.dedupe_key,
+    });
+
+    if (outcome.push?.delivered > 0) {
+      delivered += 1;
+    }
+  }
+
+  return { ok: true, attempted, delivered };
 }
 
 /**

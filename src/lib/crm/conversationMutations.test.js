@@ -10,11 +10,14 @@ jest.mock("../listingEvents/writeListingEvent", () => ({
 
 jest.mock("../notifications/notificationEvents", () => ({
   enqueueNotificationEvent: jest.fn().mockResolvedValue({ ok: true, queueId: "q1" }),
-  triggerNotificationDelivery: jest.fn().mockResolvedValue({ ok: true }),
   NOTIFICATION_EVENT_TYPES: {
     NEW_INQUIRY: "new_inquiry",
     AGENT_REPLIED: "agent_replied",
   },
+}));
+
+jest.mock("../notifications/triggerServerNotificationDelivery", () => ({
+  triggerServerNotificationDelivery: jest.fn().mockResolvedValue({ ok: true }),
 }));
 
 import {
@@ -26,7 +29,8 @@ import {
   sendAgentReply,
   sendBuyerReply,
 } from "./conversationMutations";
-import { enqueueNotificationEvent, triggerNotificationDelivery } from "../notifications/notificationEvents";
+import { enqueueNotificationEvent } from "../notifications/notificationEvents";
+import { triggerServerNotificationDelivery } from "../notifications/triggerServerNotificationDelivery";
 import { CRM_PIPELINE_STAGE, INQUIRY_STATUS } from "./crmConstants";
 
 describe("conversationMutations", () => {
@@ -108,7 +112,7 @@ describe("conversationMutations", () => {
       }),
       expect.any(Object)
     );
-    expect(triggerNotificationDelivery).toHaveBeenCalled();
+    expect(triggerServerNotificationDelivery).toHaveBeenCalled();
   });
 
   test("sendAgentReply notifies buyer", async () => {

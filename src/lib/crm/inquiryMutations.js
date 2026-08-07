@@ -1,7 +1,7 @@
 import { INQUIRY_CHANNEL, INQUIRY_STATUS as LEGACY_INQUIRY_STATUS } from "../../constants/inquiryModel";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_NOTIFICATIONS, BL_ENABLE_TURNSTILE } from "../featureFlags";
 import { submitGuestInquiryViaSecureApi } from "../security/submitGuestInquiryApi";
-import { triggerNotificationDelivery } from "../notifications/notificationEvents";
+import { triggerServerNotificationDelivery } from "../notifications/triggerServerNotificationDelivery";
 import { emitListingEventAfterMutation } from "../listingEvents/writeListingEvent";
 import { LISTING_EVENT_TYPES } from "../listingEvents/listingEventTypes";
 import {
@@ -105,7 +105,7 @@ export async function createInquiryWithConversation(client, payload) {
   });
 
   if (BL_ENABLE_NOTIFICATIONS) {
-    await triggerNotificationDelivery(client, { limit: 5 });
+    await triggerServerNotificationDelivery(client, { limit: 5 });
   }
 
   return {

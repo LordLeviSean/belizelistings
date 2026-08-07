@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { processNotificationQueueBatchWithPush } from "../../../lib/notifications/deliverNotificationsServer";
+import { reconcileUndeliveredNewInquiryPushes } from "../../../lib/push/deliverNewInquiryWebPush";
 
 export default async function handler(req, res) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -31,6 +32,10 @@ export default async function handler(req, res) {
   const limit = Math.min(200, Math.max(1, Number(req.query.limit || req.body?.limit) || 50));
   const adminClient = createClient(url, serviceRole);
   const result = await processNotificationQueueBatchWithPush(adminClient, { limit });
+  const pushReconciled = await reconcileUndeliveredNewInquiryPushes(adminClient, {
+    hours: 48,
+    limit: 10,
+  });
 
   if (!result.ok && !result.skipped) {
     return res.status(500).json({ error: result.error?.message || "Cron batch failed" });
@@ -41,6 +46,7 @@ export default async function handler(req, res) {
     skipped: Boolean(result.skipped),
     email_channel: process.env.RESEND_API_KEY ? "pending" : "skipped",
     batch: result.data ?? null,
+    push_reconciled: pushReconciled.attempted ?? 0,
     ran_at: new Date().toISOString(),
   });
 }
