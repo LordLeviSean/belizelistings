@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { processNotificationQueueBatch } from "../../../lib/notifications/deliverNotifications";
+import { processNotificationQueueBatchWithPush } from "../../../lib/notifications/deliverNotificationsServer";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   }
 
   const limit = Math.min(200, Math.max(1, Number(req.body?.limit) || 50));
-  const result = await processNotificationQueueBatch(adminClient, { limit });
+  const result = await processNotificationQueueBatchWithPush(adminClient, { limit });
 
   if (!result.ok && !result.skipped) {
     return res.status(500).json({ error: result.error?.message || "Batch processing failed" });

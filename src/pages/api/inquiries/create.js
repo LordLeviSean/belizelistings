@@ -3,7 +3,7 @@ import { readTruthyEnvValue } from "../../../lib/featureFlags";
 import { mapInquiryRpcError } from "../../../lib/security/mapInquiryRpcError";
 import { logSecurityEvent } from "../../../lib/security/logSecurityEvent";
 import { verifyTurnstileToken } from "../../../lib/security/verifyTurnstile";
-import { triggerNotificationDelivery } from "../../../lib/notifications/notificationEvents";
+import { triggerNotificationDeliveryWithPush } from "../../../lib/notifications/deliverNotificationsServer";
 import { emitListingEventAfterMutation } from "../../../lib/listingEvents/writeListingEvent";
 import { LISTING_EVENT_TYPES } from "../../../lib/listingEvents/listingEventTypes";
 import { INQUIRY_TYPE } from "../../../lib/crm/crmConstants";
@@ -166,7 +166,7 @@ export default async function handler(req, res) {
   });
 
   if (BL_ENABLE_NOTIFICATIONS) {
-    await triggerNotificationDelivery(adminClient, { limit: 5 });
+    await triggerNotificationDeliveryWithPush(adminClient, { limit: 5 });
   }
 
   return res.status(200).json({

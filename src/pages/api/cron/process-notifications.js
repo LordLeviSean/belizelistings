@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { processNotificationQueueBatch } from "../../../lib/notifications/deliverNotifications";
+import { processNotificationQueueBatchWithPush } from "../../../lib/notifications/deliverNotificationsServer";
 
 export default async function handler(req, res) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
   const limit = Math.min(200, Math.max(1, Number(req.query.limit || req.body?.limit) || 50));
   const adminClient = createClient(url, serviceRole);
-  const result = await processNotificationQueueBatch(adminClient, { limit });
+  const result = await processNotificationQueueBatchWithPush(adminClient, { limit });
 
   if (!result.ok && !result.skipped) {
     return res.status(500).json({ error: result.error?.message || "Cron batch failed" });

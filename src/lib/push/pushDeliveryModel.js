@@ -11,13 +11,15 @@
  * 6. deactivate_push_subscription() only for permanent endpoint failures
  * 7. record_push_subscription_delivery() for success/temporary failure counters
  *
- * Step 5A does not modify deliver_notification or cron processors.
+ * Step 5D connects Web Push for `new_inquiry` only, after deliver_notification
+ * succeeds. In-app notifications remain authoritative; push failures are non-blocking.
  */
 
 export const PUSH_DELIVERY_INTEGRATION = Object.freeze({
   IN_APP_AUTHORITY: "notifications",
   QUEUE_RPC: "deliver_notification",
   BATCH_RPC: "process_notification_queue_batch",
+  CONNECTED_EVENT_TYPES: Object.freeze(["new_inquiry"]),
   SUBSCRIPTION_SELECT_RPC: "select_active_push_subscriptions_for_delivery",
   SUBSCRIPTION_REGISTER_RPC: "register_push_subscription",
   SUBSCRIPTION_REVOKE_RPC: "revoke_push_subscription",

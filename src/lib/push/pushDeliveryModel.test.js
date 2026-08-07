@@ -9,6 +9,7 @@ describe("pushDeliveryModel", () => {
     expect(PUSH_DELIVERY_INTEGRATION.SUBSCRIPTION_SELECT_RPC).toBe(
       "select_active_push_subscriptions_for_delivery"
     );
+    expect(PUSH_DELIVERY_INTEGRATION.CONNECTED_EVENT_TYPES).toEqual(["new_inquiry"]);
   });
 
   test("logout policy is documented but not implemented in 5A", () => {
