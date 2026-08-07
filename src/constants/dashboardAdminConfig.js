@@ -8,6 +8,7 @@ export const ADMIN_DASHBOARD_TAB_IDS = Object.freeze({
   UPGRADES: "upgrades",
   INBOX: "inbox",
   VIEWINGS: "viewings",
+  PROFILE: "profile",
   /** @deprecated use VIEWINGS */
   VIEWING_REQUESTS: "viewing-requests",
   /** @deprecated */
@@ -35,6 +36,7 @@ export const ADMIN_DASHBOARD_TABS = Object.freeze([
   { id: ADMIN_DASHBOARD_TAB_IDS.USERS, label: "Users", group: "workspace", operational: true },
   { id: ADMIN_DASHBOARD_TAB_IDS.OPERATOR, label: "Operator", group: "workspace", operational: true },
   { id: ADMIN_DASHBOARD_TAB_IDS.UPGRADES, label: "Upgrades", group: "workspace", operational: true },
+  { id: ADMIN_DASHBOARD_TAB_IDS.PROFILE, label: "Profile", group: "workspace", operational: true },
   {
     id: ADMIN_DASHBOARD_TAB_IDS.INBOX,
     label: "Inbox",

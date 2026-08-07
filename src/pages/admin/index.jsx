@@ -43,6 +43,8 @@ import PremiumEmptyState from "../../components/ui/PremiumEmptyState";
 import Link from "next/link";
 import PlatformVisualEditorModal from "../../components/admin/PlatformVisualEditorModal";
 import platformVisualStyles from "../../components/admin/PlatformVisualEditorEntry.module.css";
+import ProfileCompletionPanel from "@/components/profile/ProfileCompletionPanel";
+import DeviceNotificationsPanel from "@/components/profile/DeviceNotificationsPanel";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -550,6 +552,13 @@ export default function AdminPage() {
                     />
                   ) : null}
                 </section>
+              ) : null}
+
+              {activeTab === ADMIN_DASHBOARD_TAB_IDS.PROFILE ? (
+                <>
+                  <ProfileCompletionPanel />
+                  <DeviceNotificationsPanel />
+                </>
               ) : null}
             </DashboardRoleLayout>
           </DashboardShell>

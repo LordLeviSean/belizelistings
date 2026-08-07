@@ -22,7 +22,7 @@ describe("admin CRM access", () => {
   test("visible admin tabs include unified Inbox and Viewings", () => {
     const tabs = getVisibleAdminDashboardTabs();
     const ids = tabs.map((t) => t.id);
-    expect(ids).toEqual(expect.arrayContaining(["inbox", "viewings"]));
+    expect(ids).toEqual(expect.arrayContaining(["inbox", "viewings", "profile"]));
     expect(ids).not.toContain("messages");
     expect(ids).not.toContain("my-viewings");
   });

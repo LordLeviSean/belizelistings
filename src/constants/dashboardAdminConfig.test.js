@@ -23,6 +23,7 @@ describe("dashboardAdminConfig", () => {
   test("resolveVisibleAdminDashboardTab keeps visible operational tabs", () => {
     const visible = getVisibleAdminDashboardTabs();
     expect(resolveVisibleAdminDashboardTab("users", visible)).toBe(ADMIN_DASHBOARD_TAB_IDS.USERS);
+    expect(resolveVisibleAdminDashboardTab("profile", visible)).toBe(ADMIN_DASHBOARD_TAB_IDS.PROFILE);
   });
 
   test("resolveVisibleAdminDashboardTab falls back when CRM tab is not visible", () => {

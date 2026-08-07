@@ -93,6 +93,12 @@ describe("dashboardCrmRoutes", () => {
     );
   });
 
+  test("resolveAdminDashboardTabFromQuery opens profile tab", () => {
+    expect(resolveAdminDashboardTabFromQuery({ tab: "profile" })).toBe(
+      ADMIN_DASHBOARD_TAB_IDS.PROFILE
+    );
+  });
+
   test("resolveMessageConversationPath uses Inbox tab", () => {
     expect(
       resolveMessageConversationPath({ role: "user", side: "owner", conversationId: "c1" })
