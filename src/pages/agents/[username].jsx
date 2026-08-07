@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import SiteNav from "@/components/SiteNav";
 import RoleBadge from "@/components/dashboard/RoleBadge";
 import ListingCard from "@/components/ListingCard";
+import ListingMarketFilter from "@/components/listing/ListingMarketFilter";
 import useFavorites from "@/hooks/useFavorites";
 import { useFavoriteSignupPrompt } from "@/components/FavoriteSignupPromptProvider";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
@@ -10,6 +11,10 @@ import { DASHBOARD_ROLE } from "@/constants/dashboardRoles";
 import { supabase } from "@/lib/supabaseClient";
 import { fetchAgentPublicProfile, deriveAgentProfileRegions } from "@/lib/agentPublicProfile";
 import { buildFeaturedBrowseListingCardProps } from "@/lib/listingCardBrowse";
+import {
+  filterListingsByMarket,
+  LISTING_MARKET_FILTER_VALUES,
+} from "@/lib/listingMarketFilterOptions";
 import {
   buildPublicAgentProfileContact,
   resolvePublicContactEmail,
@@ -67,6 +72,16 @@ export default function AgentPublicProfilePage() {
   const { isFavorite, isBusy, toggleFavorite, isAuthenticated } = useFavorites();
   const openFavoriteSignupPrompt = useFavoriteSignupPrompt();
   const [carouselIndexById, setCarouselIndexById] = useState({});
+  const [marketFilter, setMarketFilter] = useState(LISTING_MARKET_FILTER_VALUES.ALL);
+
+  const filteredListings = useMemo(
+    () => filterListingsByMarket(listings, marketFilter),
+    [listings, marketFilter]
+  );
+
+  useEffect(() => {
+    setMarketFilter(LISTING_MARKET_FILTER_VALUES.ALL);
+  }, [username]);
 
   const publicContact = useMemo(() => buildPublicAgentProfileContact(profile), [profile]);
   const publicPhone = useMemo(() => resolvePublicContactPhone(profile), [profile]);
@@ -175,24 +190,43 @@ export default function AgentPublicProfilePage() {
                 <p style={{ margin: 0 }}>No public listings yet. Check back soon.</p>
               </div>
             ) : (
-              <div className={styles.grid}>
-                {listings.map((listing, index) => {
-                  const cardProps = buildFeaturedBrowseListingCardProps(listing, index, {
-                    isFavorite,
-                    isBusy,
-                    onFavoriteClick: handleFavoriteClick,
-                    carouselIndexById,
-                    onCarouselIndexChange: (listingId, nextIndex) =>
-                      setCarouselIndexById((prev) => ({ ...prev, [listingId]: nextIndex })),
-                  });
-                  if (!cardProps) return null;
-                  return (
-                    <div key={listing.id} className={styles.gridItem}>
-                      <ListingCard {...cardProps} />
-                    </div>
-                  );
-                })}
-              </div>
+              <>
+                <div className={styles.listingFilterRow}>
+                  <ListingMarketFilter
+                    value={marketFilter}
+                    onChange={setMarketFilter}
+                    ariaLabel="Agent listing market filter"
+                    fullWidth
+                  />
+                </div>
+
+                {filteredListings.length === 0 ? (
+                  <div className={styles.emptyFiltered}>
+                    <p style={{ margin: 0 }}>
+                      No listings match this filter. Try another category.
+                    </p>
+                  </div>
+                ) : (
+                  <div className={styles.grid}>
+                    {filteredListings.map((listing, index) => {
+                      const cardProps = buildFeaturedBrowseListingCardProps(listing, index, {
+                        isFavorite,
+                        isBusy,
+                        onFavoriteClick: handleFavoriteClick,
+                        carouselIndexById,
+                        onCarouselIndexChange: (listingId, nextIndex) =>
+                          setCarouselIndexById((prev) => ({ ...prev, [listingId]: nextIndex })),
+                      });
+                      if (!cardProps) return null;
+                      return (
+                        <div key={listing.id} className={styles.gridItem}>
+                          <ListingCard {...cardProps} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </>
         ) : null}

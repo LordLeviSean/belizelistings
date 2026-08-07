@@ -81,6 +81,19 @@
   color: rgba(48, 72, 68, 0.62);
 }
 
+.listingFilterRow {
+  margin-bottom: 16px;
+}
+
+.emptyFiltered {
+  padding: 28px 24px;
+  border-radius: calc(var(--radius) + 2px);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.82);
+  text-align: center;
+  color: rgba(48, 72, 68, 0.78);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(296px, 100%), 300px));

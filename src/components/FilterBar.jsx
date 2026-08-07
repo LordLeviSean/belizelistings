@@ -1,10 +1,12 @@
 import { useId, useState } from "react";
 import GeographyDiscoveryFilters from "./geography/GeographyDiscoveryFilters";
+import ListingMarketFilter from "./listing/ListingMarketFilter";
 import { ChevronUp, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   PROPERTY_TYPE_OPTIONS,
   SEARCH_SORT_OPTIONS,
 } from "../lib/searchFilters";
+import { normalizeListingMarketFilterValue } from "../lib/listingMarketFilterOptions";
 import { shouldShowFilterSummary } from "../lib/filterBarMobile";
 import styles from "./FilterBar.module.css";
 
@@ -67,7 +69,7 @@ export default function FilterBar({
   onGeographyFiltersChange,
 }) {
   const advancedPanelId = useId();
-  const marketValue = listingType === "for-sale" ? "for-sale" : listingType;
+  const marketValue = normalizeListingMarketFilterValue(listingType);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   const showFilterSummary = shouldShowFilterSummary(filtersExpanded);
@@ -141,26 +143,11 @@ export default function FilterBar({
           </label>
         </form>
 
-        <div className={styles.statusToggle} role="tablist" aria-label="Listing type">
-          {[
-            { label: "All", value: "all" },
-            { label: "For Sale", value: "for-sale" },
-            { label: "For Rent", value: "rent" },
-          ].map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              role="tab"
-              aria-selected={marketValue === option.value}
-              className={`${styles.toggleButton} ${
-                marketValue === option.value ? styles.toggleButtonActive : ""
-              }`}
-              onClick={() => onListingTypeChange?.(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <ListingMarketFilter
+          value={marketValue}
+          onChange={onListingTypeChange}
+          ariaLabel="Listing type"
+        />
 
         <div className={styles.filterGroup}>
           <select

@@ -50,6 +50,22 @@ describe("ListingCard parity", () => {
     expect(agentPage).toMatch(/No public listings yet/);
   });
 
+  test("agent profile uses canonical ListingMarketFilter pills", () => {
+    const agentPage = readPage("src/pages/agents/[username].jsx");
+    const agentCss = readPage("src/styles/AgentPublicProfile.module.css");
+    expect(agentPage).toMatch(/import ListingMarketFilter from/);
+    expect(agentPage).toMatch(/<ListingMarketFilter/);
+    expect(agentPage).not.toMatch(/Dashboard\.module\.css/);
+    expect(agentPage).not.toMatch(/statusToggle/);
+    expect(agentCss).not.toMatch(/statusToggle|toggleButton|border-radius:\s*9px|border-radius:\s*10px/);
+  });
+
+  test("FilterBar delegates market pills to shared ListingMarketFilter", () => {
+    const filterBar = readPage("src/components/FilterBar.jsx");
+    expect(filterBar).toMatch(/import ListingMarketFilter from/);
+    expect(filterBar).not.toMatch(/styles\.statusToggle/);
+  });
+
   test("ListingCard remains the single canonical implementation", () => {
     const listingCard = readPage("src/components/ListingCard.jsx");
     expect(listingCard).toMatch(/homeStyles\.propertyCard/);

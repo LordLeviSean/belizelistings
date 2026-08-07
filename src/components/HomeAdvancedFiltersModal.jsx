@@ -2,14 +2,12 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/router";
 import { X } from "lucide-react";
 import GeographyDiscoveryFilters from "./geography/GeographyDiscoveryFilters";
+import ListingMarketFilter from "./listing/ListingMarketFilter";
 import { buildSearchRouterQuery } from "../lib/searchFilters";
+import {
+  listingMarketFilterToSearchMarket,
+} from "../lib/listingMarketFilterOptions";
 import styles from "./HomeAdvancedFiltersModal.module.css";
-
-const MARKET_OPTIONS = [
-  { label: "All", value: "all" },
-  { label: "For Sale", value: "sale" },
-  { label: "For Rent", value: "rent" },
-];
 
 export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
   const router = useRouter();
@@ -30,7 +28,7 @@ export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
       mapRegion: geography.mapRegion,
       communityId: geography.communityId,
       localityId: geography.localityId,
-      market,
+      market: listingMarketFilterToSearchMarket(market),
       minPrice: "",
       maxPrice: "",
       beds: "",
@@ -105,20 +103,12 @@ export default function HomeAdvancedFiltersModal({ isOpen, onClose }) {
         <GeographyDiscoveryFilters value={geography} onChange={setGeography} />
         <fieldset className={styles.field}>
           <legend className={styles.label}>Market</legend>
-          <div className={styles.segmentedControl} role="tablist" aria-label="Market type">
-            {MARKET_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                role="tab"
-                aria-selected={market === option.value}
-                className={`${styles.segmentBtn} ${market === option.value ? styles.segmentBtnActive : ""}`}
-                onClick={() => setMarket(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+          <ListingMarketFilter
+            value={market}
+            onChange={setMarket}
+            ariaLabel="Market type"
+            fullWidth
+          />
         </fieldset>
         <div className={styles.actions}>
           <button type="button" className={styles.btnSecondary} onClick={onClose}>

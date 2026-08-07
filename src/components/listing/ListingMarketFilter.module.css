@@ -1,0 +1,92 @@
+.track {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(151, 190, 179, 0.26);
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(6px);
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.track::-webkit-scrollbar {
+  display: none;
+}
+
+.button {
+  border: 0;
+  background: transparent;
+  color: #608278;
+  font-size: 13px;
+  font-weight: 550;
+  font-family: inherit;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  outline: none;
+  box-shadow: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    background-color var(--dur-3) var(--ease-out-soft),
+    color var(--dur-3) var(--ease-out-soft),
+    box-shadow var(--dur-3) var(--ease-out-soft);
+}
+
+.button:hover {
+  color: #395c53;
+  background: rgba(137, 205, 189, 0.18);
+}
+
+.buttonActive {
+  color: #31544b;
+  background: rgba(137, 205, 189, 0.36);
+  box-shadow: var(--elev-0);
+}
+
+.button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(137, 205, 189, 0.18);
+}
+
+.fullWidth {
+  width: 100%;
+  justify-content: stretch;
+}
+
+.fullWidth .button {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .track {
+    min-height: var(--touch-target-min);
+    height: auto;
+    padding: 3px;
+  }
+
+  .button {
+    min-height: calc(var(--touch-target-min) - 6px);
+    height: auto;
+    font-size: 13px;
+    padding: 0 10px;
+  }
+}
+
+@media (max-width: 430px) {
+  .track {
+    width: 100%;
+  }
+
+  .button {
+    flex: 1;
+    min-height: var(--touch-target-min);
+  }
+}
