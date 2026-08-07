@@ -73,6 +73,20 @@ describe("ListingCard parity", () => {
     expect(listingCard).toMatch(/resolveListingLifecycleBadge/);
     expect(listingCard).toMatch(/isListingCardVerified/);
   });
+
+  test("property cards use canonical rounded treatment outside homepage wrapper", () => {
+    const tokens = readPage("src/styles/tokens.css");
+    const homeCss = readPage("src/styles/HomeMapFirst.module.css");
+    const agentCss = readPage("src/styles/AgentPublicProfile.module.css");
+
+    expect(tokens).toMatch(/--ui-radius:\s*var\(--radius\)/);
+    expect(homeCss).toMatch(
+      /\.propertyCard\s*\{[\s\S]*border-radius:\s*calc\(var\(--ui-radius,\s*var\(--radius\)\)\s*\+\s*1px\)/
+    );
+    expect(homeCss).toMatch(/\.propertyCard\s*\{[\s\S]*overflow:\s*hidden/);
+    expect(agentCss).not.toMatch(/\.gridItem[\s\S]*border-radius:\s*0/);
+    expect(agentCss).not.toMatch(/\.propertyCard/);
+  });
 });
 
 describe("agent profile listing data mapping", () => {

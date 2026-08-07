@@ -41,6 +41,10 @@
   --ease-spring: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
+  /* Listing card UI tokens — canonical rounded card treatment on all browse surfaces */
+  --ui-radius: var(--radius);
+  --ui-ease: var(--ease-default);
+
   /* Legacy aliases */
   --motion-fast: var(--dur-2);
   --motion-medium: var(--dur-3);
