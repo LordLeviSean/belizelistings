@@ -15,6 +15,7 @@ import BuyerViewingsPanel from "@/components/inquiry/BuyerViewingsPanel";
 import UserInboxPanel from "@/components/inquiry/UserInboxPanel";
 import AdminOwnerInboxPanel from "@/components/admin/AdminOwnerInboxPanel";
 import ProfileCompletionPanel from "@/components/profile/ProfileCompletionPanel";
+import DeviceNotificationsPanel from "@/components/profile/DeviceNotificationsPanel";
 import ProfileCompletionBanner from "@/components/profile/ProfileCompletionBanner";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
 import { loadBuyerCrmData } from "@/lib/crm/buyerCrmData";
@@ -385,7 +386,10 @@ export default function UserDashboard() {
                 ) : null}
 
                 {activeTab === USER_DASHBOARD_TAB_IDS.PROFILE ? (
-                  <ProfileCompletionPanel />
+                  <>
+                    <ProfileCompletionPanel />
+                    <DeviceNotificationsPanel />
+                  </>
                 ) : null}
 
                 {activeTab === USER_DASHBOARD_TAB_IDS.INBOX ? (

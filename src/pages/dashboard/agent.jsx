@@ -13,6 +13,7 @@ import AgentInquiryList from "@/components/inquiry/AgentInquiryList";
 import AgentViewingsPanel from "@/components/inquiry/AgentViewingsPanel";
 import OwnerInquiriesPanel from "@/components/inquiry/OwnerInquiriesPanel";
 import ProfileCompletionPanel from "@/components/profile/ProfileCompletionPanel";
+import DeviceNotificationsPanel from "@/components/profile/DeviceNotificationsPanel";
 import ProfileCompletionBanner from "@/components/profile/ProfileCompletionBanner";
 import useUserRole from "@/hooks/useUserRole";
 import { isProfileHydratedForUser } from "@/lib/profileSessionCache";
@@ -441,7 +442,10 @@ export default function AgentDashboard() {
                 ) : null}
 
                 {activeTab === AGENT_DASHBOARD_TAB_IDS.PROFILE ? (
-                  <ProfileCompletionPanel />
+                  <>
+                    <ProfileCompletionPanel />
+                    <DeviceNotificationsPanel />
+                  </>
                 ) : null}
             </DashboardRoleLayout>
           </div>

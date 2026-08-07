@@ -23,6 +23,7 @@ import { getLifecycleStatus } from "@/utils/canonicalListing";
 import { fetchListingsForDashboardByUserIds } from "@/lib/listingQueries";
 import styles from "@/styles/Dashboard.module.css";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
+import DeviceNotificationsPanel from "@/components/profile/DeviceNotificationsPanel";
 
 export default function BrokerDashboard() {
   const router = useRouter();
@@ -113,6 +114,8 @@ export default function BrokerDashboard() {
         >
           <div className={roleLayoutStyles.contentInner}>
             <Breadcrumbs />
+
+            <DeviceNotificationsPanel />
 
             {!brokerageId ? (
               <div className={`${styles.card} ${styles.archivedCard}`} style={{ maxWidth: 560 }}>

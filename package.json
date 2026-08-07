@@ -21,6 +21,8 @@
     "test:notification-delivery": "node scripts/test-notification-delivery.mjs",
     "verify:cron-endpoint": "node scripts/verify-cron-endpoint.mjs",
     "configure:netlify-staging": "node scripts/configure-netlify-staging.mjs",
+    "configure:netlify-push-vapid": "node scripts/configure-netlify-push-vapid.mjs",
+    "configure:netlify-push-vapid": "node scripts/configure-netlify-push-vapid.mjs",
     "suggest:e2e-listings": "node scripts/suggest-e2e-listing-fixtures.mjs",
     "e2e:staging": "playwright test --config=playwright.config.mjs"
   },
@@ -32,6 +34,7 @@
     "next": "16.0.10",
     "react": "19.2.1",
     "react-dom": "19.2.1",
+    "web-push": "^3.6.7",
     "zustand": "^5.0.13"
   },
   "devDependencies": {
@@ -40,6 +43,7 @@
     "eslint-config-next": "16.0.10",
     "jest": "^30.0.0",
     "jest-environment-jsdom": "^30.4.1",
+    "netlify-cli": "^27.1.0",
     "playwright": "^1.52.0",
     "sharp": "^0.35.3",
     "to-ico": "^1.1.5"

@@ -1,0 +1,197 @@
+.panel {
+  margin-top: 16px;
+  padding: 22px 22px 20px;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(120, 178, 164, 0.28);
+  box-shadow: var(--elev-1);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: 1.08rem;
+  font-weight: 620;
+  color: rgba(26, 56, 52, 0.98);
+}
+
+.lede {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: rgba(42, 72, 66, 0.78);
+  max-width: 58ch;
+}
+
+.statusBadge,
+.statusBadgeMuted,
+.statusBadgeWarn {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.statusBadge {
+  background: rgba(118, 189, 170, 0.16);
+  border: 1px solid rgba(95, 161, 145, 0.35);
+  color: rgba(32, 88, 76, 0.92);
+}
+
+.statusBadgeMuted {
+  background: rgba(161, 174, 187, 0.14);
+  border: 1px solid rgba(156, 170, 182, 0.35);
+  color: rgba(58, 72, 82, 0.88);
+}
+
+.statusBadgeWarn {
+  background: rgba(212, 175, 122, 0.12);
+  border: 1px solid rgba(212, 175, 122, 0.38);
+  color: rgba(92, 68, 36, 0.92);
+}
+
+.controlRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0 4px;
+}
+
+.controlCopy {
+  min-width: 0;
+}
+
+.controlLabel {
+  margin: 0 0 4px;
+  font-size: 0.88rem;
+  font-weight: 560;
+  color: rgba(36, 66, 60, 0.92);
+}
+
+.controlHint {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(42, 72, 66, 0.68);
+  max-width: 52ch;
+}
+
+.switch {
+  position: relative;
+  display: inline-flex;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switch input:disabled {
+  cursor: not-allowed;
+}
+
+.switchSlider {
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(161, 174, 187, 0.44);
+  border: 1px solid rgba(156, 170, 182, 0.55);
+  transition:
+    background-color var(--dur-3) var(--ease-out-soft),
+    border-color var(--dur-3) var(--ease-out-soft),
+    box-shadow var(--dur-3) var(--ease-out-soft);
+  position: relative;
+}
+
+.switchSlider::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffffff, #eef4f7);
+  box-shadow: 0 1px 3px rgba(28, 48, 44, 0.12);
+  transition: transform var(--dur-3) var(--ease-out-soft);
+}
+
+.switch input:checked + .switchSlider {
+  background: linear-gradient(145deg, rgba(139, 200, 187, 0.62), rgba(119, 184, 168, 0.56));
+  border-color: rgba(104, 167, 152, 0.62);
+  box-shadow: 0 0 14px rgba(137, 205, 189, 0.28);
+}
+
+.switch input:checked + .switchSlider::after {
+  transform: translateX(20px);
+}
+
+.deviceList {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 178, 164, 0.22);
+  background: rgba(255, 255, 255, 0.45);
+  list-style: none;
+}
+
+.deviceItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 0.84rem;
+  color: rgba(32, 62, 56, 0.88);
+}
+
+.deviceItem + .deviceItem {
+  border-top: 1px solid rgba(120, 178, 164, 0.16);
+}
+
+.deviceMeta {
+  font-size: 0.76rem;
+  color: rgba(42, 72, 66, 0.62);
+}
+
+.currentTag {
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(32, 88, 76, 0.82);
+}
+
+@media (max-width: 768px) {
+  .panel {
+    padding: 16px;
+  }
+
+  .head {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .controlRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .switch {
+    align-self: flex-end;
+  }
+}
