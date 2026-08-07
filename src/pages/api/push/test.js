@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import {
   isAuthorizedPushMutationRequest,
+  loadVerifiedAdminProfile,
   readBearerToken,
 } from "@/lib/push/pushApiAuth";
 import { sendWebPushToUser } from "@/lib/push/sendWebPushToUser";
@@ -50,6 +51,12 @@ export default async function handler(req, res) {
     return res.status(401).json({ ok: false, error: "not_authenticated" });
   }
 
+  const adminClient = createClient(url, serviceRole);
+  const adminProfile = await loadVerifiedAdminProfile(adminClient, user.id);
+  if (!adminProfile) {
+    return res.status(403).json({ ok: false, error: "admin_required" });
+  }
+
   const rate = checkPushTestRateLimit(user.id);
   if (!rate.allowed) {
     return res.status(429).json({
@@ -59,16 +66,9 @@ export default async function handler(req, res) {
     });
   }
 
-  const adminClient = createClient(url, serviceRole);
-  const { data: profile } = await adminClient
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
   const built = buildPushTestPayload({
     userId: user.id,
-    role: profile?.role,
+    role: adminProfile.role,
   });
 
   const result = await sendWebPushToUser(adminClient, user.id, built);

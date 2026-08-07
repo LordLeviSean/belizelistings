@@ -6,7 +6,7 @@ jest.mock("../../lib/featureFlags", () => ({
 
 jest.mock("../../hooks/useUserRole", () => ({
   __esModule: true,
-  default: () => ({ user: { id: "user-1" } }),
+  default: jest.fn(() => ({ user: { id: "user-1" }, role: "user" })),
 }));
 
 jest.mock("../ui/ToastProvider", () => ({
@@ -31,6 +31,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
 import { renderToString } from "react-dom/server";
+import useUserRole from "../../hooks/useUserRole";
 import {
   loadPushDeviceStatus,
   enableDevicePushNotifications,
@@ -73,6 +74,7 @@ describe("DeviceNotificationsPanel", () => {
   });
 
   test("does not show test action until current device is enabled", async () => {
+    useUserRole.mockReturnValue({ user: { id: "user-1" }, role: "user" });
     loadPushDeviceStatus.mockResolvedValue({
       capability: {
         capability: "default",
@@ -95,7 +97,32 @@ describe("DeviceNotificationsPanel", () => {
     expect(container.textContent).not.toMatch(/Send test notification/i);
   });
 
-  test("shows user-initiated test action when current device is enabled", async () => {
+  test("does not show admin test action for non-admin users even when enabled", async () => {
+    useUserRole.mockReturnValue({ user: { id: "user-1" }, role: "agent" });
+    loadPushDeviceStatus.mockResolvedValue({
+      capability: {
+        capability: "granted",
+        canSubscribe: true,
+        permission: "granted",
+        isIos: false,
+        isStandalone: false,
+      },
+      browserSubscription: true,
+      currentDeviceRegistered: true,
+      currentSubscriptionId: "sub-1",
+      activeDevices: [{ subscription_id: "sub-1", platform_label: "desktop" }],
+    });
+
+    const { container } = renderPanel();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).not.toMatch(/Send test notification/i);
+  });
+
+  test("shows user-initiated admin test action when current device is enabled", async () => {
+    useUserRole.mockReturnValue({ user: { id: "user-1" }, role: "admin" });
     loadPushDeviceStatus.mockResolvedValue({
       capability: {
         capability: "granted",

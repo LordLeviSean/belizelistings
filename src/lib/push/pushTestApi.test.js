@@ -4,6 +4,11 @@ jest.mock("@supabase/supabase-js", () => ({
   createClient: jest.fn(),
 }));
 
+jest.mock("../profileSelectContract", () => ({
+  fetchProfileRowWithTiers: jest.fn(),
+  PROFILE_ROLE_ONLY_SELECT: "role",
+}));
+
 jest.mock("./sendWebPushToUser", () => ({
   sendWebPushToUser: jest.fn(),
 }));
@@ -14,6 +19,7 @@ jest.mock("./pushTestRateLimit", () => ({
 }));
 
 import { createClient } from "@supabase/supabase-js";
+import { fetchProfileRowWithTiers } from "../profileSelectContract";
 import handler from "../../pages/api/push/test";
 import { sendWebPushToUser } from "./sendWebPushToUser";
 import {
@@ -26,6 +32,14 @@ function mockRes() {
   res.status = jest.fn().mockReturnValue(res);
   res.json = jest.fn().mockReturnValue(res);
   return res;
+}
+
+function mockAuthenticatedClients(role = "admin") {
+  const getUser = jest.fn().mockResolvedValue({ data: { user: { id: "user-1" } } });
+  createClient
+    .mockReturnValueOnce({ auth: { getUser } })
+    .mockReturnValueOnce({ from: jest.fn(), rpc: jest.fn() });
+  fetchProfileRowWithTiers.mockResolvedValue({ data: { role }, error: null });
 }
 
 describe("POST /api/push/test", () => {
@@ -57,6 +71,7 @@ describe("POST /api/push/test", () => {
   });
 
   test("rejects caller-supplied recipient or arbitrary content", async () => {
+    mockAuthenticatedClients("admin");
     const res = mockRes();
     await handler(
       {
@@ -91,11 +106,32 @@ describe("POST /api/push/test", () => {
     expect(res.status).toHaveBeenCalledWith(403);
   });
 
-  test("is rate limited", async () => {
+  test.each(["user", "agent", "broker"])(
+    "rejects authenticated non-admin role %s",
+    async (role) => {
+      mockAuthenticatedClients(role);
+      const res = mockRes();
+      await handler(
+        {
+          method: "POST",
+          headers: {
+            origin: "https://belizelistings.bz",
+            authorization: "Bearer token",
+          },
+          body: {},
+        },
+        res
+      );
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({ ok: false, error: "admin_required" });
+      expect(sendWebPushToUser).not.toHaveBeenCalled();
+    }
+  );
+
+  test("is rate limited for verified admins", async () => {
     checkPushTestRateLimit.mockReturnValue({ allowed: false, retryAfterMs: 45000 });
-    createClient.mockReturnValue({
-      auth: { getUser: jest.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
-    });
+    mockAuthenticatedClients("admin");
 
     const res = mockRes();
     await handler(
@@ -114,18 +150,8 @@ describe("POST /api/push/test", () => {
     expect(sendWebPushToUser).not.toHaveBeenCalled();
   });
 
-  test("sends fixed safe payload to authenticated user subscriptions only", async () => {
-    const getUser = jest.fn().mockResolvedValue({ data: { user: { id: "user-1" } } });
-    const maybeSingle = jest.fn().mockResolvedValue({ data: { role: "agent" } });
-    const from = jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({ maybeSingle })),
-      })),
-    }));
-
-    createClient
-      .mockReturnValueOnce({ auth: { getUser } })
-      .mockReturnValueOnce({ from, rpc: jest.fn() });
+  test("sends fixed safe payload to authenticated admin subscriptions only", async () => {
+    mockAuthenticatedClients("admin");
 
     sendWebPushToUser.mockResolvedValue({
       ok: true,
@@ -156,7 +182,7 @@ describe("POST /api/push/test", () => {
         payload: expect.objectContaining({
           eventType: "push_test",
           title: "BelizeListings notifications are active",
-          href: "/dashboard/agent?tab=profile",
+          href: "/dashboard/user?tab=profile",
         }),
       })
     );

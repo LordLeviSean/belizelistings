@@ -63,7 +63,8 @@ function statusCopy(capability, currentDeviceRegistered) {
 }
 
 export default function DeviceNotificationsPanel() {
-  const { user } = useUserRole();
+  const { user, role } = useUserRole();
+  const isVerifiedAdmin = String(role || "").toLowerCase() === "admin";
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -277,12 +278,12 @@ export default function DeviceNotificationsPanel() {
         </label>
       </div>
 
-      {switchChecked ? (
+      {switchChecked && isVerifiedAdmin ? (
         <div className={styles.testRow}>
           <div className={styles.testCopy}>
             <p className={styles.controlLabel}>Send test notification</p>
             <p className={styles.controlHint}>
-              Deliberately sends a safe test alert to every enabled device for your signed-in account.
+              Admin diagnostic only. Sends a safe test alert to every enabled device for your signed-in admin account.
               Delivery timing depends on your platform and whether the app is open.
             </p>
             {testFeedback ? (

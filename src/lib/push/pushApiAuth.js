@@ -1,3 +1,8 @@
+import {
+  fetchProfileRowWithTiers,
+  PROFILE_ROLE_ONLY_SELECT,
+} from "@/lib/profileSelectContract";
+
 /**
  * Same-origin guard for authenticated push mutation routes.
  * @param {import('http').IncomingMessage} req
@@ -35,4 +40,27 @@ export function isAuthorizedPushMutationRequest(req) {
 export function readBearerToken(req) {
   const authHeader = req.headers.authorization || "";
   return authHeader.replace(/^Bearer\s+/i, "").trim();
+}
+
+/**
+ * Verified administrator check — matches existing admin API routes.
+ * @param {{ role?: string|null }|null|undefined} profile
+ */
+export function isVerifiedAdminProfile(profile) {
+  return String(profile?.role || "").toLowerCase() === "admin";
+}
+
+/**
+ * Load and verify admin profile via service-role client.
+ * @param {import('@supabase/supabase-js').SupabaseClient} adminClient
+ * @param {string} userId
+ */
+export async function loadVerifiedAdminProfile(adminClient, userId) {
+  if (!adminClient?.from || !userId) return null;
+
+  const { data: profile } = await fetchProfileRowWithTiers(adminClient, userId, [
+    PROFILE_ROLE_ONLY_SELECT,
+  ]);
+
+  return isVerifiedAdminProfile(profile) ? profile : null;
 }
