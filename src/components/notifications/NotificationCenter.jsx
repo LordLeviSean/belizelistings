@@ -115,6 +115,7 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
         const durableResult = await fetchDurableInboxForNotificationCenter(supabase, user.id, {
           limit: 12,
           dropdownRetentionHours: NOTIFICATION_DROPDOWN_READ_RETENTION_HOURS,
+          recipientRole: role,
         });
         if (durableResult.error) {
           if (mountedRef.current && manual) {
@@ -465,7 +466,7 @@ export default function NotificationCenter({ layout = "nav", onNavigate } = {}) 
           const row = payload?.new;
           if (!row?.id) return;
           const mapped = {
-            ...mapNotificationRowToCenterItem(row),
+            ...mapNotificationRowToCenterItem(row, { recipientRole: role }),
             sortAt: row.created_at,
             when: formatWhen(row.created_at),
           };

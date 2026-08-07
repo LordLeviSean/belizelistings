@@ -1,5 +1,5 @@
 import { NOTIFICATION_EVENT_TYPES } from "@/lib/notifications/notificationEvents";
-import { resolveNotificationDestination } from "@/lib/dashboardCrmRoutes";
+import { resolveNewInquiryNotificationHref } from "@/lib/notifications/newInquiryNotificationRouting";
 import { buildPushPayload } from "./pushPayload";
 
 export const NEW_INQUIRY_PUSH_TITLE = "New property inquiry";
@@ -35,23 +35,5 @@ export function buildNewInquiryPushPayload({ notificationId, dedupeKey, href }) 
  * }} input
  */
 export function resolveNewInquiryPushDestination({ recipientRole, payload = {} }) {
-  const enrichedPayload = {
-    ...payload,
-    recipient_role: payload.recipient_role ?? payload.recipientRole ?? recipientRole,
-  };
-
-  const href = resolveNotificationDestination({
-    eventType: NOTIFICATION_EVENT_TYPES.NEW_INQUIRY,
-    role: recipientRole,
-    payload: enrichedPayload,
-  });
-
-  if (typeof href === "string" && href.startsWith("/")) {
-    return href;
-  }
-
-  const normalizedRole = String(recipientRole || "user").toLowerCase();
-  if (normalizedRole === "admin") return "/admin?tab=inbox";
-  if (normalizedRole === "agent") return "/dashboard/agent?tab=inbox";
-  return "/dashboard/user?tab=inbox";
+  return resolveNewInquiryNotificationHref({ recipientRole, payload });
 }

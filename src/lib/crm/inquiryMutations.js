@@ -1,6 +1,7 @@
 import { INQUIRY_CHANNEL, INQUIRY_STATUS as LEGACY_INQUIRY_STATUS } from "../../constants/inquiryModel";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_NOTIFICATIONS, BL_ENABLE_TURNSTILE } from "../featureFlags";
 import { submitGuestInquiryViaSecureApi } from "../security/submitGuestInquiryApi";
+import { submitAuthenticatedInquiryViaApi } from "../security/submitAuthenticatedInquiryApi";
 import { triggerServerNotificationDelivery } from "../notifications/triggerServerNotificationDelivery";
 import { emitListingEventAfterMutation } from "../listingEvents/writeListingEvent";
 import { LISTING_EVENT_TYPES } from "../listingEvents/listingEventTypes";
@@ -105,7 +106,10 @@ export async function createInquiryWithConversation(client, payload) {
   });
 
   if (BL_ENABLE_NOTIFICATIONS) {
-    await triggerServerNotificationDelivery(client, { limit: 5 });
+    await triggerServerNotificationDelivery(client, {
+      inquiryId: result.inquiry_id,
+      conversationId: result.conversation_id,
+    });
   }
 
   return {
@@ -131,8 +135,39 @@ export async function submitListingInquiry(client, payload) {
     };
   }
 
+  if (
+    isSelfListingContact({
+      viewerUserId: payload.senderUserId,
+      recipientUserId: payload.agentUserId,
+    })
+  ) {
+    return selfInquiryBlockedResult();
+  }
+
   if (BL_ENABLE_TURNSTILE && !payload.senderUserId) {
     return submitGuestInquiryViaSecureApi(payload);
+  }
+
+  if (BL_ENABLE_CONVERSATIONS && payload.senderUserId) {
+    return submitAuthenticatedInquiryViaApi(client, {
+      listingId: payload.listingId,
+      agentUserId: payload.agentUserId,
+      senderUserId: payload.senderUserId,
+      senderName: payload.senderName,
+      senderEmail: payload.senderEmail,
+      senderPhone: payload.senderPhone,
+      body: payload.body,
+      message: payload.body,
+      inquiryType:
+        payload.inquiryType ??
+        (payload.channel === INQUIRY_CHANNEL.VIEWING
+          ? INQUIRY_TYPE.SCHEDULE_VIEWING
+          : INQUIRY_TYPE.GENERAL),
+      preferredContactMethod: payload.preferredContactMethod,
+      qualityScore: payload.qualityScore,
+      requestedDate: payload.requestedDate,
+      requestedTime: payload.requestedTime,
+    });
   }
 
   if (BL_ENABLE_CONVERSATIONS && client?.rpc) {

@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { readTruthyEnvValue } from "@/lib/featureFlags";
-import { triggerNotificationDeliveryWithPush } from "@/lib/notifications/deliverNotificationsServer";
-import { reconcileUndeliveredNewInquiryPushes } from "@/lib/push/deliverNewInquiryWebPush";
+import { triggerNotificationDeliveryWithPush, deliverNotificationQueueItemWithPush } from "@/lib/notifications/deliverNotificationsServer";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -41,11 +40,38 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const limit = Math.min(25, Math.max(1, Number(req.body?.limit) || 5));
+  const body = req.body && typeof req.body === "object" ? req.body : {};
+  const queueId = body.queueId ?? body.queue_id ?? null;
+  const inquiryId = body.inquiryId ?? body.inquiry_id ?? null;
+  const conversationId = body.conversationId ?? body.conversation_id ?? null;
+  const limit = Math.min(25, Math.max(1, Number(body.limit) || 5));
   const adminClient = createClient(url, serviceRole);
 
+  if (queueId) {
+    const delivery = await deliverNotificationQueueItemWithPush(adminClient, queueId);
+    if (!delivery.ok && !delivery.skipped) {
+      return res.status(500).json({ error: delivery.error?.message || "Notification delivery failed" });
+    }
+    return res.status(200).json({
+      ok: true,
+      path: "queue_id",
+      delivery: delivery.data ?? null,
+    });
+  }
+
+  if (inquiryId || conversationId) {
+    const targeted = await deliverNewInquiryNotificationForInquiry(adminClient, {
+      inquiryId,
+      conversationId,
+    });
+    return res.status(200).json({
+      ok: true,
+      path: "inquiry_targeted",
+      targeted,
+    });
+  }
+
   const batch = await triggerNotificationDeliveryWithPush(adminClient, { limit });
-  const reconciled = await reconcileUndeliveredNewInquiryPushes(adminClient, { hours: 48, limit: 10 });
 
   if (!batch.ok && !batch.skipped) {
     return res.status(500).json({ error: batch.error?.message || "Notification delivery failed" });
@@ -54,7 +80,7 @@ export default async function handler(req, res) {
   return res.status(200).json({
     ok: true,
     skipped: Boolean(batch.skipped),
+    path: "batch",
     batch: batch.data ?? null,
-    push_reconciled: reconciled.attempted ?? 0,
   });
 }

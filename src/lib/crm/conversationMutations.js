@@ -191,7 +191,7 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
   if (agentUserId) {
     const resolvedTitle = listingTitle ?? null;
     const resolvedSender = senderName ?? conv?.buyer_name ?? null;
-    await enqueueNotificationEvent(
+    const enqueueResult = await enqueueNotificationEvent(
       client,
       {
         eventType: NOTIFICATION_EVENT_TYPES.NEW_INQUIRY,
@@ -213,6 +213,10 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
       },
       { deliver: false }
     );
+
+    if (BL_ENABLE_NOTIFICATIONS && enqueueResult.queueId) {
+      await triggerServerNotificationDelivery(client, { queueId: enqueueResult.queueId });
+    }
   }
 
   if (resolvedListingId) {
@@ -225,10 +229,6 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
       actorRole: "buyer",
       payload: { conversation_id: conversationId, message_id: message?.id },
     });
-  }
-
-  if (BL_ENABLE_NOTIFICATIONS) {
-    await triggerServerNotificationDelivery(client, { limit: 5 });
   }
 
   return { data: message, error: null };

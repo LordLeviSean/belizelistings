@@ -45,9 +45,11 @@ describe("triggerServerNotificationDelivery", () => {
       "/api/notifications/trigger-delivery",
       expect.objectContaining({
         method: "POST",
+        keepalive: true,
         headers: expect.objectContaining({
           Authorization: "Bearer token",
         }),
+        body: JSON.stringify({ limit: 4, queueId: null, inquiryId: null, conversationId: null }),
       })
     );
   });

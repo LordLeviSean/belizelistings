@@ -108,6 +108,6 @@ export async function fetchUnreadNotificationCount(client, userId) {
  * Map DB rows to NotificationCenter list items.
  * @param {Array<Record<string, unknown>>} rows
  */
-export function mapNotificationsForCenter(rows) {
-  return (rows || []).map(mapNotificationRowToCenterItem);
+export function mapNotificationsForCenter(rows, { recipientRole = null } = {}) {
+  return (rows || []).map((row) => mapNotificationRowToCenterItem(row, { recipientRole }));
 }

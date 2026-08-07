@@ -11,6 +11,7 @@ import {
   resolveSlotLabel,
 } from "@/lib/notifications/crmNotificationHelpers";
 import { NOTIFICATION_EVENT_TYPES } from "./notificationEvents";
+import { resolveNewInquiryNotificationHref } from "./newInquiryNotificationRouting";
 
 /** Editorial categories — calm luxury, operational tone. */
 export const NOTIFICATION_CATEGORIES = Object.freeze({
@@ -74,7 +75,11 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "conversation";
       entityId = conversationId ? String(conversationId) : inquiryId ? String(inquiryId) : null;
       dedupeKey = dedupeKey ?? `new_inquiry:${messageId ?? inquiryId ?? conversationId ?? ""}`;
-      href = resolveNotificationDestination({ eventType, role: recipientRole || "agent", payload });
+      href = resolveNewInquiryNotificationHref({
+        recipientRole: recipientRole || "agent",
+        payload,
+        conversationId,
+      });
       break;
 
     case NOTIFICATION_EVENT_TYPES.AGENT_REPLIED:
@@ -311,10 +316,15 @@ export function buildNotificationPresentation(eventType, payload = {}) {
 /**
  * Map a notifications table row to NotificationCenter item shape.
  */
-export function mapNotificationRowToCenterItem(row) {
+export function mapNotificationRowToCenterItem(row, { recipientRole = null } = {}) {
   const payload =
     row.payload && typeof row.payload === "object" && !Array.isArray(row.payload) ? row.payload : {};
-  const presentation = buildNotificationPresentation(row.event_type, payload);
+  const effectiveRole =
+    recipientRole ?? payload.recipient_role ?? payload.recipientRole ?? null;
+  const presentation = buildNotificationPresentation(row.event_type, {
+    ...payload,
+    recipient_role: effectiveRole ?? payload.recipient_role,
+  });
 
   return {
     id: `notif-${row.id}`,

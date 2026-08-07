@@ -112,7 +112,10 @@ describe("conversationMutations", () => {
       }),
       expect.any(Object)
     );
-    expect(triggerServerNotificationDelivery).toHaveBeenCalled();
+    expect(triggerServerNotificationDelivery).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({ queueId: "q1" })
+    );
   });
 
   test("sendAgentReply notifies buyer", async () => {

@@ -173,8 +173,15 @@ describe("deliverNewInquiryWebPush", () => {
     expect(result.push.error).toBe("no_active_subscriptions");
   });
 
-  test("does not mark delivered when no active subscriptions", async () => {
-    const update = jest.fn();
+  test("records no_subscription without marking delivered", async () => {
+    const update = jest.fn(() => ({
+      eq: jest.fn(() => ({
+        select: jest.fn(() => ({
+          maybeSingle: jest.fn().mockResolvedValue({ data: { id: "notif-1" }, error: null }),
+        })),
+        maybeSingle: jest.fn().mockResolvedValue({ data: { id: "notif-1" }, error: null }),
+      })),
+    }));
     sendWebPushToUser.mockResolvedValue({
       ok: false,
       error: "no_active_subscriptions",
@@ -233,7 +240,7 @@ describe("deliverNewInquiryWebPush", () => {
       dedupe_key: "new_inquiry:inq-1",
     });
 
-    expect(update).not.toHaveBeenCalled();
+    expect(update).toHaveBeenCalled();
   });
 
   test("marks delivered only after provider success", async () => {

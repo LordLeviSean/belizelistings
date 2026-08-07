@@ -49,7 +49,9 @@ export async function fetchDurableInboxForNotificationCenter(supabase, userId, o
 
   const durableItems = notificationResult.skipped
     ? []
-    : mapNotificationsForCenter(notificationResult.data || []).map((item) => ({
+    : mapNotificationsForCenter(notificationResult.data || [], {
+        recipientRole: options.recipientRole ?? null,
+      }).map((item) => ({
         ...item,
         sortAt: item.when,
       }));

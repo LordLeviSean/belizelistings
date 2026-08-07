@@ -97,12 +97,20 @@ describe("inquiryMutations", () => {
     expect(client.from).toHaveBeenCalledWith("listing_inquiries");
   });
 
-  test("submitListingInquiry prefers RPC when conversations flag enabled", async () => {
-    const client = {
-      rpc: jest.fn().mockResolvedValue({
-        data: { inquiry_id: "inq-2", conversation_id: "conv-2" },
-        error: null,
+  test("submitListingInquiry prefers secure API when authenticated", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: { id: "inq-2", conversationId: "conv-2" },
       }),
+    });
+
+    const client = {
+      auth: {
+        getSession: jest.fn().mockResolvedValue({
+          data: { session: { access_token: "token-1" } },
+        }),
+      },
     };
 
     const { data, error } = await submitListingInquiry(client, {
@@ -115,7 +123,15 @@ describe("inquiryMutations", () => {
 
     expect(error).toBeNull();
     expect(data.id).toBe("inq-2");
-    expect(client.rpc).toHaveBeenCalled();
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/inquiries/create",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer token-1",
+        }),
+      })
+    );
   });
 
   test("submitListingInquiry rejects self-contact before RPC", async () => {
