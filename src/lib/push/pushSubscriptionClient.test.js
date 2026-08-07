@@ -23,11 +23,13 @@ jest.mock("./pushSubscriptionSupport", () => ({
 }));
 
 import { registerBelizeListingsServiceWorker } from "../pwa/registerServiceWorker";
-import { registerPushSubscription, revokePushSubscription } from "./pushSubscriptionMutations";
+import { registerPushSubscription, revokePushSubscription, listMyPushSubscriptionDevices } from "./pushSubscriptionMutations";
+import { getPushCapability } from "./pushSubscriptionSupport";
 import {
   disableDevicePushNotifications,
   enableDevicePushNotifications,
   pushSubscriptionToRpcPayload,
+  reconcileDevicePushAfterPermissionRestore,
 } from "./pushSubscriptionClient";
 
 describe("pushSubscriptionClient", () => {
@@ -147,5 +149,134 @@ describe("pushSubscriptionClient", () => {
     expect(revokePushSubscription).toHaveBeenCalledWith({ rpc: expect.anything() }, "sub-123");
     expect(unsubscribe).toHaveBeenCalled();
     expect(window.localStorage.getItem("bl_push_device_sub_user-1")).toBeNull();
+  });
+
+  test("reconcileDevicePushAfterPermissionRestore no-ops when permission is not granted", async () => {
+    getPushCapability.mockReturnValue({
+      capability: "denied",
+      canSubscribe: false,
+      permission: "denied",
+      isIos: false,
+      isStandalone: false,
+    });
+
+    const result = await reconcileDevicePushAfterPermissionRestore({
+      client: { rpc: jest.fn() },
+      userId: "user-1",
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({ ok: true, reconciled: false, reason: "permission_not_granted" })
+    );
+    expect(registerPushSubscription).not.toHaveBeenCalled();
+  });
+
+  test("reconcileDevicePushAfterPermissionRestore registers existing browser subscription without subscribe()", async () => {
+    getPushCapability.mockReturnValue({
+      capability: "granted",
+      canSubscribe: true,
+      permission: "granted",
+      isIos: false,
+      isStandalone: false,
+    });
+
+    const browserSubscription = {
+      toJSON: () => ({
+        endpoint: "https://push.example/device",
+        keys: { p256dh: "p256", auth: "auth" },
+      }),
+    };
+
+    const subscribe = jest.fn();
+    registerBelizeListingsServiceWorker.mockReturnValue({
+      registered: true,
+      registrationPromise: Promise.resolve({ registered: true }),
+    });
+
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: {
+        ready: Promise.resolve({
+          pushManager: {
+            getSubscription: jest.fn().mockResolvedValue(browserSubscription),
+            subscribe,
+          },
+        }),
+      },
+    });
+
+    listMyPushSubscriptionDevices.mockResolvedValue({
+      ok: true,
+      devices: [],
+    });
+
+    registerPushSubscription.mockResolvedValue({
+      ok: true,
+      subscriptionId: "sub-restored",
+      error: null,
+    });
+
+    const result = await reconcileDevicePushAfterPermissionRestore({
+      client: { rpc: jest.fn() },
+      userId: "user-1",
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({ ok: true, reconciled: true, subscriptionId: "sub-restored" })
+    );
+    expect(registerPushSubscription).toHaveBeenCalledTimes(1);
+    expect(subscribe).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem("bl_push_device_sub_user-1")).toContain("sub-restored");
+  });
+
+  test("reconcileDevicePushAfterPermissionRestore skips when device already registered", async () => {
+    getPushCapability.mockReturnValue({
+      capability: "granted",
+      canSubscribe: true,
+      permission: "granted",
+      isIos: false,
+      isStandalone: false,
+    });
+
+    window.localStorage.setItem(
+      "bl_push_device_sub_user-1",
+      JSON.stringify({ subscriptionId: "sub-existing" })
+    );
+
+    registerBelizeListingsServiceWorker.mockReturnValue({
+      registered: true,
+      registrationPromise: Promise.resolve({ registered: true }),
+    });
+
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: {
+        ready: Promise.resolve({
+          pushManager: {
+            getSubscription: jest.fn().mockResolvedValue({
+              toJSON: () => ({
+                endpoint: "https://push.example/device",
+                keys: { p256dh: "p256", auth: "auth" },
+              }),
+            }),
+          },
+        }),
+      },
+    });
+
+    listMyPushSubscriptionDevices.mockResolvedValue({
+      ok: true,
+      devices: [{ subscription_id: "sub-existing", is_active: true }],
+    });
+
+    const result = await reconcileDevicePushAfterPermissionRestore({
+      client: { rpc: jest.fn() },
+      userId: "user-1",
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({ ok: true, reconciled: false, reason: "already_registered" })
+    );
+    expect(registerPushSubscription).not.toHaveBeenCalled();
   });
 });

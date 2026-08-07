@@ -201,6 +201,57 @@ export async function enableDevicePushNotifications({ client, userId, getAccessT
 }
 
 /**
+ * After the user restores notification permission in browser settings, reconcile
+ * an existing PushSubscription without requesting permission or creating duplicates.
+ *
+ * @param {{
+ *   client: import('@supabase/supabase-js').SupabaseClient,
+ *   userId: string,
+ *   getAccessToken?: () => Promise<string | null>,
+ * }} params
+ */
+export async function reconcileDevicePushAfterPermissionRestore({
+  client,
+  userId,
+}) {
+  const capability = getPushCapability();
+  if (capability.permission !== "granted") {
+    return { ok: true, reconciled: false, reason: "permission_not_granted" };
+  }
+
+  const browserSubscription = await getBrowserPushSubscription();
+  if (!browserSubscription) {
+    return { ok: true, reconciled: false, reason: "no_browser_subscription" };
+  }
+
+  const status = await loadPushDeviceStatus(client, userId);
+  if (status.currentDeviceRegistered) {
+    return { ok: true, reconciled: false, reason: "already_registered" };
+  }
+
+  const payload = pushSubscriptionToRpcPayload(browserSubscription);
+  const result = await registerPushSubscription(client, payload);
+
+  if (!result.ok || !result.subscriptionId) {
+    return {
+      ok: false,
+      reconciled: false,
+      reason: "register_failed",
+      error: result.error,
+    };
+  }
+
+  writeStoredPushDevice(userId, result.subscriptionId);
+
+  return {
+    ok: true,
+    reconciled: true,
+    subscriptionId: result.subscriptionId,
+    reason: null,
+  };
+}
+
+/**
  * @param {{
  *   client: import('@supabase/supabase-js').SupabaseClient,
  *   userId: string,

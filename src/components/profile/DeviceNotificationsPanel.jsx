@@ -6,8 +6,10 @@ import {
   disableDevicePushNotifications,
   enableDevicePushNotifications,
   loadPushDeviceStatus,
+  reconcileDevicePushAfterPermissionRestore,
 } from "@/lib/push/pushSubscriptionClient";
 import { PUSH_CAPABILITY } from "@/lib/push/pushSubscriptionSupport";
+import { getNotificationPermissionRecovery } from "@/lib/push/pushPermissionRecovery";
 import { supabase } from "@/lib/supabaseClient";
 import styles from "./DeviceNotificationsPanel.module.css";
 
@@ -37,7 +39,7 @@ function statusCopy(capability, currentDeviceRegistered) {
       return {
         badge: "Blocked",
         badgeClass: styles.statusBadgeWarn,
-        hint: "Notifications are blocked for this site in your browser settings.",
+        hint: "Notifications are blocked for this site in your browser settings. Use the steps below to unblock, then check again.",
       };
     case PUSH_CAPABILITY.IOS_INSTALLED:
     case PUSH_CAPABILITY.PERMISSION_GRANTED:
@@ -71,23 +73,66 @@ export default function DeviceNotificationsPanel() {
   const [testBusy, setTestBusy] = useState(false);
   const [testFeedback, setTestFeedback] = useState(null);
   const [status, setStatus] = useState(null);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recheckBusy, setRecheckBusy] = useState(false);
 
-  const refreshStatus = useCallback(async () => {
-    if (!user?.id) {
-      setStatus(null);
+  const refreshStatus = useCallback(
+    async ({ reconcile = false, silent = false } = {}) => {
+      if (!user?.id) {
+        setStatus(null);
+        setLoading(false);
+        return;
+      }
+
+      if (!silent) {
+        setLoading(true);
+      }
+
+      if (reconcile) {
+        await reconcileDevicePushAfterPermissionRestore({
+          client: supabase,
+          userId: user.id,
+        });
+      }
+
+      const next = await loadPushDeviceStatus(supabase, user.id);
+      setStatus(next);
       setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    const next = await loadPushDeviceStatus(supabase, user.id);
-    setStatus(next);
-    setLoading(false);
-  }, [user?.id]);
+    },
+    [user?.id]
+  );
 
   useEffect(() => {
     void refreshStatus();
   }, [refreshStatus]);
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+
+    const handleVisibilityOrFocus = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
+      void refreshStatus({ reconcile: true, silent: true });
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    window.addEventListener("focus", handleVisibilityOrFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+    };
+  }, [refreshStatus, user?.id]);
+
+  const handleCheckAgain = useCallback(async () => {
+    if (recheckBusy || loading || busy) return;
+    setRecheckBusy(true);
+    await refreshStatus({ reconcile: true, silent: true });
+    setRecheckBusy(false);
+  }, [busy, loading, recheckBusy, refreshStatus]);
+
+  const permissionRecovery = useMemo(() => getNotificationPermissionRecovery(), [status]);
 
   const getAccessToken = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
@@ -228,6 +273,7 @@ export default function DeviceNotificationsPanel() {
   }
 
   const capability = status?.capability;
+  const isPermissionDenied = capability?.capability === PUSH_CAPABILITY.PERMISSION_DENIED;
   const switchChecked = Boolean(status?.currentDeviceRegistered);
   const switchDisabled =
     loading ||
@@ -277,6 +323,44 @@ export default function DeviceNotificationsPanel() {
           <span className={styles.switchSlider} aria-hidden="true" />
         </label>
       </div>
+
+      {isPermissionDenied ? (
+        <div className={styles.recoveryRow} aria-live="polite">
+          <div className={styles.recoveryCopy}>
+            <p className={styles.controlLabel}>Notifications blocked in browser</p>
+            <p className={styles.controlHint}>
+              BelizeListings cannot change this for you. Unblock notifications in your browser, then
+              check again here.
+            </p>
+            {recoveryOpen ? (
+              <ol className={styles.recoverySteps}>
+                {permissionRecovery.steps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            ) : null}
+          </div>
+          <div className={styles.recoveryActions}>
+            <button
+              type="button"
+              className={styles.recoverySecondaryButton}
+              onClick={() => setRecoveryOpen((open) => !open)}
+              aria-expanded={recoveryOpen}
+            >
+              {recoveryOpen ? "Hide steps" : permissionRecovery.settingsActionLabel}
+            </button>
+            <button
+              type="button"
+              className={styles.recoveryPrimaryButton}
+              onClick={handleCheckAgain}
+              disabled={recheckBusy || loading || busy}
+              aria-busy={recheckBusy}
+            >
+              {recheckBusy ? "Checking…" : "Check again"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {switchChecked && isVerifiedAdmin ? (
         <div className={styles.testRow}>

@@ -231,8 +231,84 @@
   color: rgba(120, 68, 36, 0.92);
 }
 
+.recoveryRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 122, 0.34);
+  background: rgba(255, 249, 240, 0.72);
+}
+
+.recoveryCopy {
+  min-width: 0;
+}
+
+.recoveryActions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.recoveryPrimaryButton,
+.recoverySecondaryButton {
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 560;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-3) var(--ease-out-soft),
+    border-color var(--dur-3) var(--ease-out-soft);
+}
+
+.recoveryPrimaryButton {
+  border: 1px solid rgba(104, 167, 152, 0.48);
+  background: rgba(255, 255, 255, 0.88);
+  color: rgba(32, 88, 76, 0.94);
+}
+
+.recoverySecondaryButton {
+  border: 1px solid rgba(212, 175, 122, 0.42);
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(92, 68, 36, 0.92);
+}
+
+.recoveryPrimaryButton:hover:not(:disabled),
+.recoverySecondaryButton:hover:not(:disabled) {
+  background: rgba(139, 200, 187, 0.12);
+}
+
+.recoveryPrimaryButton:disabled,
+.recoverySecondaryButton:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.recoverySteps {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: rgba(58, 72, 66, 0.82);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.recoverySteps li + li {
+  margin-top: 6px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .testButton {
+    transition: none;
+  }
+
+  .recoveryPrimaryButton,
+  .recoverySecondaryButton {
     transition: none;
   }
 }
@@ -263,5 +339,15 @@
 
   .testButton {
     align-self: flex-start;
+  }
+
+  .recoveryRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .recoveryActions {
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 }
