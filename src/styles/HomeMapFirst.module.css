@@ -12,21 +12,6 @@
   --ui-shadow-hover:
     0 22px 40px rgba(96, 128, 136, 0.18),
     0 0 0 1px rgba(255, 255, 255, 0.35) inset;
-  --home-carousel-cloud-width: clamp(112px, 15vw, 248px);
-  --home-carousel-cloud-left:
-    radial-gradient(ellipse 155% 92% at -18% 12%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.94) 22%, rgba(253, 252, 251, 0.55) 42%, transparent 68%),
-    radial-gradient(ellipse 118% 78% at 8% 38%, rgba(255, 255, 255, 0.98) 0%, rgba(242, 250, 248, 0.82) 30%, transparent 66%),
-    radial-gradient(ellipse 142% 86% at -12% 68%, rgba(253, 252, 251, 0.97) 0%, rgba(250, 246, 244, 0.68) 34%, transparent 70%),
-    radial-gradient(ellipse 92% 64% at 32% 22%, rgba(255, 255, 255, 0.92) 0%, transparent 58%),
-    radial-gradient(ellipse 78% 58% at 38% 55%, rgba(253, 252, 251, 0.88) 0%, transparent 54%),
-    radial-gradient(ellipse 68% 48% at 28% 88%, rgba(242, 250, 248, 0.75) 0%, transparent 50%);
-  --home-carousel-cloud-right:
-    radial-gradient(ellipse 155% 92% at 118% 12%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.94) 22%, rgba(253, 252, 251, 0.55) 42%, transparent 68%),
-    radial-gradient(ellipse 118% 78% at 92% 38%, rgba(255, 255, 255, 0.98) 0%, rgba(242, 250, 248, 0.82) 30%, transparent 66%),
-    radial-gradient(ellipse 142% 86% at 112% 68%, rgba(253, 252, 251, 0.97) 0%, rgba(250, 246, 244, 0.68) 34%, transparent 70%),
-    radial-gradient(ellipse 92% 64% at 68% 22%, rgba(255, 255, 255, 0.92) 0%, transparent 58%),
-    radial-gradient(ellipse 78% 58% at 62% 55%, rgba(253, 252, 251, 0.88) 0%, transparent 54%),
-    radial-gradient(ellipse 68% 48% at 72% 88%, rgba(242, 250, 248, 0.75) 0%, transparent 50%);
   color: #26464f;
   background:
     radial-gradient(ellipse 56% 44% at 4% 8%, rgba(232, 210, 244, 0.165), transparent 72%),
@@ -466,12 +451,6 @@
   }
 }
 
-@media (min-width: 1920px) {
-  .page {
-    --home-carousel-cloud-width: clamp(140px, 14vw, 280px);
-  }
-}
-
 .featuredSection {
   position: relative;
   padding: 12px 0 14px;
@@ -543,29 +522,6 @@
 
 .featuredCarouselShell {
   position: relative;
-}
-
-.featuredCarouselShell::before,
-.featuredCarouselShell::after {
-  content: "";
-  position: absolute;
-  top: -2px;
-  bottom: 4px;
-  width: var(--home-carousel-cloud-width);
-  pointer-events: none;
-  z-index: 3;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-}
-
-.featuredCarouselShell::before {
-  left: 0;
-  background-image: var(--home-carousel-cloud-left);
-}
-
-.featuredCarouselShell::after {
-  right: 0;
-  background-image: var(--home-carousel-cloud-right);
 }
 
 .featuredCarouselViewport {
@@ -1163,18 +1119,6 @@
 }
 
 @media (max-width: 1160px) {
-  .page {
-    --home-carousel-cloud-width: clamp(52px, 8vw, 104px);
-    --home-carousel-cloud-left:
-      radial-gradient(ellipse 130% 88% at -14% 24%, rgba(255, 255, 255, 0.96) 0%, rgba(253, 252, 251, 0.62) 38%, transparent 72%),
-      radial-gradient(ellipse 105% 72% at 10% 58%, rgba(255, 255, 255, 0.92) 0%, rgba(242, 250, 248, 0.55) 36%, transparent 68%),
-      radial-gradient(ellipse 90% 58% at 28% 82%, rgba(253, 252, 251, 0.82) 0%, transparent 54%);
-    --home-carousel-cloud-right:
-      radial-gradient(ellipse 130% 88% at 114% 24%, rgba(255, 255, 255, 0.96) 0%, rgba(253, 252, 251, 0.62) 38%, transparent 72%),
-      radial-gradient(ellipse 105% 72% at 90% 58%, rgba(255, 255, 255, 0.92) 0%, rgba(242, 250, 248, 0.55) 36%, transparent 68%),
-      radial-gradient(ellipse 90% 58% at 72% 82%, rgba(253, 252, 251, 0.82) 0%, transparent 54%);
-  }
-
   .heroLayout {
     grid-template-columns: 1fr;
     min-height: 0;
@@ -1273,16 +1217,6 @@
 }
 
 @media (max-width: 760px) {
-  .page {
-    --home-carousel-cloud-width: clamp(22px, 6.5vw, 40px);
-    --home-carousel-cloud-left:
-      radial-gradient(ellipse 120% 80% at -8% 35%, rgba(255, 255, 255, 0.88) 0%, rgba(253, 252, 251, 0.45) 42%, transparent 72%),
-      radial-gradient(ellipse 95% 65% at 18% 72%, rgba(242, 250, 248, 0.72) 0%, transparent 58%);
-    --home-carousel-cloud-right:
-      radial-gradient(ellipse 120% 80% at 108% 35%, rgba(255, 255, 255, 0.88) 0%, rgba(253, 252, 251, 0.45) 42%, transparent 72%),
-      radial-gradient(ellipse 95% 65% at 82% 72%, rgba(242, 250, 248, 0.72) 0%, transparent 58%);
-  }
-
   .pageMain {
     width: calc(100% - 20px);
     padding-top: 8px;
