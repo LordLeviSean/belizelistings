@@ -279,6 +279,16 @@ export default function HomePage() {
     };
   }, [featuredLoop.length]);
 
+  const renderFeaturedShowcaseHeader = () => (
+    <div className={styles.featuredShowcaseHeader}>
+      <p className={styles.featuredShowcaseEyebrow}>Curated for you</p>
+      <h2 className={styles.featuredShowcaseTitle}>Featured Listings</h2>
+      <p className={styles.featuredShowcaseLead}>
+        A curated selection of standout properties across Belize.
+      </p>
+    </div>
+  );
+
   const renderHeroMap = ({ showCaption = true } = {}) => (
     <>
       {showCaption ? <p className={styles.heroMapCaption}>Explore by district</p> : null}
@@ -512,10 +522,9 @@ export default function HomePage() {
 
         {listingsLoading ? (
           <section className={styles.featuredSection} aria-busy="true" aria-label="Loading featured listings">
-            <div className={styles.sectionTitleRow}>
-              <h2 className={styles.sectionTitle}>Featured listings</h2>
-            </div>
-            <div className={styles.featuredLoadingRow}>
+            {renderFeaturedShowcaseHeader()}
+            <div className={styles.featuredCarouselShell}>
+              <div className={styles.featuredLoadingRow}>
               {Array.from({ length: 3 }).map((_, index) => (
                 <div
                   key={index}
@@ -523,6 +532,7 @@ export default function HomePage() {
                   aria-hidden="true"
                 />
               ))}
+              </div>
             </div>
           </section>
         ) : featuredLoop.length ? (
@@ -536,27 +546,25 @@ export default function HomePage() {
               featuredPausedRef.current = false;
             }}
           >
-            <div className={styles.sectionTitleRow}>
-              <h2 className={styles.sectionTitle}>Featured listings</h2>
-            </div>
-            <div className={styles.featuredCarouselViewport} ref={featuredScrollRef}>
-              <div className={styles.featuredCarouselTrack}>
-                {featuredLoop.map((listing, idx) => (
-                  <div key={`${listing.id}-${idx}`} className={styles.featuredCarouselItem}>
-                    {renderListingCard(listing, "(max-width: 760px) 82vw, 296px", {
-                      imagePriority: idx < 2,
-                      deferImageLoad: idx >= 3,
-                    })}
-                  </div>
-                ))}
+            {renderFeaturedShowcaseHeader()}
+            <div className={styles.featuredCarouselShell}>
+              <div className={styles.featuredCarouselViewport} ref={featuredScrollRef}>
+                <div className={styles.featuredCarouselTrack}>
+                  {featuredLoop.map((listing, idx) => (
+                    <div key={`${listing.id}-${idx}`} className={styles.featuredCarouselItem}>
+                      {renderListingCard(listing, "(max-width: 760px) 82vw, 296px", {
+                        imagePriority: idx < 2,
+                        deferImageLoad: idx >= 3,
+                      })}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </section>
         ) : (
           <section className={styles.featuredSection} aria-label="Featured listings">
-            <div className={styles.sectionTitleRow}>
-              <h2 className={styles.sectionTitle}>Featured listings</h2>
-            </div>
+            {renderFeaturedShowcaseHeader()}
             <PremiumEmptyState
               variant="listings"
               compact

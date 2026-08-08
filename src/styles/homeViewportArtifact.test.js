@@ -31,6 +31,19 @@ describe("homepage static background guards", () => {
     expect(css).toMatch(/\.communityCard::after[\s\S]*content:\s*none/);
   });
 
+  test("featured carousel uses local edge fades without page-wide blur layers", () => {
+    const css = readCss("src/styles/HomeMapFirst.module.css");
+    const page = readSource("src/pages/index.js");
+    expect(css).toMatch(/\.featuredCarouselShell::before[\s\S]*pointer-events:\s*none/);
+    expect(css).toMatch(/\.featuredCarouselShell::after[\s\S]*pointer-events:\s*none/);
+    expect(css).toMatch(/--home-carousel-fade-left:/);
+    expect(css).toMatch(/--home-carousel-fade-right:/);
+    expect(css).not.toMatch(/\.pageSeaFlowLayers\b/);
+    expect(page).toMatch(/featuredCarouselShell/);
+    expect(page).toMatch(/featuredShowcaseTitle/);
+    expect(page).toMatch(/Featured Listings/);
+  });
+
   test("listing card styles remain unchanged", () => {
     const css = readCss("src/styles/HomeMapFirst.module.css");
     const listingCard = readSource("src/components/ListingCard.jsx");
