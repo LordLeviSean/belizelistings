@@ -283,9 +283,6 @@ export default function HomePage() {
     <div className={styles.featuredShowcaseHeader}>
       <p className={styles.featuredShowcaseEyebrow}>Curated for you</p>
       <h2 className={styles.featuredShowcaseTitle}>Featured Listings</h2>
-      <p className={styles.featuredShowcaseLead}>
-        A curated selection of standout properties across Belize.
-      </p>
     </div>
   );
 
