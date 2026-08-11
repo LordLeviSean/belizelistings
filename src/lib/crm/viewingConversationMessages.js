@@ -12,11 +12,27 @@ export const VIEWING_SYSTEM_MESSAGE = Object.freeze({
 });
 
 const BELIZE_TZ = "America/Belize";
+/** IANA America/Belize is UTC−6 year-round (no DST). */
+const BELIZE_WALL_CLOCK_OFFSET = "-06:00";
 
-function parseBelizeViewingInstant(date, time) {
+/**
+ * Parse persisted viewing date/time as wall-clock in America/Belize.
+ * DB stores separate date + time fields meant as Belize local appointment time.
+ * Must not rely on the runtime's local timezone (serverless runs UTC).
+ */
+export function parseBelizeViewingInstant(date, time) {
   if (!date) return null;
-  const timeStr = time ? String(time).slice(0, 5) : "12:00";
-  const dt = new Date(`${date}T${timeStr}:00`);
+  const normalizedDate = String(date).trim().slice(0, 10);
+  const timeStr = time ? String(time).trim().slice(0, 5) : "12:00";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)) return null;
+  if (!/^\d{1,2}:\d{2}$/.test(timeStr)) return null;
+
+  const [hours, minutes] = timeStr.split(":").map((part) => Number(part));
+  if (hours > 23 || minutes > 59) return null;
+
+  const hh = String(hours).padStart(2, "0");
+  const mm = String(minutes).padStart(2, "0");
+  const dt = new Date(`${normalizedDate}T${hh}:${mm}:00${BELIZE_WALL_CLOCK_OFFSET}`);
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
