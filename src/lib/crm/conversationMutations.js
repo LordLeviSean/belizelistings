@@ -234,7 +234,11 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
   return { data: message, error: null };
 }
 
-export async function sendAgentReply(client, { conversationId, agentUserId, body, listingId, listingTitle }) {
+/**
+ * Persist an agent reply and enqueue buyer notification (no delivery trigger).
+ * @returns {Promise<{ data: object|null, error: object|null, unavailable?: boolean, queueId?: string|null }>}
+ */
+export async function performAgentReply(client, { conversationId, agentUserId, body, listingId, listingTitle }) {
   const text = String(body || "").trim();
   if (!text) {
     return { data: null, error: { message: "Message body required" } };
@@ -291,6 +295,7 @@ export async function sendAgentReply(client, { conversationId, agentUserId, body
   }
 
   const resolvedListingId = listingId ?? conv?.listing_id;
+  let queueId = null;
 
   if (conv?.buyer_id) {
     const enqueueResult = await enqueueNotificationEvent(
@@ -305,15 +310,14 @@ export async function sendAgentReply(client, { conversationId, agentUserId, body
           listingId: resolvedListingId,
           listingTitle: listingTitle ?? null,
           recipientSide: "buyer",
+          recipientUserId: conv.buyer_id,
           dedupePrefix: "agent_replied",
         })),
       },
       { deliver: false }
     );
 
-    if (BL_ENABLE_NOTIFICATIONS && enqueueResult.queueId) {
-      await triggerServerNotificationDelivery(client, { queueId: enqueueResult.queueId });
-    }
+    queueId = enqueueResult.queueId ?? null;
   }
 
   if (resolvedListingId) {
@@ -328,7 +332,32 @@ export async function sendAgentReply(client, { conversationId, agentUserId, body
     });
   }
 
-  return { data: message, error: null };
+  return { data: message, error: null, queueId: queueId ?? null };
+}
+
+export async function sendAgentReply(client, { conversationId, agentUserId, body, listingId, listingTitle }) {
+  if (typeof window !== "undefined") {
+    const { submitAgentReplyViaApi } = await import("../security/submitAgentReplyApi");
+    return submitAgentReplyViaApi(client, { conversationId, body, listingId, listingTitle });
+  }
+
+  const result = await performAgentReply(client, {
+    conversationId,
+    agentUserId,
+    body,
+    listingId,
+    listingTitle,
+  });
+
+  if (result.error) {
+    return { data: result.data, error: result.error, unavailable: result.unavailable };
+  }
+
+  if (BL_ENABLE_NOTIFICATIONS && result.queueId) {
+    await triggerServerNotificationDelivery(client, { queueId: result.queueId });
+  }
+
+  return { data: result.data, error: null };
 }
 
 export async function archiveConversation(client, { conversationId, agentUserId }) {

@@ -17,7 +17,7 @@ import { readWebPushVapidConfig } from "./webPushVapidConfig";
 import { sendWebPushToUser } from "./sendWebPushToUser";
 import { buildPushTestPayload } from "./pushTestPayload";
 
-function mockAdminClient(rows) {
+function mockAdminClient(rows, { tableRows = null } = {}) {
   const rpc = jest.fn(async (name, args) => {
     if (name === "select_active_push_subscriptions_for_delivery") {
       return { data: rows, error: null };
@@ -30,7 +30,20 @@ function mockAdminClient(rows) {
     }
     return { data: null, error: null };
   });
-  return { rpc };
+
+  const from = jest.fn(() => {
+    const chain = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      is: jest.fn().mockReturnThis(),
+      or: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue({ data: tableRows ?? rows, error: null }),
+    };
+    return chain;
+  });
+
+  return { rpc, from };
 }
 
 describe("sendWebPushToUser", () => {
@@ -197,6 +210,29 @@ describe("sendWebPushToUser", () => {
     expect(JSON.stringify(result)).not.toContain("secret-endpoint");
     expect(JSON.stringify(result)).not.toContain("secret-p256");
     expect(JSON.stringify(result)).not.toContain("secret-auth");
+  });
+
+  test("maxSubscriptions limits inquiry-class delivery to one device", async () => {
+    const tableRows = [
+      {
+        id: "sub-new",
+        user_id: "user-1",
+        endpoint: "https://push.example/new",
+        p256dh: "p256-new",
+        auth_secret: "auth-new",
+        updated_at: "2026-08-11T17:01:19.000Z",
+      },
+    ];
+    const adminClient = mockAdminClient([], { tableRows });
+    webpush.sendNotification.mockResolvedValue(undefined);
+
+    const built = buildPushTestPayload({ userId: "user-1" });
+    const result = await sendWebPushToUser(adminClient, "user-1", built, { maxSubscriptions: 1 });
+
+    expect(adminClient.from).toHaveBeenCalledWith("push_subscriptions");
+    expect(webpush.sendNotification).toHaveBeenCalledTimes(1);
+    expect(result.attempted).toBe(1);
+    expect(result.delivered).toBe(1);
   });
 
   test("returns vapid_not_configured without deactivating subscriptions", async () => {

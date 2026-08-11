@@ -110,7 +110,8 @@ describe("deliverNewInquiryWebPush", () => {
           href: "/dashboard/agent?tab=inbox&conversation=conv-1",
           tag: "new_inquiry:inq-1",
         }),
-      })
+      }),
+      { maxSubscriptions: 1 }
     );
     expect(JSON.stringify(sendWebPushToUser.mock.calls[0][2])).not.toMatch(
       /buyer@example.com|555-0100|Private buyer message/i
@@ -189,7 +190,7 @@ describe("deliverNewInquiryWebPush", () => {
       event_type: "agent_replied",
       recipient_id: "buyer-1",
       notification_id: "notif-reply-1",
-      dedupe_key: "agent_replied:conv-buyer-1:msg-1",
+      dedupe_key: "agent_replied:msg-1:buyer-1",
     });
 
     expect(result.skipped).toBe(false);
@@ -203,9 +204,10 @@ describe("deliverNewInquiryWebPush", () => {
           title: "You received a reply",
           body: "Someone replied to your property inquiry.",
           href: "/dashboard/user?tab=inbox&conversation=conv-buyer-1",
-          tag: "agent_replied:conv-buyer-1:msg-1",
+          tag: "agent_replied:msg-1:buyer-1",
         }),
-      })
+      }),
+      { maxSubscriptions: 1 }
     );
   });
 
@@ -224,7 +226,8 @@ describe("deliverNewInquiryWebPush", () => {
     expect(sendWebPushToUser).toHaveBeenCalledWith(
       adminClient,
       "agent-1",
-      expect.anything()
+      expect.anything(),
+      { maxSubscriptions: 1 }
     );
   });
 

@@ -50,6 +50,13 @@ export function buildViewingNotificationPayload(viewing = {}, listing = {}, extr
   };
 }
 
+export function buildAgentRepliedDedupeKey(messageId, recipientUserId) {
+  if (!messageId || !recipientUserId) {
+    return null;
+  }
+  return `agent_replied:${messageId}:${recipientUserId}`;
+}
+
 export function buildInboxMessagePayload({
   conversationId,
   messageId,
@@ -58,8 +65,14 @@ export function buildInboxMessagePayload({
   listingTitle,
   senderName,
   recipientSide,
+  recipientUserId = null,
   dedupePrefix = "new_inquiry",
 } = {}) {
+  const dedupeKey =
+    dedupePrefix === "agent_replied"
+      ? buildAgentRepliedDedupeKey(messageId, recipientUserId)
+      : `${dedupePrefix}:${conversationId}:${messageId ?? ""}`;
+
   return {
     conversation_id: conversationId,
     message_id: messageId,
@@ -68,6 +81,6 @@ export function buildInboxMessagePayload({
     listing_title: listingTitle ?? null,
     sender_name: senderName ?? null,
     recipient_side: recipientSide,
-    dedupe_key: `${dedupePrefix}:${conversationId}:${messageId ?? ""}`,
+    dedupe_key: dedupeKey,
   };
 }

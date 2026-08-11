@@ -39,10 +39,11 @@ describe("notificationCopyRegistry", () => {
     const pres = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.AGENT_REPLIED, {
       conversation_id: "c1",
       message_id: "m1",
+      recipient_user_id: "buyer-1",
       listing_title: "Finca Solana",
       recipient_role: "user",
     });
-    expect(pres.dedupeKey).toBe("agent_replied:c1:m1");
+    expect(pres.dedupeKey).toBe("agent_replied:m1:buyer-1");
     expect(pres.href).toBe("/dashboard/user?tab=inbox&conversation=c1");
   });
 

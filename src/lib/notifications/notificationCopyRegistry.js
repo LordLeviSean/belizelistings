@@ -89,7 +89,11 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       body = `You received a reply about ${listingTitle}.`;
       entityType = "conversation";
       entityId = conversationId ? String(conversationId) : null;
-      dedupeKey = dedupeKey ?? `agent_replied:${conversationId ?? ""}:${messageId ?? ""}`;
+      dedupeKey =
+        dedupeKey ??
+        (messageId && (payload.recipient_user_id ?? payload.recipientUserId)
+          ? `agent_replied:${messageId}:${payload.recipient_user_id ?? payload.recipientUserId}`
+          : `agent_replied:${messageId ?? ""}:${payload.recipient_user_id ?? payload.recipientUserId ?? ""}`);
       href = resolveAgentRepliedNotificationHref({
         recipientRole: recipientRole || "user",
         payload,

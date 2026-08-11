@@ -26,6 +26,7 @@ import {
   deleteConversationForBuyer,
   isAgentConversationUnread,
   isBuyerConversationUnread,
+  performAgentReply,
   sendAgentReply,
   sendBuyerReply,
 } from "./conversationMutations";
@@ -118,7 +119,7 @@ describe("conversationMutations", () => {
     );
   });
 
-  test("sendAgentReply notifies buyer", async () => {
+  test("sendAgentReply notifies buyer with message-scoped dedupe", async () => {
     const insert = jest.fn().mockReturnValue({
       select: jest.fn().mockReturnValue({
         single: jest.fn().mockResolvedValue({ data: { id: "msg-2" }, error: null }),
@@ -162,6 +163,10 @@ describe("conversationMutations", () => {
       expect.objectContaining({
         eventType: "agent_replied",
         recipientId: "buyer-1",
+        payload: expect.objectContaining({
+          dedupe_key: "agent_replied:msg-2:buyer-1",
+          message_id: "msg-2",
+        }),
       }),
       expect.any(Object)
     );
@@ -169,6 +174,50 @@ describe("conversationMutations", () => {
       client,
       expect.objectContaining({ queueId: "q1" })
     );
+  });
+
+  test("performAgentReply enqueues once per reply without self-delivery trigger", async () => {
+    const insert = jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        single: jest.fn().mockResolvedValue({ data: { id: "msg-3" }, error: null }),
+      }),
+    });
+    const maybeSingle = jest.fn().mockResolvedValue({
+      data: { inquiry_id: "inq-1", buyer_id: "buyer-1", listing_id: 42 },
+    });
+    const client = {
+      from: jest.fn((table) => {
+        if (table === "messages") return { insert };
+        if (table === "conversations") {
+          return {
+            update: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({}) }),
+            }),
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({ maybeSingle }),
+            }),
+          };
+        }
+        if (table === "listing_inquiries") {
+          return {
+            update: jest.fn().mockReturnValue({
+              eq: jest.fn().mockResolvedValue({}),
+            }),
+          };
+        }
+        return {};
+      }),
+    };
+
+    const result = await performAgentReply(client, {
+      conversationId: "conv-1",
+      agentUserId: "agent-1",
+      body: "One reply only",
+    });
+
+    expect(result.queueId).toBe("q1");
+    expect(enqueueNotificationEvent).toHaveBeenCalledTimes(1);
+    expect(triggerServerNotificationDelivery).not.toHaveBeenCalled();
   });
 
   test("deleteConversationForBuyer only updates buyer participant column", async () => {

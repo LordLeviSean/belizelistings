@@ -28,13 +28,14 @@ describe("CRM notification matrix", () => {
     const pres = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.AGENT_REPLIED, {
       conversation_id: "conv-2",
       message_id: "msg-2",
+      recipient_user_id: "buyer-9",
       listing_title: LISTING,
       recipient_role: "user",
     });
     expect(pres.title).toBe("You received a reply");
     expect(pres.body).toContain(LISTING);
     expect(pres.href).toBe("/dashboard/user?tab=inbox&conversation=conv-2");
-    expect(pres.dedupeKey).toBe("agent_replied:conv-2:msg-2");
+    expect(pres.dedupeKey).toBe("agent_replied:msg-2:buyer-9");
   });
 
   test("viewing requested notifies owner with slot", () => {

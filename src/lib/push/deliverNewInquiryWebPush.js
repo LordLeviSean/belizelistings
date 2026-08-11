@@ -219,7 +219,7 @@ export async function deliverNewInquiryWebPush(adminClient, deliverResult, { sou
   }
 
   try {
-    const pushResult = await sendWebPushToUser(adminClient, recipientId, built);
+    const pushResult = await sendWebPushToUser(adminClient, recipientId, built, { maxSubscriptions: 1 });
     const outcome = resolvePushDeliveryStatus(pushResult);
     await recordWebPushDeliveryOutcome(adminClient, notificationId, outcome);
 
