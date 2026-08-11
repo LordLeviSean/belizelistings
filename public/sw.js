@@ -6,6 +6,8 @@
  * - No fetch interception (browser default network behavior).
  * - Activate may delete only belizelistings-sw-* caches owned by prior versions.
  * - Push + notificationclick handlers for lock-screen delivery (Step 5C).
+ *
+ * Logic version: 2026-08-11-push-nav-reliability (importScripts refresh)
  */
 /* eslint-disable no-restricted-globals */
 
