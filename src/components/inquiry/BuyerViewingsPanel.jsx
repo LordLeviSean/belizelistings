@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import { VIEWING_STATUS } from "@/lib/crm/crmConstants";
 import { viewingStatusLabel, isActiveViewingStatus } from "@/lib/crm/viewingStatusLabels";
+import { resolveDeepLinkedViewingId, viewingIdsMatch } from "@/lib/crm/viewingDeepLink";
 import {
   archiveViewing,
   cancelViewing,
@@ -17,6 +18,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
 import { resolveMessageConversationPath } from "@/lib/dashboardCrmRoutes";
 import listStyles from "./AgentInquiryList.module.css";
+import loadingStyles from "@/styles/UserDashboard.module.css";
 
 function formatViewingSlot(date, time) {
   if (!date) return "";
@@ -51,15 +53,34 @@ export default function BuyerViewingsPanel({
   const [rescheduleId, setRescheduleId] = useState(null);
   const [proposedDate, setProposedDate] = useState("");
   const [proposedTime, setProposedTime] = useState("10:00");
+  const highlightRef = useRef(null);
 
   useEffect(() => {
     if (!initialViewingId) return;
     setHighlightId(initialViewingId);
   }, [initialViewingId]);
 
+  useEffect(() => {
+    const resolvedId = resolveDeepLinkedViewingId(viewings, initialViewingId);
+    if (resolvedId != null) {
+      setHighlightId(resolvedId);
+    }
+  }, [initialViewingId, viewings]);
+
+  useEffect(() => {
+    if (!highlightId || !viewings?.length) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      highlightRef.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [highlightId, viewings]);
+
   useViewingsRealtime({ userId: buyerUserId, asAgent: false }, onRefresh);
 
   if (!viewings?.length) {
+    if (initialViewingId) {
+      return <div className={loadingStyles.hydratingPanel} aria-busy="true" aria-label="Loading viewing request" />;
+    }
     return (
       <PremiumEmptyState
         variant="inquiries"
@@ -193,9 +214,10 @@ export default function BuyerViewingsPanel({
           return (
             <article
               key={row.id}
+              ref={viewingIdsMatch(highlightId, row.id) ? highlightRef : undefined}
               className={[
                 listStyles.card,
-                highlightId === row.id ? listStyles.cardHighlighted : "",
+                viewingIdsMatch(highlightId, row.id) ? listStyles.cardHighlighted : "",
               ]
                 .filter(Boolean)
                 .join(" ")}

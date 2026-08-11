@@ -117,6 +117,13 @@ export default function UserDashboard() {
     return null;
   }, [router.query.conversation]);
 
+  const deepLinkViewingId = useMemo(() => {
+    const viewing = router.query.viewing;
+    if (typeof viewing === "string") return viewing;
+    if (Array.isArray(viewing)) return viewing[0] ?? null;
+    return null;
+  }, [router.query.viewing]);
+
   const [buyerInquiries, setBuyerInquiries] = useState([]);
   const [buyerViewings, setBuyerViewings] = useState([]);
   const [buyerConversations, setBuyerConversations] = useState([]);
@@ -435,10 +442,10 @@ export default function UserDashboard() {
 
                 {activeTab === USER_DASHBOARD_TAB_IDS.VIEWINGS ? (
                   <section aria-label="Viewings">
-                    {buyerCrmLoading && !buyerViewings.length && !hasOwnedListings ? (
+                    {buyerCrmLoading && !buyerViewings.length && !deepLinkViewingId && !hasOwnedListings ? (
                       <div className={loadingStyles.hydratingPanel} aria-busy="true" />
                     ) : null}
-                    {buyerViewings.length > 0 ? (
+                    {buyerViewings.length > 0 || deepLinkViewingId ? (
                       <div style={{ marginBottom: hasOwnedListings ? 24 : 0 }}>
                         {hasOwnedListings ? (
                           <h3 className={styles.userActionHeadline} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
@@ -450,13 +457,7 @@ export default function UserDashboard() {
                           listingsById={buyerListingsById}
                           buyerUserId={user?.id}
                           onRefresh={loadBuyerCrm}
-                          initialViewingId={
-                            typeof router.query.viewing === "string"
-                              ? router.query.viewing
-                              : Array.isArray(router.query.viewing)
-                                ? router.query.viewing[0]
-                                : null
-                          }
+                          initialViewingId={deepLinkViewingId}
                         />
                       </div>
                     ) : null}
@@ -465,16 +466,10 @@ export default function UserDashboard() {
                         ownerUserId={user.id}
                         section="viewings"
                         surface="user"
-                        initialViewingId={
-                          typeof router.query.viewing === "string"
-                            ? router.query.viewing
-                            : Array.isArray(router.query.viewing)
-                              ? router.query.viewing[0]
-                              : null
-                        }
+                        initialViewingId={deepLinkViewingId}
                       />
                     ) : null}
-                    {!buyerViewings.length && !hasOwnedListings && !buyerCrmLoading ? (
+                    {!buyerViewings.length && !deepLinkViewingId && !hasOwnedListings && !buyerCrmLoading ? (
                       <p className={styles.muted}>No viewings yet — schedule a viewing from any listing page.</p>
                     ) : null}
                   </section>
