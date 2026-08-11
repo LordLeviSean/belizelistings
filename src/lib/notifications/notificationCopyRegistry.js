@@ -10,13 +10,13 @@ import {
   resolveSenderName,
   resolveSlotLabel,
 } from "@/lib/notifications/crmNotificationHelpers";
-import { NOTIFICATION_EVENT_TYPES } from "./notificationEvents";
 import { resolveAgentRepliedNotificationHref } from "./agentRepliedNotificationRouting";
 import { resolveAdminRepliedNotificationHref } from "./adminRepliedNotificationRouting";
 import { resolveBuyerRepliedNotificationHref } from "./buyerRepliedNotificationRouting";
 import { resolveNewInquiryNotificationHref } from "./newInquiryNotificationRouting";
 import { buildMessagingInAppCopy } from "./messagingNotificationCopy";
-import { buildViewingRequestedInAppCopy } from "./viewingNotificationCopy";
+import { buildViewingRequestedInAppCopy, buildViewingConfirmedInAppCopy } from "./viewingNotificationCopy";
+import { NOTIFICATION_EVENT_TYPES } from "./notificationEvents";
 
 /** Editorial categories — calm luxury, operational tone. */
 export const NOTIFICATION_CATEGORIES = Object.freeze({
@@ -168,18 +168,21 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       break;
     }
 
-    case NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED:
+    case NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED: {
       category = NOTIFICATION_CATEGORIES.INQUIRY;
-      title = "Viewing confirmed";
-      body = appendSlotLine(
-        `Your viewing for ${listingTitle} has been confirmed.`,
-        slotLabel?.replace(" · ", " • ")
-      );
+      const viewingCopy = buildViewingConfirmedInAppCopy(payload);
+      title = viewingCopy.title;
+      body = viewingCopy.body;
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
-      dedupeKey = dedupeKey ?? `viewing_confirmed:${viewingId ?? ""}`;
+      dedupeKey =
+        dedupeKey ??
+        (viewingId && (payload.recipient_user_id ?? payload.recipientUserId)
+          ? `viewing_confirmed:${viewingId}:${payload.recipient_user_id ?? payload.recipientUserId}`
+          : `viewing_confirmed:${viewingId ?? ""}`);
       href = resolveNotificationDestination({ eventType, role: recipientRole || "user", payload });
       break;
+    }
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_CANCELLED:
       category = NOTIFICATION_CATEGORIES.INQUIRY;

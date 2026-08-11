@@ -82,3 +82,55 @@ export function buildViewingRequestedInAppCopy(payload = {}) {
     body: `${senderName} requested a viewing for ${listingTitle}.`,
   };
 }
+
+export const VIEWING_CONFIRMED_PUSH_TITLE = "Viewing confirmed";
+
+function resolveViewingConfirmedSlotPhrase(payload = {}) {
+  return (
+    formatViewingSlotPushPhrase(
+      payload.requested_date ?? payload.requestedDate,
+      payload.requested_time ?? payload.requestedTime
+    ) ||
+    String(resolveSlotLabel(payload) || "")
+      .replace(" · ", " at ")
+      .replace(" • ", " at ")
+      .trim()
+  );
+}
+
+/**
+ * Push/in-app copy for viewing_confirmed events (buyer-facing).
+ *
+ * @param {object} [payload]
+ * @returns {{ title: string, body: string }}
+ */
+export function buildViewingConfirmedPushCopy(payload = {}) {
+  const listingTitle = resolveListingTitle(payload, "");
+  const slotPhrase = resolveViewingConfirmedSlotPhrase(payload);
+
+  let body;
+  if (listingTitle && listingTitle !== "your listing" && slotPhrase) {
+    body = `Your viewing of ${listingTitle} for ${slotPhrase} has been confirmed.`;
+  } else if (slotPhrase) {
+    body = `Your viewing for ${slotPhrase} has been confirmed.`;
+  } else if (listingTitle && listingTitle !== "your listing") {
+    body = `Your viewing of ${listingTitle} has been confirmed.`;
+  } else {
+    body = "Your viewing has been confirmed.";
+  }
+
+  return {
+    title: VIEWING_CONFIRMED_PUSH_TITLE,
+    body,
+  };
+}
+
+/**
+ * In-app viewing_confirmed presentation copy.
+ *
+ * @param {object} [payload]
+ * @returns {{ title: string, body: string }}
+ */
+export function buildViewingConfirmedInAppCopy(payload = {}) {
+  return buildViewingConfirmedPushCopy(payload);
+}

@@ -13,6 +13,7 @@ import { withNotificationRecipientRole } from "./notificationRecipientRoles";
 import {
   buildViewingNotificationPayload,
   buildViewingRequestedDedupeKey,
+  buildViewingConfirmedDedupeKey,
 } from "../notifications/crmNotificationHelpers";
 import {
   appendViewingSystemMessage,
@@ -188,6 +189,7 @@ export async function confirmViewing(client, { viewingId, agentUserId, notes }) 
     })
     .eq("id", viewingId)
     .eq("agent_user_id", agentUserId)
+    .eq("status", VIEWING_STATUS.PENDING)
     .select(VIEWING_SELECT)
     .single();
 
@@ -211,17 +213,34 @@ export async function confirmViewing(client, { viewingId, agentUserId, notes }) 
     });
   }
 
-  if (data?.requester_id) {
-    const notifyPayload = buildViewingNotificationPayload(data, {}, {
-      viewing_id: viewingId,
-      dedupe_key: `viewing_confirmed:${viewingId}`,
-    });
-    await notifyViewingEvent(client, {
-      eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
-      recipientId: data.requester_id,
-      parties: { agentUserId: data.agent_user_id, listingOwnerUserId: data.agent_user_id, requesterId: data.requester_id },
-      payload: notifyPayload,
-    });
+  let queueId = null;
+  if (data?.requester_id && data.requester_id !== agentUserId) {
+    const notifyPayload = withNotificationRecipientRole(
+      data.requester_id,
+      {
+        agentUserId: data.agent_user_id,
+        listingOwnerUserId: data.agent_user_id,
+        requesterId: data.requester_id,
+      },
+      buildViewingNotificationPayload(data, {}, {
+        viewing_id: viewingId,
+        dedupe_key: buildViewingConfirmedDedupeKey(viewingId, data.requester_id),
+        recipient_user_id: data.requester_id,
+      })
+    );
+    const enqueueResult = await enqueueNotificationEvent(
+      client,
+      {
+        eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
+        recipientId: data.requester_id,
+        payload: notifyPayload,
+      },
+      { deliver: false }
+    );
+    queueId = enqueueResult.queueId ?? null;
+    if (BL_ENABLE_NOTIFICATIONS && queueId) {
+      await triggerServerNotificationDelivery(client, { queueId });
+    }
   }
 
   if (data?.listing_id) {
@@ -240,7 +259,7 @@ export async function confirmViewing(client, { viewingId, agentUserId, notes }) 
     });
   }
 
-  return { data, error: null };
+  return { data, error: null, queueId };
 }
 
 export async function declineViewing(client, { viewingId, agentUserId, notes }) {

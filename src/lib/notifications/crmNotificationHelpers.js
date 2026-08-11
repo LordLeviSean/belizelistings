@@ -78,6 +78,13 @@ export function buildViewingRequestedDedupeKey(viewingId, recipientUserId) {
   return `viewing_requested:${viewingId}:${recipientUserId}`;
 }
 
+export function buildViewingConfirmedDedupeKey(viewingId, recipientUserId) {
+  if (!viewingId || !recipientUserId) {
+    return null;
+  }
+  return `viewing_confirmed:${viewingId}:${recipientUserId}`;
+}
+
 export function buildInboxMessagePayload({
   conversationId,
   messageId,
