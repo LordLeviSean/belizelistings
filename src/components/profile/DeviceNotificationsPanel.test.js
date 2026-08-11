@@ -279,4 +279,31 @@ describe("DeviceNotificationsPanel", () => {
     expect(reconcileDevicePushAfterPermissionRestore).toHaveBeenCalled();
     expect(loadPushDeviceStatus).toHaveBeenCalled();
   });
+
+  test("shows syncing state when device permission exists but account is not yet linked", async () => {
+    loadPushDeviceStatus.mockResolvedValue({
+      capability: {
+        capability: "granted",
+        canSubscribe: true,
+        permission: "granted",
+        isIos: false,
+        isStandalone: false,
+      },
+      browserSubscription: true,
+      currentDeviceRegistered: false,
+      currentSubscriptionId: null,
+      activeDevices: [],
+      deviceNotificationsEnabled: true,
+      pendingAccountSync: true,
+    });
+
+    const { container } = renderPanel();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(reconcileDevicePushAfterPermissionRestore).toHaveBeenCalled();
+    expect(container.textContent).toMatch(/Syncing/i);
+    expect(container.querySelector('input[type="checkbox"]')?.checked).toBe(true);
+  });
 });

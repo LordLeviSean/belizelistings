@@ -104,9 +104,13 @@ export async function loadPushDeviceStatus(client, userId) {
   }
 
   if (browserSubscription && !currentDeviceRegistered && activeDevices.length > 0) {
-    // Browser still holds a subscription but local id is stale — treat as off until re-enabled.
+    // Browser still holds a subscription but local id is stale — re-sync on next reconcile.
     currentSubscriptionId = null;
   }
+
+  const deviceNotificationsEnabled =
+    capability.permission === "granted" && Boolean(browserSubscription);
+  const pendingAccountSync = deviceNotificationsEnabled && !currentDeviceRegistered;
 
   if (!browserSubscription) {
     currentDeviceRegistered = false;
@@ -121,6 +125,8 @@ export async function loadPushDeviceStatus(client, userId) {
     currentDeviceRegistered,
     currentSubscriptionId,
     activeDevices,
+    deviceNotificationsEnabled,
+    pendingAccountSync,
   };
 }
 
@@ -151,9 +157,12 @@ export async function enableDevicePushNotifications({ client, userId, getAccessT
     return { ok: false, error: capability.capability };
   }
 
-  const permission = await (typeof Notification !== "undefined"
-    ? Notification.requestPermission()
-    : Promise.resolve("denied"));
+  const permission =
+    capability.permission === "granted"
+      ? "granted"
+      : await (typeof Notification !== "undefined"
+          ? Notification.requestPermission()
+          : Promise.resolve("denied"));
   if (permission !== "granted") {
     return { ok: false, error: permission === "denied" ? "denied" : "permission_not_granted" };
   }

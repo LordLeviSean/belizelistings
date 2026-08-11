@@ -21,7 +21,7 @@ function formatPlatformLabel(label) {
   return label || "Device";
 }
 
-function statusCopy(capability, currentDeviceRegistered) {
+function statusCopy(capability, currentDeviceRegistered, pendingAccountSync) {
   switch (capability) {
     case PUSH_CAPABILITY.UNSUPPORTED:
       return {
@@ -43,6 +43,13 @@ function statusCopy(capability, currentDeviceRegistered) {
       };
     case PUSH_CAPABILITY.IOS_INSTALLED:
     case PUSH_CAPABILITY.PERMISSION_GRANTED:
+      if (pendingAccountSync) {
+        return {
+          badge: "Syncing…",
+          badgeClass: styles.statusBadgeMuted,
+          hint: "This device already allows notifications. Connecting them to your account…",
+        };
+      }
       return currentDeviceRegistered
         ? {
             badge: "Enabled",
@@ -103,7 +110,7 @@ export default function DeviceNotificationsPanel() {
   );
 
   useEffect(() => {
-    void refreshStatus();
+    void refreshStatus({ reconcile: true });
   }, [refreshStatus]);
 
   useEffect(() => {
@@ -265,7 +272,11 @@ export default function DeviceNotificationsPanel() {
 
   const ui = useMemo(() => {
     if (!status) return null;
-    return statusCopy(status.capability.capability, status.currentDeviceRegistered);
+    return statusCopy(
+      status.capability.capability,
+      status.currentDeviceRegistered,
+      status.pendingAccountSync
+    );
   }, [status]);
 
   if (!BL_ENABLE_NOTIFICATIONS || !user?.id) {
@@ -274,7 +285,9 @@ export default function DeviceNotificationsPanel() {
 
   const capability = status?.capability;
   const isPermissionDenied = capability?.capability === PUSH_CAPABILITY.PERMISSION_DENIED;
-  const switchChecked = Boolean(status?.currentDeviceRegistered);
+  const switchChecked = Boolean(
+    status?.currentDeviceRegistered || status?.deviceNotificationsEnabled
+  );
   const switchDisabled =
     loading ||
     busy ||

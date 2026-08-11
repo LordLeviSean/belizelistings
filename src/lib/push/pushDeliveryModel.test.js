@@ -12,8 +12,9 @@ describe("pushDeliveryModel", () => {
     expect(PUSH_DELIVERY_INTEGRATION.CONNECTED_EVENT_TYPES).toEqual(["new_inquiry", "agent_replied"]);
   });
 
-  test("logout policy is documented but not implemented in 5A", () => {
-    expect(PUSH_LOGOUT_POLICY.IMPLEMENTED).toBe(false);
-    expect(PUSH_LOGOUT_POLICY.RECOMMENDATION).toMatch(/preserve_subscription/);
+  test("logout policy detaches backend ownership while preserving browser subscription", () => {
+    expect(PUSH_LOGOUT_POLICY.IMPLEMENTED).toBe(true);
+    expect(PUSH_LOGOUT_POLICY.PRESERVES_BROWSER_SUBSCRIPTION).toBe(true);
+    expect(PUSH_LOGOUT_POLICY.DETACHES_BACKEND_ON_LOGOUT).toBe(true);
   });
 });

@@ -37,9 +37,11 @@ export const PUSH_DELIVERY_INTEGRATION = Object.freeze({
  * client can identify the active subscription id.
  */
 export const PUSH_LOGOUT_POLICY = Object.freeze({
-  IMPLEMENTED: false,
-  RECOMMENDATION: "preserve_subscription_across_logout",
+  IMPLEMENTED: true,
+  RECOMMENDATION: "preserve_browser_subscription_detach_backend_on_logout",
   REQUIRES_EXPLICIT_REVOKE: true,
+  DETACHES_BACKEND_ON_LOGOUT: true,
+  PRESERVES_BROWSER_SUBSCRIPTION: true,
 });
 
 /**

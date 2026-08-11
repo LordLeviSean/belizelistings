@@ -4,6 +4,12 @@ import { supabase } from "../lib/supabaseClient";
 
 import { ensureProfile } from "../lib/ensureProfile";
 
+import { BL_ENABLE_NOTIFICATIONS } from "../lib/featureFlags";
+import {
+  detachPushSubscriptionOnLogout,
+  syncPushSubscriptionForAuthenticatedUser,
+} from "../lib/push/pushSubscriptionSessionSync";
+
 import { resolveTierFromProfile } from "../constants/operationalModel";
 
 import { getTrustTierCapabilities, resolveProfileVerification } from "../constants/trustModel";
@@ -90,6 +96,12 @@ export function UserRoleProvider({ children }) {
     initializedRef.current = Boolean(sessionUser?.id);
     if (sessionUser?.id) {
       markProfileHydrated(sessionUser.id, row);
+      if (BL_ENABLE_NOTIFICATIONS) {
+        void syncPushSubscriptionForAuthenticatedUser({
+          client: supabase,
+          userId: sessionUser.id,
+        });
+      }
     }
   }, []);
 
@@ -189,7 +201,14 @@ export function UserRoleProvider({ children }) {
       const userId = sessionUser?.id;
 
       if (event === "SIGNED_OUT") {
+        const previousUserId = hydratedUserIdRef.current;
         if (!cancelled) {
+          if (previousUserId && BL_ENABLE_NOTIFICATIONS) {
+            void detachPushSubscriptionOnLogout({
+              client: supabase,
+              userId: previousUserId,
+            });
+          }
           clearSessionState();
           setLoading(false);
         }

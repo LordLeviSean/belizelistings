@@ -112,7 +112,63 @@ describe("pushSubscriptionClient", () => {
 
     expect(result.ok).toBe(true);
     expect(registerPushSubscription).toHaveBeenCalled();
+    expect(global.Notification.requestPermission).toHaveBeenCalled();
     expect(window.localStorage.getItem("bl_push_device_sub_user-1")).toContain("sub-123");
+  });
+
+  test("enableDevicePushNotifications skips requestPermission when already granted", async () => {
+    getPushCapability.mockReturnValue({
+      capability: "granted",
+      canSubscribe: true,
+      permission: "granted",
+      isIos: false,
+      isStandalone: false,
+    });
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, publicKey: "BMkB", subject: "mailto:ops@belizelistings.bz" }),
+    });
+
+    registerBelizeListingsServiceWorker.mockReturnValue({
+      registered: true,
+      registrationPromise: Promise.resolve({ registered: true }),
+    });
+
+    const browserSubscription = {
+      toJSON: () => ({
+        endpoint: "https://push.example/device",
+        keys: { p256dh: "p256", auth: "auth" },
+      }),
+      unsubscribe: jest.fn(),
+    };
+
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: {
+        ready: Promise.resolve({
+          pushManager: {
+            getSubscription: jest.fn().mockResolvedValue(browserSubscription),
+            subscribe: jest.fn(),
+          },
+        }),
+      },
+    });
+
+    registerPushSubscription.mockResolvedValue({
+      ok: true,
+      subscriptionId: "sub-granted",
+      error: null,
+    });
+
+    const result = await enableDevicePushNotifications({
+      client: { rpc: jest.fn() },
+      userId: "user-2",
+      getAccessToken: async () => "token",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(global.Notification.requestPermission).not.toHaveBeenCalled();
   });
 
   test("disableDevicePushNotifications revokes and clears storage", async () => {
