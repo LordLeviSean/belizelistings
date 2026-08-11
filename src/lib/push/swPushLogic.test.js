@@ -123,17 +123,28 @@ describe("sw-push-logic", () => {
     );
   });
 
+  test("pickPushNavigationClient prefers visible then focused clients", () => {
+    const origin = "https://belizelistings.bz";
+    const stale = { url: `${origin}/listing/108`, focused: false, visibilityState: "hidden" };
+    const focused = { url: `${origin}/`, focused: true, visibilityState: "hidden" };
+    const visible = { url: `${origin}/search`, focused: false, visibilityState: "visible" };
+
+    expect(BL_PUSH.pickPushNavigationClient([stale, focused, visible], origin)).toBe(visible);
+    expect(BL_PUSH.pickPushNavigationClient([stale, focused], origin)).toBe(focused);
+    expect(BL_PUSH.pickPushNavigationClient([stale], origin)).toBe(stale);
+    expect(BL_PUSH.pickPushNavigationClient([], origin)).toBeNull();
+  });
+
   test("notification click navigates existing client to exact inbox conversation", async () => {
     const close = jest.fn();
     const focus = jest.fn().mockResolvedValue(undefined);
-    const navigate = jest.fn().mockResolvedValue(undefined);
-    const matchAll = jest.fn().mockResolvedValue([
-      {
-        url: "https://belizelistings.bz/dashboard/user",
-        focus,
-        navigate,
-      },
-    ]);
+    const postMessage = jest.fn();
+    const client = {
+      url: "https://belizelistings.bz/dashboard/user",
+      focus,
+      postMessage,
+      navigate: jest.fn().mockResolvedValue(undefined),
+    };
     const openWindow = jest.fn();
 
     await BL_PUSH.handleNotificationClick(
@@ -143,14 +154,18 @@ describe("sw-push-logic", () => {
           data: { href: "/dashboard/user?tab=inbox&conversation=conv-buyer-1" },
         },
       },
-      { matchAll, openWindow },
+      { matchAll: jest.fn().mockResolvedValue([client]), openWindow },
       "https://belizelistings.bz"
     );
 
     expect(close).toHaveBeenCalled();
-    expect(navigate).toHaveBeenCalledWith(
+    expect(client.navigate).toHaveBeenCalledWith(
       "https://belizelistings.bz/dashboard/user?tab=inbox&conversation=conv-buyer-1"
     );
+    expect(postMessage).toHaveBeenCalledWith({
+      type: "bl-push-navigate",
+      href: "/dashboard/user?tab=inbox&conversation=conv-buyer-1",
+    });
     expect(focus).toHaveBeenCalled();
     expect(openWindow).not.toHaveBeenCalled();
   });
@@ -181,36 +196,137 @@ describe("sw-push-logic", () => {
       type: "bl-push-navigate",
       href: "/dashboard/user?tab=inbox&conversation=conv-buyer-2",
     });
+    expect(focus).toHaveBeenCalled();
   });
 
-  test("notification click focuses existing client when possible", async () => {
-    const close = jest.fn();
+  test("notification click always posts SPA navigation even when Client.navigate succeeds", async () => {
+    const postMessage = jest.fn();
     const focus = jest.fn().mockResolvedValue(undefined);
     const navigate = jest.fn().mockResolvedValue(undefined);
-    const matchAll = jest.fn().mockResolvedValue([
-      {
-        url: "https://belizelistings.bz/dashboard/user",
-        focus,
-        navigate,
-      },
-    ]);
-    const openWindow = jest.fn();
+    const client = {
+      url: "https://belizelistings.bz/listing/108",
+      focus,
+      navigate,
+      postMessage,
+    };
 
     await BL_PUSH.handleNotificationClick(
       {
         notification: {
-          close,
-          data: { href: "/dashboard/user?tab=profile" },
+          close: jest.fn(),
+          data: { href: "/dashboard/user?tab=viewings&viewing=42" },
         },
       },
-      { matchAll, openWindow },
+      { matchAll: jest.fn().mockResolvedValue([client]), openWindow: jest.fn() },
       "https://belizelistings.bz"
     );
 
-    expect(close).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(
+      "https://belizelistings.bz/dashboard/user?tab=viewings&viewing=42"
+    );
+    expect(postMessage).toHaveBeenCalledWith({
+      type: "bl-push-navigate",
+      href: "/dashboard/user?tab=viewings&viewing=42",
+    });
     expect(focus).toHaveBeenCalled();
-    expect(navigate).toHaveBeenCalledWith("https://belizelistings.bz/dashboard/user?tab=profile");
-    expect(openWindow).not.toHaveBeenCalled();
+  });
+
+  test("viewing_declined with no client opens full viewings deep link", async () => {
+    const openWindow = jest.fn().mockResolvedValue(undefined);
+    await BL_PUSH.handleNotificationClick(
+      {
+        notification: {
+          close: jest.fn(),
+          data: { href: "/dashboard/user?tab=viewings&viewing=99" },
+        },
+      },
+      {
+        matchAll: jest.fn().mockResolvedValue([]),
+        openWindow,
+      },
+      "https://belizelistings.bz"
+    );
+    expect(openWindow).toHaveBeenCalledWith(
+      "https://belizelistings.bz/dashboard/user?tab=viewings&viewing=99"
+    );
+  });
+
+  test("failed Client.navigate still posts router fallback to the same client", async () => {
+    const postMessage = jest.fn();
+    const focus = jest.fn().mockResolvedValue(undefined);
+    const client = {
+      url: "https://belizelistings.bz/listing/108",
+      focus,
+      postMessage,
+      navigate: jest.fn().mockResolvedValue(null),
+    };
+
+    await BL_PUSH.handleNotificationClick(
+      {
+        notification: {
+          close: jest.fn(),
+          data: { href: "/dashboard/user?tab=viewings&viewing=7" },
+        },
+      },
+      { matchAll: jest.fn().mockResolvedValue([client]), openWindow: jest.fn() },
+      "https://belizelistings.bz"
+    );
+
+    expect(client.navigate).toHaveBeenCalled();
+    expect(postMessage).toHaveBeenCalledWith({
+      type: "bl-push-navigate",
+      href: "/dashboard/user?tab=viewings&viewing=7",
+    });
+    expect(focus).toHaveBeenCalled();
+  });
+
+  test("multiple clients navigate, postMessage, and focus the same selected client", async () => {
+    const staleFocus = jest.fn();
+    const stalePostMessage = jest.fn();
+    const staleNavigate = jest.fn();
+    const staleClient = {
+      url: "https://belizelistings.bz/listing/1",
+      focused: false,
+      visibilityState: "hidden",
+      focus: staleFocus,
+      postMessage: stalePostMessage,
+      navigate: staleNavigate,
+    };
+
+    const activeFocus = jest.fn().mockResolvedValue(undefined);
+    const activePostMessage = jest.fn();
+    const activeNavigate = jest.fn().mockResolvedValue(undefined);
+    const activeClient = {
+      url: "https://belizelistings.bz/search",
+      focused: true,
+      visibilityState: "hidden",
+      focus: activeFocus,
+      postMessage: activePostMessage,
+      navigate: activeNavigate,
+    };
+
+    await BL_PUSH.handleNotificationClick(
+      {
+        notification: {
+          close: jest.fn(),
+          data: { href: "/dashboard/user?tab=viewings&viewing=55" },
+        },
+      },
+      { matchAll: jest.fn().mockResolvedValue([staleClient, activeClient]), openWindow: jest.fn() },
+      "https://belizelistings.bz"
+    );
+
+    expect(staleNavigate).not.toHaveBeenCalled();
+    expect(stalePostMessage).not.toHaveBeenCalled();
+    expect(staleFocus).not.toHaveBeenCalled();
+    expect(activeNavigate).toHaveBeenCalledWith(
+      "https://belizelistings.bz/dashboard/user?tab=viewings&viewing=55"
+    );
+    expect(activePostMessage).toHaveBeenCalledWith({
+      type: "bl-push-navigate",
+      href: "/dashboard/user?tab=viewings&viewing=55",
+    });
+    expect(activeFocus).toHaveBeenCalled();
   });
 
   test("notification click opens a new window when no suitable client exists", async () => {
@@ -229,5 +345,40 @@ describe("sw-push-logic", () => {
       "https://belizelistings.bz"
     );
     expect(openWindow).toHaveBeenCalledWith("https://belizelistings.bz/dashboard/user?tab=profile");
+  });
+
+  test("agent_replied and new_inquiry navigation paths remain unchanged", async () => {
+    for (const href of [
+      "/dashboard/user?tab=inbox&conversation=conv-agent-replied",
+      "/dashboard/agent?tab=inbox&conversation=conv-new-inquiry",
+    ]) {
+      const postMessage = jest.fn();
+      const focus = jest.fn().mockResolvedValue(undefined);
+      const navigate = jest.fn().mockResolvedValue(undefined);
+      const client = {
+        url: "https://belizelistings.bz/",
+        focus,
+        navigate,
+        postMessage,
+      };
+
+      await BL_PUSH.handleNotificationClick(
+        {
+          notification: {
+            close: jest.fn(),
+            data: { href },
+          },
+        },
+        { matchAll: jest.fn().mockResolvedValue([client]), openWindow: jest.fn() },
+        "https://belizelistings.bz"
+      );
+
+      expect(navigate).toHaveBeenCalledWith(`https://belizelistings.bz${href}`);
+      expect(postMessage).toHaveBeenCalledWith({
+        type: "bl-push-navigate",
+        href,
+      });
+      expect(focus).toHaveBeenCalled();
+    }
   });
 });

@@ -31,4 +31,32 @@ describe("pushNotificationNavigation", () => {
     expect(handled).toBe(true);
     expect(push).toHaveBeenCalledWith("/dashboard/user?tab=inbox&conversation=conv-buyer-1");
   });
+
+  test("navigates existing client to exact viewing_declined dashboard URL", () => {
+    const push = jest.fn();
+    const handled = handlePushNavigateMessage(
+      {
+        type: PUSH_NAVIGATE_MESSAGE_TYPE,
+        href: "/dashboard/user?tab=viewings&viewing=42",
+      },
+      { push }
+    );
+
+    expect(handled).toBe(true);
+    expect(push).toHaveBeenCalledWith("/dashboard/user?tab=viewings&viewing=42");
+  });
+
+  test("push navigation from unrelated page reaches buyer dashboard viewings tab", () => {
+    const push = jest.fn();
+    const handled = handlePushNavigateMessage(
+      {
+        type: PUSH_NAVIGATE_MESSAGE_TYPE,
+        href: "/dashboard/user?tab=viewings&viewing=108",
+      },
+      { push }
+    );
+
+    expect(handled).toBe(true);
+    expect(push).toHaveBeenCalledWith("/dashboard/user?tab=viewings&viewing=108");
+  });
 });

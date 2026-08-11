@@ -9,6 +9,7 @@
   const DEFAULT_BODY = "You have a new update.";
   const FALLBACK_HREF = "/dashboard/user?tab=profile";
   const NOTIFICATION_ICON = "/apple-touch-icon.png";
+  const PUSH_NAVIGATE_MESSAGE_TYPE = "bl-push-navigate";
 
   function truncate(value, max) {
     const text = String(value ?? "").trim();
@@ -101,6 +102,58 @@
     }
   }
 
+  function isSameOriginClient(client, origin) {
+    return String(client?.url || "").startsWith(origin);
+  }
+
+  /**
+   * Pick one BelizeListings window client deterministically so navigate, postMessage,
+   * and focus always target the same tab.
+   */
+  function pickPushNavigationClient(windowClients, origin) {
+    const eligible = windowClients.filter((client) => isSameOriginClient(client, origin));
+    if (!eligible.length) return null;
+
+    const visible = eligible.find((client) => client.visibilityState === "visible");
+    if (visible) return visible;
+
+    const focused = eligible.find((client) => client.focused === true);
+    if (focused) return focused;
+
+    return eligible[0];
+  }
+
+  function postPushNavigateMessage(client, targetPath) {
+    if (!client || typeof client.postMessage !== "function") return false;
+    client.postMessage({
+      type: PUSH_NAVIGATE_MESSAGE_TYPE,
+      href: targetPath,
+    });
+    return true;
+  }
+
+  async function tryNavigateClient(client, targetUrl) {
+    if (!client || !("navigate" in client) || typeof client.navigate !== "function") {
+      return { attempted: false, navigatedClient: null };
+    }
+
+    try {
+      const navigatedClient = await client.navigate(targetUrl);
+      return { attempted: true, navigatedClient: navigatedClient || null };
+    } catch {
+      return { attempted: true, navigatedClient: null };
+    }
+  }
+
+  async function focusClient(client) {
+    if (!client || typeof client.focus !== "function") return null;
+    try {
+      return await client.focus();
+    } catch {
+      return null;
+    }
+  }
+
   async function handlePushEvent(event, registration) {
     const payload = parsePushEventData(event);
     const built = buildNotificationOptions(payload);
@@ -119,32 +172,17 @@
       includeUncontrolled: true,
     });
 
-    for (const client of windowClients) {
-      if (!String(client.url || "").startsWith(locationOrigin)) continue;
+    const client = pickPushNavigationClient(windowClients, locationOrigin);
 
-      try {
-        if ("navigate" in client) {
-          await client.navigate(targetUrl);
-          if ("focus" in client) {
-            await client.focus();
-          }
-          return;
-        }
+    if (client) {
+      const { navigatedClient } = await tryNavigateClient(client, targetUrl);
+      const activeClient = navigatedClient || client;
 
-        if ("focus" in client) {
-          await client.focus();
-        }
-
-        if (typeof client.postMessage === "function") {
-          client.postMessage({
-            type: "bl-push-navigate",
-            href: targetPath,
-          });
-          return;
-        }
-      } catch {
-        // try next client or open a new window
-      }
+      // Client.navigate() can resolve without updating the Next.js router in installed PWAs.
+      // Always deliver SPA navigation to the same client that will be focused.
+      postPushNavigateMessage(activeClient, targetPath);
+      await focusClient(activeClient);
+      return;
     }
 
     if (clientsApi.openWindow) {
@@ -157,11 +195,17 @@
     DEFAULT_BODY,
     FALLBACK_HREF,
     NOTIFICATION_ICON,
+    PUSH_NAVIGATE_MESSAGE_TYPE,
     isSafeRelativePath,
     normalizePushPayload,
     parsePushEventData,
     buildNotificationOptions,
     resolveNotificationTarget,
+    isSameOriginClient,
+    pickPushNavigationClient,
+    postPushNavigateMessage,
+    tryNavigateClient,
+    focusClient,
     handlePushEvent,
     handleNotificationClick,
   });
