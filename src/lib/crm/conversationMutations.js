@@ -12,8 +12,16 @@ import {
   MESSAGE_SENDER_ROLE,
 } from "./crmConstants";
 import { buildInboxMessagePayload } from "../notifications/crmNotificationHelpers";
+import {
+  MESSAGE_SENDER_CONTEXT,
+  resolveReplySenderPresentation,
+} from "../notifications/messagingNotificationCopy";
 import { withNotificationRecipientRole } from "./notificationRecipientRoles";
 import { isCrmUnavailable } from "./crmCompat";
+import {
+  fetchProfileRowWithTiers,
+  PROFILE_REPLY_NOTIFICATION_TIERS,
+} from "../profileSelectContract";
 
 /** Disambiguate listing_inquiries embed (PGRST201 when multiple FKs exist). */
 export const CONVERSATION_INQUIRY_EMBED =
@@ -194,7 +202,7 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
     const enqueueResult = await enqueueNotificationEvent(
       client,
       {
-        eventType: NOTIFICATION_EVENT_TYPES.NEW_INQUIRY,
+        eventType: NOTIFICATION_EVENT_TYPES.BUYER_REPLIED,
         recipientId: agentUserId,
         payload: withNotificationRecipientRole(
           agentUserId,
@@ -207,7 +215,8 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
             listingTitle: resolvedTitle,
             senderName: resolvedSender,
             recipientSide: "owner",
-            dedupePrefix: "buyer_message",
+            recipientUserId: agentUserId,
+            dedupePrefix: "buyer_replied",
           })
         ),
       },
@@ -297,11 +306,25 @@ export async function performAgentReply(client, { conversationId, agentUserId, b
   const resolvedListingId = listingId ?? conv?.listing_id;
   let queueId = null;
 
+  const { data: senderProfile } = await fetchProfileRowWithTiers(
+    client,
+    agentUserId,
+    PROFILE_REPLY_NOTIFICATION_TIERS
+  );
+
+  const { senderRole, senderName } = resolveReplySenderPresentation(senderProfile);
+  const replyEventType =
+    senderRole === MESSAGE_SENDER_CONTEXT.ADMIN
+      ? NOTIFICATION_EVENT_TYPES.ADMIN_REPLIED
+      : NOTIFICATION_EVENT_TYPES.AGENT_REPLIED;
+  const dedupePrefix =
+    senderRole === MESSAGE_SENDER_CONTEXT.ADMIN ? "admin_replied" : "agent_replied";
+
   if (conv?.buyer_id) {
     const enqueueResult = await enqueueNotificationEvent(
       client,
       {
-        eventType: NOTIFICATION_EVENT_TYPES.AGENT_REPLIED,
+        eventType: replyEventType,
         recipientId: conv.buyer_id,
         payload: withNotificationRecipientRole(conv.buyer_id, { requesterId: conv.buyer_id }, buildInboxMessagePayload({
           conversationId,
@@ -309,9 +332,11 @@ export async function performAgentReply(client, { conversationId, agentUserId, b
           inquiryId: conv.inquiry_id,
           listingId: resolvedListingId,
           listingTitle: listingTitle ?? null,
+          senderName,
+          senderRole,
           recipientSide: "buyer",
           recipientUserId: conv.buyer_id,
-          dedupePrefix: "agent_replied",
+          dedupePrefix,
         })),
       },
       { deliver: false }

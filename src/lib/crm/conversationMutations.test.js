@@ -12,7 +12,9 @@ jest.mock("../notifications/notificationEvents", () => ({
   enqueueNotificationEvent: jest.fn().mockResolvedValue({ ok: true, queueId: "q1" }),
   NOTIFICATION_EVENT_TYPES: {
     NEW_INQUIRY: "new_inquiry",
+    BUYER_REPLIED: "buyer_replied",
     AGENT_REPLIED: "agent_replied",
+    ADMIN_REPLIED: "admin_replied",
   },
 }));
 
@@ -68,7 +70,7 @@ describe("conversationMutations", () => {
     expect(isBuyerConversationUnread({ buyer_unread: false })).toBe(false);
   });
 
-  test("sendBuyerReply notifies agent and triggers delivery", async () => {
+  test("sendBuyerReply notifies agent with buyer_replied and triggers delivery", async () => {
     const insert = jest.fn().mockReturnValue({
       select: jest.fn().mockReturnValue({
         single: jest.fn().mockResolvedValue({ data: { id: "msg-1" }, error: null }),
@@ -81,6 +83,15 @@ describe("conversationMutations", () => {
     const client = {
       from: jest.fn((table) => {
         if (table === "messages") return { insert };
+        if (table === "profiles") {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockResolvedValue({ data: { role: "agent", username: "agent_user" } }),
+              }),
+            }),
+          };
+        }
         if (table === "conversations") {
           return {
             select: jest.fn().mockReturnValue({
@@ -108,8 +119,11 @@ describe("conversationMutations", () => {
     expect(enqueueNotificationEvent).toHaveBeenCalledWith(
       client,
       expect.objectContaining({
-        eventType: "new_inquiry",
+        eventType: "buyer_replied",
         recipientId: "agent-1",
+        payload: expect.objectContaining({
+          dedupe_key: "buyer_replied:msg-1:agent-1",
+        }),
       }),
       expect.any(Object)
     );
@@ -131,6 +145,15 @@ describe("conversationMutations", () => {
     const client = {
       from: jest.fn((table) => {
         if (table === "messages") return { insert };
+        if (table === "profiles") {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockResolvedValue({ data: { role: "agent", username: "agent_user" } }),
+              }),
+            }),
+          };
+        }
         if (table === "conversations") {
           return {
             update: jest.fn().mockReturnValue({
@@ -188,6 +211,15 @@ describe("conversationMutations", () => {
     const client = {
       from: jest.fn((table) => {
         if (table === "messages") return { insert };
+        if (table === "profiles") {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockResolvedValue({ data: { role: "agent", username: "agent_user" } }),
+              }),
+            }),
+          };
+        }
         if (table === "conversations") {
           return {
             update: jest.fn().mockReturnValue({

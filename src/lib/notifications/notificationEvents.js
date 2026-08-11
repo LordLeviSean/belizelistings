@@ -5,7 +5,9 @@ import { deliverAfterEnqueue } from "./deliverNotifications";
 /** Structured notification event types (Workstream G). */
 export const NOTIFICATION_EVENT_TYPES = Object.freeze({
   NEW_INQUIRY: "new_inquiry",
+  BUYER_REPLIED: "buyer_replied",
   AGENT_REPLIED: "agent_replied",
+  ADMIN_REPLIED: "admin_replied",
   VIEWING_REQUESTED: "viewing_requested",
   VIEWING_CONFIRMED: "viewing_confirmed",
   VIEWING_CANCELLED: "viewing_cancelled",

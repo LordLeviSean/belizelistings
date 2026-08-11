@@ -57,6 +57,20 @@ export function buildAgentRepliedDedupeKey(messageId, recipientUserId) {
   return `agent_replied:${messageId}:${recipientUserId}`;
 }
 
+export function buildBuyerRepliedDedupeKey(messageId, recipientUserId) {
+  if (!messageId || !recipientUserId) {
+    return null;
+  }
+  return `buyer_replied:${messageId}:${recipientUserId}`;
+}
+
+export function buildAdminRepliedDedupeKey(messageId, recipientUserId) {
+  if (!messageId || !recipientUserId) {
+    return null;
+  }
+  return `admin_replied:${messageId}:${recipientUserId}`;
+}
+
 export function buildInboxMessagePayload({
   conversationId,
   messageId,
@@ -64,6 +78,8 @@ export function buildInboxMessagePayload({
   listingId,
   listingTitle,
   senderName,
+  senderRole = null,
+  sender_role = null,
   recipientSide,
   recipientUserId = null,
   dedupePrefix = "new_inquiry",
@@ -71,7 +87,11 @@ export function buildInboxMessagePayload({
   const dedupeKey =
     dedupePrefix === "agent_replied"
       ? buildAgentRepliedDedupeKey(messageId, recipientUserId)
-      : `${dedupePrefix}:${conversationId}:${messageId ?? ""}`;
+      : dedupePrefix === "buyer_replied"
+        ? buildBuyerRepliedDedupeKey(messageId, recipientUserId)
+        : dedupePrefix === "admin_replied"
+          ? buildAdminRepliedDedupeKey(messageId, recipientUserId)
+          : `${dedupePrefix}:${conversationId}:${messageId ?? ""}`;
 
   return {
     conversation_id: conversationId,
@@ -80,6 +100,7 @@ export function buildInboxMessagePayload({
     listing_id: listingId,
     listing_title: listingTitle ?? null,
     sender_name: senderName ?? null,
+    sender_role: sender_role ?? senderRole ?? null,
     recipient_side: recipientSide,
     dedupe_key: dedupeKey,
   };

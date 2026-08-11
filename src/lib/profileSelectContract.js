@@ -70,6 +70,9 @@ export const PROFILE_PUBLIC_AGENT_SELECT = [
 /** Server / API: role gate only. */
 export const PROFILE_ROLE_ONLY_SELECT = "role";
 
+/** CRM reply notifications: role + public username label only. */
+export const PROFILE_REPLY_NOTIFICATION_TIERS = ["role, username", PROFILE_ROLE_ONLY_SELECT];
+
 /** Server / API: existence / uniqueness probes. */
 export const PROFILE_ID_ONLY_SELECT = "id";
 

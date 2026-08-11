@@ -12,7 +12,10 @@ import {
 } from "@/lib/notifications/crmNotificationHelpers";
 import { NOTIFICATION_EVENT_TYPES } from "./notificationEvents";
 import { resolveAgentRepliedNotificationHref } from "./agentRepliedNotificationRouting";
+import { resolveAdminRepliedNotificationHref } from "./adminRepliedNotificationRouting";
+import { resolveBuyerRepliedNotificationHref } from "./buyerRepliedNotificationRouting";
 import { resolveNewInquiryNotificationHref } from "./newInquiryNotificationRouting";
+import { buildMessagingInAppCopy } from "./messagingNotificationCopy";
 
 /** Editorial categories — calm luxury, operational tone. */
 export const NOTIFICATION_CATEGORIES = Object.freeze({
@@ -70,8 +73,11 @@ export function buildNotificationPresentation(eventType, payload = {}) {
           slotLabel
         );
       } else {
-        title = "New message received";
-        body = `${senderName} sent you a message about ${listingTitle}.`;
+        const messagingCopy = buildMessagingInAppCopy(eventType, payload);
+        title = messagingCopy?.title ?? "New property inquiry";
+        body =
+          messagingCopy?.body ??
+          `${senderName} is interested in ${listingTitle}.`;
       }
       entityType = "conversation";
       entityId = conversationId ? String(conversationId) : inquiryId ? String(inquiryId) : null;
@@ -83,10 +89,33 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       });
       break;
 
-    case NOTIFICATION_EVENT_TYPES.AGENT_REPLIED:
+    case NOTIFICATION_EVENT_TYPES.BUYER_REPLIED: {
       category = NOTIFICATION_CATEGORIES.INQUIRY;
-      title = "You received a reply";
-      body = `You received a reply about ${listingTitle}.`;
+      const messagingCopy = buildMessagingInAppCopy(eventType, payload);
+      title = messagingCopy?.title ?? "Buyer replied";
+      body =
+        messagingCopy?.body ??
+        `You received a new message about ${listingTitle}.`;
+      entityType = "conversation";
+      entityId = conversationId ? String(conversationId) : null;
+      dedupeKey =
+        dedupeKey ??
+        (messageId && (payload.recipient_user_id ?? payload.recipientUserId)
+          ? `buyer_replied:${messageId}:${payload.recipient_user_id ?? payload.recipientUserId}`
+          : `buyer_replied:${messageId ?? ""}:${payload.recipient_user_id ?? payload.recipientUserId ?? ""}`);
+      href = resolveBuyerRepliedNotificationHref({
+        recipientRole: recipientRole || "agent",
+        payload,
+        conversationId,
+      });
+      break;
+    }
+
+    case NOTIFICATION_EVENT_TYPES.AGENT_REPLIED: {
+      category = NOTIFICATION_CATEGORIES.INQUIRY;
+      const messagingCopy = buildMessagingInAppCopy(eventType, payload);
+      title = messagingCopy?.title ?? "Agent replied";
+      body = messagingCopy?.body ?? `You received a reply about ${listingTitle}.`;
       entityType = "conversation";
       entityId = conversationId ? String(conversationId) : null;
       dedupeKey =
@@ -100,6 +129,27 @@ export function buildNotificationPresentation(eventType, payload = {}) {
         conversationId,
       });
       break;
+    }
+
+    case NOTIFICATION_EVENT_TYPES.ADMIN_REPLIED: {
+      category = NOTIFICATION_CATEGORIES.INQUIRY;
+      const messagingCopy = buildMessagingInAppCopy(eventType, payload);
+      title = messagingCopy?.title ?? "BelizeListings replied";
+      body = messagingCopy?.body ?? "An admin responded to your conversation.";
+      entityType = "conversation";
+      entityId = conversationId ? String(conversationId) : null;
+      dedupeKey =
+        dedupeKey ??
+        (messageId && (payload.recipient_user_id ?? payload.recipientUserId)
+          ? `admin_replied:${messageId}:${payload.recipient_user_id ?? payload.recipientUserId}`
+          : `admin_replied:${messageId ?? ""}:${payload.recipient_user_id ?? payload.recipientUserId ?? ""}`);
+      href = resolveAdminRepliedNotificationHref({
+        recipientRole: recipientRole || "user",
+        payload,
+        conversationId,
+      });
+      break;
+    }
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED:
       category = NOTIFICATION_CATEGORIES.INQUIRY;

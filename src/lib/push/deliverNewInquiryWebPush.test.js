@@ -106,7 +106,7 @@ describe("deliverNewInquiryWebPush", () => {
         payload: expect.objectContaining({
           eventType: "new_inquiry",
           title: "New property inquiry",
-          body: "Someone is interested in one of your listings.",
+          body: "A buyer is interested in one of your listings.",
           href: "/dashboard/agent?tab=inbox&conversation=conv-1",
           tag: "new_inquiry:inq-1",
         }),
@@ -201,8 +201,8 @@ describe("deliverNewInquiryWebPush", () => {
         ok: true,
         payload: expect.objectContaining({
           eventType: "agent_replied",
-          title: "You received a reply",
-          body: "Someone replied to your property inquiry.",
+          title: "Agent replied",
+          body: "You received a reply to your property inquiry.",
           href: "/dashboard/user?tab=inbox&conversation=conv-buyer-1",
           tag: "agent_replied:msg-1:buyer-1",
         }),

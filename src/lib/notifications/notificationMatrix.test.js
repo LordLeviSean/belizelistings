@@ -17,7 +17,7 @@ describe("CRM notification matrix", () => {
       recipient_role: "agent",
       recipient_side: "owner",
     });
-    expect(pres.title).toBe("New message received");
+    expect(pres.title).toBe("New property inquiry");
     expect(pres.body).toContain(SENDER);
     expect(pres.body).toContain(LISTING);
     expect(pres.href).toBe("/dashboard/agent?tab=inbox&conversation=conv-1");
@@ -32,7 +32,7 @@ describe("CRM notification matrix", () => {
       listing_title: LISTING,
       recipient_role: "user",
     });
-    expect(pres.title).toBe("You received a reply");
+    expect(pres.title).toBe("Agent replied");
     expect(pres.body).toContain(LISTING);
     expect(pres.href).toBe("/dashboard/user?tab=inbox&conversation=conv-2");
     expect(pres.dedupeKey).toBe("agent_replied:msg-2:buyer-9");

@@ -234,10 +234,31 @@ export function resolveNotificationDestination({ eventType, role, payload = {} }
         conversationId,
       });
 
+    case NOTIFICATION_EVENT_TYPES.BUYER_REPLIED:
+      return resolveMessageConversationPath({
+        role: recipientRole,
+        side: recipientSide === "buyer" ? "owner" : recipientSide,
+        conversationId,
+      });
+
     case NOTIFICATION_EVENT_TYPES.AGENT_REPLIED:
       return resolveMessageConversationPath({
         role: recipientRole,
         side: "buyer",
+        conversationId,
+      });
+
+    case NOTIFICATION_EVENT_TYPES.ADMIN_REPLIED:
+      if (recipientSide === "buyer") {
+        return resolveMessageConversationPath({
+          role: recipientRole,
+          side: "buyer",
+          conversationId,
+        });
+      }
+      return resolveMessageConversationPath({
+        role: recipientRole,
+        side: recipientSide === "buyer" ? "owner" : recipientSide,
         conversationId,
       });
 

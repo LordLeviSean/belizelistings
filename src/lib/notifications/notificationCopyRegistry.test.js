@@ -18,7 +18,7 @@ describe("notificationCopyRegistry", () => {
       recipient_role: "agent",
     });
     expect(pres.category).toBe(NOTIFICATION_CATEGORIES.INQUIRY);
-    expect(pres.title).toBe("New message received");
+    expect(pres.title).toBe("New property inquiry");
     expect(pres.body).toContain("Finca Solana");
     expect(pres.href).toBe("/dashboard/agent?tab=inbox&conversation=conv-1");
     expect(pres.dedupeKey).toBe("new_inquiry:inq-1");

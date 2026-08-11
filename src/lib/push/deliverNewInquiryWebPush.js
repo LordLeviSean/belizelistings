@@ -1,8 +1,14 @@
 import { BL_ENABLE_NOTIFICATIONS } from "@/lib/featureFlags";
 import { NOTIFICATION_EVENT_TYPES } from "@/lib/notifications/notificationEvents";
 import { resolveAgentRepliedNotificationHref } from "@/lib/notifications/agentRepliedNotificationRouting";
+import { resolveAdminRepliedNotificationHref } from "@/lib/notifications/adminRepliedNotificationRouting";
+import { resolveBuyerRepliedNotificationHref } from "@/lib/notifications/buyerRepliedNotificationRouting";
 import { resolveNewInquiryNotificationHref } from "@/lib/notifications/newInquiryNotificationRouting";
 import { buildAgentRepliedPushPayload } from "./buildAgentRepliedPushPayload";
+import {
+  buildAdminRepliedPushPayload,
+  buildBuyerRepliedPushPayload,
+} from "./buildMessagingPushPayload";
 import {
   buildNewInquiryPushPayload,
   resolveNewInquiryPushDestination,
@@ -20,7 +26,12 @@ import {
 const WEB_PUSH_DELIVERED_KEY = "_web_push_delivered";
 
 /** Event types wired to immediate + recovery Web Push delivery. */
-export const CONNECTED_PUSH_EVENT_TYPES = Object.freeze(["new_inquiry", "agent_replied"]);
+export const CONNECTED_PUSH_EVENT_TYPES = Object.freeze([
+  "new_inquiry",
+  "buyer_replied",
+  "agent_replied",
+  "admin_replied",
+]);
 
 /**
  * @param {import('@supabase/supabase-js').SupabaseClient} adminClient
@@ -133,16 +144,28 @@ function isConnectedPushEventType(eventType) {
   return CONNECTED_PUSH_EVENT_TYPES.includes(eventType);
 }
 
-function buildPushPayloadForEvent(eventType, { notificationId, dedupeKey, href }) {
+function buildPushPayloadForEvent(eventType, { notificationId, dedupeKey, href, payload = {} }) {
   if (eventType === NOTIFICATION_EVENT_TYPES.AGENT_REPLIED) {
-    return buildAgentRepliedPushPayload({ notificationId, dedupeKey, href });
+    return buildAgentRepliedPushPayload({ notificationId, dedupeKey, href, payload });
   }
-  return buildNewInquiryPushPayload({ notificationId, dedupeKey, href });
+  if (eventType === NOTIFICATION_EVENT_TYPES.BUYER_REPLIED) {
+    return buildBuyerRepliedPushPayload({ notificationId, dedupeKey, href, payload });
+  }
+  if (eventType === NOTIFICATION_EVENT_TYPES.ADMIN_REPLIED) {
+    return buildAdminRepliedPushPayload({ notificationId, dedupeKey, href, payload });
+  }
+  return buildNewInquiryPushPayload({ notificationId, dedupeKey, href, payload });
 }
 
 function resolvePushHrefForEvent(eventType, recipientRole, payload) {
   if (eventType === NOTIFICATION_EVENT_TYPES.AGENT_REPLIED) {
     return resolveAgentRepliedNotificationHref({ recipientRole, payload });
+  }
+  if (eventType === NOTIFICATION_EVENT_TYPES.BUYER_REPLIED) {
+    return resolveBuyerRepliedNotificationHref({ recipientRole, payload });
+  }
+  if (eventType === NOTIFICATION_EVENT_TYPES.ADMIN_REPLIED) {
+    return resolveAdminRepliedNotificationHref({ recipientRole, payload });
   }
   return resolveNewInquiryNotificationHref({ recipientRole, payload });
 }
@@ -208,6 +231,7 @@ export async function deliverNewInquiryWebPush(adminClient, deliverResult, { sou
     notificationId,
     dedupeKey,
     href,
+    payload,
   });
 
   if (!built.ok) {
