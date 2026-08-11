@@ -15,9 +15,10 @@ export function isSafePushNavigateHref(href) {
 
 /**
  * @param {unknown} data
- * @param {{ push: (href: string) => void|Promise<void> }} router
+ * @param {{ push: (href: string) => void|Promise<void>, isReady?: boolean }} router
+ * @param {{ pendingHrefRef?: { current: string | null } }} [options]
  */
-export function handlePushNavigateMessage(data, router) {
+export function handlePushNavigateMessage(data, router, options = {}) {
   if (!data || typeof data !== "object" || data.type !== PUSH_NAVIGATE_MESSAGE_TYPE) {
     return false;
   }
@@ -25,6 +26,30 @@ export function handlePushNavigateMessage(data, router) {
   if (!isSafePushNavigateHref(href)) {
     return false;
   }
-  void router.push(href.trim());
+
+  const destination = href.trim();
+  const pendingHrefRef = options.pendingHrefRef;
+
+  if (router?.isReady === false && pendingHrefRef) {
+    pendingHrefRef.current = destination;
+    return true;
+  }
+
+  void router.push(destination);
+  return true;
+}
+
+/**
+ * @param {{ current: string | null } | undefined} pendingHrefRef
+ * @param {{ push: (href: string) => void|Promise<void>, isReady?: boolean }} router
+ */
+export function flushPendingPushNavigation(pendingHrefRef, router) {
+  if (!pendingHrefRef?.current || router?.isReady === false) {
+    return false;
+  }
+
+  const href = pendingHrefRef.current;
+  pendingHrefRef.current = null;
+  void router.push(href);
   return true;
 }

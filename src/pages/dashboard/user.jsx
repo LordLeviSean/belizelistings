@@ -38,6 +38,11 @@ import {
   userHasOwnedListings,
 } from "@/constants/dashboardUserConfig";
 import { resolveUserDashboardTabFromQuery } from "@/lib/dashboardCrmRoutes";
+import {
+  readUserDashboardQueryParam,
+  resolveUserDashboardLocationQuery,
+  resolveUserDashboardSessionPhase,
+} from "@/lib/dashboard/userDashboardBootstrap";
 import styles from "@/styles/Dashboard.module.css";
 import loadingStyles from "@/styles/UserDashboard.module.css";
 
@@ -105,24 +110,31 @@ export default function UserDashboard() {
     [hasOwnedListings]
   );
 
+  const locationQuery = useMemo(
+    () => resolveUserDashboardLocationQuery(router),
+    [
+      router.isReady,
+      router.query.tab,
+      router.query.conversation,
+      router.query.viewing,
+      router.query.listing,
+    ]
+  );
+
   const activeTab = useMemo(() => {
-    const inferred = resolveUserDashboardTabFromQuery(router.query);
+    const inferred = resolveUserDashboardTabFromQuery(locationQuery);
     return resolveVisibleUserDashboardTab(inferred, visibleTabs);
-  }, [router.query.tab, router.query.conversation, router.query.viewing, router.query.listing, visibleTabs]);
+  }, [locationQuery, visibleTabs]);
 
-  const deepLinkConversationId = useMemo(() => {
-    const conversation = router.query.conversation;
-    if (typeof conversation === "string") return conversation;
-    if (Array.isArray(conversation)) return conversation[0] ?? null;
-    return null;
-  }, [router.query.conversation]);
+  const deepLinkConversationId = useMemo(
+    () => readUserDashboardQueryParam(router, "conversation"),
+    [router.isReady, router.query.conversation]
+  );
 
-  const deepLinkViewingId = useMemo(() => {
-    const viewing = router.query.viewing;
-    if (typeof viewing === "string") return viewing;
-    if (Array.isArray(viewing)) return viewing[0] ?? null;
-    return null;
-  }, [router.query.viewing]);
+  const deepLinkViewingId = useMemo(
+    () => readUserDashboardQueryParam(router, "viewing"),
+    [router.isReady, router.query.viewing]
+  );
 
   const [buyerInquiries, setBuyerInquiries] = useState([]);
   const [buyerViewings, setBuyerViewings] = useState([]);
@@ -172,6 +184,21 @@ export default function UserDashboard() {
 
   const profileHydrated = Boolean(user?.id && isProfileHydratedForUser(user.id));
   const showHydratingShell = loading && profileHydrated && role === "user";
+  const sessionPhase = resolveUserDashboardSessionPhase({
+    loading,
+    user,
+    role,
+    routerReady: router.isReady,
+  });
+
+  const renderBootstrapShell = (label = "Loading dashboard") => (
+    <div className={`${styles.page} ${styles.dashboardWorkspace}`}>
+      <SiteNav active="dashboard" />
+      <main className={styles.main}>
+        <div className={loadingStyles.loadingMain} aria-busy="true" aria-label={label} />
+      </main>
+    </div>
+  );
 
   const selectTab = useCallback(
     (tab) => {
@@ -222,7 +249,7 @@ export default function UserDashboard() {
   }, []);
 
   useEffect(() => {
-    if (loading) return;
+    if (!router.isReady || loading) return;
     if (!user) {
       router.replace("/login");
       return;
@@ -230,7 +257,7 @@ export default function UserDashboard() {
     if (role !== "user") {
       router.replace("/dashboard");
     }
-  }, [loading, user, role, router]);
+  }, [loading, user, role, router, router.isReady]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -254,23 +281,16 @@ export default function UserDashboard() {
     };
   }, [router.events, router.pathname]);
 
-  if (loading && !showHydratingShell) {
-    return (
-      <div className={`${styles.page} ${styles.dashboardWorkspace}`}>
-        <SiteNav active="dashboard" />
-        <main className={styles.main}>
-          <div
-            className={loadingStyles.loadingMain}
-            aria-busy="true"
-            aria-label="Loading dashboard"
-          />
-        </main>
-      </div>
-    );
+  if (sessionPhase.startsWith("redirect-")) {
+    return renderBootstrapShell("Opening dashboard");
   }
 
-  if (!user || role !== "user") {
-    return null;
+  if (sessionPhase === "pending" && !showHydratingShell) {
+    return renderBootstrapShell("Loading dashboard");
+  }
+
+  if (!user?.id || role !== "user") {
+    return renderBootstrapShell("Opening dashboard");
   }
 
   const finiteCap = listingCap < USER_DASHBOARD_FINITE_CAP_THRESHOLD;
@@ -442,7 +462,7 @@ export default function UserDashboard() {
 
                 {activeTab === USER_DASHBOARD_TAB_IDS.VIEWINGS ? (
                   <section aria-label="Viewings">
-                    {buyerCrmLoading && !buyerViewings.length && !deepLinkViewingId && !hasOwnedListings ? (
+                    {buyerCrmLoading && !buyerViewings.length && (!hasOwnedListings || deepLinkViewingId) ? (
                       <div className={loadingStyles.hydratingPanel} aria-busy="true" />
                     ) : null}
                     {buyerViewings.length > 0 || deepLinkViewingId ? (

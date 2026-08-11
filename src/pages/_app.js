@@ -22,7 +22,10 @@ import { VisualModeProvider } from "@/components/VisualModeProvider";
 import GlobalSeaFlowLayer from "@/components/GlobalSeaFlowLayer";
 import { fetchPublicVisualModeConfigServerSide } from "@/lib/visualModeConfigServer";
 import { registerBelizeListingsServiceWorker } from "@/lib/pwa/registerServiceWorker";
-import { handlePushNavigateMessage } from "@/lib/pwa/pushNotificationNavigation";
+import {
+  flushPendingPushNavigation,
+  handlePushNavigateMessage,
+} from "@/lib/pwa/pushNotificationNavigation";
 import { InstallationStateProvider } from "@/lib/pwa/InstallationStateProvider";
 
 function ModerationNotificationListener() {
@@ -38,6 +41,7 @@ function ModerationNotificationListener() {
 function AppWithAlerts({ Component, pageProps }) {
   const router = useRouter();
   const skipPageEnterRef = useRef(true);
+  const pendingPushHrefRef = useRef(null);
   const pageTitle =
     pageProps.pageTitle ?? resolveRouteTitle(router.pathname, router.query);
   const pageDescription =
@@ -57,7 +61,7 @@ function AppWithAlerts({ Component, pageProps }) {
     if (typeof navigator === "undefined" || !navigator.serviceWorker?.addEventListener) return undefined;
 
     const onServiceWorkerMessage = (event) => {
-      handlePushNavigateMessage(event.data, router);
+      handlePushNavigateMessage(event.data, router, { pendingHrefRef: pendingPushHrefRef });
     };
 
     navigator.serviceWorker.addEventListener("message", onServiceWorkerMessage);
@@ -65,6 +69,10 @@ function AppWithAlerts({ Component, pageProps }) {
       navigator.serviceWorker.removeEventListener("message", onServiceWorkerMessage);
     };
   }, [router]);
+
+  useEffect(() => {
+    flushPendingPushNavigation(pendingPushHrefRef, router);
+  }, [router, router.isReady]);
 
   return (
     <InstallationStateProvider>
