@@ -19,6 +19,8 @@ import DeviceNotificationsPanel from "@/components/profile/DeviceNotificationsPa
 import ProfileCompletionBanner from "@/components/profile/ProfileCompletionBanner";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
 import { loadBuyerCrmData } from "@/lib/crm/buyerCrmData";
+import { resolveBuyerViewingDeepLink } from "@/lib/crm/buyerViewingDeepLink";
+import { viewingListIncludesId } from "@/lib/crm/viewingDeepLink";
 import { isBuyerConversationUnread } from "@/lib/crm/conversationMutations";
 import { supabase } from "@/lib/supabaseClient";
 import { isProfileHydratedForUser } from "@/lib/profileSessionCache";
@@ -39,6 +41,7 @@ import {
 } from "@/constants/dashboardUserConfig";
 import { resolveUserDashboardTabFromQuery } from "@/lib/dashboardCrmRoutes";
 import {
+  readPersistedViewingIntent,
   readUserDashboardQueryParam,
   resolveUserDashboardLocationQuery,
   resolveUserDashboardSessionPhase,
@@ -55,6 +58,8 @@ export default function UserDashboard() {
   const roleRef = useRef(role);
   const loadingRef = useRef(loading);
   const dashboardPathRef = useRef(null);
+  const viewingIntentRef = useRef(null);
+  const viewingDeepLinkFetchAttemptRef = useRef(null);
 
   userIdRef.current = user?.id ?? null;
   roleRef.current = role;
@@ -122,9 +127,13 @@ export default function UserDashboard() {
   );
 
   const activeTab = useMemo(() => {
+    const viewingIntent = readPersistedViewingIntent(viewingIntentRef, router);
+    if (viewingIntent) {
+      return resolveVisibleUserDashboardTab(USER_DASHBOARD_TAB_IDS.VIEWINGS, visibleTabs);
+    }
     const inferred = resolveUserDashboardTabFromQuery(locationQuery);
     return resolveVisibleUserDashboardTab(inferred, visibleTabs);
-  }, [locationQuery, visibleTabs]);
+  }, [locationQuery, visibleTabs, router.isReady, router.query.viewing]);
 
   const deepLinkConversationId = useMemo(
     () => readUserDashboardQueryParam(router, "conversation"),
@@ -132,7 +141,7 @@ export default function UserDashboard() {
   );
 
   const deepLinkViewingId = useMemo(
-    () => readUserDashboardQueryParam(router, "viewing"),
+    () => readPersistedViewingIntent(viewingIntentRef, router),
     [router.isReady, router.query.viewing]
   );
 
@@ -141,9 +150,11 @@ export default function UserDashboard() {
   const [buyerConversations, setBuyerConversations] = useState([]);
   const [buyerListingsById, setBuyerListingsById] = useState({});
   const [buyerCrmLoading, setBuyerCrmLoading] = useState(false);
+  const [viewingDeepLinkResolveState, setViewingDeepLinkResolveState] = useState("idle");
 
   const loadBuyerCrm = useCallback(async () => {
     if (!user?.id) return;
+    viewingDeepLinkFetchAttemptRef.current = null;
     setBuyerCrmLoading(true);
     const { inquiries, viewings, conversations, listingsById } = await loadBuyerCrmData(supabase, user.id);
     setBuyerInquiries(inquiries);
@@ -167,6 +178,69 @@ export default function UserDashboard() {
     }
     loadBuyerCrm();
   }, [activeTab, loadBuyerCrm]);
+
+  useEffect(() => {
+    if (activeTab !== USER_DASHBOARD_TAB_IDS.VIEWINGS && !readUserDashboardQueryParam(router, "viewing")) {
+      viewingIntentRef.current = null;
+      setViewingDeepLinkResolveState("idle");
+    }
+  }, [activeTab, router.isReady, router.query.viewing]);
+
+  useEffect(() => {
+    viewingDeepLinkFetchAttemptRef.current = null;
+  }, [deepLinkViewingId]);
+
+  useEffect(() => {
+    if (!user?.id || !deepLinkViewingId) {
+      setViewingDeepLinkResolveState("idle");
+      return undefined;
+    }
+
+    if (viewingListIncludesId(buyerViewings, deepLinkViewingId)) {
+      setViewingDeepLinkResolveState("resolved");
+      return undefined;
+    }
+
+    if (buyerCrmLoading) {
+      setViewingDeepLinkResolveState("loading");
+      return undefined;
+    }
+
+    const attemptKey = `${user.id}:${deepLinkViewingId}`;
+    if (viewingDeepLinkFetchAttemptRef.current === attemptKey) {
+      return undefined;
+    }
+    viewingDeepLinkFetchAttemptRef.current = attemptKey;
+
+    let cancelled = false;
+    setViewingDeepLinkResolveState("loading");
+
+    void (async () => {
+      const result = await resolveBuyerViewingDeepLink(
+        supabase,
+        user.id,
+        deepLinkViewingId,
+        buyerViewings,
+        buyerListingsById
+      );
+      if (cancelled) return;
+
+      if (result.resolved) {
+        if (result.fetched) {
+          setBuyerViewings(result.viewings);
+          setBuyerListingsById((prev) => ({ ...prev, ...result.listingsById }));
+        }
+        setViewingDeepLinkResolveState("resolved");
+        return;
+      }
+
+      setViewingDeepLinkResolveState("missing");
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, deepLinkViewingId, buyerCrmLoading, buyerViewings, buyerListingsById]);
 
   const tabCounts = useMemo(() => {
     const counts = {};
@@ -478,6 +552,8 @@ export default function UserDashboard() {
                           buyerUserId={user?.id}
                           onRefresh={loadBuyerCrm}
                           initialViewingId={deepLinkViewingId}
+                          deepLinkResolveState={viewingDeepLinkResolveState}
+                          crmLoading={buyerCrmLoading}
                         />
                       </div>
                     ) : null}

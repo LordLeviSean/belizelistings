@@ -4,7 +4,7 @@ import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import { VIEWING_STATUS } from "@/lib/crm/crmConstants";
 import { viewingStatusLabel, isActiveViewingStatus } from "@/lib/crm/viewingStatusLabels";
-import { resolveDeepLinkedViewingId, viewingIdsMatch } from "@/lib/crm/viewingDeepLink";
+import { resolveDeepLinkedViewingId, viewingIdsMatch, isDeepLinkViewingPending } from "@/lib/crm/viewingDeepLink";
 import {
   archiveViewing,
   cancelViewing,
@@ -44,6 +44,8 @@ export default function BuyerViewingsPanel({
   buyerUserId,
   onRefresh,
   initialViewingId = null,
+  deepLinkResolveState = "idle",
+  crmLoading = false,
 }) {
   const { showToast } = useToast();
   const [busyId, setBusyId] = useState("");
@@ -77,9 +79,39 @@ export default function BuyerViewingsPanel({
 
   useViewingsRealtime({ userId: buyerUserId, asAgent: false }, onRefresh);
 
+  const awaitingDeepLink = isDeepLinkViewingPending({
+    initialViewingId,
+    viewings,
+    resolveState: deepLinkResolveState,
+    crmLoading,
+  });
+
+  if (awaitingDeepLink) {
+    return (
+      <div
+        className={loadingStyles.hydratingPanel}
+        aria-busy="true"
+        aria-label="Loading viewing request"
+      />
+    );
+  }
+
   if (!viewings?.length) {
+    if (initialViewingId && deepLinkResolveState === "missing") {
+      return (
+        <p className={listStyles.body}>
+          This viewing request is no longer available in your list.
+        </p>
+      );
+    }
     if (initialViewingId) {
-      return <div className={loadingStyles.hydratingPanel} aria-busy="true" aria-label="Loading viewing request" />;
+      return (
+        <div
+          className={loadingStyles.hydratingPanel}
+          aria-busy="true"
+          aria-label="Loading viewing request"
+        />
+      );
     }
     return (
       <PremiumEmptyState

@@ -125,6 +125,15 @@ export function resolvePostInquiryMessagesPath({ role, conversationId } = {}) {
 }
 
 /** Buyer viewing deep link with exact viewing id. */
+export function resolveBuyerViewingDeepLinkPath(viewingId) {
+  return resolveViewingRequestPath({
+    role: "user",
+    side: "buyer",
+    viewingId,
+  });
+}
+
+/** Buyer viewing deep link with exact viewing id. */
 export function resolveBuyerViewingsPath({ role, viewingId } = {}) {
   return resolveViewingRequestPath({
     role: role || "user",

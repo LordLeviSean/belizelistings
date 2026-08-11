@@ -1,6 +1,7 @@
 /** @jest-environment node */
 
 import {
+  resolveBuyerViewingDeepLinkPath,
   resolveNotificationDestination,
   resolveUserDashboardTabFromQuery,
   resolveAgentDashboardTabFromQuery,
@@ -55,6 +56,24 @@ describe("dashboardCrmRoutes", () => {
       payload: { viewing_id: "view-9", recipient_side: "buyer" },
     });
     expect(href).toBe("/dashboard/user?tab=viewings&viewing=view-9");
+  });
+
+  test("viewing_confirmed and viewing_declined share canonical buyer viewing href", () => {
+    const confirmed = resolveNotificationDestination({
+      eventType: NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED,
+      role: "user",
+      payload: { viewing_id: "view-shared-1", recipient_side: "buyer" },
+    });
+    const declined = resolveNotificationDestination({
+      eventType: NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED,
+      role: "user",
+      payload: { viewing_id: "view-shared-1", recipient_side: "buyer" },
+    });
+    const canonical = resolveBuyerViewingDeepLinkPath("view-shared-1");
+
+    expect(confirmed).toBe("/dashboard/user?tab=viewings&viewing=view-shared-1");
+    expect(declined).toBe("/dashboard/user?tab=viewings&viewing=view-shared-1");
+    expect(canonical).toBe("/dashboard/user?tab=viewings&viewing=view-shared-1");
   });
 
   test("resolveNotificationDestination routes agent viewing request to agent Viewings", () => {

@@ -2,6 +2,7 @@
 
 import {
   readUserDashboardQueryParam,
+  readPersistedViewingIntent,
   resolveUserDashboardLocationQuery,
   resolveUserDashboardSessionPhase,
   shouldShowUserDashboardLoadingShell,
@@ -81,6 +82,26 @@ describe("userDashboardBootstrap", () => {
       viewing: "42",
       listing: undefined,
     });
+
+    window.history.pushState({}, "", "/");
+  });
+
+  test("readUserDashboardQueryParam falls back to live URL when router query is empty", () => {
+    window.history.pushState({}, "", "/dashboard/user?tab=viewings&viewing=108");
+
+    expect(
+      readUserDashboardQueryParam({ isReady: true, query: {} }, "viewing")
+    ).toBe("108");
+
+    window.history.pushState({}, "", "/");
+  });
+
+  test("readPersistedViewingIntent survives intermediate rerenders", () => {
+    const intentRef = { current: null };
+    window.history.pushState({}, "", "/dashboard/user?tab=viewings&viewing=55");
+
+    expect(readPersistedViewingIntent(intentRef, { isReady: true, query: {} })).toBe("55");
+    expect(readPersistedViewingIntent(intentRef, { isReady: true, query: {} })).toBe("55");
 
     window.history.pushState({}, "", "/");
   });

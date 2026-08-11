@@ -17,17 +17,33 @@ function readQueryValue(query, key) {
  * @param {string} paramName
  */
 export function readUserDashboardQueryParam(router, paramName) {
+  let fromRouter = null;
   if (router?.isReady) {
-    return readQueryValue(router.query, paramName);
+    fromRouter = readQueryValue(router.query, paramName);
+    if (fromRouter) return fromRouter;
   }
 
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined") return fromRouter;
 
   try {
-    return new URLSearchParams(window.location.search).get(paramName);
+    const fromUrl = new URLSearchParams(window.location.search).get(paramName);
+    return fromUrl ?? fromRouter;
   } catch {
-    return null;
+    return fromRouter;
   }
+}
+
+/**
+ * Preserve viewing=<id> intent across auth/router hydration and intermediate rerenders.
+ * @param {{ current: string|null }} intentRef
+ * @param {{ isReady?: boolean, query?: object }} router
+ */
+export function readPersistedViewingIntent(intentRef, router) {
+  const fromLocation = readUserDashboardQueryParam(router, "viewing");
+  if (fromLocation) {
+    intentRef.current = fromLocation;
+  }
+  return fromLocation ?? intentRef.current;
 }
 
 /**

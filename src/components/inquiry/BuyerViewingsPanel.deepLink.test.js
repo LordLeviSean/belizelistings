@@ -58,6 +58,7 @@ describe("BuyerViewingsPanel deep links", () => {
     renderPanel({
       buyerUserId: "buyer-1",
       initialViewingId: "view-declined-1",
+      deepLinkResolveState: "resolved",
       listingsById: { 42: { title: "Finca Solana" } },
       viewings: [
         {
@@ -81,6 +82,8 @@ describe("BuyerViewingsPanel deep links", () => {
     const { root } = renderPanel({
       buyerUserId: "buyer-1",
       initialViewingId: "view-declined-2",
+      deepLinkResolveState: "loading",
+      crmLoading: true,
       listingsById: {},
       viewings: [],
     });
@@ -92,6 +95,7 @@ describe("BuyerViewingsPanel deep links", () => {
         <BuyerViewingsPanel
           buyerUserId="buyer-1"
           initialViewingId="view-declined-2"
+          deepLinkResolveState="resolved"
           listingsById={{ 7: { title: "Coastal Lot" } }}
           viewings={[
             {
@@ -116,6 +120,7 @@ describe("BuyerViewingsPanel deep links", () => {
     renderPanel({
       buyerUserId: "buyer-1",
       initialViewingId: "view-confirmed-1",
+      deepLinkResolveState: "resolved",
       listingsById: { 11: { title: "Riverfront Home" } },
       viewings: [
         {
@@ -130,5 +135,19 @@ describe("BuyerViewingsPanel deep links", () => {
     await flushEffects();
 
     expect(document.body.querySelector(`.${listStyles.cardHighlighted}`)).toBeTruthy();
+  });
+
+  test("does not render another card while deep-link target is still resolving", async () => {
+    renderPanel({
+      buyerUserId: "buyer-1",
+      initialViewingId: "view-target-1",
+      deepLinkResolveState: "loading",
+      crmLoading: false,
+      listingsById: {},
+      viewings: [{ id: "view-other-1", status: "pending", requested_date: "2026-07-10" }],
+    });
+
+    expect(document.body.querySelector('[aria-label="Loading viewing request"]')).toBeTruthy();
+    expect(document.body.querySelector(`.${listStyles.cardHighlighted}`)).toBeNull();
   });
 });

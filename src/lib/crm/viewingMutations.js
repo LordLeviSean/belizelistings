@@ -681,3 +681,19 @@ export async function fetchViewingsForBuyer(client, buyerUserId, { limit = 50, i
   }
   return query;
 }
+
+/** Fetch one authorized buyer viewing by id (deep links / push navigation). */
+export async function fetchViewingForBuyerById(client, buyerUserId, viewingId) {
+  const normalizedId = viewingId == null ? null : String(viewingId).trim();
+  if (!client || !buyerUserId || !normalizedId) {
+    return { data: null, error: { message: "buyerUserId and viewingId are required" } };
+  }
+
+  return client
+    .from("viewing_requests")
+    .select(VIEWING_SELECT)
+    .eq("id", normalizedId)
+    .eq("requester_id", buyerUserId)
+    .is("requester_deleted_at", null)
+    .maybeSingle();
+}
