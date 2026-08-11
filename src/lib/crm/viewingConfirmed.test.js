@@ -27,8 +27,7 @@ jest.mock("../notifications/triggerServerNotificationDelivery", () => ({
 }));
 
 import { NOTIFICATION_EVENT_TYPES, enqueueNotificationEvent } from "../notifications/notificationEvents";
-import { triggerServerNotificationDelivery } from "../notifications/triggerServerNotificationDelivery";
-import { confirmViewing } from "./viewingMutations";
+import { performConfirmViewing } from "./viewingMutations";
 import { VIEWING_STATUS } from "./crmConstants";
 
 function buildConfirmClient({
@@ -104,10 +103,10 @@ describe("viewing_confirmed notification wiring", () => {
     jest.clearAllMocks();
   });
 
-  test("confirmViewing enqueues one viewing_confirmed notification for buyer after persist", async () => {
+  test("performConfirmViewing enqueues one viewing_confirmed notification for buyer after persist", async () => {
     const { client, update, chain } = buildConfirmClient();
 
-    const result = await confirmViewing(client, {
+    const result = await performConfirmViewing(client, {
       viewingId: "view-1",
       agentUserId: "agent-1",
     });
@@ -134,9 +133,6 @@ describe("viewing_confirmed notification wiring", () => {
       }),
       { deliver: false }
     );
-    expect(triggerServerNotificationDelivery).toHaveBeenCalledWith(client, {
-      queueId: "queue-confirmed-1",
-    });
   });
 
   test("failed confirmation does not enqueue viewing_confirmed", async () => {
@@ -144,14 +140,13 @@ describe("viewing_confirmed notification wiring", () => {
       updateResult: { data: null, error: { message: "not found" } },
     });
 
-    const result = await confirmViewing(client, {
+    const result = await performConfirmViewing(client, {
       viewingId: "view-1",
       agentUserId: "agent-1",
     });
 
     expect(result.error).toEqual({ message: "not found" });
     expect(enqueueNotificationEvent).not.toHaveBeenCalled();
-    expect(triggerServerNotificationDelivery).not.toHaveBeenCalled();
   });
 
   test("already-confirmed viewing does not enqueue another notification", async () => {
@@ -159,14 +154,13 @@ describe("viewing_confirmed notification wiring", () => {
       updateResult: { data: null, error: { code: "PGRST116", message: "0 rows" } },
     });
 
-    const result = await confirmViewing(client, {
+    const result = await performConfirmViewing(client, {
       viewingId: "view-1",
       agentUserId: "agent-1",
     });
 
     expect(result.error).toBeTruthy();
     expect(enqueueNotificationEvent).not.toHaveBeenCalled();
-    expect(triggerServerNotificationDelivery).not.toHaveBeenCalled();
   });
 
   test("confirming user does not self-notify when requester matches agent", async () => {
@@ -185,12 +179,11 @@ describe("viewing_confirmed notification wiring", () => {
       },
     });
 
-    await confirmViewing(client, {
+    await performConfirmViewing(client, {
       viewingId: "view-1",
       agentUserId: "agent-1",
     });
 
     expect(enqueueNotificationEvent).not.toHaveBeenCalled();
-    expect(triggerServerNotificationDelivery).not.toHaveBeenCalled();
   });
 });

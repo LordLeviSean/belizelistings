@@ -173,7 +173,7 @@ export async function performCreateViewingRequest(client, payload) {
   return { data, error, queueId: null };
 }
 
-export async function confirmViewing(client, { viewingId, agentUserId, notes }) {
+export async function performConfirmViewing(client, { viewingId, agentUserId, notes }) {
   const now = new Date().toISOString();
   const { data, error } = await client
     .from("viewing_requests")
@@ -193,7 +193,7 @@ export async function confirmViewing(client, { viewingId, agentUserId, notes }) 
     .select(VIEWING_SELECT)
     .single();
 
-  if (error) return { data: null, error };
+  if (error) return { data: null, error, queueId: null };
 
   if (data?.conversation_id) {
     await client
@@ -238,9 +238,6 @@ export async function confirmViewing(client, { viewingId, agentUserId, notes }) 
       { deliver: false }
     );
     queueId = enqueueResult.queueId ?? null;
-    if (BL_ENABLE_NOTIFICATIONS && queueId) {
-      await triggerServerNotificationDelivery(client, { queueId });
-    }
   }
 
   if (data?.listing_id) {
@@ -260,6 +257,19 @@ export async function confirmViewing(client, { viewingId, agentUserId, notes }) 
   }
 
   return { data, error: null, queueId };
+}
+
+export async function confirmViewing(client, { viewingId, agentUserId, notes }) {
+  if (typeof window !== "undefined") {
+    const { submitViewingConfirmViaApi } = await import("../security/submitViewingConfirmViaApi");
+    return submitViewingConfirmViaApi(client, { viewingId, agentUserId, notes });
+  }
+
+  const result = await performConfirmViewing(client, { viewingId, agentUserId, notes });
+  if (BL_ENABLE_NOTIFICATIONS && result.queueId) {
+    await triggerServerNotificationDelivery(client, { queueId: result.queueId });
+  }
+  return result;
 }
 
 export async function declineViewing(client, { viewingId, agentUserId, notes }) {
