@@ -22,15 +22,19 @@ jest.mock("../notifications/notificationEvents", () => ({
   },
 }));
 
+jest.mock("../notifications/triggerServerNotificationDelivery", () => ({
+  triggerServerNotificationDelivery: jest.fn().mockResolvedValue({ ok: true }),
+}));
+
 import { NOTIFICATION_EVENT_TYPES, enqueueNotificationEvent } from "../notifications/notificationEvents";
 import {
   cancelViewing,
   confirmViewing,
-  createViewingRequest,
   declineViewing,
   deleteViewing,
   markViewingCompleted,
   acceptViewingReschedule,
+  performCreateViewingRequest,
 } from "./viewingMutations";
 import { VIEWING_STATUS } from "./crmConstants";
 
@@ -39,13 +43,27 @@ describe("viewingMutations", () => {
     jest.clearAllMocks();
   });
 
-  test("createViewingRequest inserts viewing_requests only and notifies owner", async () => {
+  test("performCreateViewingRequest inserts viewing_requests only and notifies owner", async () => {
     const single = jest.fn().mockResolvedValue({ data: { id: "view-1" }, error: null });
     const select = jest.fn().mockReturnValue({ single });
     const insert = jest.fn().mockReturnValue({ select });
-    const client = { from: jest.fn().mockReturnValue({ insert }) };
+    const client = {
+      from: jest.fn((table) => {
+        if (table === "viewing_requests") return { insert };
+        if (table === "profiles") {
+          return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                maybeSingle: jest.fn().mockResolvedValue({ data: { role: "agent" }, error: null }),
+              }),
+            }),
+          };
+        }
+        return {};
+      }),
+    };
 
-    const result = await createViewingRequest(client, {
+    const result = await performCreateViewingRequest(client, {
       listingId: 12,
       agentUserId: "agent-1",
       requestedDate: "2026-07-15",
@@ -72,16 +90,16 @@ describe("viewingMutations", () => {
         payload: expect.objectContaining({
           viewing_id: "view-1",
           listing_title: "Finca Solana",
-          slot_label: expect.stringContaining("July"),
+          dedupe_key: "viewing_requested:view-1:agent-1",
         }),
       }),
-      expect.any(Object)
+      { deliver: false }
     );
   });
 
   test("createViewingRequest rejects self-contact before insert", async () => {
     const client = { from: jest.fn() };
-    const result = await createViewingRequest(client, {
+    const result = await performCreateViewingRequest(client, {
       listingId: 12,
       agentUserId: "owner-1",
       requesterId: "owner-1",

@@ -92,6 +92,13 @@ export default function AgentDashboard() {
     return AGENT_TAB_SET.has(inferred) ? inferred : AGENT_DASHBOARD_TAB_IDS.OVERVIEW;
   }, [router.query.tab, router.query.conversation, router.query.viewing]);
 
+  const deepLinkViewingId = useMemo(() => {
+    const viewing = router.query.viewing;
+    if (typeof viewing === "string") return viewing;
+    if (Array.isArray(viewing)) return viewing[0] ?? null;
+    return null;
+  }, [router.query.viewing]);
+
   const visibleTabs = useMemo(
     () =>
       AGENT_DASHBOARD_TABS.filter((tab) => {
@@ -421,7 +428,7 @@ export default function AgentDashboard() {
                     <p className={styles.muted} style={{ marginBottom: 16, maxWidth: "62ch" }}>
                       Confirm, reschedule, or complete property viewings requested from your listings.
                     </p>
-                    {viewingsLoading && !agentViewings.length ? (
+                    {viewingsLoading && !agentViewings.length && !deepLinkViewingId ? (
                       <div className={loadingStyles.hydratingPanel} aria-busy="true" />
                     ) : (
                       <AgentViewingsPanel
@@ -429,13 +436,7 @@ export default function AgentDashboard() {
                         listingsById={listingsById}
                         agentUserId={user.id}
                         onRefresh={loadViewings}
-                        initialViewingId={
-                          typeof router.query.viewing === "string"
-                            ? router.query.viewing
-                            : Array.isArray(router.query.viewing)
-                              ? router.query.viewing[0]
-                              : null
-                        }
+                        initialViewingId={deepLinkViewingId}
                       />
                     )}
                   </section>

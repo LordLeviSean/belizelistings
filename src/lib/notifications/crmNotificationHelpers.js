@@ -71,6 +71,13 @@ export function buildAdminRepliedDedupeKey(messageId, recipientUserId) {
   return `admin_replied:${messageId}:${recipientUserId}`;
 }
 
+export function buildViewingRequestedDedupeKey(viewingId, recipientUserId) {
+  if (!viewingId || !recipientUserId) {
+    return null;
+  }
+  return `viewing_requested:${viewingId}:${recipientUserId}`;
+}
+
 export function buildInboxMessagePayload({
   conversationId,
   messageId,

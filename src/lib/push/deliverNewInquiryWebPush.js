@@ -13,6 +13,10 @@ import {
   buildNewInquiryPushPayload,
   resolveNewInquiryPushDestination,
 } from "./buildNewInquiryPushPayload";
+import {
+  buildViewingRequestedPushPayload,
+  resolveViewingRequestedPushDestination,
+} from "./buildViewingRequestedPushPayload";
 import { sendWebPushToUser } from "./sendWebPushToUser";
 import {
   WEB_PUSH_DELIVERY_STATUS,
@@ -31,6 +35,7 @@ export const CONNECTED_PUSH_EVENT_TYPES = Object.freeze([
   "buyer_replied",
   "agent_replied",
   "admin_replied",
+  "viewing_requested",
 ]);
 
 /**
@@ -154,6 +159,9 @@ function buildPushPayloadForEvent(eventType, { notificationId, dedupeKey, href, 
   if (eventType === NOTIFICATION_EVENT_TYPES.ADMIN_REPLIED) {
     return buildAdminRepliedPushPayload({ notificationId, dedupeKey, href, payload });
   }
+  if (eventType === NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED) {
+    return buildViewingRequestedPushPayload({ notificationId, dedupeKey, href, payload });
+  }
   return buildNewInquiryPushPayload({ notificationId, dedupeKey, href, payload });
 }
 
@@ -166,6 +174,9 @@ function resolvePushHrefForEvent(eventType, recipientRole, payload) {
   }
   if (eventType === NOTIFICATION_EVENT_TYPES.ADMIN_REPLIED) {
     return resolveAdminRepliedNotificationHref({ recipientRole, payload });
+  }
+  if (eventType === NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED) {
+    return resolveViewingRequestedPushDestination({ recipientRole, payload });
   }
   return resolveNewInquiryNotificationHref({ recipientRole, payload });
 }

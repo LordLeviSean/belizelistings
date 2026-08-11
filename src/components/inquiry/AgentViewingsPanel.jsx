@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import { VIEWING_STATUS } from "@/lib/crm/crmConstants";
@@ -22,6 +22,7 @@ import { resolveMessageConversationPath } from "@/lib/dashboardCrmRoutes";
 import { formatViewingSlotCompact } from "@/lib/crm/viewingConversationMessages";
 import { openMessagingConversationForViewing } from "@/lib/crm/viewingMessaging";
 import listStyles from "./AgentInquiryList.module.css";
+import loadingStyles from "@/styles/UserDashboard.module.css";
 
 function buildConversationHref({ surface = "agent", conversationId }) {
   if (!conversationId) return null;
@@ -32,6 +33,11 @@ function buildConversationHref({ surface = "agent", conversationId }) {
     return resolveMessageConversationPath({ role: "user", side: "owner", conversationId });
   }
   return resolveMessageConversationPath({ role: "agent", side: "agent", conversationId });
+}
+
+function viewingIdsMatch(left, right) {
+  if (left == null || right == null) return false;
+  return String(left) === String(right);
 }
 
 function isPendingLike(status) {
@@ -55,15 +61,35 @@ export default function AgentViewingsPanel({
   const [rescheduleId, setRescheduleId] = useState(null);
   const [proposedDate, setProposedDate] = useState("");
   const [proposedTime, setProposedTime] = useState("10:00");
+  const highlightRef = useRef(null);
 
   useEffect(() => {
     if (!initialViewingId) return;
     setHighlightId(initialViewingId);
   }, [initialViewingId]);
 
+  useEffect(() => {
+    if (!initialViewingId || !viewings?.length) return;
+    const match = viewings.find((row) => viewingIdsMatch(row.id, initialViewingId));
+    if (match) {
+      setHighlightId(match.id);
+    }
+  }, [initialViewingId, viewings]);
+
+  useEffect(() => {
+    if (!highlightId || !viewings?.length) return;
+    const frame = window.requestAnimationFrame(() => {
+      highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [highlightId, viewings]);
+
   useViewingsRealtime({ userId: agentUserId, asAgent: true }, onRefresh);
 
   if (!viewings?.length) {
+    if (initialViewingId) {
+      return <div className={loadingStyles.hydratingPanel} aria-busy="true" aria-label="Loading viewing request" />;
+    }
     return (
       <PremiumEmptyState
         variant="inquiries"
@@ -181,6 +207,7 @@ export default function AgentViewingsPanel({
           return (
             <article
               key={row.id}
+              ref={viewingIdsMatch(highlightId, row.id) ? highlightRef : undefined}
               className={[
                 listStyles.card,
                 highlightId === row.id ? listStyles.cardHighlighted : "",

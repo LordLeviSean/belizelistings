@@ -16,6 +16,7 @@ import { resolveAdminRepliedNotificationHref } from "./adminRepliedNotificationR
 import { resolveBuyerRepliedNotificationHref } from "./buyerRepliedNotificationRouting";
 import { resolveNewInquiryNotificationHref } from "./newInquiryNotificationRouting";
 import { buildMessagingInAppCopy } from "./messagingNotificationCopy";
+import { buildViewingRequestedInAppCopy } from "./viewingNotificationCopy";
 
 /** Editorial categories — calm luxury, operational tone. */
 export const NOTIFICATION_CATEGORIES = Object.freeze({
@@ -151,18 +152,21 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       break;
     }
 
-    case NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED:
+    case NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED: {
       category = NOTIFICATION_CATEGORIES.INQUIRY;
-      title = "New viewing request";
-      body = appendSlotLine(
-        `${senderName} requested a viewing for ${listingTitle}.`,
-        slotLabel?.replace(" · ", " • ")
-      );
+      const viewingCopy = buildViewingRequestedInAppCopy(payload);
+      title = viewingCopy.title;
+      body = viewingCopy.body;
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
-      dedupeKey = dedupeKey ?? `viewing_requested:${viewingId ?? ""}`;
+      dedupeKey =
+        dedupeKey ??
+        (viewingId && (payload.recipient_user_id ?? payload.recipientUserId)
+          ? `viewing_requested:${viewingId}:${payload.recipient_user_id ?? payload.recipientUserId}`
+          : `viewing_requested:${viewingId ?? ""}`);
       href = resolveNotificationDestination({ eventType, role: recipientRole || "agent", payload });
       break;
+    }
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED:
       category = NOTIFICATION_CATEGORIES.INQUIRY;

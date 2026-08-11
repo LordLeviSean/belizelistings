@@ -123,13 +123,104 @@ describe("deliverNewInquiryWebPush", () => {
 
     const result = await deliverNewInquiryWebPush(adminClient, {
       ok: true,
-      event_type: "viewing_requested",
+      event_type: "viewing_confirmed",
       recipient_id: "user-1",
       notification_id: "notif-2",
     });
 
     expect(result.reason).toBe("unsupported_event");
     expect(sendWebPushToUser).not.toHaveBeenCalled();
+  });
+
+  test("delivers one viewing_requested push to the listing contact", async () => {
+    const adminClient = buildAdminClient();
+    adminClient.from = jest.fn((table) => {
+      if (table === "notifications") {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(function eq(field, value) {
+              if (field === "id") {
+                return {
+                  maybeSingle: jest.fn().mockResolvedValue({
+                    data: {
+                      id: "notif-view-1",
+                      payload: {
+                        viewing_id: "view-1",
+                        listing_id: "listing-1",
+                        listing_title: "Finca Solana",
+                        sender_name: "Alexis Marie",
+                        requested_date: "2026-07-15",
+                        requested_time: "08:00",
+                        recipient_side: "owner",
+                      },
+                    },
+                    error: null,
+                  }),
+                  eq: jest.fn(() => ({
+                    maybeSingle: jest.fn().mockResolvedValue({
+                      data: {
+                        id: "notif-view-1",
+                        payload: {
+                          viewing_id: "view-1",
+                          listing_title: "Finca Solana",
+                          sender_name: "Alexis Marie",
+                          requested_date: "2026-07-15",
+                          requested_time: "08:00",
+                        },
+                      },
+                      error: null,
+                    }),
+                  })),
+                };
+              }
+              return { maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }) };
+            }),
+          })),
+          update: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              select: jest.fn(() => ({
+                maybeSingle: jest.fn().mockResolvedValue({ data: { id: "notif-view-1" }, error: null }),
+              })),
+            })),
+          })),
+        };
+      }
+      if (table === "profiles") {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              maybeSingle: jest.fn().mockResolvedValue({ data: { role: "agent" }, error: null }),
+            })),
+          })),
+        };
+      }
+      return {};
+    });
+
+    const result = await deliverNewInquiryWebPush(adminClient, {
+      ok: true,
+      event_type: "viewing_requested",
+      recipient_id: "agent-1",
+      notification_id: "notif-view-1",
+      dedupe_key: "viewing_requested:view-1:agent-1",
+    });
+
+    expect(result.skipped).toBe(false);
+    expect(sendWebPushToUser).toHaveBeenCalledWith(
+      adminClient,
+      "agent-1",
+      expect.objectContaining({
+        ok: true,
+        payload: expect.objectContaining({
+          eventType: "viewing_requested",
+          title: "New viewing request",
+          body: expect.stringContaining("Alexis Marie"),
+          href: "/dashboard/agent?tab=viewings&viewing=view-1",
+          tag: "viewing_requested:view-1:agent-1",
+        }),
+      }),
+      { maxSubscriptions: 1 }
+    );
   });
 
   test("delivers one agent_replied push to the buyer recipient", async () => {

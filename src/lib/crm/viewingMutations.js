@@ -1,8 +1,8 @@
 import { BL_ENABLE_NOTIFICATIONS, BL_ENABLE_VIEWING_PERSIST } from "../featureFlags";
-import { triggerNotificationDelivery } from "../notifications/notificationEvents";
+import { triggerServerNotificationDelivery } from "../notifications/triggerServerNotificationDelivery";
 import { emitListingEventAfterMutation } from "../listingEvents/writeListingEvent";
 import { LISTING_EVENT_TYPES } from "../listingEvents/listingEventTypes";
-import { enqueueNotificationEvent, NOTIFICATION_EVENT_TYPES } from "../notifications/notificationEvents";
+import { enqueueNotificationEvent, NOTIFICATION_EVENT_TYPES, triggerNotificationDelivery } from "../notifications/notificationEvents";
 import { CRM_PIPELINE_STAGE, VIEWING_STATUS } from "./crmConstants";
 import { coerceListingIdForDb, isCrmUnavailable } from "./crmCompat";
 import {
@@ -10,12 +10,19 @@ import {
   selfViewingBlockedResult,
 } from "../listingSelfContact";
 import { withNotificationRecipientRole } from "./notificationRecipientRoles";
-import { buildViewingNotificationPayload } from "../notifications/crmNotificationHelpers";
+import {
+  buildViewingNotificationPayload,
+  buildViewingRequestedDedupeKey,
+} from "../notifications/crmNotificationHelpers";
 import {
   appendViewingSystemMessage,
   formatViewingSlotLabel,
   VIEWING_SYSTEM_MESSAGE,
 } from "./viewingConversationMessages";
+import {
+  fetchProfileRowWithTiers,
+  PROFILE_ROLE_ONLY_SELECT,
+} from "../profileSelectContract";
 
 const VIEWING_SELECT =
   "id,listing_id,conversation_id,requester_id,requester_email,requester_name,agent_user_id,requested_date,requested_time,proposed_date,proposed_time,proposed_by,status,notes,message,confirmed_at,created_at,updated_at";
@@ -58,6 +65,26 @@ async function notifyViewingParties(client, {
 }
 
 export async function createViewingRequest(client, payload) {
+  if (typeof window !== "undefined") {
+    const { submitViewingRequestViaApi } = await import("../security/submitViewingRequestApi");
+    return submitViewingRequestViaApi(client, payload);
+  }
+
+  const result = await performCreateViewingRequest(client, payload);
+
+  if (BL_ENABLE_NOTIFICATIONS && result.queueId) {
+    await triggerServerNotificationDelivery(client, { queueId: result.queueId });
+  }
+
+  return result;
+}
+
+/**
+ * Persist a viewing request and enqueue owner notification (no delivery trigger).
+ *
+ * @returns {Promise<{ data: object|null, error: object|null, unavailable?: boolean, queueId?: string|null }>}
+ */
+export async function performCreateViewingRequest(client, payload) {
   const listingId = coerceListingIdForDb(payload.listingId);
   const requestedDate = payload.requestedDate;
   const requestedTime = payload.requestedTime;
@@ -97,11 +124,21 @@ export async function createViewingRequest(client, payload) {
   }
   if (!error && data?.id && payload.agentUserId) {
     const slotLabel = formatViewingSlotLabel(requestedDate, requestedTime);
-    await notifyViewingEvent(client, {
-      eventType: NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED,
-      recipientId: payload.agentUserId,
-      parties: { agentUserId: payload.agentUserId, listingOwnerUserId: payload.agentUserId },
-      payload: {
+    const { data: ownerProfile } = await fetchProfileRowWithTiers(
+      client,
+      payload.agentUserId,
+      [PROFILE_ROLE_ONLY_SELECT]
+    );
+    const ownerDashboardRole = ownerProfile?.role === "agent" ? "agent" : "user";
+    const notifyPayload = withNotificationRecipientRole(
+      payload.agentUserId,
+      {
+        agentUserId: payload.agentUserId,
+        listingOwnerUserId: payload.agentUserId,
+        requesterId: payload.requesterId,
+        ownerDashboardRole,
+      },
+      {
         viewing_id: data.id,
         listing_id: listingId,
         listing_title: payload.listingTitle ?? null,
@@ -110,12 +147,29 @@ export async function createViewingRequest(client, payload) {
         requested_date: requestedDate,
         requested_time: requestedTime,
         slot_label: slotLabel,
-        recipient_role: "user",
-        recipient_side: "owner",
+        recipient_user_id: payload.agentUserId,
+        dedupe_key: buildViewingRequestedDedupeKey(data.id, payload.agentUserId),
+      }
+    );
+
+    const enqueueResult = await enqueueNotificationEvent(
+      client,
+      {
+        eventType: NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED,
+        recipientId: payload.agentUserId,
+        payload: notifyPayload,
       },
-    });
+      { deliver: false }
+    );
+
+    return {
+      data,
+      error: null,
+      queueId: enqueueResult.queueId ?? null,
+    };
   }
-  return { data, error };
+
+  return { data, error, queueId: null };
 }
 
 export async function confirmViewing(client, { viewingId, agentUserId, notes }) {

@@ -53,14 +53,18 @@ describe("notificationCopyRegistry", () => {
       listing_id: 12,
       listing_title: "Finca Solana",
       sender_name: "Alexis Marie",
+      requested_date: "2026-07-15",
+      requested_time: "08:00",
       slot_label: "Wednesday, July 15 · 8:00 AM",
       recipient_role: "agent",
       recipient_side: "agent",
+      recipient_user_id: "agent-1",
     });
     expect(pres.title).toBe("New viewing request");
+    expect(pres.body).toContain("Alexis Marie");
     expect(pres.body).toContain("Finca Solana");
-    expect(pres.body).toContain("July 15");
-    expect(pres.entityId).toBe("v1");
+    expect(pres.body).toContain("8:00 AM");
+    expect(pres.dedupeKey).toBe("viewing_requested:v1:agent-1");
     expect(pres.href).toBe("/dashboard/agent?tab=viewings&viewing=v1");
   });
 

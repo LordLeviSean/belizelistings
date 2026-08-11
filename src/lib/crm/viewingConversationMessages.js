@@ -46,6 +46,15 @@ export function formatViewingSlotLabel(date, time) {
   return timeLabel ? `${weekday}, ${monthDay} · ${timeLabel}` : `${weekday}, ${monthDay}`;
 }
 
+/** Push/in-app phrase: Wednesday, July 15 at 8:00 AM */
+export function formatViewingSlotPushPhrase(date, time) {
+  const label = formatViewingSlotLabel(date, time);
+  if (!label || label === "the proposed time") {
+    return label;
+  }
+  return label.replace(" · ", " at ");
+}
+
 /** Compact card label: Wed, Jul 15 at 8:00 AM */
 export function formatViewingSlotCompact(date, time) {
   const dt = parseBelizeViewingInstant(date, time);

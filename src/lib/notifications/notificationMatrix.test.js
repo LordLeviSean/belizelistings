@@ -43,14 +43,18 @@ describe("CRM notification matrix", () => {
       viewing_id: "v-1",
       listing_title: LISTING,
       sender_name: SENDER,
+      requested_date: "2026-07-15",
+      requested_time: "08:00",
       slot_label: SLOT,
       recipient_role: "user",
       recipient_side: "owner",
+      recipient_user_id: "owner-1",
     });
     expect(pres.title).toBe("New viewing request");
     expect(pres.body).toContain(SENDER);
     expect(pres.body).toContain(LISTING);
     expect(pres.body).toContain("July 15");
+    expect(pres.dedupeKey).toBe("viewing_requested:v-1:owner-1");
     expect(pres.href).toBe("/dashboard/user?tab=viewings&viewing=v-1");
   });
 
