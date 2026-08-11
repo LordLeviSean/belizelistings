@@ -1,5 +1,6 @@
 import { resolveViewingRequestedPushDestination } from "@/lib/push/buildViewingRequestedPushPayload";
 import { resolveViewingConfirmedPushDestination } from "@/lib/push/buildViewingConfirmedPushPayload";
+import { resolveViewingDeclinedPushDestination } from "@/lib/push/buildViewingDeclinedPushPayload";
 import { buildNotificationPresentation } from "@/lib/notifications/notificationCopyRegistry";
 import { NOTIFICATION_EVENT_TYPES } from "@/lib/notifications/notificationEvents";
 
@@ -64,6 +65,33 @@ describe("viewing_confirmed push deep-link routing", () => {
       listing_title: "Finca Solana",
     });
     expect(pres.href).toBe("/dashboard/user?tab=viewings&viewing=view-confirmed-2");
+    expect(pres.body).toContain("10:00 AM");
+  });
+});
+
+describe("viewing_declined push deep-link routing", () => {
+  test("push href opens buyer viewings on exact declined viewing request", () => {
+    const href = resolveViewingDeclinedPushDestination({
+      recipientRole: "user",
+      payload: {
+        viewing_id: "view-declined-1",
+        recipient_side: "buyer",
+      },
+    });
+    expect(href).toBe("/dashboard/user?tab=viewings&viewing=view-declined-1");
+  });
+
+  test("in-app presentation matches push destination for buyer", () => {
+    const pres = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED, {
+      viewing_id: "view-declined-2",
+      recipient_role: "user",
+      recipient_side: "buyer",
+      recipient_user_id: "buyer-1",
+      requested_date: "2026-07-15",
+      requested_time: "10:00",
+      listing_title: "Finca Solana",
+    });
+    expect(pres.href).toBe("/dashboard/user?tab=viewings&viewing=view-declined-2");
     expect(pres.body).toContain("10:00 AM");
   });
 });

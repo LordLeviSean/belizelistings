@@ -14,6 +14,7 @@ import {
   buildViewingNotificationPayload,
   buildViewingRequestedDedupeKey,
   buildViewingConfirmedDedupeKey,
+  buildViewingDeclinedDedupeKey,
 } from "../notifications/crmNotificationHelpers";
 import {
   appendViewingSystemMessage,
@@ -272,7 +273,7 @@ export async function confirmViewing(client, { viewingId, agentUserId, notes }) 
   return result;
 }
 
-export async function declineViewing(client, { viewingId, agentUserId, notes }) {
+export async function performDeclineViewing(client, { viewingId, agentUserId, notes }) {
   const now = new Date().toISOString();
   const { data, error } = await client
     .from("viewing_requests")
@@ -283,10 +284,11 @@ export async function declineViewing(client, { viewingId, agentUserId, notes }) 
     })
     .eq("id", viewingId)
     .eq("agent_user_id", agentUserId)
+    .eq("status", VIEWING_STATUS.PENDING)
     .select(VIEWING_SELECT)
     .single();
 
-  if (error) return { data: null, error };
+  if (error) return { data: null, error, queueId: null };
 
   if (data?.conversation_id) {
     await appendViewingSystemMessage(client, {
@@ -296,19 +298,47 @@ export async function declineViewing(client, { viewingId, agentUserId, notes }) 
     });
   }
 
-  if (data?.requester_id) {
-    await notifyViewingEvent(client, {
-      eventType: NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED,
-      recipientId: data.requester_id,
-      parties: { agentUserId: data.agent_user_id, listingOwnerUserId: data.agent_user_id, requesterId: data.requester_id },
-      payload: buildViewingNotificationPayload(data, {}, {
+  let queueId = null;
+  if (data?.requester_id && data.requester_id !== agentUserId) {
+    const notifyPayload = withNotificationRecipientRole(
+      data.requester_id,
+      {
+        agentUserId: data.agent_user_id,
+        listingOwnerUserId: data.agent_user_id,
+        requesterId: data.requester_id,
+      },
+      buildViewingNotificationPayload(data, {}, {
         viewing_id: viewingId,
-        dedupe_key: `viewing_declined:${viewingId}`,
-      }),
-    });
+        dedupe_key: buildViewingDeclinedDedupeKey(viewingId, data.requester_id),
+        recipient_user_id: data.requester_id,
+      })
+    );
+    const enqueueResult = await enqueueNotificationEvent(
+      client,
+      {
+        eventType: NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED,
+        recipientId: data.requester_id,
+        payload: notifyPayload,
+      },
+      { deliver: false }
+    );
+    queueId = enqueueResult.queueId ?? null;
   }
 
-  return { data, error: null };
+  return { data, error: null, queueId };
+}
+
+export async function declineViewing(client, { viewingId, agentUserId, notes }) {
+  if (typeof window !== "undefined") {
+    const { submitViewingDeclineViaApi } = await import("../security/submitViewingDeclineViaApi");
+    return submitViewingDeclineViaApi(client, { viewingId, agentUserId, notes });
+  }
+
+  const result = await performDeclineViewing(client, { viewingId, agentUserId, notes });
+  if (BL_ENABLE_NOTIFICATIONS && result.queueId) {
+    await triggerServerNotificationDelivery(client, { queueId: result.queueId });
+  }
+  return result;
 }
 
 export async function proposeViewingReschedule(client, {

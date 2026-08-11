@@ -72,9 +72,12 @@ describe("notificationCopyRegistry", () => {
     const pres = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED, {
       viewing_id: "v-decline-1",
       listing_title: "Finca Solana",
+      requested_date: "2026-07-15",
+      requested_time: "10:00",
       recipient_role: "user",
     });
-    expect(pres.title).toBe("Viewing declined");
+    expect(pres.title).toBe("Viewing request declined");
+    expect(pres.body).toContain("10:00 AM");
     expect(pres.entityId).toBe("v-decline-1");
     expect(pres.href).toBe("/dashboard/user?tab=viewings&viewing=v-decline-1");
   });

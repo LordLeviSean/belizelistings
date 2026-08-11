@@ -21,6 +21,10 @@ import {
   buildViewingConfirmedPushPayload,
   resolveViewingConfirmedPushDestination,
 } from "./buildViewingConfirmedPushPayload";
+import {
+  buildViewingDeclinedPushPayload,
+  resolveViewingDeclinedPushDestination,
+} from "./buildViewingDeclinedPushPayload";
 import { sendWebPushToUser } from "./sendWebPushToUser";
 import {
   WEB_PUSH_DELIVERY_STATUS,
@@ -41,6 +45,7 @@ export const CONNECTED_PUSH_EVENT_TYPES = Object.freeze([
   "admin_replied",
   "viewing_requested",
   "viewing_confirmed",
+  "viewing_declined",
 ]);
 
 /**
@@ -170,6 +175,9 @@ function buildPushPayloadForEvent(eventType, { notificationId, dedupeKey, href, 
   if (eventType === NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED) {
     return buildViewingConfirmedPushPayload({ notificationId, dedupeKey, href, payload });
   }
+  if (eventType === NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED) {
+    return buildViewingDeclinedPushPayload({ notificationId, dedupeKey, href, payload });
+  }
   return buildNewInquiryPushPayload({ notificationId, dedupeKey, href, payload });
 }
 
@@ -188,6 +196,9 @@ function resolvePushHrefForEvent(eventType, recipientRole, payload) {
   }
   if (eventType === NOTIFICATION_EVENT_TYPES.VIEWING_CONFIRMED) {
     return resolveViewingConfirmedPushDestination({ recipientRole, payload });
+  }
+  if (eventType === NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED) {
+    return resolveViewingDeclinedPushDestination({ recipientRole, payload });
   }
   return resolveNewInquiryNotificationHref({ recipientRole, payload });
 }

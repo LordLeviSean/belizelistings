@@ -15,7 +15,7 @@ import { resolveAdminRepliedNotificationHref } from "./adminRepliedNotificationR
 import { resolveBuyerRepliedNotificationHref } from "./buyerRepliedNotificationRouting";
 import { resolveNewInquiryNotificationHref } from "./newInquiryNotificationRouting";
 import { buildMessagingInAppCopy } from "./messagingNotificationCopy";
-import { buildViewingRequestedInAppCopy, buildViewingConfirmedInAppCopy } from "./viewingNotificationCopy";
+import { buildViewingRequestedInAppCopy, buildViewingConfirmedInAppCopy, buildViewingDeclinedInAppCopy } from "./viewingNotificationCopy";
 import { NOTIFICATION_EVENT_TYPES } from "./notificationEvents";
 
 /** Editorial categories — calm luxury, operational tone. */
@@ -194,15 +194,21 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       href = resolveNotificationDestination({ eventType, role: recipientRole || "user", payload });
       break;
 
-    case NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED:
+    case NOTIFICATION_EVENT_TYPES.VIEWING_DECLINED: {
       category = NOTIFICATION_CATEGORIES.INQUIRY;
-      title = "Viewing declined";
-      body = `Your viewing request for ${listingTitle} was declined.`;
+      const viewingCopy = buildViewingDeclinedInAppCopy(payload);
+      title = viewingCopy.title;
+      body = viewingCopy.body;
       entityType = "viewing";
       entityId = viewingId ? String(viewingId) : null;
-      dedupeKey = dedupeKey ?? `viewing_declined:${viewingId ?? ""}`;
+      dedupeKey =
+        dedupeKey ??
+        (viewingId && (payload.recipient_user_id ?? payload.recipientUserId)
+          ? `viewing_declined:${viewingId}:${payload.recipient_user_id ?? payload.recipientUserId}`
+          : `viewing_declined:${viewingId ?? ""}`);
       href = resolveNotificationDestination({ eventType, role: recipientRole || "user", payload });
       break;
+    }
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_RESCHEDULED:
       category = NOTIFICATION_CATEGORIES.INQUIRY;

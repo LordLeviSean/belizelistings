@@ -221,6 +221,95 @@ describe("deliverNewInquiryWebPush", () => {
     );
   });
 
+  test("delivers one viewing_declined push to the buyer", async () => {
+    const adminClient = buildAdminClient();
+    adminClient.from = jest.fn((table) => {
+      if (table === "notifications") {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(function eq(field, value) {
+              if (field === "id") {
+                return {
+                  maybeSingle: jest.fn().mockResolvedValue({
+                    data: {
+                      id: "notif-declined-1",
+                      payload: {
+                        viewing_id: "view-1",
+                        listing_id: "listing-1",
+                        listing_title: "Finca Solana",
+                        requested_date: "2026-07-15",
+                        requested_time: "10:00",
+                        recipient_side: "buyer",
+                      },
+                    },
+                    error: null,
+                  }),
+                  eq: jest.fn(() => ({
+                    maybeSingle: jest.fn().mockResolvedValue({
+                      data: {
+                        id: "notif-declined-1",
+                        payload: {
+                          viewing_id: "view-1",
+                          listing_title: "Finca Solana",
+                          requested_date: "2026-07-15",
+                          requested_time: "10:00",
+                        },
+                      },
+                      error: null,
+                    }),
+                  })),
+                };
+              }
+              return { maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }) };
+            }),
+          })),
+          update: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              select: jest.fn(() => ({
+                maybeSingle: jest.fn().mockResolvedValue({ data: { id: "notif-declined-1" }, error: null }),
+              })),
+            })),
+          })),
+        };
+      }
+      if (table === "profiles") {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              maybeSingle: jest.fn().mockResolvedValue({ data: { role: "user" }, error: null }),
+            })),
+          })),
+        };
+      }
+      return {};
+    });
+
+    const result = await deliverNewInquiryWebPush(adminClient, {
+      ok: true,
+      event_type: "viewing_declined",
+      recipient_id: "buyer-1",
+      notification_id: "notif-declined-1",
+      dedupe_key: "viewing_declined:view-1:buyer-1",
+    });
+
+    expect(result.skipped).toBe(false);
+    expect(sendWebPushToUser).toHaveBeenCalledWith(
+      adminClient,
+      "buyer-1",
+      expect.objectContaining({
+        ok: true,
+        payload: expect.objectContaining({
+          eventType: "viewing_declined",
+          title: "Viewing request declined",
+          body: expect.stringContaining("10:00 AM"),
+          href: "/dashboard/user?tab=viewings&viewing=view-1",
+          tag: "viewing_declined:view-1:buyer-1",
+        }),
+      }),
+      { maxSubscriptions: 1 }
+    );
+  });
+
   test("delivers one viewing_requested push to the listing contact", async () => {
     const adminClient = buildAdminClient();
     adminClient.from = jest.fn((table) => {

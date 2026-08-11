@@ -76,7 +76,7 @@ describe("CRM notification matrix", () => {
       listing_title: LISTING,
       recipient_role: "user",
     });
-    expect(pres.title).toBe("Viewing declined");
+    expect(pres.title).toBe("Viewing request declined");
     expect(pres.body).toContain(LISTING);
   });
 

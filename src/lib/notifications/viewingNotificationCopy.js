@@ -134,3 +134,55 @@ export function buildViewingConfirmedPushCopy(payload = {}) {
 export function buildViewingConfirmedInAppCopy(payload = {}) {
   return buildViewingConfirmedPushCopy(payload);
 }
+
+export const VIEWING_DECLINED_PUSH_TITLE = "Viewing request declined";
+
+function resolveViewingDeclinedSlotPhrase(payload = {}) {
+  return (
+    formatViewingSlotPushPhrase(
+      payload.requested_date ?? payload.requestedDate,
+      payload.requested_time ?? payload.requestedTime
+    ) ||
+    String(resolveSlotLabel(payload) || "")
+      .replace(" · ", " at ")
+      .replace(" • ", " at ")
+      .trim()
+  );
+}
+
+/**
+ * Push/in-app copy for viewing_declined events (buyer-facing).
+ *
+ * @param {object} [payload]
+ * @returns {{ title: string, body: string }}
+ */
+export function buildViewingDeclinedPushCopy(payload = {}) {
+  const listingTitle = resolveListingTitle(payload, "");
+  const slotPhrase = resolveViewingDeclinedSlotPhrase(payload);
+
+  let body;
+  if (listingTitle && listingTitle !== "your listing" && slotPhrase) {
+    body = `Your viewing request for ${listingTitle} on ${slotPhrase} was declined.`;
+  } else if (slotPhrase) {
+    body = `Your viewing request for ${slotPhrase} was declined.`;
+  } else if (listingTitle && listingTitle !== "your listing") {
+    body = `Your viewing request for ${listingTitle} was declined.`;
+  } else {
+    body = "Your viewing request was declined.";
+  }
+
+  return {
+    title: VIEWING_DECLINED_PUSH_TITLE,
+    body,
+  };
+}
+
+/**
+ * In-app viewing_declined presentation copy.
+ *
+ * @param {object} [payload]
+ * @returns {{ title: string, body: string }}
+ */
+export function buildViewingDeclinedInAppCopy(payload = {}) {
+  return buildViewingDeclinedPushCopy(payload);
+}
