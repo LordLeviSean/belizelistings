@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { readTruthyEnvValue } from "@/lib/featureFlags";
 import { triggerNotificationDeliveryWithPush, deliverNotificationQueueItemWithPush } from "@/lib/notifications/deliverNotificationsServer";
+import { deliverNewInquiryNotificationForInquiry } from "@/lib/notifications/deliverNewInquiryForInquiry";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {

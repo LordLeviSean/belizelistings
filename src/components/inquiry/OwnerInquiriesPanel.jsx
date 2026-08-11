@@ -63,7 +63,12 @@ export default function OwnerInquiriesPanel({
     if (!initialConversationId) return;
     setSelectedConversationId(initialConversationId);
     const match = conversations.find((c) => c.id === initialConversationId);
-    if (match?.listing_id) setSelectedListingId(match.listing_id);
+    if (match?.listing_id) {
+      setSelectedListingId(match.listing_id);
+      const compact =
+        typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches;
+      if (compact) setMobilePane("thread");
+    }
   }, [initialConversationId, conversations]);
 
   const listingTitle =
@@ -123,11 +128,11 @@ export default function OwnerInquiriesPanel({
   }, []);
 
   useEffect(() => {
-    if (!groups.length) {
+    if (!groups.length && !initialConversationId) {
       setSelectedListingId(null);
       setSelectedConversationId(null);
     }
-  }, [groups]);
+  }, [groups, initialConversationId]);
 
   const handleSelectListing = (group) => {
     setSelectedListingId(group.listingId);
