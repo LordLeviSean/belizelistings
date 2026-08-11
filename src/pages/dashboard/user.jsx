@@ -110,6 +110,13 @@ export default function UserDashboard() {
     return resolveVisibleUserDashboardTab(inferred, visibleTabs);
   }, [router.query.tab, router.query.conversation, router.query.viewing, router.query.listing, visibleTabs]);
 
+  const deepLinkConversationId = useMemo(() => {
+    const conversation = router.query.conversation;
+    if (typeof conversation === "string") return conversation;
+    if (Array.isArray(conversation)) return conversation[0] ?? null;
+    return null;
+  }, [router.query.conversation]);
+
   const [buyerInquiries, setBuyerInquiries] = useState([]);
   const [buyerViewings, setBuyerViewings] = useState([]);
   const [buyerConversations, setBuyerConversations] = useState([]);
@@ -394,10 +401,10 @@ export default function UserDashboard() {
 
                 {activeTab === USER_DASHBOARD_TAB_IDS.INBOX ? (
                   <section aria-label="Inbox">
-                    {buyerCrmLoading && !buyerConversations.length && !hasOwnedListings ? (
+                    {buyerCrmLoading && !buyerConversations.length && !deepLinkConversationId && !hasOwnedListings ? (
                       <div className={loadingStyles.hydratingPanel} aria-busy="true" />
                     ) : null}
-                    {buyerConversations.length > 0 ? (
+                    {buyerConversations.length > 0 || deepLinkConversationId ? (
                       <div style={{ marginBottom: hasOwnedListings ? 24 : 0 }}>
                         {hasOwnedListings ? (
                           <h3 className={styles.userActionHeadline} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
@@ -408,13 +415,7 @@ export default function UserDashboard() {
                           conversations={buyerConversations}
                           buyerUserId={user?.id}
                           onRefresh={loadBuyerCrm}
-                          initialConversationId={
-                            typeof router.query.conversation === "string"
-                              ? router.query.conversation
-                              : Array.isArray(router.query.conversation)
-                                ? router.query.conversation[0]
-                                : null
-                          }
+                          initialConversationId={deepLinkConversationId}
                         />
                       </div>
                     ) : null}
@@ -423,16 +424,10 @@ export default function UserDashboard() {
                         ownerUserId={user.id}
                         section="inquiries"
                         surface="user"
-                        initialConversationId={
-                          typeof router.query.conversation === "string"
-                            ? router.query.conversation
-                            : Array.isArray(router.query.conversation)
-                              ? router.query.conversation[0]
-                              : null
-                        }
+                        initialConversationId={deepLinkConversationId}
                       />
                     ) : null}
-                    {!buyerConversations.length && !hasOwnedListings && !buyerCrmLoading ? (
+                    {!buyerConversations.length && !deepLinkConversationId && !hasOwnedListings && !buyerCrmLoading ? (
                       <p className={styles.muted}>Nothing in your Inbox yet — use Message via BelizeListings on a listing to start a conversation.</p>
                     ) : null}
                   </section>

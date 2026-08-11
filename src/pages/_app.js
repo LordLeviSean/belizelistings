@@ -22,6 +22,7 @@ import { VisualModeProvider } from "@/components/VisualModeProvider";
 import GlobalSeaFlowLayer from "@/components/GlobalSeaFlowLayer";
 import { fetchPublicVisualModeConfigServerSide } from "@/lib/visualModeConfigServer";
 import { registerBelizeListingsServiceWorker } from "@/lib/pwa/registerServiceWorker";
+import { handlePushNavigateMessage } from "@/lib/pwa/pushNotificationNavigation";
 import { InstallationStateProvider } from "@/lib/pwa/InstallationStateProvider";
 
 function ModerationNotificationListener() {
@@ -51,6 +52,19 @@ function AppWithAlerts({ Component, pageProps }) {
   useEffect(() => {
     registerBelizeListingsServiceWorker();
   }, []);
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.serviceWorker?.addEventListener) return undefined;
+
+    const onServiceWorkerMessage = (event) => {
+      handlePushNavigateMessage(event.data, router);
+    };
+
+    navigator.serviceWorker.addEventListener("message", onServiceWorkerMessage);
+    return () => {
+      navigator.serviceWorker.removeEventListener("message", onServiceWorkerMessage);
+    };
+  }, [router]);
 
   return (
     <InstallationStateProvider>

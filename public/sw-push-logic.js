@@ -112,6 +112,7 @@
 
     const rawHref = event.notification?.data?.href;
     const targetUrl = resolveNotificationTarget(rawHref, locationOrigin);
+    const targetPath = isSafeRelativePath(rawHref) ? String(rawHref).trim() : FALLBACK_HREF;
 
     const windowClients = await clientsApi.matchAll({
       type: "window",
@@ -122,14 +123,25 @@
       if (!String(client.url || "").startsWith(locationOrigin)) continue;
 
       try {
+        if ("navigate" in client) {
+          await client.navigate(targetUrl);
+          if ("focus" in client) {
+            await client.focus();
+          }
+          return;
+        }
+
         if ("focus" in client) {
           await client.focus();
         }
-        if ("navigate" in client) {
-          await client.navigate(targetUrl);
+
+        if (typeof client.postMessage === "function") {
+          client.postMessage({
+            type: "bl-push-navigate",
+            href: targetPath,
+          });
           return;
         }
-        return;
       } catch {
         // try next client or open a new window
       }

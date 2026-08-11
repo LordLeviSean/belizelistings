@@ -55,6 +55,14 @@
   .split {
     grid-template-columns: 1fr;
   }
+
+  .splitHideList .listPane {
+    display: none;
+  }
+
+  .splitHideThread .detail {
+    display: none;
+  }
 }
 
 .convBtn {

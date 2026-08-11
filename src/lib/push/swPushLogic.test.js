@@ -123,6 +123,66 @@ describe("sw-push-logic", () => {
     );
   });
 
+  test("notification click navigates existing client to exact inbox conversation", async () => {
+    const close = jest.fn();
+    const focus = jest.fn().mockResolvedValue(undefined);
+    const navigate = jest.fn().mockResolvedValue(undefined);
+    const matchAll = jest.fn().mockResolvedValue([
+      {
+        url: "https://belizelistings.bz/dashboard/user",
+        focus,
+        navigate,
+      },
+    ]);
+    const openWindow = jest.fn();
+
+    await BL_PUSH.handleNotificationClick(
+      {
+        notification: {
+          close,
+          data: { href: "/dashboard/user?tab=inbox&conversation=conv-buyer-1" },
+        },
+      },
+      { matchAll, openWindow },
+      "https://belizelistings.bz"
+    );
+
+    expect(close).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(
+      "https://belizelistings.bz/dashboard/user?tab=inbox&conversation=conv-buyer-1"
+    );
+    expect(focus).toHaveBeenCalled();
+    expect(openWindow).not.toHaveBeenCalled();
+  });
+
+  test("notification click posts in-app navigation when Client.navigate is unavailable", async () => {
+    const postMessage = jest.fn();
+    const focus = jest.fn().mockResolvedValue(undefined);
+    const matchAll = jest.fn().mockResolvedValue([
+      {
+        url: "https://belizelistings.bz/dashboard/user",
+        focus,
+        postMessage,
+      },
+    ]);
+
+    await BL_PUSH.handleNotificationClick(
+      {
+        notification: {
+          close: jest.fn(),
+          data: { href: "/dashboard/user?tab=inbox&conversation=conv-buyer-2" },
+        },
+      },
+      { matchAll, openWindow: jest.fn() },
+      "https://belizelistings.bz"
+    );
+
+    expect(postMessage).toHaveBeenCalledWith({
+      type: "bl-push-navigate",
+      href: "/dashboard/user?tab=inbox&conversation=conv-buyer-2",
+    });
+  });
+
   test("notification click focuses existing client when possible", async () => {
     const close = jest.fn();
     const focus = jest.fn().mockResolvedValue(undefined);

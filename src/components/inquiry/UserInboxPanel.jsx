@@ -20,6 +20,11 @@ import inboxStyles from "./AgentInboxPanel.module.css";
 import styles from "./UserInboxPanel.module.css";
 import threadStyles from "./OwnerInquiriesPanel.module.css";
 
+function conversationIdsMatch(left, right) {
+  if (left == null || right == null) return false;
+  return String(left) === String(right);
+}
+
 export default function UserInboxPanel({
   conversations = [],
   listingsById = {},
@@ -29,6 +34,8 @@ export default function UserInboxPanel({
 }) {
   const { showToast } = useToast();
   const [selectedId, setSelectedId] = useState(initialConversationId);
+  const [mobilePane, setMobilePane] = useState("list");
+  const [isCompact, setIsCompact] = useState(false);
   const [messages, setMessages] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [replyBody, setReplyBody] = useState("");
@@ -47,10 +54,54 @@ export default function UserInboxPanel({
   );
 
   useEffect(() => {
-    if (initialConversationId) setSelectedId(initialConversationId);
+    if (!initialConversationId) return;
+    setSelectedId(initialConversationId);
+    const compact =
+      typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches;
+    if (compact) setMobilePane("thread");
   }, [initialConversationId]);
 
-  const selected = sorted.find((c) => c.id === selectedId) || sorted[0] || null;
+  useEffect(() => {
+    if (!initialConversationId) return;
+    const match = conversations.find((c) => conversationIdsMatch(c.id, initialConversationId));
+    if (match) {
+      setSelectedId(match.id);
+    }
+  }, [initialConversationId, conversations]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 900px)");
+    const update = () => setIsCompact(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!sorted.length && !initialConversationId) {
+      setSelectedId(null);
+      setMobilePane("list");
+    }
+  }, [sorted.length, initialConversationId]);
+
+  const selected = useMemo(() => {
+    if (selectedId != null) {
+      const match = sorted.find((c) => conversationIdsMatch(c.id, selectedId));
+      if (match) return match;
+      if (initialConversationId && conversationIdsMatch(selectedId, initialConversationId)) {
+        return null;
+      }
+    }
+    if (initialConversationId) {
+      return null;
+    }
+    return sorted[0] || null;
+  }, [sorted, selectedId, initialConversationId]);
+
+  const awaitingDeepLink =
+    Boolean(initialConversationId) &&
+    !sorted.some((c) => conversationIdsMatch(c.id, initialConversationId));
 
   const unreadCount = useMemo(
     () => sorted.filter((conv) => isBuyerConversationUnread(conv)).length,
@@ -73,31 +124,35 @@ export default function UserInboxPanel({
   }, []);
 
   useEffect(() => {
-    if (selected?.id) void loadMessages(selected.id);
-  }, [selected?.id, loadMessages]);
+    const targetId = selected?.id ?? (awaitingDeepLink ? initialConversationId : null);
+    if (targetId) void loadMessages(targetId);
+  }, [selected?.id, awaitingDeepLink, initialConversationId, loadMessages]);
 
-  const handleRealtimeMessage = useCallback(
-    (row) => {
-      if (!row?.id) return;
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === row.id)) return prev;
-        return [...prev, row];
-      });
-    },
-    []
-  );
+  const handleRealtimeMessage = useCallback((row) => {
+    if (!row?.id) return;
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === row.id)) return prev;
+      return [...prev, row];
+    });
+  }, []);
 
-  useConversationMessagesRealtime(selected?.id, handleRealtimeMessage, onRefresh);
+  const activeConversationId = selected?.id ?? (awaitingDeepLink ? initialConversationId : null);
+  useConversationMessagesRealtime(activeConversationId, handleRealtimeMessage, onRefresh);
 
   useEffect(() => {
     if (!selected?.id || !buyerUserId) return;
-    const conv = sorted.find((c) => c.id === selected.id);
+    const conv = sorted.find((c) => conversationIdsMatch(c.id, selected.id));
     if (!conv || !isBuyerConversationUnread(conv)) return;
     void markConversationReadByBuyer(supabase, {
       conversationId: selected.id,
       buyerUserId,
     }).then(() => onRefresh?.());
   }, [selected?.id, buyerUserId, sorted, onRefresh]);
+
+  const handleSelectConversation = (conv) => {
+    setSelectedId(conv.id);
+    if (isCompact) setMobilePane("thread");
+  };
 
   const handleSendReply = async () => {
     if (!selected?.id || !buyerUserId || replyBusy) return;
@@ -136,6 +191,7 @@ export default function UserInboxPanel({
     }
     showToast({ type: "success", message: "Conversation permanently removed from your Inbox." });
     setSelectedId(null);
+    if (isCompact) setMobilePane("list");
     onRefresh?.();
   };
 
@@ -149,7 +205,7 @@ export default function UserInboxPanel({
     );
   }
 
-  if (!sorted.length) {
+  if (!sorted.length && !initialConversationId) {
     return (
       <PremiumEmptyState
         variant="inquiries"
@@ -164,6 +220,9 @@ export default function UserInboxPanel({
     listingsById?.[selected?.listing_id]?.title ||
     (selected?.listing_id ? `Listing #${selected.listing_id}` : "Property");
 
+  const showList = !isCompact || mobilePane === "list";
+  const showThread = !isCompact || mobilePane === "thread";
+
   return (
     <div className={inboxStyles.shell}>
       <p className={styles.lede}>
@@ -176,115 +235,135 @@ export default function UserInboxPanel({
         </p>
       ) : null}
 
-      <div className={inboxStyles.split}>
-        <div className={listStyles.list} role="list" aria-label="Your conversations">
-          {sorted.map((conv) => {
-            const isSelected = selected?.id === conv.id;
-            const unread = isBuyerConversationUnread(conv);
-            const inquiry = conv?.listing_inquiries;
-            const row = Array.isArray(inquiry) ? inquiry[0] : inquiry;
-            return (
+      <div
+        className={`${inboxStyles.split} ${!showList ? inboxStyles.splitHideList : ""} ${
+          !showThread ? inboxStyles.splitHideThread : ""
+        }`}
+      >
+        {showList ? (
+          <div className={`${listStyles.list} ${inboxStyles.listPane}`} role="list" aria-label="Your conversations">
+            {sorted.map((conv) => {
+              const isSelected = conversationIdsMatch(selected?.id, conv.id);
+              const unread = isBuyerConversationUnread(conv);
+              const inquiry = conv?.listing_inquiries;
+              const row = Array.isArray(inquiry) ? inquiry[0] : inquiry;
+              return (
+                <button
+                  key={conv.id}
+                  type="button"
+                  role="listitem"
+                  aria-selected={isSelected}
+                  className={`${listStyles.card} ${inboxStyles.convBtn} ${unread ? listStyles.cardUnread : ""} ${
+                    isSelected ? inboxStyles.convBtnSelected : ""
+                  }`}
+                  onClick={() => handleSelectConversation(conv)}
+                >
+                  <header className={listStyles.cardHead}>
+                    <span className={listStyles.channel}>
+                      {inquiryTypeLabel(row?.inquiry_type || conv.inquiry_type || "general")}
+                      {unread ? (
+                        <span className={inboxStyles.unreadDot} aria-label="Unread">
+                          {" "}
+                          · New
+                        </span>
+                      ) : null}
+                    </span>
+                    <time className={listStyles.time} dateTime={conv.updated_at}>
+                      {formatRelativeTime(conv.updated_at || conv.created_at)}
+                    </time>
+                  </header>
+                  <p className={listStyles.listingRef}>
+                    {listingsById?.[conv.listing_id]?.title || `Listing ${conv.listing_id}`}
+                  </p>
+                  <p className={listStyles.body}>{conversationPreviewText(conv)}</p>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {showThread ? (
+          <aside className={inboxStyles.detail} aria-label="Conversation thread">
+            {isCompact && mobilePane === "thread" ? (
               <button
-                key={conv.id}
                 type="button"
-                role="listitem"
-                aria-selected={isSelected}
-                className={`${listStyles.card} ${inboxStyles.convBtn} ${unread ? listStyles.cardUnread : ""} ${
-                  isSelected ? inboxStyles.convBtnSelected : ""
-                }`}
-                onClick={() => setSelectedId(conv.id)}
+                className={threadStyles.backBtn}
+                onClick={() => setMobilePane("list")}
               >
-                <header className={listStyles.cardHead}>
-                  <span className={listStyles.channel}>
-                    {inquiryTypeLabel(row?.inquiry_type || conv.inquiry_type || "general")}
-                    {unread ? (
-                      <span className={inboxStyles.unreadDot} aria-label="Unread">
-                        {" "}
-                        · New
-                      </span>
-                    ) : null}
-                  </span>
-                  <time className={listStyles.time} dateTime={conv.updated_at}>
-                    {formatRelativeTime(conv.updated_at || conv.created_at)}
-                  </time>
-                </header>
-                <p className={listStyles.listingRef}>
-                  {listingsById?.[conv.listing_id]?.title || `Listing ${conv.listing_id}`}
-                </p>
-                <p className={listStyles.body}>{conversationPreviewText(conv)}</p>
+                ← Conversations
               </button>
-            );
-          })}
-        </div>
+            ) : null}
 
-        <aside className={inboxStyles.detail} aria-label="Conversation thread">
-          {selected ? (
-            <>
-              <header className={inboxStyles.detailHead}>
-                <h3 className={inboxStyles.detailTitle}>{listingTitle}</h3>
-                <p className={inboxStyles.detailMeta}>
-                  {selected.pipeline_stage ? selected.pipeline_stage.replace(/_/g, " ") : "Open"}
-                </p>
-              </header>
+            {selected ? (
+              <>
+                <header className={inboxStyles.detailHead}>
+                  <h3 className={inboxStyles.detailTitle}>{listingTitle}</h3>
+                  <p className={inboxStyles.detailMeta}>
+                    {selected.pipeline_stage ? selected.pipeline_stage.replace(/_/g, " ") : "Open"}
+                  </p>
+                </header>
 
-              <div className={threadStyles.threadActions}>
-                <button
-                  type="button"
-                  className={threadStyles.deleteBtn}
-                  onClick={() => setDeleteTarget(selected)}
-                >
-                  Delete conversation
-                </button>
-              </div>
+                <div className={threadStyles.threadActions}>
+                  <button
+                    type="button"
+                    className={threadStyles.deleteBtn}
+                    onClick={() => setDeleteTarget(selected)}
+                  >
+                    Delete conversation
+                  </button>
+                </div>
 
-              <div className={inboxStyles.thread} aria-live="polite" aria-busy={messagesLoading}>
-                {messagesLoading ? (
-                  <p className={inboxStyles.threadMuted}>Loading messages…</p>
-                ) : messages.length === 0 ? (
-                  <p className={inboxStyles.threadMuted}>No messages yet.</p>
-                ) : (
-                  messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`${inboxStyles.bubble} ${
-                        msg.sender_role === "buyer" ? inboxStyles.bubbleBuyer : inboxStyles.bubbleAgent
-                      }`}
-                    >
-                      <p className={inboxStyles.bubbleBody}>{msg.body}</p>
-                      <time className={inboxStyles.bubbleTime} dateTime={msg.created_at}>
-                        {formatRelativeTime(msg.created_at)}
-                      </time>
-                    </div>
-                  ))
-                )}
-              </div>
+                <div className={inboxStyles.thread} aria-live="polite" aria-busy={messagesLoading}>
+                  {messagesLoading ? (
+                    <p className={inboxStyles.threadMuted}>Loading messages…</p>
+                  ) : messages.length === 0 ? (
+                    <p className={inboxStyles.threadMuted}>No messages yet.</p>
+                  ) : (
+                    messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`${inboxStyles.bubble} ${
+                          msg.sender_role === "buyer" ? inboxStyles.bubbleBuyer : inboxStyles.bubbleAgent
+                        }`}
+                      >
+                        <p className={inboxStyles.bubbleBody}>{msg.body}</p>
+                        <time className={inboxStyles.bubbleTime} dateTime={msg.created_at}>
+                          {formatRelativeTime(msg.created_at)}
+                        </time>
+                      </div>
+                    ))
+                  )}
+                </div>
 
-              <div className={inboxStyles.composer}>
-                <label className={inboxStyles.composerLabel} htmlFor="buyer-inbox-reply">
-                  Your message
-                </label>
-                <textarea
-                  id="buyer-inbox-reply"
-                  className={inboxStyles.composerInput}
-                  rows={3}
-                  value={replyBody}
-                  onChange={(e) => setReplyBody(e.target.value)}
-                  placeholder="Follow up with the agent…"
-                />
-                <button
-                  type="button"
-                  className={listStyles.primary}
-                  disabled={replyBusy || !replyBody.trim()}
-                  onClick={() => void handleSendReply()}
-                >
-                  {replyBusy ? "Sending…" : "Send message"}
-                </button>
-              </div>
-            </>
-          ) : (
-            <p className={inboxStyles.threadMuted}>Select a conversation.</p>
-          )}
-        </aside>
+                <div className={inboxStyles.composer}>
+                  <label className={inboxStyles.composerLabel} htmlFor="buyer-inbox-reply">
+                    Your message
+                  </label>
+                  <textarea
+                    id="buyer-inbox-reply"
+                    className={inboxStyles.composerInput}
+                    rows={3}
+                    value={replyBody}
+                    onChange={(e) => setReplyBody(e.target.value)}
+                    placeholder="Follow up with the agent…"
+                  />
+                  <button
+                    type="button"
+                    className={listStyles.primary}
+                    disabled={replyBusy || !replyBody.trim()}
+                    onClick={() => void handleSendReply()}
+                  >
+                    {replyBusy ? "Sending…" : "Send message"}
+                  </button>
+                </div>
+              </>
+            ) : awaitingDeepLink ? (
+              <p className={inboxStyles.threadMuted}>Opening conversation…</p>
+            ) : (
+              <p className={inboxStyles.threadMuted}>Select a conversation.</p>
+            )}
+          </aside>
+        ) : null}
       </div>
 
       <DeleteConfirmationModal
