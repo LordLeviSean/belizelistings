@@ -11,6 +11,7 @@ import {
   resolveSlotLabel,
 } from "@/lib/notifications/crmNotificationHelpers";
 import { NOTIFICATION_EVENT_TYPES } from "./notificationEvents";
+import { resolveAgentRepliedNotificationHref } from "./agentRepliedNotificationRouting";
 import { resolveNewInquiryNotificationHref } from "./newInquiryNotificationRouting";
 
 /** Editorial categories — calm luxury, operational tone. */
@@ -89,7 +90,11 @@ export function buildNotificationPresentation(eventType, payload = {}) {
       entityType = "conversation";
       entityId = conversationId ? String(conversationId) : null;
       dedupeKey = dedupeKey ?? `agent_replied:${conversationId ?? ""}:${messageId ?? ""}`;
-      href = resolveNotificationDestination({ eventType, role: recipientRole || "user", payload });
+      href = resolveAgentRepliedNotificationHref({
+        recipientRole: recipientRole || "user",
+        payload,
+        conversationId,
+      });
       break;
 
     case NOTIFICATION_EVENT_TYPES.VIEWING_REQUESTED:

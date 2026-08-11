@@ -18,28 +18,35 @@ import { WEB_PUSH_DELIVERY_STATUS } from "./webPushDeliveryState";
 function buildStatefulNotificationClient(initialPayload = {}) {
   let payload = { conversation_id: "conv-1", ...initialPayload };
 
+  const reconciliationRows = [
+    {
+      id: "notif-1",
+      recipient_user_id: "agent-1",
+      event_type: "new_inquiry",
+      dedupe_key: "new_inquiry:inq-1",
+      get payload() {
+        return payload;
+      },
+      created_at: new Date().toISOString(),
+    },
+  ];
+
+  const reconciliationQuery = {
+    gte: jest.fn(() => ({
+      order: jest.fn(() => ({
+        limit: jest.fn().mockResolvedValue({
+          data: reconciliationRows,
+          error: null,
+        }),
+      })),
+    })),
+  };
+
   const notificationSelectChain = {
+    in: jest.fn(() => reconciliationQuery),
     eq: jest.fn(function eq(field, value) {
       if (field === "event_type") {
-        return {
-          gte: jest.fn(() => ({
-            order: jest.fn(() => ({
-              limit: jest.fn().mockResolvedValue({
-                data: [
-                  {
-                    id: "notif-1",
-                    recipient_user_id: "agent-1",
-                    event_type: "new_inquiry",
-                    dedupe_key: "new_inquiry:inq-1",
-                    payload,
-                    created_at: new Date().toISOString(),
-                  },
-                ],
-                error: null,
-              }),
-            })),
-          })),
-        };
+        return reconciliationQuery;
       }
 
       if (field === "id") {
@@ -103,6 +110,7 @@ function buildStatefulNotificationClient(initialPayload = {}) {
 describe("new inquiry delivery synchronization", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    sendWebPushToUser.mockReset();
   });
 
   test("immediate success prevents reconciliation duplication", async () => {

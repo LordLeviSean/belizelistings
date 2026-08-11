@@ -117,18 +117,96 @@ describe("deliverNewInquiryWebPush", () => {
     );
   });
 
-  test("ignores non-new_inquiry events", async () => {
+  test("ignores events outside the connected push set", async () => {
     const adminClient = buildAdminClient();
 
     const result = await deliverNewInquiryWebPush(adminClient, {
       ok: true,
-      event_type: "agent_replied",
+      event_type: "viewing_requested",
       recipient_id: "user-1",
       notification_id: "notif-2",
     });
 
     expect(result.reason).toBe("unsupported_event");
     expect(sendWebPushToUser).not.toHaveBeenCalled();
+  });
+
+  test("delivers one agent_replied push to the buyer recipient", async () => {
+    const adminClient = buildAdminClient({
+      client: {},
+    });
+    adminClient.from = jest.fn((table) => {
+      if (table === "notifications") {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(function eq(field, value) {
+              if (field === "id") {
+                return {
+                  maybeSingle: jest.fn().mockResolvedValue({
+                    data: {
+                      id: "notif-reply-1",
+                      payload: { conversation_id: "conv-buyer-1", listing_id: "listing-1" },
+                    },
+                    error: null,
+                  }),
+                  eq: jest.fn(() => ({
+                    maybeSingle: jest.fn().mockResolvedValue({
+                      data: {
+                        id: "notif-reply-1",
+                        payload: { conversation_id: "conv-buyer-1", listing_id: "listing-1" },
+                      },
+                      error: null,
+                    }),
+                  })),
+                };
+              }
+              return { maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }) };
+            }),
+          })),
+          update: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              select: jest.fn(() => ({
+                maybeSingle: jest.fn().mockResolvedValue({ data: { id: "notif-reply-1" }, error: null }),
+              })),
+            })),
+          })),
+        };
+      }
+      if (table === "profiles") {
+        return {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              maybeSingle: jest.fn().mockResolvedValue({ data: { role: "user" }, error: null }),
+            })),
+          })),
+        };
+      }
+      return {};
+    });
+
+    const result = await deliverNewInquiryWebPush(adminClient, {
+      ok: true,
+      event_type: "agent_replied",
+      recipient_id: "buyer-1",
+      notification_id: "notif-reply-1",
+      dedupe_key: "agent_replied:conv-buyer-1:msg-1",
+    });
+
+    expect(result.skipped).toBe(false);
+    expect(sendWebPushToUser).toHaveBeenCalledWith(
+      adminClient,
+      "buyer-1",
+      expect.objectContaining({
+        ok: true,
+        payload: expect.objectContaining({
+          eventType: "agent_replied",
+          title: "You received a reply",
+          body: "Someone replied to your property inquiry.",
+          href: "/dashboard/user?tab=inbox&conversation=conv-buyer-1",
+          tag: "agent_replied:conv-buyer-1:msg-1",
+        }),
+      })
+    );
   });
 
   test("does not accept caller-supplied recipient overrides beyond delivery result", async () => {

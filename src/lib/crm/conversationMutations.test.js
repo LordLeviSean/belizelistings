@@ -165,6 +165,10 @@ describe("conversationMutations", () => {
       }),
       expect.any(Object)
     );
+    expect(triggerServerNotificationDelivery).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({ queueId: "q1" })
+    );
   });
 
   test("deleteConversationForBuyer only updates buyer participant column", async () => {

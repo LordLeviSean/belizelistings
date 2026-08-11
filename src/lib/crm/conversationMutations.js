@@ -293,7 +293,7 @@ export async function sendAgentReply(client, { conversationId, agentUserId, body
   const resolvedListingId = listingId ?? conv?.listing_id;
 
   if (conv?.buyer_id) {
-    await enqueueNotificationEvent(
+    const enqueueResult = await enqueueNotificationEvent(
       client,
       {
         eventType: NOTIFICATION_EVENT_TYPES.AGENT_REPLIED,
@@ -310,6 +310,10 @@ export async function sendAgentReply(client, { conversationId, agentUserId, body
       },
       { deliver: false }
     );
+
+    if (BL_ENABLE_NOTIFICATIONS && enqueueResult.queueId) {
+      await triggerServerNotificationDelivery(client, { queueId: enqueueResult.queueId });
+    }
   }
 
   if (resolvedListingId) {
@@ -322,10 +326,6 @@ export async function sendAgentReply(client, { conversationId, agentUserId, body
       actorRole: "agent",
       payload: { conversation_id: conversationId, message_id: message?.id },
     });
-  }
-
-  if (BL_ENABLE_NOTIFICATIONS) {
-    await triggerServerNotificationDelivery(client, { limit: 5 });
   }
 
   return { data: message, error: null };

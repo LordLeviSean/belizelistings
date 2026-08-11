@@ -1,5 +1,5 @@
+import { resolveAgentRepliedNotificationHref } from "./agentRepliedNotificationRouting";
 import { resolveNewInquiryNotificationHref } from "./newInquiryNotificationRouting";
-import { resolveNotificationDestination } from "@/lib/dashboardCrmRoutes";
 import { NOTIFICATION_EVENT_TYPES } from "./notificationEvents";
 import { buildNotificationPresentation } from "./notificationCopyRegistry";
 
@@ -22,16 +22,20 @@ describe("inquiry push deep-link routing", () => {
     expect(pres.href).toBe("/dashboard/agent?tab=inbox&conversation=conv-push-2");
   });
 
-  test("agent_replied href opens buyer inbox on exact conversation", () => {
-    const href = resolveNotificationDestination({
-      eventType: NOTIFICATION_EVENT_TYPES.AGENT_REPLIED,
-      role: "user",
-      payload: {
-        conversation_id: "conv-reply-1",
-        recipient_role: "user",
-        recipient_side: "buyer",
-      },
+  test("agent_replied push href opens buyer inbox on exact conversation", () => {
+    const href = resolveAgentRepliedNotificationHref({
+      recipientRole: "user",
+      payload: { conversation_id: "conv-reply-1", recipient_side: "buyer" },
     });
     expect(href).toBe("/dashboard/user?tab=inbox&conversation=conv-reply-1");
+  });
+
+  test("agent_replied in-app presentation matches push destination", () => {
+    const pres = buildNotificationPresentation(NOTIFICATION_EVENT_TYPES.AGENT_REPLIED, {
+      conversation_id: "conv-reply-2",
+      recipient_role: "user",
+      listing_title: "Beach House",
+    });
+    expect(pres.href).toBe("/dashboard/user?tab=inbox&conversation=conv-reply-2");
   });
 });
