@@ -6,7 +6,6 @@ import {
   isInquiryEmailReadOnly,
   resolveInquirySenderEmail,
 } from "@/lib/inquiryEmailPrefill";
-import { createViewingRequest } from "@/lib/crm/viewingMutations";
 import { resolveListingAgentUserId, resolveListingAgentUserIdAsync } from "@/lib/listingInquiryTargets";
 import { supabase } from "@/lib/supabaseClient";
 import useUserRole from "@/hooks/useUserRole";
@@ -139,7 +138,7 @@ export default function ListingViewingBookingModal({
     setCalendarOpen(false);
     const t = new Date();
     setViewYM({ y: t.getFullYear(), m: t.getMonth() });
-  }, [open, user, profile]);
+  }, [open]);
 
   const openCalendar = useCallback(() => {
     const base = selectedDate && selectedDate >= minDate && selectedDate <= maxDate ? selectedDate : minDate;
@@ -201,6 +200,7 @@ export default function ListingViewingBookingModal({
 
     setPending(true);
     try {
+      const { createViewingRequest } = await import("@/lib/crm/viewingMutations");
       const { error, unavailable, data } = await createViewingRequest(supabase, {
         listingId: listing.id,
         agentUserId,
