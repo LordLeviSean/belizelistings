@@ -697,3 +697,19 @@ export async function fetchViewingForBuyerById(client, buyerUserId, viewingId) {
     .is("requester_deleted_at", null)
     .maybeSingle();
 }
+
+/** Fetch one authorized agent/owner viewing by id (deep links / push navigation). */
+export async function fetchViewingForAgentById(client, agentUserId, viewingId) {
+  const normalizedId = viewingId == null ? null : String(viewingId).trim();
+  if (!client || !agentUserId || !normalizedId) {
+    return { data: null, error: { message: "agentUserId and viewingId are required" } };
+  }
+
+  return client
+    .from("viewing_requests")
+    .select(VIEWING_SELECT)
+    .eq("id", normalizedId)
+    .eq("agent_user_id", agentUserId)
+    .is("agent_deleted_at", null)
+    .maybeSingle();
+}

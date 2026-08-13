@@ -78,6 +78,40 @@ export async function fetchConversationsForBuyer(client, buyerUserId, { limit = 
   return query;
 }
 
+/**
+ * Fetch one authorized conversation by id for a participant (buyer or agent/owner).
+ * Respects RLS — no service-role browser fetching.
+ *
+ * @param {import("@supabase/supabase-js").SupabaseClient} client
+ * @param {string} participantUserId
+ * @param {string|number} conversationId
+ * @param {{ role?: "buyer"|"agent" }} [options]
+ */
+export async function fetchConversationForParticipantById(
+  client,
+  participantUserId,
+  conversationId,
+  { role = "buyer" } = {}
+) {
+  const normalizedId = conversationId == null ? null : String(conversationId).trim();
+  if (!client || !participantUserId || !normalizedId) {
+    return { data: null, error: { message: "participantUserId and conversationId are required" } };
+  }
+
+  let query = client
+    .from("conversations")
+    .select(CONVERSATION_SELECT)
+    .eq("id", normalizedId);
+
+  if (role === "agent") {
+    query = query.eq("agent_id", participantUserId).is("agent_deleted_at", null);
+  } else {
+    query = query.eq("buyer_id", participantUserId).is("buyer_deleted_at", null);
+  }
+
+  return query.maybeSingle();
+}
+
 export async function fetchConversationMessages(client, conversationId, { limit = 100 } = {}) {
   return client
     .from("messages")

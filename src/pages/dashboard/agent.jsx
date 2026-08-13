@@ -36,9 +36,14 @@ import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featur
 import { fetchConversationsForAgent } from "@/lib/crm/conversationMutations";
 import { filterInboxConversations } from "@/lib/crm/conversationFilters";
 import { fetchViewingsForAgent } from "@/lib/crm/viewingMutations";
+import { resolveAgentViewingDeepLink } from "@/lib/crm/viewingParticipantDeepLink";
+import { conversationListIncludesId } from "@/lib/crm/conversationDeepLink";
+import { resolveParticipantConversationDeepLink } from "@/lib/crm/participantConversationDeepLink";
+import { viewingListIncludesId } from "@/lib/crm/viewingDeepLink";
 import { useToast } from "@/components/ui/ToastProvider";
 import { resolveAgentDashboardTabFromQuery } from "@/lib/dashboardCrmRoutes";
 import useDashboardIntent from "@/hooks/useDashboardIntent";
+import { useParticipantEntityDeepLinkResolve } from "@/hooks/useParticipantEntityDeepLinkResolve";
 import styles from "@/styles/Dashboard.module.css";
 import loadingStyles from "@/styles/UserDashboard.module.css";
 
@@ -58,6 +63,7 @@ export default function AgentDashboard() {
   const [conversationsLoading, setConversationsLoading] = useState(false);
   const [agentViewings, setAgentViewings] = useState([]);
   const [viewingsLoading, setViewingsLoading] = useState(false);
+  const [deepLinkListingsById, setDeepLinkListingsById] = useState({});
   const [lifecycleFilter, setLifecycleFilter] = useState(AGENT_INVENTORY_FILTERS.ALL);
   const storeSessionRef = useRef(null);
   const dashboardPathRef = useRef(null);
@@ -204,8 +210,37 @@ export default function AgentDashboard() {
     for (const row of myListingsRows) {
       if (row?.id != null) m[row.id] = row;
     }
-    return m;
-  }, [myListingsRows]);
+    return { ...m, ...deepLinkListingsById };
+  }, [myListingsRows, deepLinkListingsById]);
+
+  const fetchAgentViewingById = useCallback(
+    async ({ participantUserId, entityId, list, listingsById: listingsMap }) =>
+      resolveAgentViewingDeepLink(supabase, participantUserId, entityId, list, listingsMap),
+    []
+  );
+
+  const handleAgentViewingDeepLinkFetched = useCallback((result) => {
+    setAgentViewings(result.viewings);
+    setDeepLinkListingsById((prev) => ({ ...prev, ...result.listingsById }));
+  }, []);
+
+  const fetchAgentConversationById = useCallback(
+    async ({ participantUserId, entityId, list, listingsById: listingsMap }) =>
+      resolveParticipantConversationDeepLink(
+        supabase,
+        participantUserId,
+        entityId,
+        list,
+        listingsMap,
+        { role: "agent" }
+      ),
+    []
+  );
+
+  const handleAgentConversationDeepLinkFetched = useCallback((result) => {
+    setConversationRows(result.conversations);
+    setDeepLinkListingsById((prev) => ({ ...prev, ...result.listingsById }));
+  }, []);
 
   const loadConversations = useCallback(async () => {
     if (!user?.id || !BL_ENABLE_CONVERSATIONS) return;
@@ -237,6 +272,30 @@ export default function AgentDashboard() {
     }
     loadViewings();
   }, [activeTab, loadViewings]);
+
+  const viewingDeepLinkResolveState = useParticipantEntityDeepLinkResolve({
+    enabled: Boolean(user?.id && deepLinkViewingId),
+    participantUserId: user?.id ?? null,
+    entityId: deepLinkViewingId,
+    listLoading: viewingsLoading,
+    listIncludesTarget: viewingListIncludesId,
+    getListSnapshot: () => agentViewings,
+    getListingsByIdSnapshot: () => listingsById,
+    fetchById: fetchAgentViewingById,
+    onFetched: handleAgentViewingDeepLinkFetched,
+  });
+
+  const conversationDeepLinkResolveState = useParticipantEntityDeepLinkResolve({
+    enabled: Boolean(user?.id && deepLinkConversationId),
+    participantUserId: user?.id ?? null,
+    entityId: deepLinkConversationId,
+    listLoading: conversationsLoading,
+    listIncludesTarget: conversationListIncludesId,
+    getListSnapshot: () => conversationRows,
+    getListingsByIdSnapshot: () => listingsById,
+    fetchById: fetchAgentConversationById,
+    onFetched: handleAgentConversationDeepLinkFetched,
+  });
 
   const markInquiryResponded = async (inquiryId) => {
     if (!user?.id) return;
@@ -382,14 +441,14 @@ export default function AgentDashboard() {
                         : " Mark responded when you've replied outside the app."}
                     </p>
                     {BL_ENABLE_CONVERSATIONS ? (
-                      conversationsLoading && !conversationRows.length && !deepLinkConversationId ? (
-                        <div className={loadingStyles.hydratingPanel} aria-busy="true" />
-                      ) : (
+                      conversationRows.length > 0 || deepLinkConversationId ? (
                         <OwnerInquiriesPanel
                           conversations={conversationRows}
                           listingsById={listingsById}
                           agentUserId={user.id}
                           initialConversationId={deepLinkConversationId}
+                          deepLinkResolveState={conversationDeepLinkResolveState}
+                          crmLoading={conversationsLoading}
                           onRefresh={() => {
                             loadConversations();
                             useAgentDashboardStore.getState().invalidate({ listings: false });
@@ -404,7 +463,9 @@ export default function AgentDashboard() {
                             />
                           }
                         />
-                      )
+                      ) : conversationsLoading ? (
+                        <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                      ) : null
                     ) : (
                       <AgentInquiryList
                         inquiries={inquiriesRows}
@@ -424,15 +485,17 @@ export default function AgentDashboard() {
                     </p>
                     {viewingsLoading && !agentViewings.length && !deepLinkViewingId ? (
                       <div className={loadingStyles.hydratingPanel} aria-busy="true" />
-                    ) : (
+                    ) : agentViewings.length > 0 || deepLinkViewingId ? (
                       <AgentViewingsPanel
                         viewings={agentViewings}
                         listingsById={listingsById}
                         agentUserId={user.id}
                         onRefresh={loadViewings}
                         initialViewingId={deepLinkViewingId}
+                        deepLinkResolveState={viewingDeepLinkResolveState}
+                        crmLoading={viewingsLoading}
                       />
-                    )}
+                    ) : null}
                   </section>
                 ) : null}
 

@@ -68,6 +68,14 @@ describe("viewingDeepLink", () => {
         resolveState: "missing",
       })
     ).toBe(false);
+
+    expect(
+      isDeepLinkViewingPending({
+        initialViewingId: "v1",
+        viewings: [],
+        resolveState: "error",
+      })
+    ).toBe(false);
   });
 
   test("viewingListIncludesId handles numeric ids", () => {

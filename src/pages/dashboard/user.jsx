@@ -20,6 +20,8 @@ import ProfileCompletionBanner from "@/components/profile/ProfileCompletionBanne
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
 import { loadBuyerCrmData } from "@/lib/crm/buyerCrmData";
 import { resolveBuyerViewingDeepLink } from "@/lib/crm/buyerViewingDeepLink";
+import { conversationListIncludesId } from "@/lib/crm/conversationDeepLink";
+import { resolveParticipantConversationDeepLink } from "@/lib/crm/participantConversationDeepLink";
 import { viewingListIncludesId } from "@/lib/crm/viewingDeepLink";
 import { isBuyerConversationUnread } from "@/lib/crm/conversationMutations";
 import { supabase } from "@/lib/supabaseClient";
@@ -41,6 +43,7 @@ import {
 } from "@/constants/dashboardUserConfig";
 import { resolveUserDashboardTabFromQuery } from "@/lib/dashboardCrmRoutes";
 import useDashboardIntent from "@/hooks/useDashboardIntent";
+import { useParticipantEntityDeepLinkResolve } from "@/hooks/useParticipantEntityDeepLinkResolve";
 import styles from "@/styles/Dashboard.module.css";
 import loadingStyles from "@/styles/UserDashboard.module.css";
 
@@ -53,7 +56,6 @@ export default function UserDashboard() {
   const roleRef = useRef(role);
   const loadingRef = useRef(loading);
   const dashboardPathRef = useRef(null);
-  const viewingDeepLinkFetchAttemptRef = useRef(null);
 
   userIdRef.current = user?.id ?? null;
   roleRef.current = role;
@@ -141,11 +143,38 @@ export default function UserDashboard() {
   const [buyerConversations, setBuyerConversations] = useState([]);
   const [buyerListingsById, setBuyerListingsById] = useState({});
   const [buyerCrmLoading, setBuyerCrmLoading] = useState(false);
-  const [viewingDeepLinkResolveState, setViewingDeepLinkResolveState] = useState("idle");
+
+  const fetchBuyerViewingById = useCallback(
+    async ({ participantUserId, entityId, list, listingsById }) =>
+      resolveBuyerViewingDeepLink(supabase, participantUserId, entityId, list, listingsById),
+    []
+  );
+
+  const handleBuyerViewingDeepLinkFetched = useCallback((result) => {
+    setBuyerViewings(result.viewings);
+    setBuyerListingsById((prev) => ({ ...prev, ...result.listingsById }));
+  }, []);
+
+  const fetchBuyerConversationById = useCallback(
+    async ({ participantUserId, entityId, list, listingsById }) =>
+      resolveParticipantConversationDeepLink(
+        supabase,
+        participantUserId,
+        entityId,
+        list,
+        listingsById,
+        { role: "buyer" }
+      ),
+    []
+  );
+
+  const handleBuyerConversationDeepLinkFetched = useCallback((result) => {
+    setBuyerConversations(result.conversations);
+    setBuyerListingsById((prev) => ({ ...prev, ...result.listingsById }));
+  }, []);
 
   const loadBuyerCrm = useCallback(async () => {
     if (!user?.id) return;
-    viewingDeepLinkFetchAttemptRef.current = null;
     setBuyerCrmLoading(true);
     const { inquiries, viewings, conversations, listingsById } = await loadBuyerCrmData(supabase, user.id);
     setBuyerInquiries(inquiries);
@@ -170,67 +199,29 @@ export default function UserDashboard() {
     loadBuyerCrm();
   }, [activeTab, loadBuyerCrm]);
 
-  useEffect(() => {
-    if (activeTab !== USER_DASHBOARD_TAB_IDS.VIEWINGS && !deepLinkViewingId) {
-      setViewingDeepLinkResolveState("idle");
-    }
-  }, [activeTab, deepLinkViewingId]);
+  const viewingDeepLinkResolveState = useParticipantEntityDeepLinkResolve({
+    enabled: Boolean(user?.id && deepLinkViewingId),
+    participantUserId: user?.id ?? null,
+    entityId: deepLinkViewingId,
+    listLoading: buyerCrmLoading,
+    listIncludesTarget: viewingListIncludesId,
+    getListSnapshot: () => buyerViewings,
+    getListingsByIdSnapshot: () => buyerListingsById,
+    fetchById: fetchBuyerViewingById,
+    onFetched: handleBuyerViewingDeepLinkFetched,
+  });
 
-  useEffect(() => {
-    viewingDeepLinkFetchAttemptRef.current = null;
-  }, [deepLinkViewingId]);
-
-  useEffect(() => {
-    if (!user?.id || !deepLinkViewingId) {
-      setViewingDeepLinkResolveState("idle");
-      return undefined;
-    }
-
-    if (viewingListIncludesId(buyerViewings, deepLinkViewingId)) {
-      setViewingDeepLinkResolveState("resolved");
-      return undefined;
-    }
-
-    if (buyerCrmLoading) {
-      setViewingDeepLinkResolveState("loading");
-      return undefined;
-    }
-
-    const attemptKey = `${user.id}:${deepLinkViewingId}`;
-    if (viewingDeepLinkFetchAttemptRef.current === attemptKey) {
-      return undefined;
-    }
-    viewingDeepLinkFetchAttemptRef.current = attemptKey;
-
-    let cancelled = false;
-    setViewingDeepLinkResolveState("loading");
-
-    void (async () => {
-      const result = await resolveBuyerViewingDeepLink(
-        supabase,
-        user.id,
-        deepLinkViewingId,
-        buyerViewings,
-        buyerListingsById
-      );
-      if (cancelled) return;
-
-      if (result.resolved) {
-        if (result.fetched) {
-          setBuyerViewings(result.viewings);
-          setBuyerListingsById((prev) => ({ ...prev, ...result.listingsById }));
-        }
-        setViewingDeepLinkResolveState("resolved");
-        return;
-      }
-
-      setViewingDeepLinkResolveState("missing");
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, deepLinkViewingId, buyerCrmLoading, buyerViewings, buyerListingsById]);
+  const conversationDeepLinkResolveState = useParticipantEntityDeepLinkResolve({
+    enabled: Boolean(user?.id && deepLinkConversationId),
+    participantUserId: user?.id ?? null,
+    entityId: deepLinkConversationId,
+    listLoading: buyerCrmLoading,
+    listIncludesTarget: conversationListIncludesId,
+    getListSnapshot: () => buyerConversations,
+    getListingsByIdSnapshot: () => buyerListingsById,
+    fetchById: fetchBuyerConversationById,
+    onFetched: handleBuyerConversationDeepLinkFetched,
+  });
 
   const tabCounts = useMemo(() => {
     const counts = {};
@@ -474,6 +465,8 @@ export default function UserDashboard() {
                           buyerUserId={user?.id}
                           onRefresh={loadBuyerCrm}
                           initialConversationId={deepLinkConversationId}
+                          deepLinkResolveState={conversationDeepLinkResolveState}
+                          crmLoading={buyerCrmLoading}
                         />
                       </div>
                     ) : null}

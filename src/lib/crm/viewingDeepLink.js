@@ -52,7 +52,7 @@ export function mergeViewingIntoList(viewings, viewing) {
  * @param {{
  *   initialViewingId?: string|number|null,
  *   viewings?: Array<object>,
- *   resolveState?: "idle"|"loading"|"resolved"|"missing",
+ *   resolveState?: "idle"|"loading"|"resolved"|"missing"|"error",
  *   crmLoading?: boolean,
  * }} input
  */
@@ -65,7 +65,7 @@ export function isDeepLinkViewingPending({
   const targetId = normalizeViewingId(initialViewingId);
   if (!targetId) return false;
   if (viewingListIncludesId(viewings, targetId)) return false;
-  if (resolveState === "missing") return false;
+  if (resolveState === "missing" || resolveState === "error") return false;
   if (crmLoading || resolveState === "loading" || resolveState === "idle") return true;
   return !viewings?.length;
 }

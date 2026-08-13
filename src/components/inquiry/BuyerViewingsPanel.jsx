@@ -104,6 +104,11 @@ export default function BuyerViewingsPanel({
         </p>
       );
     }
+    if (initialViewingId && deepLinkResolveState === "error") {
+      return (
+        <p className={listStyles.body}>Unable to load this viewing request right now.</p>
+      );
+    }
     if (initialViewingId) {
       return (
         <div

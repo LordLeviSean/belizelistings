@@ -4,7 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import { VIEWING_STATUS } from "@/lib/crm/crmConstants";
-import { viewingStatusLabel, isOwnerActionableViewingStatus } from "@/lib/crm/viewingStatusLabels";
+import { viewingStatusLabel } from "@/lib/crm/viewingStatusLabels";
+import {
+  resolveDeepLinkedViewingId,
+  viewingIdsMatch,
+  isDeepLinkViewingPending,
+} from "@/lib/crm/viewingDeepLink";
 import {
   acceptViewingReschedule,
   archiveViewing,
@@ -35,21 +40,14 @@ function buildConversationHref({ surface = "agent", conversationId }) {
   return resolveMessageConversationPath({ role: "agent", side: "agent", conversationId });
 }
 
-function viewingIdsMatch(left, right) {
-  if (left == null || right == null) return false;
-  return String(left) === String(right);
-}
-
-function isPendingLike(status) {
-  return isOwnerActionableViewingStatus(status);
-}
-
 export default function AgentViewingsPanel({
   viewings = [],
   listingsById = {},
   agentUserId,
   onRefresh,
   initialViewingId = null,
+  deepLinkResolveState = "idle",
+  crmLoading = false,
   surface = "agent",
 }) {
   const router = useRouter();
@@ -69,10 +67,9 @@ export default function AgentViewingsPanel({
   }, [initialViewingId]);
 
   useEffect(() => {
-    if (!initialViewingId || !viewings?.length) return;
-    const match = viewings.find((row) => viewingIdsMatch(row.id, initialViewingId));
-    if (match) {
-      setHighlightId(match.id);
+    const resolvedId = resolveDeepLinkedViewingId(viewings, initialViewingId);
+    if (resolvedId != null) {
+      setHighlightId(resolvedId);
     }
   }, [initialViewingId, viewings]);
 
@@ -86,9 +83,44 @@ export default function AgentViewingsPanel({
 
   useViewingsRealtime({ userId: agentUserId, asAgent: true }, onRefresh);
 
+  const awaitingDeepLink = isDeepLinkViewingPending({
+    initialViewingId,
+    viewings,
+    resolveState: deepLinkResolveState,
+    crmLoading,
+  });
+
+  if (awaitingDeepLink) {
+    return (
+      <div
+        className={loadingStyles.hydratingPanel}
+        aria-busy="true"
+        aria-label="Loading viewing request"
+      />
+    );
+  }
+
   if (!viewings?.length) {
+    if (initialViewingId && deepLinkResolveState === "missing") {
+      return (
+        <p className={listStyles.body}>
+          This viewing request is no longer available in your list.
+        </p>
+      );
+    }
+    if (initialViewingId && deepLinkResolveState === "error") {
+      return (
+        <p className={listStyles.body}>Unable to load this viewing request right now.</p>
+      );
+    }
     if (initialViewingId) {
-      return <div className={loadingStyles.hydratingPanel} aria-busy="true" aria-label="Loading viewing request" />;
+      return (
+        <div
+          className={loadingStyles.hydratingPanel}
+          aria-busy="true"
+          aria-label="Loading viewing request"
+        />
+      );
     }
     return (
       <PremiumEmptyState

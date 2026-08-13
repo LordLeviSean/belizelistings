@@ -13,12 +13,17 @@ import {
   markConversationReadByAgent,
   sendAgentReply,
 } from "@/lib/crm/conversationMutations";
+import {
+  conversationIdsMatch,
+  isDeepLinkConversationPending,
+} from "@/lib/crm/conversationDeepLink";
 import { useConversationMessagesRealtime } from "@/lib/crm/useConversationMessagesRealtime";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/ToastProvider";
 import ConversationThread from "./ConversationThread";
 import ListingInboxSidebar from "./ListingInboxSidebar";
 import styles from "./OwnerInquiriesPanel.module.css";
+import loadingStyles from "@/styles/UserDashboard.module.css";
 
 export default function OwnerInquiriesPanel({
   conversations = [],
@@ -27,6 +32,8 @@ export default function OwnerInquiriesPanel({
   onRefresh,
   legacyFallback = null,
   initialConversationId = null,
+  deepLinkResolveState = "idle",
+  crmLoading = false,
 }) {
   const { showToast } = useToast();
   const [selectedListingId, setSelectedListingId] = useState(null);
@@ -54,15 +61,29 @@ export default function OwnerInquiriesPanel({
 
   const selectedConversation = useMemo(() => {
     if (selectedConversationId) {
-      return conversations.find((c) => c.id === selectedConversationId) || null;
+      const match = conversations.find((c) => conversationIdsMatch(c.id, selectedConversationId));
+      if (match) return match;
+      if (initialConversationId && conversationIdsMatch(selectedConversationId, initialConversationId)) {
+        return null;
+      }
+    }
+    if (initialConversationId) {
+      return null;
     }
     return selectedGroup?.conversations?.[0] || null;
-  }, [conversations, selectedConversationId, selectedGroup]);
+  }, [conversations, selectedConversationId, selectedGroup, initialConversationId]);
+
+  const awaitingDeepLink = isDeepLinkConversationPending({
+    initialConversationId,
+    conversations,
+    resolveState: deepLinkResolveState,
+    crmLoading,
+  });
 
   useEffect(() => {
     if (!initialConversationId) return;
     setSelectedConversationId(initialConversationId);
-    const match = conversations.find((c) => c.id === initialConversationId);
+    const match = conversations.find((c) => conversationIdsMatch(c.id, initialConversationId));
     if (match?.listing_id) {
       setSelectedListingId(match.listing_id);
       const compact =
@@ -92,8 +113,10 @@ export default function OwnerInquiriesPanel({
   }, []);
 
   useEffect(() => {
-    if (selectedConversation?.id) void loadMessages(selectedConversation.id);
-  }, [selectedConversation?.id, loadMessages]);
+    const targetId =
+      selectedConversation?.id ?? (awaitingDeepLink ? initialConversationId : null);
+    if (targetId) void loadMessages(targetId);
+  }, [selectedConversation?.id, awaitingDeepLink, initialConversationId, loadMessages]);
 
   const handleRealtimeMessage = useCallback(
     (row) => {
@@ -106,7 +129,11 @@ export default function OwnerInquiriesPanel({
     []
   );
 
-  useConversationMessagesRealtime(selectedConversation?.id, handleRealtimeMessage, onRefresh);
+  useConversationMessagesRealtime(
+    selectedConversation?.id ?? (awaitingDeepLink ? initialConversationId : null),
+    handleRealtimeMessage,
+    onRefresh
+  );
 
   useEffect(() => {
     if (!selectedConversation?.id || !agentUserId) return;
@@ -190,15 +217,39 @@ export default function OwnerInquiriesPanel({
     return legacyFallback ?? null;
   }
 
-  if (!conversations?.length) {
+  if (awaitingDeepLink) {
     return (
-      <PremiumEmptyState
-        variant="inquiries"
-        compact
-        primary={{ label: "Open listing editor", href: "/dashboard/create" }}
-        secondary={{ label: "View live site", href: "/" }}
+      <div
+        className={loadingStyles.hydratingPanel}
+        aria-busy="true"
+        aria-label="Opening conversation"
       />
     );
+  }
+
+  if (!conversations?.length) {
+    if (initialConversationId && deepLinkResolveState === "missing") {
+      return (
+        <p className={styles.unreadBanner}>
+          This conversation is no longer available in your Inbox.
+        </p>
+      );
+    }
+    if (initialConversationId && deepLinkResolveState === "error") {
+      return (
+        <p className={styles.unreadBanner}>Unable to load this conversation right now.</p>
+      );
+    }
+    if (!initialConversationId) {
+      return (
+        <PremiumEmptyState
+          variant="inquiries"
+          compact
+          primary={{ label: "Open listing editor", href: "/dashboard/create" }}
+          secondary={{ label: "View live site", href: "/" }}
+        />
+      );
+    }
   }
 
   const showConversationList =

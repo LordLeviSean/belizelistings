@@ -11,6 +11,10 @@ import {
   markConversationReadByBuyer,
   sendBuyerReply,
 } from "@/lib/crm/conversationMutations";
+import {
+  conversationIdsMatch,
+  isDeepLinkConversationPending,
+} from "@/lib/crm/conversationDeepLink";
 import { formatRelativeTime } from "@/lib/formatRelativeTime";
 import { useConversationMessagesRealtime } from "@/lib/crm/useConversationMessagesRealtime";
 import { supabase } from "@/lib/supabaseClient";
@@ -20,17 +24,14 @@ import inboxStyles from "./AgentInboxPanel.module.css";
 import styles from "./UserInboxPanel.module.css";
 import threadStyles from "./OwnerInquiriesPanel.module.css";
 
-function conversationIdsMatch(left, right) {
-  if (left == null || right == null) return false;
-  return String(left) === String(right);
-}
-
 export default function UserInboxPanel({
   conversations = [],
   listingsById = {},
   buyerUserId,
   onRefresh,
   initialConversationId = null,
+  deepLinkResolveState = "idle",
+  crmLoading = false,
 }) {
   const { showToast } = useToast();
   const [selectedId, setSelectedId] = useState(initialConversationId);
@@ -99,9 +100,12 @@ export default function UserInboxPanel({
     return sorted[0] || null;
   }, [sorted, selectedId, initialConversationId]);
 
-  const awaitingDeepLink =
-    Boolean(initialConversationId) &&
-    !sorted.some((c) => conversationIdsMatch(c.id, initialConversationId));
+  const awaitingDeepLink = isDeepLinkConversationPending({
+    initialConversationId,
+    conversations: sorted,
+    resolveState: deepLinkResolveState,
+    crmLoading,
+  });
 
   const unreadCount = useMemo(
     () => sorted.filter((conv) => isBuyerConversationUnread(conv)).length,
@@ -213,6 +217,20 @@ export default function UserInboxPanel({
         primary={{ label: "Browse listings", href: "/" }}
         secondary={{ label: "View live site", href: "/" }}
       />
+    );
+  }
+
+  if (!sorted.length && initialConversationId && deepLinkResolveState === "missing") {
+    return (
+      <p className={inboxStyles.threadMuted}>
+        This conversation is no longer available in your Inbox.
+      </p>
+    );
+  }
+
+  if (!sorted.length && initialConversationId && deepLinkResolveState === "error") {
+    return (
+      <p className={inboxStyles.threadMuted}>Unable to load this conversation right now.</p>
     );
   }
 
@@ -359,6 +377,12 @@ export default function UserInboxPanel({
               </>
             ) : awaitingDeepLink ? (
               <p className={inboxStyles.threadMuted}>Opening conversation…</p>
+            ) : deepLinkResolveState === "missing" && initialConversationId ? (
+              <p className={inboxStyles.threadMuted}>
+                This conversation is no longer available in your Inbox.
+              </p>
+            ) : deepLinkResolveState === "error" && initialConversationId ? (
+              <p className={inboxStyles.threadMuted}>Unable to load this conversation right now.</p>
             ) : (
               <p className={inboxStyles.threadMuted}>Select a conversation.</p>
             )}
