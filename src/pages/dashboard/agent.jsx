@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useRouter } from "next/router";
 import { useShallow } from "zustand/react/shallow";
 import SiteNav from "@/components/SiteNav";
-import { DashboardShell, DashboardTabNav, DashboardRoleLayout } from "@/components/dashboard";
+import { DashboardShell, DashboardTabNav, DashboardRoleLayout, DashboardBootstrapShell } from "@/components/dashboard";
 import roleLayoutStyles from "@/components/dashboard/DashboardRoleLayout.module.css";
 import AgentDashboardMetrics from "@/components/agent/AgentDashboardMetrics";
 import AgentDashboardQuickActions from "@/components/agent/AgentDashboardQuickActions";
@@ -38,10 +38,16 @@ import { filterInboxConversations } from "@/lib/crm/conversationFilters";
 import { fetchViewingsForAgent } from "@/lib/crm/viewingMutations";
 import { useToast } from "@/components/ui/ToastProvider";
 import { resolveAgentDashboardTabFromQuery } from "@/lib/dashboardCrmRoutes";
+import useDashboardIntent from "@/hooks/useDashboardIntent";
 import styles from "@/styles/Dashboard.module.css";
 import loadingStyles from "@/styles/UserDashboard.module.css";
 
-const AGENT_TAB_SET = new Set(Object.values(AGENT_DASHBOARD_TAB_IDS));
+function resolveVisibleAgentDashboardTab(raw, visibleTabs) {
+  const normalized = normalizeAgentDashboardTab(raw);
+  const visibleIds = new Set(visibleTabs.map((tab) => tab.id));
+  if (visibleIds.has(normalized)) return normalized;
+  return visibleTabs[0]?.id ?? AGENT_DASHBOARD_TAB_IDS.OVERVIEW;
+}
 
 export default function AgentDashboard() {
   const router = useRouter();
@@ -87,18 +93,6 @@ export default function AgentDashboard() {
   const metricsLoading = useAgentDashboardStore((s) => s.metricsLoading);
   const myListingsInitialFetchDone = useAgentDashboardStore((s) => s.myListingsInitialFetchDone);
 
-  const activeTab = useMemo(() => {
-    const inferred = resolveAgentDashboardTabFromQuery(router.query);
-    return AGENT_TAB_SET.has(inferred) ? inferred : AGENT_DASHBOARD_TAB_IDS.OVERVIEW;
-  }, [router.query.tab, router.query.conversation, router.query.viewing]);
-
-  const deepLinkViewingId = useMemo(() => {
-    const viewing = router.query.viewing;
-    if (typeof viewing === "string") return viewing;
-    if (Array.isArray(viewing)) return viewing[0] ?? null;
-    return null;
-  }, [router.query.viewing]);
-
   const visibleTabs = useMemo(
     () =>
       AGENT_DASHBOARD_TABS.filter((tab) => {
@@ -111,7 +105,31 @@ export default function AgentDashboard() {
   );
 
   const profileHydrated = Boolean(user?.id && isProfileHydratedForUser(user.id));
-  const showHydratingShell = loading && profileHydrated && role === "agent";
+
+  const {
+    activeTab,
+    showBootstrapShell,
+    showHydratingShell,
+    bootstrapShellLabel,
+    deepLinkViewingId,
+    deepLinkConversationId,
+  } = useDashboardIntent({
+    router,
+    expectedRole: "agent",
+    user,
+    role,
+    loading,
+    profileHydrated,
+    visibleTabs,
+    entityTabMap: {
+      viewing: AGENT_DASHBOARD_TAB_IDS.VIEWINGS,
+      conversation: AGENT_DASHBOARD_TAB_IDS.INBOX,
+      listing: AGENT_DASHBOARD_TAB_IDS.LISTINGS,
+    },
+    inferTabFromQuery: resolveAgentDashboardTabFromQuery,
+    resolveVisibleTab: resolveVisibleAgentDashboardTab,
+    defaultTab: AGENT_DASHBOARD_TAB_IDS.OVERVIEW,
+  });
 
   const subtitle = useMemo(() => {
     const greet = welcomePhrase || formatWelcomeGreeting(profile);
@@ -160,17 +178,6 @@ export default function AgentDashboard() {
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (loading) return;
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
-    if (role !== "agent") {
-      router.replace("/dashboard");
-    }
-  }, [loading, user, role, router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -267,19 +274,12 @@ export default function AgentDashboard() {
     return counts;
   }, [unreadInquiryCount, pendingListings]);
 
-  if (loading && !showHydratingShell) {
-    return (
-      <div className={`${styles.page} ${styles.dashboardWorkspace}`}>
-        <SiteNav active="dashboard" />
-        <main className={styles.main}>
-          <div className={loadingStyles.loadingMain} aria-busy="true" aria-label="Loading dashboard" />
-        </main>
-      </div>
-    );
+  if (showBootstrapShell) {
+    return <DashboardBootstrapShell label={bootstrapShellLabel} />;
   }
 
-  if (!user || role !== "agent") {
-    return null;
+  if (!user?.id || role !== "agent") {
+    return <DashboardBootstrapShell label={bootstrapShellLabel} />;
   }
 
   const finiteCap = listingCap < USER_DASHBOARD_FINITE_CAP_THRESHOLD;
@@ -382,20 +382,14 @@ export default function AgentDashboard() {
                         : " Mark responded when you've replied outside the app."}
                     </p>
                     {BL_ENABLE_CONVERSATIONS ? (
-                      conversationsLoading && !conversationRows.length ? (
+                      conversationsLoading && !conversationRows.length && !deepLinkConversationId ? (
                         <div className={loadingStyles.hydratingPanel} aria-busy="true" />
                       ) : (
                         <OwnerInquiriesPanel
                           conversations={conversationRows}
                           listingsById={listingsById}
                           agentUserId={user.id}
-                          initialConversationId={
-                            typeof router.query.conversation === "string"
-                              ? router.query.conversation
-                              : Array.isArray(router.query.conversation)
-                                ? router.query.conversation[0]
-                                : null
-                          }
+                          initialConversationId={deepLinkConversationId}
                           onRefresh={() => {
                             loadConversations();
                             useAgentDashboardStore.getState().invalidate({ listings: false });

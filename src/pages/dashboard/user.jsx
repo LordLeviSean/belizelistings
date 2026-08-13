@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useShallow } from "zustand/react/shallow";
 import SiteNav from "@/components/SiteNav";
-import { DashboardShell, DashboardTabNav, DashboardRoleLayout } from "@/components/dashboard";
+import { DashboardShell, DashboardTabNav, DashboardRoleLayout, DashboardBootstrapShell } from "@/components/dashboard";
 import roleLayoutStyles from "@/components/dashboard/DashboardRoleLayout.module.css";
 import UserDashboardAccountTier from "@/components/user/UserDashboardAccountTier";
 import UserDashboardMetrics from "@/components/user/UserDashboardMetrics";
@@ -40,12 +40,7 @@ import {
   userHasOwnedListings,
 } from "@/constants/dashboardUserConfig";
 import { resolveUserDashboardTabFromQuery } from "@/lib/dashboardCrmRoutes";
-import {
-  readPersistedViewingIntent,
-  readUserDashboardQueryParam,
-  resolveUserDashboardLocationQuery,
-  resolveUserDashboardSessionPhase,
-} from "@/lib/dashboard/userDashboardBootstrap";
+import useDashboardIntent from "@/hooks/useDashboardIntent";
 import styles from "@/styles/Dashboard.module.css";
 import loadingStyles from "@/styles/UserDashboard.module.css";
 
@@ -58,7 +53,6 @@ export default function UserDashboard() {
   const roleRef = useRef(role);
   const loadingRef = useRef(loading);
   const dashboardPathRef = useRef(null);
-  const viewingIntentRef = useRef(null);
   const viewingDeepLinkFetchAttemptRef = useRef(null);
 
   userIdRef.current = user?.id ?? null;
@@ -115,35 +109,32 @@ export default function UserDashboard() {
     [hasOwnedListings]
   );
 
-  const locationQuery = useMemo(
-    () => resolveUserDashboardLocationQuery(router),
-    [
-      router.isReady,
-      router.query.tab,
-      router.query.conversation,
-      router.query.viewing,
-      router.query.listing,
-    ]
-  );
+  const profileHydrated = Boolean(user?.id && isProfileHydratedForUser(user.id));
 
-  const activeTab = useMemo(() => {
-    const viewingIntent = readPersistedViewingIntent(viewingIntentRef, router);
-    if (viewingIntent) {
-      return resolveVisibleUserDashboardTab(USER_DASHBOARD_TAB_IDS.VIEWINGS, visibleTabs);
-    }
-    const inferred = resolveUserDashboardTabFromQuery(locationQuery);
-    return resolveVisibleUserDashboardTab(inferred, visibleTabs);
-  }, [locationQuery, visibleTabs, router.isReady, router.query.viewing]);
-
-  const deepLinkConversationId = useMemo(
-    () => readUserDashboardQueryParam(router, "conversation"),
-    [router.isReady, router.query.conversation]
-  );
-
-  const deepLinkViewingId = useMemo(
-    () => readPersistedViewingIntent(viewingIntentRef, router),
-    [router.isReady, router.query.viewing]
-  );
+  const {
+    activeTab,
+    showBootstrapShell,
+    showHydratingShell,
+    bootstrapShellLabel,
+    deepLinkConversationId,
+    deepLinkViewingId,
+  } = useDashboardIntent({
+    router,
+    expectedRole: "user",
+    user,
+    role,
+    loading,
+    profileHydrated,
+    visibleTabs,
+    entityTabMap: {
+      viewing: USER_DASHBOARD_TAB_IDS.VIEWINGS,
+      conversation: USER_DASHBOARD_TAB_IDS.INBOX,
+      listing: USER_DASHBOARD_TAB_IDS.MY_LISTINGS,
+    },
+    inferTabFromQuery: resolveUserDashboardTabFromQuery,
+    resolveVisibleTab: resolveVisibleUserDashboardTab,
+    defaultTab: USER_DASHBOARD_TAB_IDS.OVERVIEW,
+  });
 
   const [buyerInquiries, setBuyerInquiries] = useState([]);
   const [buyerViewings, setBuyerViewings] = useState([]);
@@ -180,11 +171,10 @@ export default function UserDashboard() {
   }, [activeTab, loadBuyerCrm]);
 
   useEffect(() => {
-    if (activeTab !== USER_DASHBOARD_TAB_IDS.VIEWINGS && !readUserDashboardQueryParam(router, "viewing")) {
-      viewingIntentRef.current = null;
+    if (activeTab !== USER_DASHBOARD_TAB_IDS.VIEWINGS && !deepLinkViewingId) {
       setViewingDeepLinkResolveState("idle");
     }
-  }, [activeTab, router.isReady, router.query.viewing]);
+  }, [activeTab, deepLinkViewingId]);
 
   useEffect(() => {
     viewingDeepLinkFetchAttemptRef.current = null;
@@ -256,24 +246,6 @@ export default function UserDashboard() {
     return counts;
   }, [pendingListings, buyerConversations, inquiriesCount]);
 
-  const profileHydrated = Boolean(user?.id && isProfileHydratedForUser(user.id));
-  const showHydratingShell = loading && profileHydrated && role === "user";
-  const sessionPhase = resolveUserDashboardSessionPhase({
-    loading,
-    user,
-    role,
-    routerReady: router.isReady,
-  });
-
-  const renderBootstrapShell = (label = "Loading dashboard") => (
-    <div className={`${styles.page} ${styles.dashboardWorkspace}`}>
-      <SiteNav active="dashboard" />
-      <main className={styles.main}>
-        <div className={loadingStyles.loadingMain} aria-busy="true" aria-label={label} />
-      </main>
-    </div>
-  );
-
   const selectTab = useCallback(
     (tab) => {
       if (normalizeUserDashboardTab(router.query.tab) === tab) return;
@@ -287,7 +259,7 @@ export default function UserDashboard() {
   );
 
   useEffect(() => {
-    if (loading || !user?.id || role !== "user") return;
+    if (!user?.id || role !== "user") return;
     useUserDashboardStore.getState().setTier(tier);
   }, [loading, user?.id, role, tier]);
 
@@ -323,17 +295,6 @@ export default function UserDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!router.isReady || loading) return;
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
-    if (role !== "user") {
-      router.replace("/dashboard");
-    }
-  }, [loading, user, role, router, router.isReady]);
-
-  useEffect(() => {
     if (typeof window === "undefined") return;
     dashboardPathRef.current = router.pathname;
     const onRouteDone = (url) => {
@@ -355,16 +316,12 @@ export default function UserDashboard() {
     };
   }, [router.events, router.pathname]);
 
-  if (sessionPhase.startsWith("redirect-")) {
-    return renderBootstrapShell("Opening dashboard");
-  }
-
-  if (sessionPhase === "pending" && !showHydratingShell) {
-    return renderBootstrapShell("Loading dashboard");
+  if (showBootstrapShell) {
+    return <DashboardBootstrapShell label={bootstrapShellLabel} />;
   }
 
   if (!user?.id || role !== "user") {
-    return renderBootstrapShell("Opening dashboard");
+    return <DashboardBootstrapShell label={bootstrapShellLabel} />;
   }
 
   const finiteCap = listingCap < USER_DASHBOARD_FINITE_CAP_THRESHOLD;

@@ -59,9 +59,19 @@ describe("userDashboardBootstrap", () => {
   });
 
   test("shouldShowUserDashboardLoadingShell covers pending and redirect phases", () => {
-    expect(shouldShowUserDashboardLoadingShell("pending")).toBe(true);
-    expect(shouldShowUserDashboardLoadingShell("redirect-login")).toBe(true);
-    expect(shouldShowUserDashboardLoadingShell("ready")).toBe(false);
+    const {
+      DASHBOARD_BOOTSTRAP_PHASE,
+    } = require("./dashboardIntent");
+
+    expect(
+      shouldShowUserDashboardLoadingShell(DASHBOARD_BOOTSTRAP_PHASE.ROUTER_PENDING)
+    ).toBe(true);
+    expect(
+      shouldShowUserDashboardLoadingShell(DASHBOARD_BOOTSTRAP_PHASE.REDIRECT_LOGIN)
+    ).toBe(true);
+    expect(shouldShowUserDashboardLoadingShell(DASHBOARD_BOOTSTRAP_PHASE.READY)).toBe(
+      false
+    );
   });
 
   test("readUserDashboardQueryParam preserves viewing deep link before router.isReady", () => {
@@ -116,6 +126,8 @@ describe("userDashboardBootstrap", () => {
     expect(resolveUserDashboardLocationQuery(router)).toEqual({
       tab: "viewings",
       viewing: "108",
+      conversation: undefined,
+      listing: undefined,
     });
     expect(
       resolveUserDashboardSessionPhase({

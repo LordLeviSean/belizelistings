@@ -1,90 +1,71 @@
 /**
- * Session + query bootstrap helpers for `/dashboard/user`.
- * Push and hard navigations can arrive before Next.js router query hydration completes.
+ * @deprecated Import from `@/lib/dashboard/dashboardIntent` instead.
+ * Thin re-export layer retained for existing imports during migration.
  */
+import {
+  DASHBOARD_BOOTSTRAP_PHASE,
+  createDashboardIntentStore,
+  readDashboardIntent,
+  readDashboardQueryParam,
+  resolveDashboardBootstrapPhase,
+  resolveDashboardLocationQuery,
+  shouldShowDashboardBootstrapShell,
+} from "./dashboardIntent";
 
-/** @param {import("next/router").NextRouter["query"]} query */
-function readQueryValue(query, key) {
-  const raw = query?.[key];
-  if (typeof raw === "string") return raw;
-  if (Array.isArray(raw)) return raw[0] ?? null;
-  return null;
-}
+export {
+  DASHBOARD_BOOTSTRAP_PHASE,
+  DASHBOARD_ENTITY_PARAMS,
+  DASHBOARD_QUERY_PARAMS,
+  createDashboardIntentStore,
+  dashboardBootstrapShellLabel,
+  maybeClearStaleDashboardIntent,
+  readDashboardIntent,
+  readDashboardQueryParam as readUserDashboardQueryParam,
+  resolveDashboardBootstrapPhase,
+  resolveDashboardLocationQuery as resolveUserDashboardLocationQuery,
+  resolveDashboardTabFromIntent,
+  shouldRunDashboardRedirect,
+  shouldShowDashboardBootstrapShell as shouldShowUserDashboardLoadingShell,
+} from "./dashboardIntent";
 
 /**
- * Read a dashboard query param from the router when ready, otherwise from the live URL.
- * @param {{ isReady?: boolean, query?: object }} router
- * @param {string} paramName
- */
-export function readUserDashboardQueryParam(router, paramName) {
-  let fromRouter = null;
-  if (router?.isReady) {
-    fromRouter = readQueryValue(router.query, paramName);
-    if (fromRouter) return fromRouter;
-  }
-
-  if (typeof window === "undefined") return fromRouter;
-
-  try {
-    const fromUrl = new URLSearchParams(window.location.search).get(paramName);
-    return fromUrl ?? fromRouter;
-  } catch {
-    return fromRouter;
-  }
-}
-
-/**
- * Preserve viewing=<id> intent across auth/router hydration and intermediate rerenders.
- * @param {{ current: string|null }} intentRef
- * @param {{ isReady?: boolean, query?: object }} router
+ * @deprecated Use `readDashboardIntent(intentStore, router).viewing` instead.
+ * @param {{ current: object|string|null }} intentRef
  */
 export function readPersistedViewingIntent(intentRef, router) {
-  const fromLocation = readUserDashboardQueryParam(router, "viewing");
-  if (fromLocation) {
-    intentRef.current = fromLocation;
+  if (!intentRef?.current || typeof intentRef.current !== "object") {
+    intentRef.current = createDashboardIntentStore();
+    if (typeof intentRef.current === "string") {
+      intentRef.current = { ...createDashboardIntentStore(), viewing: intentRef.current };
+    }
   }
-  return fromLocation ?? intentRef.current;
+  return readDashboardIntent(intentRef.current, router).viewing;
 }
 
-/**
- * @param {{
- *   loading?: boolean,
- *   user?: { id?: string } | null,
- *   role?: string,
- *   routerReady?: boolean,
- * }} input
- * @returns {"pending" | "ready" | "redirect-login" | "redirect-dashboard"}
- */
+/** @deprecated Use `resolveDashboardBootstrapPhase({ expectedRole: "user", ... })`. */
 export function resolveUserDashboardSessionPhase({
   loading = false,
   user = null,
   role = "user",
   routerReady = true,
+  profileHydrated = false,
 } = {}) {
-  if (loading || !routerReady) return "pending";
+  const phase = resolveDashboardBootstrapPhase({
+    loading,
+    user,
+    role,
+    expectedRole: "user",
+    routerReady,
+    profileHydrated,
+  });
 
-  if (!user?.id) return "redirect-login";
-  if (role !== "user") return "redirect-dashboard";
-  return "ready";
-}
-
-export function shouldShowUserDashboardLoadingShell(sessionPhase) {
-  return sessionPhase === "pending" || sessionPhase.startsWith("redirect-");
-}
-
-/**
- * Router query with live URL fallback while `router.isReady` is false.
- * @param {{ isReady?: boolean, query?: object }} router
- */
-export function resolveUserDashboardLocationQuery(router) {
-  if (router?.isReady) {
-    return router.query ?? {};
+  if (
+    phase === DASHBOARD_BOOTSTRAP_PHASE.ROUTER_PENDING ||
+    phase === DASHBOARD_BOOTSTRAP_PHASE.AUTH_PENDING
+  ) {
+    return "pending";
   }
-
-  return {
-    tab: readUserDashboardQueryParam(router, "tab") ?? undefined,
-    conversation: readUserDashboardQueryParam(router, "conversation") ?? undefined,
-    viewing: readUserDashboardQueryParam(router, "viewing") ?? undefined,
-    listing: readUserDashboardQueryParam(router, "listing") ?? undefined,
-  };
+  if (phase === DASHBOARD_BOOTSTRAP_PHASE.REDIRECT_LOGIN) return "redirect-login";
+  if (phase === DASHBOARD_BOOTSTRAP_PHASE.REDIRECT_DASHBOARD) return "redirect-dashboard";
+  return "ready";
 }
