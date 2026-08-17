@@ -183,7 +183,7 @@ export async function markConversationReadByBuyer(client, { conversationId, buye
   return { error };
 }
 
-export async function sendBuyerReply(client, { conversationId, buyerUserId, body, listingId, listingTitle, senderName }) {
+export async function performBuyerReply(client, { conversationId, buyerUserId, body, listingId, listingTitle, senderName }) {
   const text = String(body || "").trim();
   if (!text) {
     return { data: null, error: { message: "Message body required" } };
@@ -229,6 +229,7 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
 
   const resolvedListingId = listingId ?? conv?.listing_id;
   const agentUserId = conv?.agent_id;
+  let queueId = null;
 
   if (agentUserId) {
     const resolvedTitle = listingTitle ?? null;
@@ -257,9 +258,7 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
       { deliver: false }
     );
 
-    if (BL_ENABLE_NOTIFICATIONS && enqueueResult.queueId) {
-      await triggerServerNotificationDelivery(client, { queueId: enqueueResult.queueId });
-    }
+    queueId = enqueueResult.queueId ?? null;
   }
 
   if (resolvedListingId) {
@@ -274,7 +273,39 @@ export async function sendBuyerReply(client, { conversationId, buyerUserId, body
     });
   }
 
-  return { data: message, error: null };
+  return { data: message, error: null, queueId: queueId ?? null };
+}
+
+export async function sendBuyerReply(client, { conversationId, buyerUserId, body, listingId, listingTitle, senderName }) {
+  if (typeof window !== "undefined") {
+    const { submitBuyerReplyViaApi } = await import("../security/submitBuyerReplyApi");
+    return submitBuyerReplyViaApi(client, {
+      conversationId,
+      body,
+      listingId,
+      listingTitle,
+      senderName,
+    });
+  }
+
+  const result = await performBuyerReply(client, {
+    conversationId,
+    buyerUserId,
+    body,
+    listingId,
+    listingTitle,
+    senderName,
+  });
+
+  if (result.error) {
+    return { data: result.data, error: result.error, unavailable: result.unavailable };
+  }
+
+  if (BL_ENABLE_NOTIFICATIONS && result.queueId) {
+    await triggerServerNotificationDelivery(client, { queueId: result.queueId });
+  }
+
+  return { data: result.data, error: null };
 }
 
 /**

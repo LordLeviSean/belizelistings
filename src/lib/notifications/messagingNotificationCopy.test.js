@@ -9,7 +9,7 @@ import {
   isSafePublicDisplayName,
   resolveReplySenderPresentation,
 } from "./messagingNotificationCopy";
-import { performAgentReply, sendBuyerReply } from "../crm/conversationMutations";
+import { performAgentReply, performBuyerReply } from "../crm/conversationMutations";
 
 jest.mock("../featureFlags", () => ({
   BL_ENABLE_NOTIFICATIONS: true,
@@ -187,7 +187,7 @@ describe("CRM messaging notification wiring", () => {
   test("second buyer message in same conversation enqueues buyer_replied", async () => {
     const client = buildBuyerReplyClient();
 
-    await sendBuyerReply(client, {
+    await performBuyerReply(client, {
       conversationId: "conv-1",
       buyerUserId: "buyer-1",
       body: "Follow up question",
@@ -207,7 +207,7 @@ describe("CRM messaging notification wiring", () => {
       }),
       expect.any(Object)
     );
-    expect(triggerServerNotificationDelivery).toHaveBeenCalledTimes(1);
+    expect(triggerServerNotificationDelivery).not.toHaveBeenCalled();
   });
 
   test("buyer_replied in-app presentation routes to owner inbox conversation", () => {
