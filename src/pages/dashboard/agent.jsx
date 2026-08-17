@@ -40,6 +40,13 @@ import { resolveAgentViewingDeepLink } from "@/lib/crm/viewingParticipantDeepLin
 import { conversationListIncludesId } from "@/lib/crm/conversationDeepLink";
 import { resolveParticipantConversationDeepLink } from "@/lib/crm/participantConversationDeepLink";
 import { viewingListIncludesId } from "@/lib/crm/viewingDeepLink";
+import {
+  applyAgentConversationLoadResult,
+  applyAgentViewingLoadResult,
+  beginCrmRequest,
+  invalidateCrmRequests,
+  isStaleCrmRequest,
+} from "@/lib/crm/crmListLoaderUtils";
 import { useToast } from "@/components/ui/ToastProvider";
 import { resolveAgentDashboardTabFromQuery } from "@/lib/dashboardCrmRoutes";
 import useDashboardIntent from "@/hooks/useDashboardIntent";
@@ -63,7 +70,15 @@ export default function AgentDashboard() {
   const [conversationsLoading, setConversationsLoading] = useState(false);
   const [agentViewings, setAgentViewings] = useState([]);
   const [viewingsLoading, setViewingsLoading] = useState(false);
+  const [conversationsError, setConversationsError] = useState(null);
+  const [viewingsError, setViewingsError] = useState(null);
   const [deepLinkListingsById, setDeepLinkListingsById] = useState({});
+  const conversationsGenerationRef = useRef(0);
+  const viewingsGenerationRef = useRef(0);
+  const conversationRowsRef = useRef([]);
+  const agentViewingsRef = useRef([]);
+  const deepLinkConversationIdRef = useRef(null);
+  const deepLinkViewingIdRef = useRef(null);
   const [lifecycleFilter, setLifecycleFilter] = useState(AGENT_INVENTORY_FILTERS.ALL);
   const storeSessionRef = useRef(null);
   const dashboardPathRef = useRef(null);
@@ -244,10 +259,32 @@ export default function AgentDashboard() {
 
   const loadConversations = useCallback(async () => {
     if (!user?.id || !BL_ENABLE_CONVERSATIONS) return;
-    setConversationsLoading(true);
+    const generation = beginCrmRequest(conversationsGenerationRef);
+    if (!conversationRowsRef.current.length) {
+      setConversationsLoading(true);
+    }
+
     const { data, error } = await fetchConversationsForAgent(supabase, user.id);
+    if (isStaleCrmRequest(conversationsGenerationRef, generation)) {
+      return;
+    }
+
+    const applied = applyAgentConversationLoadResult({
+      generationRef: conversationsGenerationRef,
+      generation,
+      incoming: filterInboxConversations(data || []),
+      previous: conversationRowsRef.current,
+      error,
+      deepLinkConversationId: deepLinkConversationIdRef.current,
+    });
+
+    if (!applied) {
+      return;
+    }
+
+    setConversationRows(applied.conversations);
+    setConversationsError(applied.error);
     setConversationsLoading(false);
-    if (!error) setConversationRows(filterInboxConversations(data || []));
   }, [user?.id]);
 
   useEffect(() => {
@@ -257,10 +294,32 @@ export default function AgentDashboard() {
 
   const loadViewings = useCallback(async () => {
     if (!user?.id || !BL_ENABLE_VIEWING_PERSIST) return;
-    setViewingsLoading(true);
+    const generation = beginCrmRequest(viewingsGenerationRef);
+    if (!agentViewingsRef.current.length) {
+      setViewingsLoading(true);
+    }
+
     const { data, error } = await fetchViewingsForAgent(supabase, user.id);
+    if (isStaleCrmRequest(viewingsGenerationRef, generation)) {
+      return;
+    }
+
+    const applied = applyAgentViewingLoadResult({
+      generationRef: viewingsGenerationRef,
+      generation,
+      incoming: data || [],
+      previous: agentViewingsRef.current,
+      error,
+      deepLinkViewingId: deepLinkViewingIdRef.current,
+    });
+
+    if (!applied) {
+      return;
+    }
+
+    setAgentViewings(applied.viewings);
+    setViewingsError(applied.error);
     setViewingsLoading(false);
-    if (!error) setAgentViewings(data || []);
   }, [user?.id]);
 
   useEffect(() => {
@@ -273,11 +332,23 @@ export default function AgentDashboard() {
     loadViewings();
   }, [activeTab, loadViewings]);
 
+  conversationRowsRef.current = conversationRows;
+  agentViewingsRef.current = agentViewings;
+  deepLinkConversationIdRef.current = deepLinkConversationId;
+  deepLinkViewingIdRef.current = deepLinkViewingId;
+
+  useEffect(() => {
+    return () => {
+      invalidateCrmRequests(conversationsGenerationRef);
+      invalidateCrmRequests(viewingsGenerationRef);
+    };
+  }, []);
+
   const viewingDeepLinkResolveState = useParticipantEntityDeepLinkResolve({
     enabled: Boolean(user?.id && deepLinkViewingId),
     participantUserId: user?.id ?? null,
     entityId: deepLinkViewingId,
-    listLoading: viewingsLoading,
+    listLoading: viewingsLoading && !agentViewings.length,
     listIncludesTarget: viewingListIncludesId,
     getListSnapshot: () => agentViewings,
     getListingsByIdSnapshot: () => listingsById,
@@ -289,7 +360,7 @@ export default function AgentDashboard() {
     enabled: Boolean(user?.id && deepLinkConversationId),
     participantUserId: user?.id ?? null,
     entityId: deepLinkConversationId,
-    listLoading: conversationsLoading,
+    listLoading: conversationsLoading && !conversationRows.length,
     listIncludesTarget: conversationListIncludesId,
     getListSnapshot: () => conversationRows,
     getListingsByIdSnapshot: () => listingsById,
@@ -442,29 +513,40 @@ export default function AgentDashboard() {
                     </p>
                     {BL_ENABLE_CONVERSATIONS ? (
                       conversationRows.length > 0 || deepLinkConversationId ? (
-                        <OwnerInquiriesPanel
-                          conversations={conversationRows}
-                          listingsById={listingsById}
-                          agentUserId={user.id}
-                          initialConversationId={deepLinkConversationId}
-                          deepLinkResolveState={conversationDeepLinkResolveState}
-                          crmLoading={conversationsLoading}
-                          onRefresh={() => {
-                            loadConversations();
-                            useAgentDashboardStore.getState().invalidate({ listings: false });
-                          }}
-                          legacyFallback={
-                            <AgentInquiryList
-                              inquiries={inquiriesRows}
-                              listingsById={listingsById}
-                              busyId={inquiryBusyId}
-                              onMarkResponded={markInquiryResponded}
-                              onOpenListing={(listingId) => router.push(`/listing/${listingId}`)}
-                            />
-                          }
-                        />
+                        <>
+                          {conversationsError && conversationRows.length > 0 ? (
+                            <p className={styles.muted} role="status" style={{ marginBottom: 12 }}>
+                              Unable to refresh conversations right now.
+                            </p>
+                          ) : null}
+                          <OwnerInquiriesPanel
+                            conversations={conversationRows}
+                            listingsById={listingsById}
+                            agentUserId={user.id}
+                            initialConversationId={deepLinkConversationId}
+                            deepLinkResolveState={conversationDeepLinkResolveState}
+                            crmLoading={conversationsLoading && !conversationRows.length}
+                            onRefresh={() => {
+                              loadConversations();
+                              useAgentDashboardStore.getState().invalidate({ listings: false });
+                            }}
+                            legacyFallback={
+                              <AgentInquiryList
+                                inquiries={inquiriesRows}
+                                listingsById={listingsById}
+                                busyId={inquiryBusyId}
+                                onMarkResponded={markInquiryResponded}
+                                onOpenListing={(listingId) => router.push(`/listing/${listingId}`)}
+                              />
+                            }
+                          />
+                        </>
                       ) : conversationsLoading ? (
                         <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                      ) : conversationsError ? (
+                        <p className={styles.muted} role="alert">
+                          Unable to load conversations right now.
+                        </p>
                       ) : null
                     ) : (
                       <AgentInquiryList
@@ -485,16 +567,27 @@ export default function AgentDashboard() {
                     </p>
                     {viewingsLoading && !agentViewings.length && !deepLinkViewingId ? (
                       <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                    ) : viewingsError && !agentViewings.length && !deepLinkViewingId ? (
+                      <p className={styles.muted} role="alert">
+                        Unable to load viewing requests right now.
+                      </p>
                     ) : agentViewings.length > 0 || deepLinkViewingId ? (
-                      <AgentViewingsPanel
-                        viewings={agentViewings}
-                        listingsById={listingsById}
-                        agentUserId={user.id}
-                        onRefresh={loadViewings}
-                        initialViewingId={deepLinkViewingId}
-                        deepLinkResolveState={viewingDeepLinkResolveState}
-                        crmLoading={viewingsLoading}
-                      />
+                      <>
+                        {viewingsError && agentViewings.length > 0 ? (
+                          <p className={styles.muted} role="status" style={{ marginBottom: 12 }}>
+                            Unable to refresh viewing requests right now.
+                          </p>
+                        ) : null}
+                        <AgentViewingsPanel
+                          viewings={agentViewings}
+                          listingsById={listingsById}
+                          agentUserId={user.id}
+                          onRefresh={loadViewings}
+                          initialViewingId={deepLinkViewingId}
+                          deepLinkResolveState={viewingDeepLinkResolveState}
+                          crmLoading={viewingsLoading && !agentViewings.length}
+                        />
+                      </>
                     ) : null}
                   </section>
                 ) : null}

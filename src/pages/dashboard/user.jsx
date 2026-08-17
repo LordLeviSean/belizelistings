@@ -19,6 +19,12 @@ import DeviceNotificationsPanel from "@/components/profile/DeviceNotificationsPa
 import ProfileCompletionBanner from "@/components/profile/ProfileCompletionBanner";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
 import { loadBuyerCrmData } from "@/lib/crm/buyerCrmData";
+import {
+  applyBuyerCrmLoadResult,
+  beginCrmRequest,
+  invalidateCrmRequests,
+  isStaleCrmRequest,
+} from "@/lib/crm/crmListLoaderUtils";
 import { resolveBuyerViewingDeepLink } from "@/lib/crm/buyerViewingDeepLink";
 import { conversationListIncludesId } from "@/lib/crm/conversationDeepLink";
 import { resolveParticipantConversationDeepLink } from "@/lib/crm/participantConversationDeepLink";
@@ -143,6 +149,20 @@ export default function UserDashboard() {
   const [buyerConversations, setBuyerConversations] = useState([]);
   const [buyerListingsById, setBuyerListingsById] = useState({});
   const [buyerCrmLoading, setBuyerCrmLoading] = useState(false);
+  const [buyerCrmConversationError, setBuyerCrmConversationError] = useState(null);
+  const [buyerCrmViewingError, setBuyerCrmViewingError] = useState(null);
+  const buyerCrmGenerationRef = useRef(0);
+  const buyerConversationsRef = useRef([]);
+  const buyerViewingsRef = useRef([]);
+  const buyerListingsByIdRef = useRef({});
+  const deepLinkConversationIdRef = useRef(deepLinkConversationId);
+  const deepLinkViewingIdRef = useRef(deepLinkViewingId);
+
+  buyerConversationsRef.current = buyerConversations;
+  buyerViewingsRef.current = buyerViewings;
+  buyerListingsByIdRef.current = buyerListingsById;
+  deepLinkConversationIdRef.current = deepLinkConversationId;
+  deepLinkViewingIdRef.current = deepLinkViewingId;
 
   const fetchBuyerViewingById = useCallback(
     async ({ participantUserId, entityId, list, listingsById }) =>
@@ -175,14 +195,49 @@ export default function UserDashboard() {
 
   const loadBuyerCrm = useCallback(async () => {
     if (!user?.id) return;
-    setBuyerCrmLoading(true);
-    const { inquiries, viewings, conversations, listingsById } = await loadBuyerCrmData(supabase, user.id);
-    setBuyerInquiries(inquiries);
-    setBuyerViewings(viewings);
-    setBuyerConversations(conversations);
-    setBuyerListingsById(listingsById);
+    const generation = beginCrmRequest(buyerCrmGenerationRef);
+    const hasExistingData =
+      buyerConversationsRef.current.length > 0 || buyerViewingsRef.current.length > 0;
+    if (!hasExistingData) {
+      setBuyerCrmLoading(true);
+    }
+
+    const result = await loadBuyerCrmData(supabase, user.id);
+    if (isStaleCrmRequest(buyerCrmGenerationRef, generation)) {
+      return;
+    }
+
+    const applied = applyBuyerCrmLoadResult({
+      generationRef: buyerCrmGenerationRef,
+      generation,
+      result,
+      previous: {
+        conversations: buyerConversationsRef.current,
+        viewings: buyerViewingsRef.current,
+        listingsById: buyerListingsByIdRef.current,
+      },
+      deepLinkConversationId: deepLinkConversationIdRef.current,
+      deepLinkViewingId: deepLinkViewingIdRef.current,
+    });
+
+    if (!applied) {
+      return;
+    }
+
+    setBuyerInquiries(applied.inquiries);
+    setBuyerConversations(applied.conversations);
+    setBuyerViewings(applied.viewings);
+    setBuyerListingsById(applied.listingsById);
+    setBuyerCrmConversationError(applied.conversationError);
+    setBuyerCrmViewingError(applied.viewingError);
     setBuyerCrmLoading(false);
   }, [user?.id]);
+
+  useEffect(() => {
+    return () => {
+      invalidateCrmRequests(buyerCrmGenerationRef);
+    };
+  }, []);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -203,7 +258,7 @@ export default function UserDashboard() {
     enabled: Boolean(user?.id && deepLinkViewingId),
     participantUserId: user?.id ?? null,
     entityId: deepLinkViewingId,
-    listLoading: buyerCrmLoading,
+    listLoading: buyerCrmLoading && !buyerViewings.length,
     listIncludesTarget: viewingListIncludesId,
     getListSnapshot: () => buyerViewings,
     getListingsByIdSnapshot: () => buyerListingsById,
@@ -215,7 +270,7 @@ export default function UserDashboard() {
     enabled: Boolean(user?.id && deepLinkConversationId),
     participantUserId: user?.id ?? null,
     entityId: deepLinkConversationId,
-    listLoading: buyerCrmLoading,
+    listLoading: buyerCrmLoading && !buyerConversations.length,
     listIncludesTarget: conversationListIncludesId,
     getListSnapshot: () => buyerConversations,
     getListingsByIdSnapshot: () => buyerListingsById,
@@ -453,6 +508,18 @@ export default function UserDashboard() {
                     {buyerCrmLoading && !buyerConversations.length && !deepLinkConversationId && !hasOwnedListings ? (
                       <div className={loadingStyles.hydratingPanel} aria-busy="true" />
                     ) : null}
+                    {buyerCrmConversationError &&
+                    !buyerConversations.length &&
+                    !deepLinkConversationId ? (
+                      <p className={styles.muted} role="alert">
+                        Unable to load conversations right now.
+                      </p>
+                    ) : null}
+                    {buyerCrmConversationError && buyerConversations.length > 0 ? (
+                      <p className={styles.muted} role="status">
+                        Unable to refresh conversations right now.
+                      </p>
+                    ) : null}
                     {buyerConversations.length > 0 || deepLinkConversationId ? (
                       <div style={{ marginBottom: hasOwnedListings ? 24 : 0 }}>
                         {hasOwnedListings ? (
@@ -466,7 +533,7 @@ export default function UserDashboard() {
                           onRefresh={loadBuyerCrm}
                           initialConversationId={deepLinkConversationId}
                           deepLinkResolveState={conversationDeepLinkResolveState}
-                          crmLoading={buyerCrmLoading}
+                          crmLoading={buyerCrmLoading && !buyerConversations.length}
                         />
                       </div>
                     ) : null}
@@ -478,7 +545,11 @@ export default function UserDashboard() {
                         initialConversationId={deepLinkConversationId}
                       />
                     ) : null}
-                    {!buyerConversations.length && !deepLinkConversationId && !hasOwnedListings && !buyerCrmLoading ? (
+                    {!buyerConversations.length &&
+                    !deepLinkConversationId &&
+                    !hasOwnedListings &&
+                    !buyerCrmLoading &&
+                    !buyerCrmConversationError ? (
                       <p className={styles.muted}>Nothing in your Inbox yet — use Message via BelizeListings on a listing to start a conversation.</p>
                     ) : null}
                   </section>
@@ -488,6 +559,16 @@ export default function UserDashboard() {
                   <section aria-label="Viewings">
                     {buyerCrmLoading && !buyerViewings.length && (!hasOwnedListings || deepLinkViewingId) ? (
                       <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                    ) : null}
+                    {buyerCrmViewingError && !buyerViewings.length && !deepLinkViewingId ? (
+                      <p className={styles.muted} role="alert">
+                        Unable to load viewing requests right now.
+                      </p>
+                    ) : null}
+                    {buyerCrmViewingError && buyerViewings.length > 0 ? (
+                      <p className={styles.muted} role="status">
+                        Unable to refresh viewing requests right now.
+                      </p>
                     ) : null}
                     {buyerViewings.length > 0 || deepLinkViewingId ? (
                       <div style={{ marginBottom: hasOwnedListings ? 24 : 0 }}>
@@ -503,7 +584,7 @@ export default function UserDashboard() {
                           onRefresh={loadBuyerCrm}
                           initialViewingId={deepLinkViewingId}
                           deepLinkResolveState={viewingDeepLinkResolveState}
-                          crmLoading={buyerCrmLoading}
+                          crmLoading={buyerCrmLoading && !buyerViewings.length}
                         />
                       </div>
                     ) : null}
@@ -515,7 +596,11 @@ export default function UserDashboard() {
                         initialViewingId={deepLinkViewingId}
                       />
                     ) : null}
-                    {!buyerViewings.length && !deepLinkViewingId && !hasOwnedListings && !buyerCrmLoading ? (
+                    {!buyerViewings.length &&
+                    !deepLinkViewingId &&
+                    !hasOwnedListings &&
+                    !buyerCrmLoading &&
+                    !buyerCrmViewingError ? (
                       <p className={styles.muted}>No viewings yet — schedule a viewing from any listing page.</p>
                     ) : null}
                   </section>

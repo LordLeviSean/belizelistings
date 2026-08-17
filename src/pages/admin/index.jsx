@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SiteNav from "../../components/SiteNav";
 import PendingListingsPanel from "../../components/PendingListingsPanel";
 import AllListingsPanel from "../../components/AllListingsPanel";
@@ -27,6 +27,12 @@ import AgentUpgradeRequestsPanel from "../../components/admin/AgentUpgradeReques
 import AdminOwnerInboxPanel from "../../components/admin/AdminOwnerInboxPanel";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "../../lib/featureFlags";
 import { loadBuyerCrmData } from "../../lib/crm/buyerCrmData";
+import {
+  applyBuyerCrmLoadResult,
+  beginCrmRequest,
+  invalidateCrmRequests,
+  isStaleCrmRequest,
+} from "../../lib/crm/crmListLoaderUtils";
 import { conversationListIncludesId } from "../../lib/crm/conversationDeepLink";
 import { resolveParticipantConversationDeepLink } from "../../lib/crm/participantConversationDeepLink";
 import { resolveBuyerViewingDeepLink } from "../../lib/crm/viewingParticipantDeepLink";
@@ -82,6 +88,14 @@ export default function AdminPage() {
   const [buyerConversations, setBuyerConversations] = useState([]);
   const [buyerListingsById, setBuyerListingsById] = useState({});
   const [buyerCrmLoading, setBuyerCrmLoading] = useState(false);
+  const [buyerCrmConversationError, setBuyerCrmConversationError] = useState(null);
+  const [buyerCrmViewingError, setBuyerCrmViewingError] = useState(null);
+  const buyerCrmGenerationRef = useRef(0);
+  const buyerConversationsRef = useRef([]);
+  const buyerViewingsRef = useRef([]);
+  const buyerListingsByIdRef = useRef({});
+  const deepLinkConversationIdRef = useRef(null);
+  const deepLinkViewingIdRef = useRef(null);
   const [visualEditorOpen, setVisualEditorOpen] = useState(false);
 
   const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
@@ -125,13 +139,54 @@ export default function AdminPage() {
 
   const loadBuyerCrm = useCallback(async () => {
     if (!user?.id) return;
-    setBuyerCrmLoading(true);
-    const { viewings, conversations, listingsById } = await loadBuyerCrmData(supabase, user.id);
-    setBuyerViewings(viewings);
-    setBuyerConversations(conversations);
-    setBuyerListingsById(listingsById);
+    const generation = beginCrmRequest(buyerCrmGenerationRef);
+    const hasExistingData =
+      buyerConversationsRef.current.length > 0 || buyerViewingsRef.current.length > 0;
+    if (!hasExistingData) {
+      setBuyerCrmLoading(true);
+    }
+
+    const result = await loadBuyerCrmData(supabase, user.id);
+    if (isStaleCrmRequest(buyerCrmGenerationRef, generation)) {
+      return;
+    }
+
+    const applied = applyBuyerCrmLoadResult({
+      generationRef: buyerCrmGenerationRef,
+      generation,
+      result,
+      previous: {
+        conversations: buyerConversationsRef.current,
+        viewings: buyerViewingsRef.current,
+        listingsById: buyerListingsByIdRef.current,
+      },
+      deepLinkConversationId: deepLinkConversationIdRef.current,
+      deepLinkViewingId: deepLinkViewingIdRef.current,
+    });
+
+    if (!applied) {
+      return;
+    }
+
+    setBuyerViewings(applied.viewings);
+    setBuyerConversations(applied.conversations);
+    setBuyerListingsById(applied.listingsById);
+    setBuyerCrmConversationError(applied.conversationError);
+    setBuyerCrmViewingError(applied.viewingError);
     setBuyerCrmLoading(false);
   }, [user?.id]);
+
+  buyerConversationsRef.current = buyerConversations;
+  buyerViewingsRef.current = buyerViewings;
+  buyerListingsByIdRef.current = buyerListingsById;
+  deepLinkConversationIdRef.current = deepLinkConversationId;
+  deepLinkViewingIdRef.current = deepLinkViewingId;
+
+  useEffect(() => {
+    return () => {
+      invalidateCrmRequests(buyerCrmGenerationRef);
+    };
+  }, []);
 
   const fetchAdminBuyerConversationById = useCallback(
     async ({ participantUserId, entityId, list, listingsById }) =>
@@ -166,7 +221,7 @@ export default function AdminPage() {
     enabled: Boolean(user?.id && isAdmin && deepLinkConversationId),
     participantUserId: user?.id ?? null,
     entityId: deepLinkConversationId,
-    listLoading: buyerCrmLoading,
+    listLoading: buyerCrmLoading && !buyerConversations.length,
     listIncludesTarget: conversationListIncludesId,
     getListSnapshot: () => buyerConversations,
     getListingsByIdSnapshot: () => buyerListingsById,
@@ -178,7 +233,7 @@ export default function AdminPage() {
     enabled: Boolean(user?.id && isAdmin && deepLinkViewingId),
     participantUserId: user?.id ?? null,
     entityId: deepLinkViewingId,
-    listLoading: buyerCrmLoading,
+    listLoading: buyerCrmLoading && !buyerViewings.length,
     listIncludesTarget: viewingListIncludesId,
     getListSnapshot: () => buyerViewings,
     getListingsByIdSnapshot: () => buyerListingsById,
@@ -573,6 +628,19 @@ export default function AdminPage() {
               )}
               {activeTab === ADMIN_DASHBOARD_TAB_IDS.INBOX ? (
                 <section aria-label="Inbox">
+                  {buyerCrmLoading && !buyerConversations.length && !deepLinkConversationId ? (
+                    <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                  ) : null}
+                  {buyerCrmConversationError && !buyerConversations.length && !deepLinkConversationId ? (
+                    <p className={styles.muted} role="alert">
+                      Unable to load conversations right now.
+                    </p>
+                  ) : null}
+                  {buyerCrmConversationError && buyerConversations.length > 0 ? (
+                    <p className={styles.muted} role="status">
+                      Unable to refresh conversations right now.
+                    </p>
+                  ) : null}
                   {buyerConversations.length > 0 || deepLinkConversationId ? (
                     <div style={{ marginBottom: 24 }}>
                       <h3 className={styles.sectionTitle} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
@@ -585,7 +653,7 @@ export default function AdminPage() {
                         onRefresh={loadBuyerCrm}
                         initialConversationId={deepLinkConversationId}
                         deepLinkResolveState={conversationDeepLinkResolveState}
-                        crmLoading={buyerCrmLoading}
+                        crmLoading={buyerCrmLoading && !buyerConversations.length}
                       />
                     </div>
                   ) : null}
@@ -600,6 +668,19 @@ export default function AdminPage() {
               ) : null}
               {activeTab === ADMIN_DASHBOARD_TAB_IDS.VIEWINGS ? (
                 <section aria-label="Viewings">
+                  {buyerCrmLoading && !buyerViewings.length && !deepLinkViewingId ? (
+                    <div className={loadingStyles.hydratingPanel} aria-busy="true" />
+                  ) : null}
+                  {buyerCrmViewingError && !buyerViewings.length && !deepLinkViewingId ? (
+                    <p className={styles.muted} role="alert">
+                      Unable to load viewing requests right now.
+                    </p>
+                  ) : null}
+                  {buyerCrmViewingError && buyerViewings.length > 0 ? (
+                    <p className={styles.muted} role="status">
+                      Unable to refresh viewing requests right now.
+                    </p>
+                  ) : null}
                   {buyerViewings.length > 0 || deepLinkViewingId ? (
                     <div style={{ marginBottom: 24 }}>
                       <h3 className={styles.sectionTitle} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
@@ -612,7 +693,7 @@ export default function AdminPage() {
                         onRefresh={loadBuyerCrm}
                         initialViewingId={deepLinkViewingId}
                         deepLinkResolveState={viewingDeepLinkResolveState}
-                        crmLoading={buyerCrmLoading}
+                        crmLoading={buyerCrmLoading && !buyerViewings.length}
                       />
                     </div>
                   ) : null}
