@@ -27,6 +27,16 @@ import AgentUpgradeRequestsPanel from "../../components/admin/AgentUpgradeReques
 import AdminOwnerInboxPanel from "../../components/admin/AdminOwnerInboxPanel";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "../../lib/featureFlags";
 import { loadBuyerCrmData } from "../../lib/crm/buyerCrmData";
+import { conversationListIncludesId } from "../../lib/crm/conversationDeepLink";
+import { resolveParticipantConversationDeepLink } from "../../lib/crm/participantConversationDeepLink";
+import { resolveBuyerViewingDeepLink } from "../../lib/crm/viewingParticipantDeepLink";
+import { viewingListIncludesId } from "../../lib/crm/viewingDeepLink";
+import {
+  readDashboardQueryParam,
+  resolveDashboardLocationQuery,
+  resolveDashboardTabFromIntent,
+} from "../../lib/dashboard/dashboardIntent";
+import { useParticipantEntityDeepLinkResolve } from "../../hooks/useParticipantEntityDeepLinkResolve";
 import { resolveAdminDashboardTabFromQuery } from "../../lib/dashboardCrmRoutes";
 import {
   ADMIN_DASHBOARD_TAB_IDS,
@@ -77,6 +87,28 @@ export default function AdminPage() {
   const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
   const visibleTabs = useMemo(() => getVisibleAdminDashboardTabs(), [crmTabsEnabled]);
 
+  const locationQuery = useMemo(
+    () => resolveDashboardLocationQuery(router),
+    [
+      router.isReady,
+      router.query.tab,
+      router.query.conversation,
+      router.query.viewing,
+      router.query.listing,
+      router.query.request,
+    ]
+  );
+
+  const deepLinkConversationId = useMemo(
+    () => readDashboardQueryParam(router, "conversation"),
+    [router.isReady, router.query.conversation]
+  );
+
+  const deepLinkViewingId = useMemo(
+    () => readDashboardQueryParam(router, "viewing"),
+    [router.isReady, router.query.viewing]
+  );
+
   const selectTab = useCallback(
     (tabId, extraQuery = {}) => {
       const nextTab = resolveVisibleAdminDashboardTab(tabId, visibleTabs);
@@ -100,6 +132,59 @@ export default function AdminPage() {
     setBuyerListingsById(listingsById);
     setBuyerCrmLoading(false);
   }, [user?.id]);
+
+  const fetchAdminBuyerConversationById = useCallback(
+    async ({ participantUserId, entityId, list, listingsById }) =>
+      resolveParticipantConversationDeepLink(
+        supabase,
+        participantUserId,
+        entityId,
+        list,
+        listingsById,
+        { role: "buyer" }
+      ),
+    []
+  );
+
+  const handleAdminBuyerConversationDeepLinkFetched = useCallback((result) => {
+    setBuyerConversations(result.conversations);
+    setBuyerListingsById((prev) => ({ ...prev, ...result.listingsById }));
+  }, []);
+
+  const fetchAdminBuyerViewingById = useCallback(
+    async ({ participantUserId, entityId, list, listingsById }) =>
+      resolveBuyerViewingDeepLink(supabase, participantUserId, entityId, list, listingsById),
+    []
+  );
+
+  const handleAdminBuyerViewingDeepLinkFetched = useCallback((result) => {
+    setBuyerViewings(result.viewings);
+    setBuyerListingsById((prev) => ({ ...prev, ...result.listingsById }));
+  }, []);
+
+  const conversationDeepLinkResolveState = useParticipantEntityDeepLinkResolve({
+    enabled: Boolean(user?.id && isAdmin && deepLinkConversationId),
+    participantUserId: user?.id ?? null,
+    entityId: deepLinkConversationId,
+    listLoading: buyerCrmLoading,
+    listIncludesTarget: conversationListIncludesId,
+    getListSnapshot: () => buyerConversations,
+    getListingsByIdSnapshot: () => buyerListingsById,
+    fetchById: fetchAdminBuyerConversationById,
+    onFetched: handleAdminBuyerConversationDeepLinkFetched,
+  });
+
+  const viewingDeepLinkResolveState = useParticipantEntityDeepLinkResolve({
+    enabled: Boolean(user?.id && isAdmin && deepLinkViewingId),
+    participantUserId: user?.id ?? null,
+    entityId: deepLinkViewingId,
+    listLoading: buyerCrmLoading,
+    listIncludesTarget: viewingListIncludesId,
+    getListSnapshot: () => buyerViewings,
+    getListingsByIdSnapshot: () => buyerListingsById,
+    fetchById: fetchAdminBuyerViewingById,
+    onFetched: handleAdminBuyerViewingDeepLinkFetched,
+  });
 
   useEffect(() => {
     if (
@@ -187,15 +272,21 @@ export default function AdminPage() {
   }, [router, roleLoading, user?.id, role]);
 
   useEffect(() => {
-    const inferred = resolveAdminDashboardTabFromQuery(router.query);
-    setActiveTab(resolveVisibleAdminDashboardTab(inferred, visibleTabs));
-  }, [
-    router.query.tab,
-    router.query.conversation,
-    router.query.viewing,
-    router.query.listing,
-    visibleTabs,
-  ]);
+    setActiveTab(
+      resolveDashboardTabFromIntent({
+        locationQuery,
+        inferTabFromQuery: resolveAdminDashboardTabFromQuery,
+        resolveVisibleTab: resolveVisibleAdminDashboardTab,
+        visibleTabs,
+        entityTabMap: {
+          viewing: ADMIN_DASHBOARD_TAB_IDS.VIEWINGS,
+          conversation: ADMIN_DASHBOARD_TAB_IDS.INBOX,
+          listing: ADMIN_DASHBOARD_TAB_IDS.LISTINGS,
+        },
+        defaultTab: ADMIN_DASHBOARD_TAB_IDS.PENDING,
+      })
+    );
+  }, [locationQuery, visibleTabs]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -482,22 +573,19 @@ export default function AdminPage() {
               )}
               {activeTab === ADMIN_DASHBOARD_TAB_IDS.INBOX ? (
                 <section aria-label="Inbox">
-                  {buyerConversations.length > 0 ? (
+                  {buyerConversations.length > 0 || deepLinkConversationId ? (
                     <div style={{ marginBottom: 24 }}>
                       <h3 className={styles.sectionTitle} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
                         Your Inbox
                       </h3>
                       <UserInboxPanel
                         conversations={buyerConversations}
+                        listingsById={buyerListingsById}
                         buyerUserId={user?.id}
                         onRefresh={loadBuyerCrm}
-                        initialConversationId={
-                          typeof router.query.conversation === "string"
-                            ? router.query.conversation
-                            : Array.isArray(router.query.conversation)
-                              ? router.query.conversation[0]
-                              : null
-                        }
+                        initialConversationId={deepLinkConversationId}
+                        deepLinkResolveState={conversationDeepLinkResolveState}
+                        crmLoading={buyerCrmLoading}
                       />
                     </div>
                   ) : null}
@@ -505,20 +593,14 @@ export default function AdminPage() {
                     <AdminOwnerInboxPanel
                       ownerUserId={user.id}
                       section="inquiries"
-                      initialConversationId={
-                        typeof router.query.conversation === "string"
-                          ? router.query.conversation
-                          : Array.isArray(router.query.conversation)
-                            ? router.query.conversation[0]
-                            : null
-                      }
+                      initialConversationId={deepLinkConversationId}
                     />
                   ) : null}
                 </section>
               ) : null}
               {activeTab === ADMIN_DASHBOARD_TAB_IDS.VIEWINGS ? (
                 <section aria-label="Viewings">
-                  {buyerViewings.length > 0 ? (
+                  {buyerViewings.length > 0 || deepLinkViewingId ? (
                     <div style={{ marginBottom: 24 }}>
                       <h3 className={styles.sectionTitle} style={{ fontSize: "1.05rem", marginBottom: 12 }}>
                         Your viewings
@@ -528,13 +610,9 @@ export default function AdminPage() {
                         listingsById={buyerListingsById}
                         buyerUserId={user?.id}
                         onRefresh={loadBuyerCrm}
-                        initialViewingId={
-                          typeof router.query.viewing === "string"
-                            ? router.query.viewing
-                            : Array.isArray(router.query.viewing)
-                              ? router.query.viewing[0]
-                              : null
-                        }
+                        initialViewingId={deepLinkViewingId}
+                        deepLinkResolveState={viewingDeepLinkResolveState}
+                        crmLoading={buyerCrmLoading}
                       />
                     </div>
                   ) : null}
@@ -542,13 +620,7 @@ export default function AdminPage() {
                     <AdminOwnerInboxPanel
                       ownerUserId={user.id}
                       section="viewings"
-                      initialViewingId={
-                        typeof router.query.viewing === "string"
-                          ? router.query.viewing
-                          : Array.isArray(router.query.viewing)
-                            ? router.query.viewing[0]
-                            : null
-                      }
+                      initialViewingId={deepLinkViewingId}
                     />
                   ) : null}
                 </section>

@@ -118,6 +118,15 @@ describe("dashboardCrmRoutes", () => {
     );
   });
 
+  test("resolveAdminDashboardTabFromQuery infers inbox and viewings from entity params", () => {
+    expect(resolveAdminDashboardTabFromQuery({ conversation: "conv-admin-9" })).toBe(
+      ADMIN_DASHBOARD_TAB_IDS.INBOX
+    );
+    expect(resolveAdminDashboardTabFromQuery({ viewing: "108" })).toBe(
+      ADMIN_DASHBOARD_TAB_IDS.VIEWINGS
+    );
+  });
+
   test("resolveMessageConversationPath uses Inbox tab", () => {
     expect(
       resolveMessageConversationPath({ role: "user", side: "owner", conversationId: "c1" })
