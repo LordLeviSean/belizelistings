@@ -37,19 +37,22 @@ import { conversationListIncludesId } from "../../lib/crm/conversationDeepLink";
 import { resolveParticipantConversationDeepLink } from "../../lib/crm/participantConversationDeepLink";
 import { resolveBuyerViewingDeepLink } from "../../lib/crm/viewingParticipantDeepLink";
 import { viewingListIncludesId } from "../../lib/crm/viewingDeepLink";
-import {
-  readDashboardQueryParam,
-  resolveDashboardLocationQuery,
-  resolveDashboardTabFromIntent,
-} from "../../lib/dashboard/dashboardIntent";
 import { useParticipantEntityDeepLinkResolve } from "../../hooks/useParticipantEntityDeepLinkResolve";
+import useDashboardIntent from "../../hooks/useDashboardIntent";
+import { isProfileHydratedForUser } from "../../lib/profileSessionCache";
 import { resolveAdminDashboardTabFromQuery } from "../../lib/dashboardCrmRoutes";
 import {
   ADMIN_DASHBOARD_TAB_IDS,
   getVisibleAdminDashboardTabs,
+  normalizeAdminDashboardTab,
   resolveVisibleAdminDashboardTab,
 } from "../../constants/dashboardAdminConfig";
-import { DashboardShell, DashboardTabNav, DashboardRoleLayout } from "../../components/dashboard";
+import {
+  DashboardShell,
+  DashboardTabNav,
+  DashboardRoleLayout,
+  DashboardBootstrapShell,
+} from "../../components/dashboard";
 import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "../../constants/dashboardRoles";
 import { isBuyerConversationUnread } from "../../lib/crm/conversationMutations";
 import {
@@ -70,9 +73,6 @@ import NotificationDiagnosticsPanel from "../../components/admin/NotificationDia
 export default function AdminPage() {
   const router = useRouter();
   const { user, role, loading: roleLoading, welcomePhrase } = useUserRole();
-  const [activeTab, setActiveTab] = useState("pending");
-  const [checkingAccess, setCheckingAccess] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [lastAction, setLastAction] = useState("Live");
   const [totals, setTotals] = useState({
     listings: 0,
@@ -106,32 +106,41 @@ export default function AdminPage() {
   const crmTabsEnabled = BL_ENABLE_INQUIRIES || BL_ENABLE_CONVERSATIONS;
   const visibleTabs = useMemo(() => getVisibleAdminDashboardTabs(), [crmTabsEnabled]);
 
-  const locationQuery = useMemo(
-    () => resolveDashboardLocationQuery(router),
-    [
-      router.isReady,
-      router.query.tab,
-      router.query.conversation,
-      router.query.viewing,
-      router.query.listing,
-      router.query.request,
-    ]
-  );
+  const profileHydrated = Boolean(user?.id && isProfileHydratedForUser(user.id));
 
-  const deepLinkConversationId = useMemo(
-    () => readDashboardQueryParam(router, "conversation"),
-    [router.isReady, router.query.conversation]
-  );
-
-  const deepLinkViewingId = useMemo(
-    () => readDashboardQueryParam(router, "viewing"),
-    [router.isReady, router.query.viewing]
-  );
+  const {
+    activeTab,
+    showBootstrapShell,
+    bootstrapShellLabel,
+    deepLinkConversationId,
+    deepLinkViewingId,
+  } = useDashboardIntent({
+    router,
+    expectedRole: "admin",
+    user,
+    role,
+    loading: roleLoading,
+    profileHydrated,
+    visibleTabs,
+    entityTabMap: {
+      viewing: ADMIN_DASHBOARD_TAB_IDS.VIEWINGS,
+      conversation: ADMIN_DASHBOARD_TAB_IDS.INBOX,
+      listing: ADMIN_DASHBOARD_TAB_IDS.LISTINGS,
+    },
+    inferTabFromQuery: resolveAdminDashboardTabFromQuery,
+    resolveVisibleTab: resolveVisibleAdminDashboardTab,
+    defaultTab: ADMIN_DASHBOARD_TAB_IDS.PENDING,
+  });
 
   const selectTab = useCallback(
     (tabId, extraQuery = {}) => {
       const nextTab = resolveVisibleAdminDashboardTab(tabId, visibleTabs);
-      setActiveTab(nextTab);
+      const hasExtraQuery = Object.keys(extraQuery).some(
+        (key) => extraQuery[key] != null && extraQuery[key] !== ""
+      );
+      if (normalizeAdminDashboardTab(router.query.tab) === nextTab && !hasExtraQuery) {
+        return;
+      }
       const query = { ...router.query, tab: nextTab, ...extraQuery };
       for (const key of Object.keys(extraQuery)) {
         if (extraQuery[key] == null || extraQuery[key] === "") delete query[key];
@@ -229,7 +238,7 @@ export default function AdminPage() {
   }, []);
 
   const conversationDeepLinkResolveState = useParticipantEntityDeepLinkResolve({
-    enabled: Boolean(user?.id && isAdmin && deepLinkConversationId),
+    enabled: Boolean(user?.id && role === "admin" && deepLinkConversationId),
     participantUserId: user?.id ?? null,
     entityId: deepLinkConversationId,
     listLoading: buyerCrmLoading && !buyerConversations.length,
@@ -241,7 +250,7 @@ export default function AdminPage() {
   });
 
   const viewingDeepLinkResolveState = useParticipantEntityDeepLinkResolve({
-    enabled: Boolean(user?.id && isAdmin && deepLinkViewingId),
+    enabled: Boolean(user?.id && role === "admin" && deepLinkViewingId),
     participantUserId: user?.id ?? null,
     entityId: deepLinkViewingId,
     listLoading: buyerCrmLoading && !buyerViewings.length,
@@ -263,9 +272,9 @@ export default function AdminPage() {
   }, [activeTab, loadBuyerCrm]);
 
   useEffect(() => {
-    if (!user?.id || !isAdmin) return;
+    if (!user?.id || role !== "admin") return;
     void loadBuyerCrm();
-  }, [user?.id, isAdmin, loadBuyerCrm]);
+  }, [user?.id, role, loadBuyerCrm]);
 
   const ownerDeepLinkConversationId = useMemo(
     () =>
@@ -324,49 +333,12 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      if (roleLoading) return;
-      if (!user) {
-        setCheckingAccess(false);
-        setIsAdmin(false);
-        router.replace("/login");
-        return;
-      }
-
-      if (role !== "admin") {
-        setCheckingAccess(false);
-        setIsAdmin(false);
-        router.replace("/dashboard");
-        return;
-      }
-
-      await refreshStats();
-      setIsAdmin(true);
-      setCheckingAccess(false);
-    };
-
-    void checkAdmin();
-  }, [router, roleLoading, user?.id, role]);
+    if (roleLoading || role !== "admin" || !user?.id) return;
+    void refreshStats();
+  }, [roleLoading, role, user?.id, refreshStats]);
 
   useEffect(() => {
-    setActiveTab(
-      resolveDashboardTabFromIntent({
-        locationQuery,
-        inferTabFromQuery: resolveAdminDashboardTabFromQuery,
-        resolveVisibleTab: resolveVisibleAdminDashboardTab,
-        visibleTabs,
-        entityTabMap: {
-          viewing: ADMIN_DASHBOARD_TAB_IDS.VIEWINGS,
-          conversation: ADMIN_DASHBOARD_TAB_IDS.INBOX,
-          listing: ADMIN_DASHBOARD_TAB_IDS.LISTINGS,
-        },
-        defaultTab: ADMIN_DASHBOARD_TAB_IDS.PENDING,
-      })
-    );
-  }, [locationQuery, visibleTabs]);
-
-  useEffect(() => {
-    if (!isAdmin) return;
+    if (role !== "admin" || !user?.id) return;
     let debounce;
     const schedule = (fromProfiles) => {
       clearTimeout(debounce);
@@ -407,7 +379,7 @@ export default function AdminPage() {
       clearTimeout(debounce);
       supabase.removeChannel(channel);
     };
-  }, [isAdmin, refreshStats]);
+  }, [role, user?.id, refreshStats]);
 
   const pushActivity = (message, signal = null) => {
     const stamp = new Date().toLocaleTimeString();
@@ -463,18 +435,13 @@ export default function AdminPage() {
     setBulkLoading("");
   };
 
-  if (checkingAccess) {
-    return (
-      <div className={premiumStyles.adminPage}>
-        <SiteNav active="dashboard" />
-        <main className={premiumStyles.main}>
-          <p className={styles.muted}>Resolving admin access...</p>
-        </main>
-      </div>
-    );
+  if (showBootstrapShell) {
+    return <DashboardBootstrapShell label={bootstrapShellLabel} />;
   }
 
-  if (!isAdmin) return null;
+  if (!user?.id || role !== "admin") {
+    return <DashboardBootstrapShell label={bootstrapShellLabel} />;
+  }
 
   return (
     <div className={premiumStyles.adminPage}>
