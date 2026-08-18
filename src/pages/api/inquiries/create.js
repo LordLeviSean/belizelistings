@@ -3,6 +3,7 @@ import { readTruthyEnvValue } from "../../../lib/featureFlags";
 import { mapInquiryRpcError } from "../../../lib/security/mapInquiryRpcError";
 import { logSecurityEvent } from "../../../lib/security/logSecurityEvent";
 import { verifyTurnstileToken } from "../../../lib/security/verifyTurnstile";
+import { deliverBuyerRepliedNotificationForMessage } from "../../../lib/notifications/deliverBuyerRepliedForMessage";
 import { deliverNewInquiryNotificationForInquiry } from "../../../lib/notifications/deliverNewInquiryForInquiry";
 import { emitListingEventAfterMutation } from "../../../lib/listingEvents/writeListingEvent";
 import { LISTING_EVENT_TYPES } from "../../../lib/listingEvents/listingEventTypes";
@@ -166,10 +167,16 @@ export default async function handler(req, res) {
   });
 
   if (BL_ENABLE_NOTIFICATIONS && result.inquiry_id) {
-    await deliverNewInquiryNotificationForInquiry(adminClient, {
-      inquiryId: result.inquiry_id,
-      conversationId: result.conversation_id,
-    });
+    if (result.reused_conversation && result.message_id) {
+      await deliverBuyerRepliedNotificationForMessage(adminClient, {
+        messageId: result.message_id,
+      });
+    } else if (!result.reused_conversation) {
+      await deliverNewInquiryNotificationForInquiry(adminClient, {
+        inquiryId: result.inquiry_id,
+        conversationId: result.conversation_id,
+      });
+    }
   }
 
   return res.status(200).json({
