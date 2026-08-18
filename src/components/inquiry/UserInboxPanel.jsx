@@ -3,6 +3,7 @@ import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import { BL_ENABLE_CONVERSATIONS } from "@/lib/featureFlags";
 import { inquiryTypeLabel } from "@/lib/crm/crmConstants";
+import { formatPipelineStageLabel } from "@/lib/crm/conversationCrmShape";
 import {
   conversationPreviewText,
   deleteConversationForBuyer,
@@ -317,7 +318,7 @@ export default function UserInboxPanel({
                 <header className={inboxStyles.detailHead}>
                   <h3 className={inboxStyles.detailTitle}>{listingTitle}</h3>
                   <p className={inboxStyles.detailMeta}>
-                    {selected.pipeline_stage ? selected.pipeline_stage.replace(/_/g, " ") : "Open"}
+                    {formatPipelineStageLabel(selected.pipeline_stage)}
                   </p>
                 </header>
 

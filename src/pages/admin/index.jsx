@@ -52,6 +52,10 @@ import {
 import { DashboardShell, DashboardTabNav, DashboardRoleLayout } from "../../components/dashboard";
 import { DASHBOARD_ROLE, DASHBOARD_ROLE_META } from "../../constants/dashboardRoles";
 import { isBuyerConversationUnread } from "../../lib/crm/conversationMutations";
+import {
+  applyParticipantDeepLinkCrmResult,
+  resolveAdminOwnerConversationDeepLinkId,
+} from "../../lib/crm/conversationCrmShape";
 import styles from "../../styles/Dashboard.module.css";
 import premiumStyles from "../../styles/AdminDashboardPremium.module.css";
 import loadingStyles from "../../styles/UserDashboard.module.css";
@@ -203,8 +207,11 @@ export default function AdminPage() {
   );
 
   const handleAdminBuyerConversationDeepLinkFetched = useCallback((result) => {
-    setBuyerConversations(result.conversations);
-    setBuyerListingsById((prev) => ({ ...prev, ...result.listingsById }));
+    applyParticipantDeepLinkCrmResult(result, {
+      onConversations: setBuyerConversations,
+      onListingsById: (listingsById) =>
+        setBuyerListingsById((prev) => ({ ...prev, ...listingsById })),
+    });
   }, []);
 
   const fetchAdminBuyerViewingById = useCallback(
@@ -214,8 +221,11 @@ export default function AdminPage() {
   );
 
   const handleAdminBuyerViewingDeepLinkFetched = useCallback((result) => {
-    setBuyerViewings(result.viewings);
-    setBuyerListingsById((prev) => ({ ...prev, ...result.listingsById }));
+    applyParticipantDeepLinkCrmResult(result, {
+      onViewings: setBuyerViewings,
+      onListingsById: (listingsById) =>
+        setBuyerListingsById((prev) => ({ ...prev, ...listingsById })),
+    });
   }, []);
 
   const conversationDeepLinkResolveState = useParticipantEntityDeepLinkResolve({
@@ -257,12 +267,23 @@ export default function AdminPage() {
     void loadBuyerCrm();
   }, [user?.id, isAdmin, loadBuyerCrm]);
 
+  const ownerDeepLinkConversationId = useMemo(
+    () =>
+      resolveAdminOwnerConversationDeepLinkId({
+        deepLinkConversationId,
+        buyerDeepLinkResolveState: conversationDeepLinkResolveState,
+      }),
+    [deepLinkConversationId, conversationDeepLinkResolveState]
+  );
+
   const tabCounts = useMemo(() => {
     const counts = {};
     if (totals.pending > 0) {
       counts[ADMIN_DASHBOARD_TAB_IDS.PENDING] = totals.pending;
     }
-    const inboxUnread = buyerConversations.filter((conv) => isBuyerConversationUnread(conv)).length;
+    const inboxUnread = (buyerConversations ?? []).filter((conv) =>
+      isBuyerConversationUnread(conv)
+    ).length;
     if (inboxUnread > 0) {
       counts[ADMIN_DASHBOARD_TAB_IDS.INBOX] = inboxUnread;
     }
@@ -662,7 +683,7 @@ export default function AdminPage() {
                     <AdminOwnerInboxPanel
                       ownerUserId={user.id}
                       section="inquiries"
-                      initialConversationId={deepLinkConversationId}
+                      initialConversationId={ownerDeepLinkConversationId}
                     />
                   ) : null}
                 </section>

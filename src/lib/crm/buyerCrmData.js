@@ -1,4 +1,5 @@
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "../featureFlags";
+import { normalizeConversationCrmRows } from "./conversationCrmShape";
 import { fetchInquiriesForBuyer } from "./inquiryMutations";
 import { fetchConversationsForBuyer } from "./conversationMutations";
 import { filterInboxConversations } from "./conversationFilters";
@@ -42,7 +43,7 @@ export async function loadBuyerCrmData(client, buyerUserId) {
   if (BL_ENABLE_CONVERSATIONS) {
     tasks.push(
       fetchConversationsForBuyer(client, buyerUserId).then(({ data, error }) => {
-        conversations = filterInboxConversations(data || []);
+        conversations = filterInboxConversations(normalizeConversationCrmRows(data || []));
         if (error) errors.conversations = error;
       })
     );

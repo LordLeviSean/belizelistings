@@ -18,6 +18,7 @@ import ProfileCompletionPanel from "@/components/profile/ProfileCompletionPanel"
 import DeviceNotificationsPanel from "@/components/profile/DeviceNotificationsPanel";
 import ProfileCompletionBanner from "@/components/profile/ProfileCompletionBanner";
 import { BL_ENABLE_CONVERSATIONS, BL_ENABLE_INQUIRIES, BL_ENABLE_VIEWING_PERSIST } from "@/lib/featureFlags";
+import { applyParticipantDeepLinkCrmResult } from "@/lib/crm/conversationCrmShape";
 import { loadBuyerCrmData } from "@/lib/crm/buyerCrmData";
 import {
   applyBuyerCrmLoadResult,
@@ -171,8 +172,11 @@ export default function UserDashboard() {
   );
 
   const handleBuyerViewingDeepLinkFetched = useCallback((result) => {
-    setBuyerViewings(result.viewings);
-    setBuyerListingsById((prev) => ({ ...prev, ...result.listingsById }));
+    applyParticipantDeepLinkCrmResult(result, {
+      onViewings: setBuyerViewings,
+      onListingsById: (listingsById) =>
+        setBuyerListingsById((prev) => ({ ...prev, ...listingsById })),
+    });
   }, []);
 
   const fetchBuyerConversationById = useCallback(
@@ -189,8 +193,11 @@ export default function UserDashboard() {
   );
 
   const handleBuyerConversationDeepLinkFetched = useCallback((result) => {
-    setBuyerConversations(result.conversations);
-    setBuyerListingsById((prev) => ({ ...prev, ...result.listingsById }));
+    applyParticipantDeepLinkCrmResult(result, {
+      onConversations: setBuyerConversations,
+      onListingsById: (listingsById) =>
+        setBuyerListingsById((prev) => ({ ...prev, ...listingsById })),
+    });
   }, []);
 
   const loadBuyerCrm = useCallback(async () => {
@@ -283,7 +290,9 @@ export default function UserDashboard() {
     if (pendingListings > 0) {
       counts[USER_DASHBOARD_TAB_IDS.PENDING] = pendingListings;
     }
-    const inboxUnread = buyerConversations.filter((conv) => isBuyerConversationUnread(conv)).length;
+    const inboxUnread = (buyerConversations ?? []).filter((conv) =>
+      isBuyerConversationUnread(conv)
+    ).length;
     if (inboxUnread > 0) {
       counts[USER_DASHBOARD_TAB_IDS.INBOX] = inboxUnread;
     } else if (inquiriesCount > 0) {

@@ -3,6 +3,7 @@ import {
   mergeConversationIntoList,
   normalizeConversationId,
 } from "./conversationDeepLink";
+import { normalizeConversationCrmRow } from "./conversationCrmShape";
 import { fetchConversationForParticipantById } from "./conversationMutations";
 import { classifyParticipantDeepLinkFetchResult } from "./participantDeepLinkOutcome";
 
@@ -75,7 +76,10 @@ export async function resolveParticipantConversationDeepLink(
     };
   }
 
-  const conversations = mergeConversationIntoList(existingConversations, data);
+  const conversations = mergeConversationIntoList(
+    existingConversations,
+    normalizeConversationCrmRow(data)
+  );
   let listingsById = { ...existingListingsById };
 
   if (data.listing_id != null && !listingsById[data.listing_id]) {

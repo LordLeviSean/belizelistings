@@ -10,6 +10,7 @@ import {
   isStaleCrmRequest,
 } from "@/lib/crm/crmListLoaderUtils";
 import { conversationListIncludesId } from "@/lib/crm/conversationDeepLink";
+import { applyParticipantDeepLinkCrmResult } from "@/lib/crm/conversationCrmShape";
 import { resolveParticipantConversationDeepLink } from "@/lib/crm/participantConversationDeepLink";
 import { resolveAgentViewingDeepLink } from "@/lib/crm/viewingParticipantDeepLink";
 import { viewingListIncludesId } from "@/lib/crm/viewingDeepLink";
@@ -112,8 +113,11 @@ export default function AdminOwnerInboxPanel({
   );
 
   const handleOwnerConversationDeepLinkFetched = useCallback((result) => {
-    setConversations(result.conversations);
-    setListingsById((prev) => ({ ...prev, ...result.listingsById }));
+    applyParticipantDeepLinkCrmResult(result, {
+      onConversations: setConversations,
+      onListingsById: (listingsMap) =>
+        setListingsById((prev) => ({ ...prev, ...listingsMap })),
+    });
   }, []);
 
   const fetchOwnerViewingById = useCallback(
@@ -123,8 +127,11 @@ export default function AdminOwnerInboxPanel({
   );
 
   const handleOwnerViewingDeepLinkFetched = useCallback((result) => {
-    setViewings(result.viewings);
-    setListingsById((prev) => ({ ...prev, ...result.listingsById }));
+    applyParticipantDeepLinkCrmResult(result, {
+      onViewings: setViewings,
+      onListingsById: (listingsMap) =>
+        setListingsById((prev) => ({ ...prev, ...listingsMap })),
+    });
   }, []);
 
   const conversationDeepLinkResolveState = useParticipantEntityDeepLinkResolve({

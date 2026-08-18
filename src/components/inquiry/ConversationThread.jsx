@@ -1,5 +1,6 @@
 import MessageBubble from "./MessageBubble";
 import MessageComposer from "./MessageComposer";
+import { formatPipelineStageLabel } from "@/lib/crm/conversationCrmShape";
 import styles from "./OwnerInquiriesPanel.module.css";
 
 export default function ConversationThread({
@@ -36,7 +37,7 @@ export default function ConversationThread({
         <p className={styles.detailMeta}>
           {buyerLabel}
           {conversation.pipeline_stage
-            ? ` · ${conversation.pipeline_stage.replace(/_/g, " ")}`
+            ? ` · ${formatPipelineStageLabel(conversation.pipeline_stage, { fallback: "" })}`
             : ""}
         </p>
       </header>
