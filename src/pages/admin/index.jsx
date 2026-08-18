@@ -61,6 +61,7 @@ import PlatformVisualEditorModal from "../../components/admin/PlatformVisualEdit
 import platformVisualStyles from "../../components/admin/PlatformVisualEditorEntry.module.css";
 import ProfileCompletionPanel from "@/components/profile/ProfileCompletionPanel";
 import DeviceNotificationsPanel from "@/components/profile/DeviceNotificationsPanel";
+import NotificationDiagnosticsPanel from "../../components/admin/NotificationDiagnosticsPanel";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -712,6 +713,10 @@ export default function AdminPage() {
                   <ProfileCompletionPanel />
                   <DeviceNotificationsPanel />
                 </>
+              ) : null}
+
+              {activeTab === ADMIN_DASHBOARD_TAB_IDS.NOTIFICATIONS ? (
+                <NotificationDiagnosticsPanel />
               ) : null}
             </DashboardRoleLayout>
           </DashboardShell>
