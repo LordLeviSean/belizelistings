@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { DELIVERY_MODES } from "@/lib/admin/notificationDiagnostics";
+import {
+  formatNotificationDiagnosticTrace,
+  formatNotificationDiagnosticsReport,
+} from "@/lib/admin/notificationDiagnosticTraceFormat";
+import { copyDiagnosticTextToClipboard } from "@/lib/admin/copyDiagnosticClipboard";
+import { useToast } from "@/components/ui/ToastProvider";
 import PremiumEmptyState from "@/components/ui/PremiumEmptyState";
 import dashboardStyles from "@/styles/Dashboard.module.css";
 import styles from "./NotificationDiagnosticsPanel.module.css";
@@ -78,7 +84,7 @@ function DetailSection({ title, items }) {
   );
 }
 
-function DiagnosticDetailModal({ row, onClose }) {
+function DiagnosticDetailModal({ row, onClose, onCopyTrace }) {
   if (!row) return null;
 
   return (
@@ -99,9 +105,18 @@ function DiagnosticDetailModal({ row, onClose }) {
               {row.eventType} · {formatWhen(row.timestamp)}
             </p>
           </div>
-          <button type="button" className={dashboardStyles.toggleButton} onClick={onClose}>
-            Close
-          </button>
+          <div className={styles.modalActions}>
+            <button
+              type="button"
+              className={dashboardStyles.toggleButton}
+              onClick={() => void onCopyTrace(row)}
+            >
+              Copy Diagnostic Trace
+            </button>
+            <button type="button" className={dashboardStyles.toggleButton} onClick={onClose}>
+              Close
+            </button>
+          </div>
         </div>
 
         <div className={styles.detailGrid}>
@@ -187,12 +202,14 @@ function DiagnosticDetailModal({ row, onClose }) {
 }
 
 export default function NotificationDiagnosticsPanel() {
+  const { showToast } = useToast();
   const [rows, setRows] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedRow, setSelectedRow] = useState(null);
   const [updatedAt, setUpdatedAt] = useState(null);
+  const [pagination, setPagination] = useState({ returned: 0, total: null });
   const [filters, setFilters] = useState({
     eventType: "",
     queueStatus: "",
@@ -237,6 +254,10 @@ export default function NotificationDiagnosticsPanel() {
       setRows(Array.isArray(payload.rows) ? payload.rows : []);
       setSummary(payload.summary || null);
       setUpdatedAt(payload.updated_at || new Date().toISOString());
+      setPagination({
+        returned: payload.pagination?.returned ?? (payload.rows?.length || 0),
+        total: payload.pagination?.total ?? null,
+      });
     } catch (loadError) {
       setError(loadError?.message || "Could not load notification diagnostics.");
       setRows([]);
@@ -262,6 +283,41 @@ export default function NotificationDiagnosticsPanel() {
     ];
   }, [summary]);
 
+  const copyTrace = useCallback(
+    async (row) => {
+      const result = await copyDiagnosticTextToClipboard(formatNotificationDiagnosticTrace(row));
+      if (result.ok) {
+        showToast({ type: "success", message: "Diagnostic trace copied" });
+        return;
+      }
+      showToast({
+        type: "error",
+        message: "Could not copy diagnostic trace. Try selecting and copying manually.",
+      });
+    },
+    [showToast]
+  );
+
+  const copyCurrentDiagnostics = useCallback(async () => {
+    const report = formatNotificationDiagnosticsReport({
+      diagnostics: rows,
+      filters,
+      generatedAt: updatedAt || new Date().toISOString(),
+      environment: "Production",
+      recordsCopied: rows.length,
+      totalAvailable: pagination.total,
+    });
+    const result = await copyDiagnosticTextToClipboard(report);
+    if (result.ok) {
+      showToast({ type: "success", message: "Diagnostics copied" });
+      return;
+    }
+    showToast({
+      type: "error",
+      message: "Could not copy diagnostics. Try selecting and copying manually.",
+    });
+  }, [rows, filters, updatedAt, pagination.total, showToast]);
+
   return (
     <div className={styles.notificationPanel}>
       <div className={dashboardStyles.card}>
@@ -272,9 +328,19 @@ export default function NotificationDiagnosticsPanel() {
               Read-only trace of queue → inbox → push → destination. Last 24 hours by default.
             </p>
           </div>
-          <button type="button" className={dashboardStyles.toggleButton} onClick={() => void load()}>
-            Refresh
-          </button>
+          <div className={styles.toolbarActions}>
+            <button
+              type="button"
+              className={dashboardStyles.toggleButton}
+              disabled={!rows.length}
+              onClick={() => void copyCurrentDiagnostics()}
+            >
+              Copy Current Diagnostics
+            </button>
+            <button type="button" className={dashboardStyles.toggleButton} onClick={() => void load()}>
+              Refresh
+            </button>
+          </div>
         </div>
 
         {summaryChips.length ? (
@@ -417,7 +483,11 @@ export default function NotificationDiagnosticsPanel() {
         </div>
       ) : null}
 
-      <DiagnosticDetailModal row={selectedRow} onClose={() => setSelectedRow(null)} />
+      <DiagnosticDetailModal
+        row={selectedRow}
+        onClose={() => setSelectedRow(null)}
+        onCopyTrace={copyTrace}
+      />
     </div>
   );
 }
