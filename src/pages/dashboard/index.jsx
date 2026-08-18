@@ -1,5 +1,13 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
+import DashboardBootstrapShell from "@/components/dashboard/DashboardBootstrapShell";
+import {
+  buildProtectedLoginHref,
+  captureProtectedEntryFromWindow,
+  readPendingProtectedEntry,
+  resolveProtectedEntryHref,
+  savePendingProtectedEntry,
+} from "@/lib/auth/protectedEntry";
 import useUserRole from "@/hooks/useUserRole";
 
 export default function DashboardEntry() {
@@ -7,11 +15,31 @@ export default function DashboardEntry() {
   const { user, role, loading } = useUserRole();
 
   useEffect(() => {
-    if (loading) return;
+    const fromWindow = captureProtectedEntryFromWindow();
+    if (fromWindow) {
+      savePendingProtectedEntry(fromWindow);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (loading || !router.isReady) return;
+
+    const destination = resolveProtectedEntryHref({
+      router,
+      pendingFromStorage: readPendingProtectedEntry(),
+    });
+
     if (!user) {
-      router.replace("/login");
+      if (destination) savePendingProtectedEntry(destination);
+      router.replace(buildProtectedLoginHref(destination || router.asPath || "/dashboard"));
       return;
     }
+
+    if (destination && destination !== router.asPath) {
+      router.replace(destination);
+      return;
+    }
+
     if (role === "admin") {
       router.replace("/admin");
     } else if (role === "agent") {
@@ -21,7 +49,7 @@ export default function DashboardEntry() {
     } else {
       router.replace("/dashboard/user");
     }
-  }, [loading, user, role, router]);
+  }, [loading, user, role, router, router.isReady, router.asPath]);
 
-  return null;
+  return <DashboardBootstrapShell label="Loading dashboard" />;
 }

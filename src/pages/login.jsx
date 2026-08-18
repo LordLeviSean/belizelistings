@@ -13,6 +13,7 @@ import { getAuthRedirectUrl } from "../lib/siteUrl";
 import {
   normalizeReturnTo,
   resolvePostAuthEngagementReturnPath,
+  resolvePostAuthProtectedEntryPath,
 } from "../lib/authEngagementReturn";
 import styles from "../styles/Auth.module.css";
 
@@ -21,6 +22,8 @@ const USERNAME_TAKEN_MSG = "Username already taken, try a new username";
 function resolvePostAuthDestination(router) {
   const engagementReturn = resolvePostAuthEngagementReturnPath();
   if (engagementReturn) return engagementReturn;
+  const protectedReturn = resolvePostAuthProtectedEntryPath();
+  if (protectedReturn) return protectedReturn;
   const fromQuery = normalizeReturnTo(router.query.returnTo);
   if (fromQuery) return fromQuery;
   return "/";

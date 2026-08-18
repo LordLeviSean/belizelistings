@@ -83,6 +83,7 @@ export function UserRoleProvider({ children }) {
   const initializedRef = useRef(false);
   const hydratedUserIdRef = useRef(null);
   const resolveUserRoleRef = useRef(null);
+  const initialAuthSettledRef = useRef(false);
 
   const applySessionProfile = useCallback((sessionUser, row) => {
     const effective = buildEffectiveProfileRow(sessionUser, row);
@@ -180,19 +181,42 @@ export function UserRoleProvider({ children }) {
         const {
           data: { user: authUser },
         } = await supabase.auth.getUser();
-        await resolveUserRole(authUser ?? null, { event: "INITIAL_SESSION" });
+        if (authUser?.id) {
+          initialAuthSettledRef.current = true;
+          await resolveUserRole(authUser, { event: "INITIAL_SESSION" });
+        }
+        // When no user from getUser(), wait for onAuthStateChange INITIAL_SESSION
+        // before treating the session as terminal logged-out (PWA cold-start safe).
       } catch (e) {
         console.error("[useUserRole] bootstrap failed", e);
         if (!cancelled) {
           clearSessionState();
           setLoading(false);
+          initialAuthSettledRef.current = true;
         }
       }
     };
 
     void bootstrap();
 
+    const authBootstrapTimeout =
+      typeof window !== "undefined"
+        ? window.setTimeout(() => {
+            if (cancelled || initialAuthSettledRef.current) return;
+            initialAuthSettledRef.current = true;
+            clearSessionState();
+            setLoading(false);
+          }, 8000)
+        : null;
+
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "INITIAL_SESSION") {
+        initialAuthSettledRef.current = true;
+        if (authBootstrapTimeout) window.clearTimeout(authBootstrapTimeout);
+        void resolveUserRole(session?.user ?? null, { event });
+        return;
+      }
+
       if (event === "TOKEN_REFRESHED") {
         return;
       }
@@ -232,6 +256,7 @@ export function UserRoleProvider({ children }) {
 
     return () => {
       cancelled = true;
+      if (authBootstrapTimeout) window.clearTimeout(authBootstrapTimeout);
       resolveUserRoleRef.current = null;
       listener.subscription.unsubscribe();
     };

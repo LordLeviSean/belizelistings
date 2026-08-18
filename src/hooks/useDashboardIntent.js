@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useRef } from "react";
 import {
+  buildProtectedLoginHref,
+  captureProtectedEntryFromWindow,
+  clearPendingProtectedEntry,
+  readPendingProtectedEntry,
+  resolveProtectedEntryHref,
+  savePendingProtectedEntry,
+  shouldAcknowledgeProtectedEntry,
+} from "@/lib/auth/protectedEntry";
+import {
   createDashboardIntentStore,
   dashboardBootstrapShellLabel,
   maybeClearStaleDashboardIntent,
@@ -44,6 +53,41 @@ export function useDashboardIntent({
   redirectDashboardHref = "/dashboard",
 }) {
   const intentStoreRef = useRef(createDashboardIntentStore());
+  const protectedEntryRef = useRef(null);
+
+  useEffect(() => {
+    const fromWindow = captureProtectedEntryFromWindow();
+    if (fromWindow) {
+      protectedEntryRef.current = fromWindow;
+      savePendingProtectedEntry(fromWindow);
+      return;
+    }
+    const pending = readPendingProtectedEntry();
+    if (pending?.href) {
+      protectedEntryRef.current = pending.href;
+    }
+  }, []);
+
+  useEffect(() => {
+    const resolved = resolveProtectedEntryHref({
+      router,
+      pendingFromStorage: protectedEntryRef.current
+        ? { href: protectedEntryRef.current }
+        : readPendingProtectedEntry(),
+    });
+    if (resolved) {
+      protectedEntryRef.current = resolved;
+      savePendingProtectedEntry(resolved);
+    }
+  }, [
+    router.isReady,
+    router.pathname,
+    router.asPath,
+    router.query.tab,
+    router.query.conversation,
+    router.query.viewing,
+    router.query.listing,
+  ]);
 
   const locationQuery = useMemo(
     () => resolveDashboardLocationQuery(router),
@@ -103,12 +147,51 @@ export function useDashboardIntent({
 
   useEffect(() => {
     if (!shouldRunDashboardRedirect(bootstrapPhase)) return;
+
+    const destination =
+      protectedEntryRef.current ||
+      resolveProtectedEntryHref({ router, pendingFromStorage: readPendingProtectedEntry() });
+
     if (bootstrapPhase === "redirect_login") {
-      router.replace("/login");
+      if (destination) {
+        savePendingProtectedEntry(destination);
+      }
+      router.replace(buildProtectedLoginHref(destination || router.asPath || "/dashboard"));
       return;
     }
+
     router.replace(redirectDashboardHref);
   }, [bootstrapPhase, router, redirectDashboardHref]);
+
+  useEffect(() => {
+    if (bootstrapPhase !== "ready") return;
+
+    const destination =
+      protectedEntryRef.current ||
+      resolveProtectedEntryHref({ router, pendingFromStorage: readPendingProtectedEntry() });
+
+    const acknowledged = shouldAcknowledgeProtectedEntry({
+      pathname: router.pathname,
+      expectedRole,
+      role,
+      intent,
+      destinationHref: destination,
+    });
+
+    if (!acknowledged) return;
+
+    clearPendingProtectedEntry();
+    protectedEntryRef.current = null;
+  }, [
+    bootstrapPhase,
+    router.pathname,
+    expectedRole,
+    role,
+    intent.tab,
+    intent.conversation,
+    intent.viewing,
+    intent.listing,
+  ]);
 
   useEffect(() => {
     maybeClearStaleDashboardIntent(intentStoreRef.current, {

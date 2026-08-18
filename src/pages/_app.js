@@ -26,6 +26,7 @@ import {
   flushPendingPushNavigation,
   handlePushNavigateMessage,
 } from "@/lib/pwa/pushNotificationNavigation";
+import { captureProtectedEntryFromWindow, savePendingProtectedEntry } from "@/lib/auth/protectedEntry";
 import { InstallationStateProvider } from "@/lib/pwa/InstallationStateProvider";
 
 function ModerationNotificationListener() {
@@ -55,6 +56,13 @@ function AppWithAlerts({ Component, pageProps }) {
 
   useEffect(() => {
     registerBelizeListingsServiceWorker();
+  }, []);
+
+  useEffect(() => {
+    const href = captureProtectedEntryFromWindow();
+    if (href) {
+      savePendingProtectedEntry(href);
+    }
   }, []);
 
   useEffect(() => {

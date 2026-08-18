@@ -1,3 +1,5 @@
+import { readPendingProtectedEntry } from "./auth/protectedEntry";
+
 /** Session-scoped pending action after guest attempts authenticated listing engagement. */
 export const PENDING_LISTING_ENGAGEMENT_KEY = "bl_pending_listing_engagement";
 
@@ -107,6 +109,10 @@ export function clearPendingListingEngagement() {
 export function resolvePostAuthEngagementReturnPath() {
   const pending = readAnyPendingListingEngagement();
   return pending?.returnPath || null;
+}
+
+export function resolvePostAuthProtectedEntryPath() {
+  return readPendingProtectedEntry()?.href ?? null;
 }
 
 export function shouldTriggerListingEngagementAction(action) {

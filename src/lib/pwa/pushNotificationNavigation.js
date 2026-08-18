@@ -1,3 +1,5 @@
+import { savePendingProtectedEntry } from "@/lib/auth/protectedEntry";
+
 /**
  * Client-side navigation fallback when a focused PWA window cannot use Client.navigate().
  */
@@ -30,6 +32,8 @@ export function handlePushNavigateMessage(data, router, options = {}) {
   const destination = href.trim();
   const pendingHrefRef = options.pendingHrefRef;
 
+  savePendingProtectedEntry(destination);
+
   if (router?.isReady === false && pendingHrefRef) {
     pendingHrefRef.current = destination;
     return true;
@@ -50,6 +54,7 @@ export function flushPendingPushNavigation(pendingHrefRef, router) {
 
   const href = pendingHrefRef.current;
   pendingHrefRef.current = null;
+  savePendingProtectedEntry(href);
   void router.push(href);
   return true;
 }
