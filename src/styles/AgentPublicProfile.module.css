@@ -9,9 +9,9 @@
 }
 
 .main {
-  max-width: 1120px;
+  width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 28px 20px 56px;
+  padding: 28px 0 56px;
 }
 
 .hero {
@@ -121,7 +121,7 @@
 
 @media (max-width: 640px) {
   .main {
-    padding: 20px 16px 48px;
+    padding: 20px 0 48px;
   }
 
   .grid {
